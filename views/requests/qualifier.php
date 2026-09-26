@@ -34,9 +34,36 @@
         </div>
         <div class="form-group">
           <label>Pays de destination</label>
-          <input type="text" name="destination_pays" placeholder="Ex : France">
+          <input type="text" name="destination_pays" list="pays-list" placeholder="Ex : France">
         </div>
       </div>
+
+      <div class="form-group">
+        <label>Lieu de livraison précis</label>
+        <input type="text" name="lieu_livraison" placeholder="Ex : Entrepôt Douala-Bassa, ou adresse du client">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Incoterm souhaité par le client</label>
+          <select name="incoterm_souhaite">
+            <option value="">— Non précisé —</option>
+            <?php foreach (Demande::INCOTERMS as $code => $label): ?>
+              <option value="<?= $code ?>"><?= View::e($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mode de paiement souhaité</label>
+          <select name="mode_paiement_souhaite">
+            <option value="">— Non précisé —</option>
+            <?php foreach (Demande::MODES_PAIEMENT as $code => $label): ?>
+              <option value="<?= $code ?>"><?= View::e($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#888;margin-top:-8px;margin-bottom:16px">Ce sont les souhaits exprimés par le client à ce stade — les conditions définitives seront reconfirmées lors de l'offre fournisseur et de la cotation.</div>
 
       <div class="form-row">
         <div class="form-group">
@@ -177,3 +204,28 @@
   </div>
 
 </div>
+
+<datalist id="pays-list">
+  <option value="Cameroun">
+  <option value="France">
+  <option value="Côte d'Ivoire">
+  <option value="Sénégal">
+  <option value="Mali">
+  <option value="Togo">
+  <option value="Bénin">
+  <option value="Gabon">
+  <option value="Congo (Brazzaville)">
+  <option value="RD Congo">
+  <option value="Nigeria">
+  <option value="Ghana">
+  <option value="Maroc">
+  <option value="Tunisie">
+  <option value="Algérie">
+  <option value="Belgique">
+  <option value="Allemagne">
+  <option value="Chine">
+  <option value="Émirats arabes unis">
+  <option value="Inde">
+  <option value="Turquie">
+  <option value="États-Unis">
+</datalist>

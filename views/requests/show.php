@@ -64,7 +64,12 @@ $peutRejeter = in_array($demande['statut'], ['a_qualifier', 'en_attente_info', '
 <?php if (!empty($demande['qualification_type']) || $demande['statut'] === 'rejetee'): ?>
 <div class="card">
   <h2>Qualification</h2>
-  <?php if ($demande['qualification_type'] === 'ADDITION'): ?>
+  <?php if ($demande['qualification_type'] === 'NEW'): ?>
+    <div class="info-row"><span class="label">Client</span><span><?= View::e($client['nom'] ?? 'Prospect / non enregistré') ?></span></div>
+    <div class="info-row"><span class="label">Destination</span><span><?= View::e(trim(($demande['lieu_livraison'] ?? '') . (($demande['lieu_livraison'] ?? '') && ($demande['destination_pays'] ?? '') ? ' — ' : '') . ($demande['destination_pays'] ?? ''))) ?: '—' ?></span></div>
+    <div class="info-row"><span class="label">Incoterm souhaité</span><span><?= View::e(Demande::INCOTERMS[$demande['incoterm_souhaite'] ?? ''] ?? '—') ?></span></div>
+    <div class="info-row"><span class="label">Mode de paiement souhaité</span><span><?= View::e(Demande::MODES_PAIEMENT[$demande['mode_paiement_souhaite'] ?? ''] ?? '—') ?></span></div>
+  <?php elseif ($demande['qualification_type'] === 'ADDITION'): ?>
     <div class="info-row"><span class="label">Rattachée à</span><span>
       <?php if ($linkedDemande): ?>
         <a href="/index.php?r=demandes/<?= $linkedDemande['id'] ?>">Demande <?= View::e($linkedDemande['reference']) ?></a>

@@ -14,6 +14,34 @@ class Demande
         'EXTERNAL_TAKEOVER' => 'Reprise hors Suivora',
     ];
 
+    // Incoterms 2020 (ICC) — liste standard, utilisée pour le souhait initial du client
+    public const INCOTERMS = [
+        'EXW' => 'EXW — Ex Works (départ usine)',
+        'FCA' => 'FCA — Free Carrier',
+        'FAS' => 'FAS — Free Alongside Ship',
+        'FOB' => 'FOB — Free On Board',
+        'CFR' => 'CFR — Cost and Freight',
+        'CIF' => 'CIF — Cost, Insurance and Freight',
+        'CPT' => 'CPT — Carriage Paid To',
+        'CIP' => 'CIP — Carriage and Insurance Paid To',
+        'DAP' => 'DAP — Delivered At Place',
+        'DPU' => 'DPU — Delivered at Place Unloaded',
+        'DDP' => 'DDP — Delivered Duty Paid',
+    ];
+
+    // Modes de paiement courants — souhait initial du client, à reconfirmer en cotation
+    public const MODES_PAIEMENT = [
+        'virement' => 'Virement bancaire',
+        'lc' => 'Lettre de crédit (L/C)',
+        'avance' => 'Paiement à la commande (avance)',
+        'echelonne' => 'Paiement échelonné',
+        'livraison' => 'Paiement à la livraison',
+        'mobile_money' => 'Mobile Money',
+        'cheque' => 'Chèque',
+        'especes' => 'Espèces',
+        'autre' => 'Autre',
+    ];
+
     public const TAKEOVER_STAGES = [
         'qualification' => 'Demande en cours de qualification',
         'recherche_fournisseurs' => 'Recherche de fournisseurs',
@@ -132,6 +160,9 @@ class Demande
                 priorite = ?,
                 echeance = ?,
                 destination_pays = ?,
+                lieu_livraison = ?,
+                incoterm_souhaite = ?,
+                mode_paiement_souhaite = ?,
                 qualification_type = 'NEW',
                 qualification_status = ?,
                 qualification_notes = ?,
@@ -147,6 +178,9 @@ class Demande
             $data['priorite'] ?? 'normale',
             ($data['echeance'] ?? null) ?: null,
             trim($data['destination_pays'] ?? ''),
+            trim($data['lieu_livraison'] ?? ''),
+            trim($data['incoterm_souhaite'] ?? ''),
+            trim($data['mode_paiement_souhaite'] ?? ''),
             $status,
             trim($data['notes'] ?? ''),
             date('Y-m-d H:i:s'),
