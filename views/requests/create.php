@@ -79,9 +79,20 @@ $activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'I
       </select>
     </div>
   </div>
-  <div class="form-group">
-    <label>Échéance</label>
-    <input type="date" name="echeance">
+  <div class="form-row">
+    <div class="form-group">
+      <label>Responsable</label>
+      <select name="responsable_id">
+        <option value="">— Non assigné —</option>
+        <?php foreach ($utilisateurs as $u): ?>
+          <option value="<?= $u['id'] ?>"><?= View::e($u['nom']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Échéance</label>
+      <input type="date" name="echeance">
+    </div>
   </div>
 
   <div style="margin-top:24px">

@@ -92,6 +92,14 @@ class Demande
             $like = '%' . $filters['recherche'] . '%';
             array_push($params, $like, $like, $like);
         }
+        if (!empty($filters['date_debut'])) {
+            $sql .= ' AND d.recue_le >= ?';
+            $params[] = $filters['date_debut'];
+        }
+        if (!empty($filters['date_fin'])) {
+            $sql .= ' AND d.recue_le <= ?';
+            $params[] = $filters['date_fin'];
+        }
 
         $sql .= ' ORDER BY d.created_at DESC';
 

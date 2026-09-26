@@ -15,6 +15,15 @@ $statutInfo = $statutBadges[$demande['statut']] ?? [ucfirst($demande['statut']),
 $peutQualifier = in_array($demande['statut'], ['a_qualifier', 'en_attente_info'], true);
 $peutCreerDossier = $demande['statut'] === 'qualifiee' && !$dossier;
 $peutRejeter = in_array($demande['statut'], ['a_qualifier', 'en_attente_info', 'qualifiee'], true);
+$echeanceEnRetard = !empty($demande['echeance']) && strtotime($demande['echeance']) < strtotime('today') && in_array($demande['statut'], ['a_qualifier', 'en_attente_info'], true);
+$actionLabels = [
+    'creation' => 'Demande créée',
+    'qualification' => 'Qualifiée — nouvelle demande',
+    'qualification_rattachement' => 'Qualifiée — rattachée à un élément existant',
+    'qualification_reprise' => 'Qualifiée — reprise hors Suivora',
+    'creation_dossier' => 'Dossier créé',
+    'rejet_demande' => 'Demande rejetée',
+];
 ?>
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
@@ -140,7 +149,25 @@ $peutRejeter = in_array($demande['statut'], ['a_qualifier', 'en_attente_info', '
       <div class="info-row"><span class="label">Activité</span><span><?= View::e($demande['activite']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Responsable</span><span><?= View::e(Utilisateur::nameOf($demande['responsable_id'])) ?></span></div>
       <div class="info-row"><span class="label">Priorité</span><span><?= $demande['priorite'] === 'haute' ? 'Haute' : 'Normale' ?></span></div>
-      <div class="info-row"><span class="label">Échéance</span><span><?= $demande['echeance'] ? date('d/m/Y', strtotime($demande['echeance'])) : '—' ?></span></div>
+      <div class="info-row">
+        <span class="label">Échéance</span>
+        <span>
+          <?= $demande['echeance'] ? date('d/m/Y', strtotime($demande['echeance'])) : '—' ?>
+          <?php if ($echeanceEnRetard): ?> <span class="badge badge-red">En retard</span><?php endif; ?>
+        </span>
+      </div>
     </div>
+
+    <?php if (!empty($historique)): ?>
+    <div class="card">
+      <h2>Historique</h2>
+      <?php foreach ($historique as $h): ?>
+        <div class="info-row">
+          <span class="label"><?= date('d/m/Y H:i', strtotime($h['created_at'])) ?></span>
+          <span><?= View::e($actionLabels[$h['action']] ?? $h['action']) ?><?php if ($h['utilisateur_nom']): ?> — <?= View::e($h['utilisateur_nom']) ?><?php endif; ?></span>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
   </div>
 </div>

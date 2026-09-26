@@ -20,12 +20,17 @@ class DemandeController
         $filters = [
             'statut' => $_GET['statut'] ?? null,
             'recherche' => $_GET['q'] ?? null,
+            'responsable_id' => $_GET['responsable_id'] ?? null,
+            'date_debut' => $_GET['date_debut'] ?? null,
+            'date_fin' => $_GET['date_fin'] ?? null,
         ];
         $demandes = Demande::visibleFor($user, $filters);
+        $utilisateurs = Utilisateur::allForOrganisation((int) $user['organisation_id']);
 
         View::render('requests/index', [
             'demandes' => $demandes,
             'filters' => $filters,
+            'utilisateurs' => $utilisateurs,
         ]);
     }
 
@@ -33,7 +38,8 @@ class DemandeController
     {
         $user = Auth::user();
         $filiales = Filiale::visibleFor($user);
-        View::render('requests/create', ['filiales' => $filiales]);
+        $utilisateurs = Utilisateur::allForOrganisation((int) $user['organisation_id']);
+        View::render('requests/create', ['filiales' => $filiales, 'utilisateurs' => $utilisateurs]);
     }
 
     public function store(): void
@@ -74,6 +80,7 @@ class DemandeController
             'priorite' => $_POST['priorite'] ?? 'normale',
             'echeance' => $_POST['echeance'] ?? null,
         ]);
+        AuditLog::log($filialeId, (int) $user['id'], 'creation', 'demande', $demandeId, 'Demande créée');
 
         View::flash('succes', 'Demande créée avec succès.');
         header('Location: /index.php?r=demandes/' . $demandeId);
@@ -97,6 +104,7 @@ class DemandeController
         $client = !empty($demande['client_id']) ? Client::find((int) $demande['client_id']) : null;
         $linkedDemande = !empty($demande['linked_request_id']) ? Demande::find((int) $demande['linked_request_id']) : null;
         $linkedDossier = !empty($demande['linked_dossier_id']) ? Dossier::find((int) $demande['linked_dossier_id']) : null;
+        $historique = AuditLog::forEntity('demande', (int) $demande['id']);
 
         View::render('requests/show', [
             'demande' => $demande,
@@ -106,6 +114,7 @@ class DemandeController
             'client' => $client,
             'linkedDemande' => $linkedDemande,
             'linkedDossier' => $linkedDossier,
+            'historique' => $historique,
         ]);
     }
 

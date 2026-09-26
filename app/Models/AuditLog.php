@@ -39,4 +39,20 @@ class AuditLog
         $stmt->execute([$filialeId]);
         return $stmt->fetchAll();
     }
+
+    /**
+     * Historique complet d'une entité précise (ex : toutes les actions sur une demande),
+     * du plus ancien au plus récent — pensé pour afficher une frise chronologique.
+     */
+    public static function forEntity(string $entiteType, int $entiteId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT a.*, u.nom AS utilisateur_nom FROM audit_logs a
+             LEFT JOIN utilisateurs u ON u.id = a.utilisateur_id
+             WHERE a.entite_type = ? AND a.entite_id = ?
+             ORDER BY a.created_at ASC, a.id ASC'
+        );
+        $stmt->execute([$entiteType, $entiteId]);
+        return $stmt->fetchAll();
+    }
 }

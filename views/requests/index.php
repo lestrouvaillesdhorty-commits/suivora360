@@ -7,15 +7,61 @@
   <a href="/index.php?r=demandes/nouvelle" class="btn">+ Nouvelle demande</a>
 </div>
 
-<form method="get" action="/index.php" style="margin-bottom:16px;display:flex;gap:10px">
+<?php
+$statutsFiltre = [
+    'a_qualifier' => 'À qualifier',
+    'en_attente_info' => "En attente d'infos",
+    'qualifiee' => 'Qualifiée',
+    'rattachee' => 'Rattachée',
+    'transformee' => 'Transformée en dossier',
+    'rejetee' => 'Rejetée',
+    'archivee' => 'Archivée',
+];
+$statutBadges = [
+    'a_qualifier' => ['À qualifier', 'badge-yellow'],
+    'en_attente_info' => ["En attente d'infos", 'badge-yellow'],
+    'qualifiee' => ['Qualifiée', 'badge-blue'],
+    'rattachee' => ['Rattachée', 'badge-blue'],
+    'transformee' => ['Transformée en dossier', 'badge-green'],
+    'rejetee' => ['Rejetée', 'badge-red'],
+    'archivee' => ['Archivée', 'badge-gray'],
+];
+$nonQualifiee = ['a_qualifier', 'en_attente_info'];
+?>
+<form method="get" action="/index.php" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
   <input type="hidden" name="r" value="demandes">
-  <input type="text" name="q" placeholder="Référence, objet, contact..." value="<?= View::e($filters['recherche'] ?? '') ?>" style="max-width:320px">
-  <select name="statut" onchange="this.form.submit()">
-    <option value="">Tous les statuts</option>
-    <option value="a_qualifier" <?= ($filters['statut'] ?? '') === 'a_qualifier' ? 'selected' : '' ?>>À qualifier</option>
-    <option value="qualifiee" <?= ($filters['statut'] ?? '') === 'qualifiee' ? 'selected' : '' ?>>Qualifiée</option>
-  </select>
+  <div class="form-group" style="margin:0">
+    <label style="font-size:12px">Recherche</label>
+    <input type="text" name="q" placeholder="Référence, objet, contact..." value="<?= View::e($filters['recherche'] ?? '') ?>" style="max-width:240px">
+  </div>
+  <div class="form-group" style="margin:0">
+    <label style="font-size:12px">Statut</label>
+    <select name="statut">
+      <option value="">Tous les statuts</option>
+      <?php foreach ($statutsFiltre as $code => $label): ?>
+        <option value="<?= $code ?>" <?= ($filters['statut'] ?? '') === $code ? 'selected' : '' ?>><?= $label ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0">
+    <label style="font-size:12px">Responsable</label>
+    <select name="responsable_id">
+      <option value="">Tous</option>
+      <?php foreach ($utilisateurs as $u): ?>
+        <option value="<?= $u['id'] ?>" <?= (string) ($filters['responsable_id'] ?? '') === (string) $u['id'] ? 'selected' : '' ?>><?= View::e($u['nom']) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0">
+    <label style="font-size:12px">Reçue du</label>
+    <input type="date" name="date_debut" value="<?= View::e($filters['date_debut'] ?? '') ?>">
+  </div>
+  <div class="form-group" style="margin:0">
+    <label style="font-size:12px">au</label>
+    <input type="date" name="date_fin" value="<?= View::e($filters['date_fin'] ?? '') ?>">
+  </div>
   <button type="submit" class="btn btn-secondary">Filtrer</button>
+  <a href="/index.php?r=demandes" class="btn btn-secondary">Réinitialiser</a>
 </form>
 
 <?php if (empty($demandes)): ?>
@@ -34,13 +80,14 @@
       <td><?= View::e(Utilisateur::nameOf($d['responsable_id'])) ?></td>
       <td><?= $d['priorite'] === 'haute' ? '<span class="badge badge-red">Haute</span>' : '<span class="badge badge-gray">Normale</span>' ?></td>
       <td>
-        <?php if ($d['statut'] === 'a_qualifier'): ?>
-          <span class="badge badge-yellow">À qualifier</span>
-        <?php else: ?>
-          <span class="badge badge-blue">Qualifiée</span>
-        <?php endif; ?>
+        <?php $si = $statutBadges[$d['statut']] ?? [ucfirst($d['statut']), 'badge-gray']; ?>
+        <span class="badge <?= $si[1] ?>"><?= $si[0] ?></span>
       </td>
-      <td><?= $d['echeance'] ? date('d/m/Y', strtotime($d['echeance'])) : '—' ?></td>
+      <td>
+        <?php $enRetard = $d['echeance'] && strtotime($d['echeance']) < strtotime('today') && in_array($d['statut'], $nonQualifiee, true); ?>
+        <?= $d['echeance'] ? date('d/m/Y', strtotime($d['echeance'])) : '—' ?>
+        <?php if ($enRetard): ?> <span class="badge badge-red">En retard</span><?php endif; ?>
+      </td>
     </tr>
     <?php endforeach; ?>
   </tbody>
