@@ -80,6 +80,26 @@ $router->post('/demandes/{id}/rejeter', function ($params) {
     Auth::requireLogin();
     (new DemandeController())->rejeter($params);
 });
+$router->post('/demandes/{id}/pieces', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->uploadPiece($params);
+});
+$router->get('/demandes/{id}/pieces/{pieceId}/telecharger', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->telechargerPiece($params);
+});
+$router->post('/demandes/{id}/pieces/{pieceId}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->supprimerPiece($params);
+});
+$router->post('/demandes/{id}/extraction-ia', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->extraireIa($params);
+});
+$router->post('/demandes/{id}/extraction-ia/confirmer', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->confirmerExtractionIa($params);
+});
 
 // Clients
 $router->get('/clients', function () {

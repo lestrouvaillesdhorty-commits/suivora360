@@ -3,14 +3,17 @@
 namespace App\Controllers;
 
 use App\Core\Auth;
+use App\Core\Storage;
 use App\Core\View;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Demande;
 use App\Models\DemandeArticle;
+use App\Models\DemandePieceJointe;
 use App\Models\Dossier;
 use App\Models\Filiale;
 use App\Models\Utilisateur;
+use App\Services\AiExtracteur;
 
 class DemandeController
 {
@@ -105,6 +108,7 @@ class DemandeController
         $linkedDemande = !empty($demande['linked_request_id']) ? Demande::find((int) $demande['linked_request_id']) : null;
         $linkedDossier = !empty($demande['linked_dossier_id']) ? Dossier::find((int) $demande['linked_dossier_id']) : null;
         $historique = AuditLog::forEntity('demande', (int) $demande['id']);
+        $piecesJointes = DemandePieceJointe::forDemande((int) $demande['id']);
 
         View::render('requests/show', [
             'demande' => $demande,
@@ -115,6 +119,7 @@ class DemandeController
             'linkedDemande' => $linkedDemande,
             'linkedDossier' => $linkedDossier,
             'historique' => $historique,
+            'piecesJointes' => $piecesJointes,
         ]);
     }
 
@@ -267,6 +272,212 @@ class DemandeController
             View::flash('erreur', $e->getMessage());
             header('Location: /index.php?r=demandes/' . $demande['id']);
         }
+        exit;
+    }
+
+    /**
+     * Ajoute une pièce jointe à une demande (message original, devis reçu,
+     * capture WhatsApp...). Le fichier est stocké hors du webroot ; tout
+     * accès repasse obligatoirement par telechargerPiece() ci-dessous.
+     */
+    public function uploadPiece(array $params): void
+    {
+        $user = Auth::user();
+        $demande = $this->loadDemandeOrRedirect($user, $params);
+        if (!$demande) {
+            return;
+        }
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        if (empty($_FILES['fichier']) || $_FILES['fichier']['error'] === UPLOAD_ERR_NO_FILE) {
+            View::flash('erreur', 'Aucun fichier sélectionné.');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        $fichier = $_FILES['fichier'];
+        if ($fichier['error'] !== UPLOAD_ERR_OK) {
+            View::flash('erreur', "Échec de l'envoi du fichier.");
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+        if ($fichier['size'] > DemandePieceJointe::TAILLE_MAX) {
+            View::flash('erreur', 'Le fichier dépasse la taille maximale autorisée (10 Mo).');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        $extension = strtolower(pathinfo($fichier['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, DemandePieceJointe::EXTENSIONS_AUTORISEES, true)) {
+            View::flash('erreur', 'Type de fichier non autorisé (formats acceptés : ' . implode(', ', DemandePieceJointe::EXTENSIONS_AUTORISEES) . ').');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        $nomFichier = bin2hex(random_bytes(16)) . '.' . $extension;
+        $chemin = Storage::path('uploads/demandes/' . $demande['id'] . '/' . $nomFichier);
+        if (!move_uploaded_file($fichier['tmp_name'], $chemin)) {
+            View::flash('erreur', "Impossible d'enregistrer le fichier.");
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        DemandePieceJointe::create([
+            'demande_id' => $demande['id'],
+            'nom_original' => $fichier['name'],
+            'nom_fichier' => $nomFichier,
+            'taille' => $fichier['size'],
+            'type_mime' => $fichier['type'] ?: 'application/octet-stream',
+            'uploaded_by' => (int) $user['id'],
+        ]);
+        AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'ajout_piece_jointe', 'demande', (int) $demande['id'], $fichier['name']);
+
+        View::flash('succes', 'Pièce jointe ajoutée.');
+        header('Location: /index.php?r=demandes/' . $demande['id']);
+        exit;
+    }
+
+    public function telechargerPiece(array $params): void
+    {
+        $user = Auth::user();
+        $demande = $this->loadDemandeOr404($user, $params);
+        if (!$demande) {
+            return;
+        }
+        $piece = DemandePieceJointe::find((int) $params['pieceId']);
+        if (!$piece || (int) $piece['demande_id'] !== (int) $demande['id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $chemin = Storage::path('uploads/demandes/' . $demande['id'] . '/' . $piece['nom_fichier']);
+        if (!is_file($chemin)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        header('Content-Type: ' . $piece['type_mime']);
+        header('Content-Disposition: attachment; filename="' . basename($piece['nom_original']) . '"');
+        header('Content-Length: ' . filesize($chemin));
+        readfile($chemin);
+        exit;
+    }
+
+    public function supprimerPiece(array $params): void
+    {
+        $user = Auth::user();
+        $demande = $this->loadDemandeOrRedirect($user, $params);
+        if (!$demande) {
+            return;
+        }
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        $piece = DemandePieceJointe::find((int) ($params['pieceId'] ?? 0));
+        if ($piece && (int) $piece['demande_id'] === (int) $demande['id']) {
+            $chemin = Storage::path('uploads/demandes/' . $demande['id'] . '/' . $piece['nom_fichier']);
+            if (is_file($chemin)) {
+                unlink($chemin);
+            }
+            DemandePieceJointe::delete($piece['id']);
+            AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'suppression_piece_jointe', 'demande', (int) $demande['id'], $piece['nom_original']);
+            View::flash('succes', 'Pièce jointe supprimée.');
+        }
+
+        header('Location: /index.php?r=demandes/' . $demande['id']);
+        exit;
+    }
+
+    /**
+     * Lance l'extraction IA des articles depuis le message brut de la
+     * demande, puis affiche une page de relecture (rien n'est enregistré
+     * tant que confirmerExtractionIa() n'a pas été appelé).
+     */
+    public function extraireIa(array $params): void
+    {
+        $user = Auth::user();
+        $demande = $this->loadDemandeOrRedirect($user, $params);
+        if (!$demande) {
+            return;
+        }
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        try {
+            $suggestions = AiExtracteur::extraireArticles($demande['message'] ?? '');
+        } catch (\Throwable $e) {
+            View::flash('erreur', $e->getMessage());
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        if (empty($suggestions)) {
+            View::flash('erreur', "L'IA n'a identifié aucun article dans le message de cette demande.");
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        View::render('requests/extraction_ia', [
+            'demande' => $demande,
+            'suggestions' => $suggestions,
+        ]);
+    }
+
+    public function confirmerExtractionIa(array $params): void
+    {
+        $user = Auth::user();
+        $demande = $this->loadDemandeOrRedirect($user, $params);
+        if (!$demande) {
+            return;
+        }
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
+        $designations = $_POST['designation'] ?? [];
+        $quantites = $_POST['quantite'] ?? [];
+        $unites = $_POST['unite'] ?? [];
+        $inclure = $_POST['inclure'] ?? [];
+
+        $ajoutes = 0;
+        foreach ($designations as $i => $designation) {
+            if (!in_array((string) $i, $inclure, true)) {
+                continue;
+            }
+            $designation = trim((string) $designation);
+            if ($designation === '') {
+                continue;
+            }
+            DemandeArticle::create((int) $demande['id'], [
+                'designation' => $designation,
+                'quantite' => $quantites[$i] ?? null,
+                'unite' => trim((string) ($unites[$i] ?? '')),
+            ]);
+            $ajoutes++;
+        }
+
+        if ($ajoutes > 0) {
+            AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'extraction_ia_articles', 'demande', (int) $demande['id'], "$ajoutes article(s) ajouté(s) via IA");
+            View::flash('succes', "$ajoutes article(s) ajouté(s).");
+        } else {
+            View::flash('erreur', 'Aucun article sélectionné.');
+        }
+
+        header('Location: /index.php?r=demandes/' . $demande['id']);
         exit;
     }
 

@@ -23,6 +23,9 @@ $actionLabels = [
     'qualification_reprise' => 'Qualifiée — reprise hors Suivora',
     'creation_dossier' => 'Dossier créé',
     'rejet_demande' => 'Demande rejetée',
+    'ajout_piece_jointe' => 'Pièce jointe ajoutée',
+    'suppression_piece_jointe' => 'Pièce jointe supprimée',
+    'extraction_ia_articles' => 'Articles ajoutés via IA',
 ];
 ?>
 
@@ -110,6 +113,44 @@ $actionLabels = [
       <div class="info-row"><span class="label">Message</span><span><?= nl2br(View::e($demande['message'])) ?></span></div>
       <div class="info-row"><span class="label">Canal</span><span><?= View::e($demande['canal']) ?></span></div>
       <div class="info-row"><span class="label">Reçue le</span><span><?= $demande['recue_le'] ? date('d/m/Y', strtotime($demande['recue_le'])) : '—' ?></span></div>
+      <?php if (!empty(trim($demande['message'] ?? ''))): ?>
+      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/extraction-ia" style="margin-top:12px;padding-top:12px;border-top:1px solid #eef0f4">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <button type="submit" class="btn btn-sm btn-secondary">Extraire les articles avec l'IA</button>
+      </form>
+      <?php endif; ?>
+    </div>
+
+    <div class="card">
+      <h2>Pièces jointes</h2>
+      <?php if (empty($piecesJointes)): ?>
+        <div class="empty-state">Aucune pièce jointe.</div>
+      <?php else: ?>
+        <table>
+          <thead><tr><th>Fichier</th><th>Taille</th><th>Ajouté le</th><th>Par</th><th></th></tr></thead>
+          <tbody>
+          <?php foreach ($piecesJointes as $p): ?>
+            <tr>
+              <td><a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger"><?= View::e($p['nom_original']) ?></a></td>
+              <td><?= number_format($p['taille'] / 1024, 0) ?> Ko</td>
+              <td><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
+              <td><?= View::e($p['uploaded_by_nom']) ?></td>
+              <td>
+                <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/supprimer" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                  <button type="submit" class="btn btn-sm btn-secondary">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/pieces" enctype="multipart/form-data" style="margin-top:12px;padding-top:12px;border-top:1px solid #eef0f4">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <input type="file" name="fichier" required>
+        <button type="submit" class="btn btn-sm" style="margin-top:8px">Ajouter</button>
+      </form>
     </div>
 
     <div class="card">
