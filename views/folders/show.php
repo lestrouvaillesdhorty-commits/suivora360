@@ -4,7 +4,25 @@ use App\Models\Commande;
 use App\Models\ConsultationFournisseur;
 use App\Models\Cotation;
 use App\Models\Dossier;
+use App\Models\Facture;
 use App\Models\Utilisateur;
+
+$enRetard = $dossier['statut'] === 'actif' && $dossier['echeance'] && strtotime($dossier['echeance']) < strtotime('today');
+$actionLabelsDossier = [
+    'creation_dossier' => 'Dossier créé',
+    'maj_etape_dossier' => 'Étape mise à jour',
+    'ajout_piece_jointe' => 'Pièce jointe ajoutée',
+    'suppression_piece_jointe' => 'Pièce jointe supprimée',
+    'creation_consultation' => 'Consultation fournisseur envoyée',
+    'creation_offre' => 'Offre fournisseur enregistrée',
+    'offre_retenue' => 'Offre retenue',
+    'creation_cotation' => 'Cotation créée',
+    'changement_statut_cotation' => 'Statut de la cotation changé',
+    'creation_commande' => 'Commande créée',
+    'maj_etape_commande' => 'Étape de la commande mise à jour',
+    'creation_facture' => 'Facture créée',
+    'changement_statut_facture' => 'Statut de la facture changé',
+];
 ?>
 <a href="/index.php?r=dossiers" style="font-size:13px;color:#666">&larr; Retour aux dossiers</a>
 
@@ -29,7 +47,7 @@ use App\Models\Utilisateur;
           <?php endforeach; ?>
         </select>
       </form>
-      <div class="info-row"><span class="label">Statut</span><span><?= ucfirst($dossier['statut']) ?></span></div>
+      <div class="info-row"><span class="label">Statut</span><span><?= ucfirst($dossier['statut']) ?><?php if ($enRetard): ?> <span class="badge badge-red">En retard</span><?php endif; ?></span></div>
       <div class="info-row"><span class="label">Responsable</span><span><?= View::e(Utilisateur::nameOf($dossier['responsable_id'])) ?></span></div>
       <div class="info-row"><span class="label">Priorité</span><span><?= $dossier['priorite'] === 'haute' ? 'Haute' : 'Normale' ?></span></div>
       <div class="info-row"><span class="label">Échéance</span><span><?= $dossier['echeance'] ? date('d/m/Y', strtotime($dossier['echeance'])) : '—' ?></span></div>
@@ -161,12 +179,67 @@ use App\Models\Utilisateur;
       <?php else: ?>
         <div class="empty-state" style="margin-top:12px">En attente d'une cotation acceptée par le client.</div>
       <?php endif; ?>
+
+      <?php if (!empty($factures)): ?>
+        <table style="margin-top:16px">
+          <thead><tr><th>Référence</th><th>Type</th><th>Montant</th><th>Statut</th></tr></thead>
+          <tbody>
+          <?php foreach ($factures as $f): ?>
+            <tr>
+              <td><?= View::e($f['reference']) ?></td>
+              <td><?= Facture::TYPES[$f['type']] ?? $f['type'] ?></td>
+              <td><?= number_format((float) $f['montant'], 2, ',', ' ') ?> <?= View::e($f['devise']) ?></td>
+              <td><span class="badge <?= $f['statut'] === 'payee' ? 'badge-green' : ($f['statut'] === 'annulee' ? 'badge-red' : 'badge-blue') ?>"><?= Facture::STATUTS[$f['statut']] ?? $f['statut'] ?></span></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
     </div>
 
     <div class="card">
-      <h2>Documents</h2>
-      <div class="empty-state">Fonctionnalité à venir</div>
+      <h2>Pièces jointes</h2>
+      <?php if (empty($piecesJointes)): ?>
+        <div class="empty-state">Aucune pièce jointe.</div>
+      <?php else: ?>
+        <table>
+          <thead><tr><th>Fichier</th><th>Taille</th><th>Ajouté le</th><th>Par</th><th></th></tr></thead>
+          <tbody>
+          <?php foreach ($piecesJointes as $p): ?>
+            <tr>
+              <td><a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/telecharger"><?= View::e($p['nom_original']) ?></a></td>
+              <td><?= number_format($p['taille'] / 1024, 0) ?> Ko</td>
+              <td><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
+              <td><?= View::e($p['uploaded_by_nom']) ?></td>
+              <td>
+                <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/supprimer" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                  <button type="submit" class="btn btn-sm btn-secondary">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+      <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces" enctype="multipart/form-data" style="margin-top:12px;padding-top:12px;border-top:1px solid #eef0f4">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <input type="file" name="fichier" required>
+        <button type="submit" class="btn btn-sm" style="margin-top:8px">Ajouter</button>
+      </form>
     </div>
+
+    <?php if (!empty($historique)): ?>
+    <div class="card">
+      <h2>Historique</h2>
+      <?php foreach ($historique as $h): ?>
+        <div class="info-row">
+          <span class="label"><?= date('d/m/Y H:i', strtotime($h['created_at'])) ?></span>
+          <span><?= View::e($actionLabelsDossier[$h['action']] ?? $h['action']) ?><?php if ($h['utilisateur_nom']): ?> — <?= View::e($h['utilisateur_nom']) ?><?php endif; ?></span>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
   </div>
 
   <div>

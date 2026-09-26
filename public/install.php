@@ -131,6 +131,17 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         created_at DATETIME NOT NULL
     )$engine");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS dossier_pieces_jointes (
+        id $id,
+        dossier_id INT NOT NULL,
+        nom_original VARCHAR(255) NOT NULL,
+        nom_fichier VARCHAR(255) NOT NULL,
+        taille INT NOT NULL DEFAULT 0,
+        type_mime VARCHAR(100),
+        uploaded_by INT,
+        created_at DATETIME NOT NULL
+    )$engine");
+
     $pdo->exec("CREATE TABLE IF NOT EXISTS clients (
         id $id,
         filiale_id INT NOT NULL,

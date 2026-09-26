@@ -190,6 +190,18 @@ $router->post('/dossiers/{id}/notes', function ($params) {
     Auth::requireLogin();
     (new DossierController())->updateNotes($params);
 });
+$router->post('/dossiers/{id}/pieces', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->uploadPiece($params);
+});
+$router->get('/dossiers/{id}/pieces/{pieceId}/telecharger', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->telechargerPiece($params);
+});
+$router->post('/dossiers/{id}/pieces/{pieceId}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->supprimerPiece($params);
+});
 
 // Consultations fournisseurs (sourcing)
 $router->get('/dossiers/{id}/consultations/nouvelle', function ($params) {

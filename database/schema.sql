@@ -136,6 +136,17 @@ CREATE TABLE IF NOT EXISTS demande_pieces_jointes (
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS dossier_pieces_jointes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dossier_id INT NOT NULL,
+    nom_original VARCHAR(255) NOT NULL,
+    nom_fichier VARCHAR(255) NOT NULL,
+    taille INT NOT NULL DEFAULT 0,
+    type_mime VARCHAR(100),
+    uploaded_by INT,
+    created_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS dossiers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     demande_id INT NOT NULL UNIQUE,

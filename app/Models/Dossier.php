@@ -33,20 +33,53 @@ class Dossier
         return $row ?: null;
     }
 
-    public static function visibleFor(array $user): array
+    public static function visibleFor(array $user, array $filters = []): array
     {
         $filialeIds = Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT d.*, f.nom AS filiale_nom FROM dossiers d
-             INNER JOIN filiales f ON f.id = d.filiale_id
-             WHERE d.filiale_id IN ($placeholders)
-             ORDER BY d.created_at DESC"
-        );
-        $stmt->execute($filialeIds);
+        $sql = "SELECT d.*, f.nom AS filiale_nom FROM dossiers d
+                INNER JOIN filiales f ON f.id = d.filiale_id
+                WHERE d.filiale_id IN ($placeholders)";
+        $params = $filialeIds;
+
+        if (!empty($filters['statut']) && $filters['statut'] === 'en_retard') {
+            // "En retard" n'est pas une valeur stockée : un dossier actif dont
+            // l'échéance est dépassée.
+            $sql .= " AND d.statut = 'actif' AND d.echeance IS NOT NULL AND d.echeance < ?";
+            $params[] = date('Y-m-d');
+        } elseif (!empty($filters['statut'])) {
+            $sql .= ' AND d.statut = ?';
+            $params[] = $filters['statut'];
+        }
+        if (!empty($filters['etape'])) {
+            $sql .= ' AND d.etape = ?';
+            $params[] = $filters['etape'];
+        }
+        if (!empty($filters['responsable_id'])) {
+            $sql .= ' AND d.responsable_id = ?';
+            $params[] = $filters['responsable_id'];
+        }
+        if (!empty($filters['recherche'])) {
+            $sql .= ' AND (d.reference LIKE ? OR d.objet LIKE ?)';
+            $like = '%' . $filters['recherche'] . '%';
+            array_push($params, $like, $like);
+        }
+        if (!empty($filters['date_debut'])) {
+            $sql .= ' AND d.created_at >= ?';
+            $params[] = $filters['date_debut'];
+        }
+        if (!empty($filters['date_fin'])) {
+            $sql .= ' AND d.created_at <= ?';
+            $params[] = $filters['date_fin'] . ' 23:59:59';
+        }
+
+        $sql .= ' ORDER BY d.created_at DESC';
+
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
