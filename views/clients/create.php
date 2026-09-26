@@ -1,4 +1,6 @@
-<?php use App\Core\View; ?>
+<?php use App\Core\View;
+$paysListe = ['Cameroun', 'France', "Côte d'Ivoire", 'Sénégal', 'Mali', 'Togo', 'Bénin', 'Gabon', 'Congo (Brazzaville)', 'RD Congo', 'Nigeria', 'Ghana', 'Maroc', 'Tunisie', 'Algérie', 'Belgique', 'Allemagne', 'Chine', 'Émirats arabes unis', 'Inde', 'Turquie', 'États-Unis'];
+?>
 <h1>Nouveau client</h1>
 <div class="subtitle">Enregistrer un client</div>
 
@@ -32,7 +34,15 @@
   </div>
 
   <div class="form-row">
-    <div class="form-group"><label>Pays</label><input type="text" name="pays" list="pays-list"></div>
+    <div class="form-group">
+      <label>Pays</label>
+      <select name="pays">
+        <option value="">—</option>
+        <?php foreach ($paysListe as $p): ?>
+          <option><?= View::e($p) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
     <div class="form-group"><label>Ville</label><input type="text" name="ville"></div>
   </div>
 
@@ -46,28 +56,3 @@
   </div>
 </form>
 </div>
-
-<datalist id="pays-list">
-  <option value="Cameroun">
-  <option value="France">
-  <option value="Côte d'Ivoire">
-  <option value="Sénégal">
-  <option value="Mali">
-  <option value="Togo">
-  <option value="Bénin">
-  <option value="Gabon">
-  <option value="Congo (Brazzaville)">
-  <option value="RD Congo">
-  <option value="Nigeria">
-  <option value="Ghana">
-  <option value="Maroc">
-  <option value="Tunisie">
-  <option value="Algérie">
-  <option value="Belgique">
-  <option value="Allemagne">
-  <option value="Chine">
-  <option value="Émirats arabes unis">
-  <option value="Inde">
-  <option value="Turquie">
-  <option value="États-Unis">
-</datalist>

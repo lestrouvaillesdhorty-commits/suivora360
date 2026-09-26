@@ -34,7 +34,12 @@
         </div>
         <div class="form-group">
           <label>Pays de destination</label>
-          <input type="text" name="destination_pays" list="pays-list" placeholder="Ex : France">
+          <select name="destination_pays">
+            <option value="">—</option>
+            <?php foreach (['Cameroun', 'France', "Côte d'Ivoire", 'Sénégal', 'Mali', 'Togo', 'Bénin', 'Gabon', 'Congo (Brazzaville)', 'RD Congo', 'Nigeria', 'Ghana', 'Maroc', 'Tunisie', 'Algérie', 'Belgique', 'Allemagne', 'Chine', 'Émirats arabes unis', 'Inde', 'Turquie', 'États-Unis'] as $p): ?>
+              <option><?= View::e($p) ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
       </div>
 
@@ -204,28 +209,3 @@
   </div>
 
 </div>
-
-<datalist id="pays-list">
-  <option value="Cameroun">
-  <option value="France">
-  <option value="Côte d'Ivoire">
-  <option value="Sénégal">
-  <option value="Mali">
-  <option value="Togo">
-  <option value="Bénin">
-  <option value="Gabon">
-  <option value="Congo (Brazzaville)">
-  <option value="RD Congo">
-  <option value="Nigeria">
-  <option value="Ghana">
-  <option value="Maroc">
-  <option value="Tunisie">
-  <option value="Algérie">
-  <option value="Belgique">
-  <option value="Allemagne">
-  <option value="Chine">
-  <option value="Émirats arabes unis">
-  <option value="Inde">
-  <option value="Turquie">
-  <option value="États-Unis">
-</datalist>

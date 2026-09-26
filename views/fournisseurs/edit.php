@@ -1,4 +1,6 @@
-<?php use App\Core\View; ?>
+<?php use App\Core\View;
+$paysListe = ['Cameroun', 'France', "Côte d'Ivoire", 'Sénégal', 'Mali', 'Togo', 'Bénin', 'Gabon', 'Congo (Brazzaville)', 'RD Congo', 'Nigeria', 'Ghana', 'Maroc', 'Tunisie', 'Algérie', 'Belgique', 'Allemagne', 'Chine', 'Émirats arabes unis', 'Inde', 'Turquie', 'États-Unis'];
+?>
 <a href="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>" style="font-size:13px;color:#666">&larr; Retour au fournisseur</a>
 
 <h1>Modifier <?= View::e($fournisseur['nom']) ?></h1>
@@ -21,7 +23,15 @@
   <div class="form-row">
     <div class="form-group">
       <label>Pays</label>
-      <input type="text" name="pays" list="pays-list" value="<?= View::e($fournisseur['pays']) ?>">
+      <select name="pays">
+        <option value="">—</option>
+        <?php if ($fournisseur['pays'] && !in_array($fournisseur['pays'], $paysListe, true)): ?>
+          <option selected><?= View::e($fournisseur['pays']) ?></option>
+        <?php endif; ?>
+        <?php foreach ($paysListe as $p): ?>
+          <option <?= $fournisseur['pays'] === $p ? 'selected' : '' ?>><?= View::e($p) ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
     <div class="form-group"><label>Ville</label><input type="text" name="ville" value="<?= View::e($fournisseur['ville']) ?>"></div>
   </div>
@@ -48,28 +58,3 @@
   </div>
 </form>
 </div>
-
-<datalist id="pays-list">
-  <option value="Cameroun">
-  <option value="France">
-  <option value="Côte d'Ivoire">
-  <option value="Sénégal">
-  <option value="Mali">
-  <option value="Togo">
-  <option value="Bénin">
-  <option value="Gabon">
-  <option value="Congo (Brazzaville)">
-  <option value="RD Congo">
-  <option value="Nigeria">
-  <option value="Ghana">
-  <option value="Maroc">
-  <option value="Tunisie">
-  <option value="Algérie">
-  <option value="Belgique">
-  <option value="Allemagne">
-  <option value="Chine">
-  <option value="Émirats arabes unis">
-  <option value="Inde">
-  <option value="Turquie">
-  <option value="États-Unis">
-</datalist>
