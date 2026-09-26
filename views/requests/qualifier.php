@@ -1,4 +1,8 @@
-<?php use App\Core\View; use App\Models\Demande; ?>
+<?php
+use App\Core\View;
+use App\Models\Demande;
+$activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'Import', 'Export', 'Dédouanement et transit', 'Négoce international', 'Représentation commerciale', 'Autre'];
+?>
 <a href="/index.php?r=demandes/<?= $demande['id'] ?>" style="font-size:13px;color:#666">&larr; Retour à la demande</a>
 
 <h1>Qualifier la demande <?= View::e($demande['reference']) ?></h1>
@@ -30,7 +34,15 @@
       <div class="form-row">
         <div class="form-group">
           <label>Activité</label>
-          <input type="text" name="activite" value="<?= View::e($demande['activite']) ?>" placeholder="Ex : Sourcing et approvisionnement">
+          <select name="activite">
+            <option value="">—</option>
+            <?php if ($demande['activite'] && !in_array($demande['activite'], $activiteListe, true)): ?>
+              <option selected><?= View::e($demande['activite']) ?></option>
+            <?php endif; ?>
+            <?php foreach ($activiteListe as $a): ?>
+              <option <?= $demande['activite'] === $a ? 'selected' : '' ?>><?= View::e($a) ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-group">
           <label>Pays de destination</label>

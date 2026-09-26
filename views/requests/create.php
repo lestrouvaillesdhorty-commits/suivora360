@@ -1,4 +1,7 @@
-<?php use App\Core\View; ?>
+<?php
+use App\Core\View;
+$activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'Import', 'Export', 'Dédouanement et transit', 'Négoce international', 'Représentation commerciale', 'Autre'];
+?>
 <h1>Nouvelle demande</h1>
 <div class="subtitle">Enregistrer une nouvelle demande client</div>
 
@@ -61,7 +64,12 @@
   <div class="form-row">
     <div class="form-group">
       <label>Activité</label>
-      <input type="text" name="activite" placeholder="Ex : Sourcing et approvisionnement">
+      <select name="activite">
+        <option value="">—</option>
+        <?php foreach ($activiteListe as $a): ?>
+          <option><?= View::e($a) ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
     <div class="form-group">
       <label>Priorité</label>
