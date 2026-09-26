@@ -1,4 +1,11 @@
-<?php use App\Core\View; use App\Models\Dossier; use App\Models\Utilisateur; ?>
+<?php
+use App\Core\View;
+use App\Models\Commande;
+use App\Models\ConsultationFournisseur;
+use App\Models\Cotation;
+use App\Models\Dossier;
+use App\Models\Utilisateur;
+?>
 <a href="/index.php?r=dossiers" style="font-size:13px;color:#666">&larr; Retour aux dossiers</a>
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
@@ -85,13 +92,75 @@
     </div>
 
     <div class="card">
-      <h2>Sourcing / Comparateur d'offres</h2>
-      <div class="empty-state">Fonctionnalité à venir</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Sourcing / Comparateur d'offres</h2>
+        <div style="display:flex;gap:8px">
+          <?php if (!empty($offres)): ?>
+            <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur" class="btn btn-sm btn-secondary">Comparateur (<?= count($offres) ?>)</a>
+          <?php endif; ?>
+          <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/consultations/nouvelle" class="btn btn-sm">+ Consulter un fournisseur</a>
+        </div>
+      </div>
+
+      <?php if (empty($consultations)): ?>
+        <div class="empty-state" style="margin-top:12px">Aucune consultation envoyée pour le moment.</div>
+      <?php else: ?>
+        <table style="margin-top:16px">
+          <thead><tr><th>Référence</th><th>Fournisseur</th><th>Statut</th><th>Offres</th></tr></thead>
+          <tbody>
+          <?php foreach ($consultations as $c): ?>
+            <tr>
+              <td><a href="/index.php?r=consultations/<?= $c['id'] ?>"><?= View::e($c['reference']) ?></a></td>
+              <td><?= View::e($c['fournisseur_nom']) ?></td>
+              <td><?= ConsultationFournisseur::STATUTS[$c['statut']] ?? $c['statut'] ?></td>
+              <td><?= (int) $c['nb_offres'] ?></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+
+      <?php if ($offreRetenue): ?>
+        <div class="alert alert-succes" style="margin-top:16px;margin-bottom:0">Offre retenue : <?= View::e($offreRetenue['fournisseur_nom']) ?> — <?= number_format((float) $offreRetenue['montant_total'], 2, ',', ' ') ?> <?= View::e($offreRetenue['devise']) ?></div>
+      <?php endif; ?>
     </div>
 
     <div class="card">
-      <h2>Cotation</h2>
-      <div class="empty-state">Fonctionnalité à venir</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Cotation</h2>
+        <?php if (!$cotation): ?>
+          <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/cotations/nouvelle" class="btn btn-sm">+ Créer une cotation</a>
+        <?php endif; ?>
+      </div>
+      <?php if (!$cotation): ?>
+        <div class="empty-state" style="margin-top:12px">Aucune cotation créée pour ce dossier.</div>
+      <?php else: ?>
+        <div class="info-row" style="margin-top:8px"><span class="label">Référence</span><span><a href="/index.php?r=cotations/<?= $cotation['id'] ?>"><?= View::e($cotation['reference']) ?></a></span></div>
+        <div class="info-row"><span class="label">Client</span><span><?= View::e($cotation['client_nom']) ?></span></div>
+        <div class="info-row"><span class="label">Montant</span><span><?= number_format((float) $cotation['montant_total'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></span></div>
+        <div class="info-row"><span class="label">Statut</span><span><?= Cotation::STATUTS[$cotation['statut']] ?? $cotation['statut'] ?></span></div>
+      <?php endif; ?>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Commande &amp; Facturation</h2>
+        <?php if ($commande): ?>
+          <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/commande" class="btn btn-sm btn-secondary">Voir le suivi</a>
+        <?php endif; ?>
+      </div>
+      <?php if ($commande): ?>
+        <div class="info-row" style="margin-top:8px"><span class="label">Référence</span><span><?= View::e($commande['reference']) ?></span></div>
+        <div class="info-row"><span class="label">Étape courante</span><span><?= Commande::ETAPES_STEPS[$commande['etape']] ?? ($commande['etape'] === 'terminee' ? 'Terminée' : $commande['etape']) ?></span></div>
+      <?php elseif ($cotation && $cotation['statut'] === 'acceptee'): ?>
+        <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/commande" style="margin-top:12px">
+          <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+          <input type="hidden" name="cotation_id" value="<?= $cotation['id'] ?>">
+          <button type="submit" class="btn btn-sm">Créer la commande</button>
+        </form>
+      <?php else: ?>
+        <div class="empty-state" style="margin-top:12px">En attente d'une cotation acceptée par le client.</div>
+      <?php endif; ?>
     </div>
 
     <div class="card">

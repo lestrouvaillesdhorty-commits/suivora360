@@ -90,6 +90,9 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         statut VARCHAR(20) NOT NULL DEFAULT 'a_qualifier',
         client_id INT,
         destination_pays VARCHAR(100),
+        lieu_livraison VARCHAR(255),
+        incoterm_souhaite VARCHAR(10),
+        mode_paiement_souhaite VARCHAR(30),
         qualification_type VARCHAR(30),
         qualification_status VARCHAR(30),
         qualification_notes TEXT,
@@ -182,6 +185,127 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         type VARCHAR(20) NOT NULL,
         annee INT NOT NULL,
         valeur INT NOT NULL DEFAULT 0
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS consultations_fournisseur (
+        id $id,
+        dossier_id INT NOT NULL,
+        filiale_id INT NOT NULL,
+        fournisseur_id INT NOT NULL,
+        reference VARCHAR(30) NOT NULL,
+        articles_demandes TEXT,
+        statut VARCHAR(20) NOT NULL DEFAULT 'envoyee',
+        date_envoi DATE,
+        date_relance DATE,
+        notes TEXT,
+        created_by INT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS offres (
+        id $id,
+        consultation_id INT NOT NULL,
+        dossier_id INT NOT NULL,
+        filiale_id INT NOT NULL,
+        fournisseur_id INT NOT NULL,
+        reference VARCHAR(30) NOT NULL,
+        montant_total DECIMAL(14,2) NOT NULL DEFAULT 0,
+        devise VARCHAR(10),
+        incoterm_negocie VARCHAR(10),
+        delai_livraison VARCHAR(100),
+        validite_offre DATE,
+        statut VARCHAR(20) NOT NULL DEFAULT 'recue',
+        notes TEXT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS offre_items (
+        id $id,
+        offre_id INT NOT NULL,
+        designation VARCHAR(255) NOT NULL,
+        quantite DECIMAL(12,2),
+        unite VARCHAR(20),
+        prix_unitaire DECIMAL(14,2),
+        montant DECIMAL(14,2),
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS cotations (
+        id $id,
+        dossier_id INT NOT NULL,
+        filiale_id INT NOT NULL,
+        offre_id INT,
+        client_id INT NOT NULL,
+        reference VARCHAR(30) NOT NULL,
+        montant_achat DECIMAL(14,2),
+        marge_pourcentage DECIMAL(6,2),
+        marge_montant DECIMAL(14,2),
+        montant_total DECIMAL(14,2) NOT NULL DEFAULT 0,
+        devise VARCHAR(10),
+        mode_paiement_negocie VARCHAR(30),
+        incoterm_client VARCHAR(10),
+        validite_devis DATE,
+        statut VARCHAR(20) NOT NULL DEFAULT 'brouillon',
+        notes TEXT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS cotation_items (
+        id $id,
+        cotation_id INT NOT NULL,
+        designation VARCHAR(255) NOT NULL,
+        quantite DECIMAL(12,2),
+        unite VARCHAR(20),
+        prix_unitaire DECIMAL(14,2),
+        montant DECIMAL(14,2),
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS commandes (
+        id $id,
+        dossier_id INT NOT NULL UNIQUE,
+        filiale_id INT NOT NULL,
+        cotation_id INT NOT NULL,
+        reference VARCHAR(30) NOT NULL,
+        statut VARCHAR(20) NOT NULL DEFAULT 'en_cours',
+        etape VARCHAR(30) NOT NULL DEFAULT 'paiement',
+        notes TEXT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS commande_steps (
+        id $id,
+        commande_id INT NOT NULL,
+        libelle VARCHAR(100) NOT NULL,
+        statut VARCHAR(20) NOT NULL DEFAULT 'a_faire',
+        date_prevue DATE,
+        date_reelle DATE,
+        notes TEXT,
+        ordre INT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS factures (
+        id $id,
+        dossier_id INT NOT NULL,
+        commande_id INT,
+        cotation_id INT,
+        filiale_id INT NOT NULL,
+        reference VARCHAR(30) NOT NULL,
+        type VARCHAR(20) NOT NULL DEFAULT 'unique',
+        montant DECIMAL(14,2) NOT NULL DEFAULT 0,
+        devise VARCHAR(10),
+        date_emission DATE,
+        date_echeance DATE,
+        statut VARCHAR(20) NOT NULL DEFAULT 'emise',
+        notes TEXT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
     )$engine");
 }
 

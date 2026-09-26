@@ -4,10 +4,14 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\View;
+use App\Models\Commande;
+use App\Models\ConsultationFournisseur;
+use App\Models\Cotation;
 use App\Models\Demande;
 use App\Models\DemandeArticle;
 use App\Models\Dossier;
 use App\Models\Filiale;
+use App\Models\Offre;
 
 class DossierController
 {
@@ -33,11 +37,22 @@ class DossierController
         $articles = DemandeArticle::forDemande($dossier['demande_id']);
         $filiale = Filiale::find((int) $dossier['filiale_id']);
 
+        $consultations = ConsultationFournisseur::forDossier((int) $dossier['id']);
+        $offres = Offre::forDossier((int) $dossier['id']);
+        $offreRetenue = Offre::retenueForDossier((int) $dossier['id']);
+        $cotation = Cotation::latestForDossier((int) $dossier['id']);
+        $commande = Commande::findByDossier((int) $dossier['id']);
+
         View::render('folders/show', [
             'dossier' => $dossier,
             'demande' => $demande,
             'articles' => $articles,
             'filiale' => $filiale,
+            'consultations' => $consultations,
+            'offres' => $offres,
+            'offreRetenue' => $offreRetenue,
+            'cotation' => $cotation,
+            'commande' => $commande,
         ]);
     }
 

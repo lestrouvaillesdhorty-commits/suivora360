@@ -2,11 +2,17 @@
 
 use App\Controllers\AuthController;
 use App\Controllers\ClientController;
+use App\Controllers\CommandeController;
+use App\Controllers\ComparateurController;
+use App\Controllers\ConsultationController;
+use App\Controllers\CotationController;
 use App\Controllers\DashboardController;
 use App\Controllers\DemandeController;
 use App\Controllers\DossierController;
+use App\Controllers\FactureController;
 use App\Controllers\FilialeController;
 use App\Controllers\FournisseurController;
+use App\Controllers\OffreController;
 use App\Controllers\UtilisateurController;
 use App\Core\Auth;
 use App\Core\Env;
@@ -163,6 +169,90 @@ $router->post('/dossiers/{id}/articles', function ($params) {
 $router->post('/dossiers/{id}/notes', function ($params) {
     Auth::requireLogin();
     (new DossierController())->updateNotes($params);
+});
+
+// Consultations fournisseurs (sourcing)
+$router->get('/dossiers/{id}/consultations/nouvelle', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->create($params);
+});
+$router->post('/dossiers/{id}/consultations', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->store($params);
+});
+$router->get('/consultations/{id}', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->show($params);
+});
+$router->post('/consultations/{id}/statut', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->updateStatut($params);
+});
+
+// Offres fournisseurs
+$router->get('/consultations/{id}/offres/nouvelle', function ($params) {
+    Auth::requireLogin();
+    (new OffreController())->create($params);
+});
+$router->post('/consultations/{id}/offres', function ($params) {
+    Auth::requireLogin();
+    (new OffreController())->store($params);
+});
+
+// Comparateur d'offres
+$router->get('/dossiers/{id}/comparateur', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->index($params);
+});
+$router->post('/dossiers/{id}/comparateur/retenir', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->retenir($params);
+});
+
+// Cotations client
+$router->get('/dossiers/{id}/cotations/nouvelle', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->create($params);
+});
+$router->post('/dossiers/{id}/cotations', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->store($params);
+});
+$router->get('/cotations/{id}', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->show($params);
+});
+$router->post('/cotations/{id}/statut', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->updateStatut($params);
+});
+
+// Commande (suivi opérationnel)
+$router->post('/dossiers/{id}/commande', function ($params) {
+    Auth::requireLogin();
+    (new CommandeController())->store($params);
+});
+$router->get('/dossiers/{id}/commande', function ($params) {
+    Auth::requireLogin();
+    (new CommandeController())->show($params);
+});
+$router->post('/commandes/{id}/etapes/{stepId}', function ($params) {
+    Auth::requireLogin();
+    (new CommandeController())->updateStep($params);
+});
+
+// Factures
+$router->get('/dossiers/{id}/factures/nouvelle', function ($params) {
+    Auth::requireLogin();
+    (new FactureController())->create($params);
+});
+$router->post('/dossiers/{id}/factures', function ($params) {
+    Auth::requireLogin();
+    (new FactureController())->store($params);
+});
+$router->post('/factures/{id}/statut', function ($params) {
+    Auth::requireLogin();
+    (new FactureController())->updateStatut($params);
 });
 
 // Filiales (dirigeant uniquement)
