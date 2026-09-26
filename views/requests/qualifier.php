@@ -75,7 +75,8 @@
     <h2>2. Complément à une demande existante</h2>
     <div class="subtitle" style="margin-bottom:12px">Cette demande concerne un dossier ou une demande déjà en cours. Aucun nouveau dossier ne sera créé.</div>
 
-    <form method="get" action="/index.php?r=demandes/<?= $demande['id'] ?>/qualifier" style="display:flex;gap:10px;margin-bottom:16px">
+    <form method="get" action="/index.php" style="display:flex;gap:10px;margin-bottom:16px">
+      <input type="hidden" name="r" value="demandes/<?= $demande['id'] ?>/qualifier">
       <input type="text" name="q" placeholder="Référence, objet, contact..." value="<?= View::e($termeRecherche) ?>" style="max-width:320px">
       <button type="submit" class="btn btn-secondary">Rechercher</button>
     </form>

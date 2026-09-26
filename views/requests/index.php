@@ -7,7 +7,8 @@
   <a href="/index.php?r=demandes/nouvelle" class="btn">+ Nouvelle demande</a>
 </div>
 
-<form method="get" style="margin-bottom:16px;display:flex;gap:10px">
+<form method="get" action="/index.php" style="margin-bottom:16px;display:flex;gap:10px">
+  <input type="hidden" name="r" value="demandes">
   <input type="text" name="q" placeholder="Référence, objet, contact..." value="<?= View::e($filters['recherche'] ?? '') ?>" style="max-width:320px">
   <select name="statut" onchange="this.form.submit()">
     <option value="">Tous les statuts</option>
