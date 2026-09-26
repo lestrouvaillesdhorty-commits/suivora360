@@ -1,0 +1,4 @@
+# Empêche l'accès direct au fichier .env s'il se retrouvait dans ce dossier par erreur
+<Files ".env">
+    Require all denied
+</Files>

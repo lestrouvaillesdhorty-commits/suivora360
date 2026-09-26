@@ -1,0 +1,104 @@
+<?php
+
+use App\Controllers\AuthController;
+use App\Controllers\DashboardController;
+use App\Controllers\DemandeController;
+use App\Controllers\DossierController;
+use App\Controllers\FilialeController;
+use App\Controllers\UtilisateurController;
+use App\Core\Auth;
+use App\Core\Env;
+use App\Core\Router;
+
+require __DIR__ . '/../app/autoload.php';
+
+Env::load(__DIR__ . '/../.env');
+error_reporting(E_ALL);
+ini_set('display_errors', Env::bool('APP_DEBUG', false) ? '1' : '0');
+
+Auth::start();
+
+$router = new Router();
+
+// Authentification
+$router->get('/login', fn() => (new AuthController())->showLogin());
+$router->post('/login', fn() => (new AuthController())->login());
+$router->post('/logout', fn() => (new AuthController())->logout());
+
+// Tableau de bord
+$router->get('/', function () {
+    Auth::requireLogin();
+    (new DashboardController())->index();
+});
+
+// Demandes
+$router->get('/demandes', function () {
+    Auth::requireLogin();
+    (new DemandeController())->index();
+});
+$router->get('/demandes/nouvelle', function () {
+    Auth::requireLogin();
+    (new DemandeController())->create();
+});
+$router->post('/demandes', function () {
+    Auth::requireLogin();
+    (new DemandeController())->store();
+});
+$router->get('/demandes/{id}', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->show($params);
+});
+$router->post('/demandes/{id}/qualifier', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->qualifier($params);
+});
+
+// Dossiers
+$router->get('/dossiers', function () {
+    Auth::requireLogin();
+    (new DossierController())->index();
+});
+$router->get('/dossiers/{id}', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->show($params);
+});
+$router->post('/dossiers/{id}/etape', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->updateEtape($params);
+});
+$router->post('/dossiers/{id}/articles', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->addArticle($params);
+});
+$router->post('/dossiers/{id}/notes', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->updateNotes($params);
+});
+
+// Filiales (dirigeant uniquement)
+$router->get('/filiales', function () {
+    Auth::requireLogin();
+    (new FilialeController())->index();
+});
+$router->post('/filiales', function () {
+    Auth::requireLogin();
+    (new FilialeController())->store();
+});
+
+// Utilisateurs et gestion des accès (dirigeant uniquement)
+$router->get('/utilisateurs', function () {
+    Auth::requireLogin();
+    (new UtilisateurController())->index();
+});
+$router->post('/utilisateurs', function () {
+    Auth::requireLogin();
+    (new UtilisateurController())->store();
+});
+$router->post('/utilisateurs/{id}/acces', function ($params) {
+    Auth::requireLogin();
+    (new UtilisateurController())->updateAcces($params);
+});
+
+$routeParam = $_GET['r'] ?? '/';
+$routePath = $routeParam === '' ? '/' : '/' . ltrim($routeParam, '/');
+$router->dispatch($_SERVER['REQUEST_METHOD'], $routePath);
