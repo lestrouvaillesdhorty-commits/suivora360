@@ -29,10 +29,12 @@ function navActive(string $path, string $prefix): string {
       <a href="/index.php?r=dossiers" class="<?= navActive($path, '/dossiers') ?>">Dossiers</a>
       <a href="/index.php?r=clients" class="<?= navActive($path, '/clients') ?>">Clients</a>
       <a href="/index.php?r=fournisseurs" class="<?= navActive($path, '/fournisseurs') ?>">Fournisseurs</a>
+      <a href="/index.php?r=simulateur" class="<?= navActive($path, '/simulateur') ?>">Simulateur de prix</a>
       <?php if ($currentUser && $currentUser['role'] === 'dirigeant'): ?>
       <div class="section-label">Administration</div>
       <a href="/index.php?r=filiales" class="<?= navActive($path, '/filiales') ?>">Filiales</a>
       <a href="/index.php?r=utilisateurs" class="<?= navActive($path, '/utilisateurs') ?>">Utilisateurs &amp; accès</a>
+      <a href="/index.php?r=parametres" class="<?= navActive($path, '/parametres') ?>">Paramètres</a>
       <?php endif; ?>
     </nav>
     <?php if ($currentUser): ?>
