@@ -32,7 +32,7 @@
   </div>
 
   <div class="form-row">
-    <div class="form-group"><label>Pays</label><input type="text" name="pays"></div>
+    <div class="form-group"><label>Pays</label><input type="text" name="pays" list="pays-list"></div>
     <div class="form-group"><label>Ville</label><input type="text" name="ville"></div>
   </div>
 
@@ -46,3 +46,28 @@
   </div>
 </form>
 </div>
+
+<datalist id="pays-list">
+  <option value="Cameroun">
+  <option value="France">
+  <option value="Côte d'Ivoire">
+  <option value="Sénégal">
+  <option value="Mali">
+  <option value="Togo">
+  <option value="Bénin">
+  <option value="Gabon">
+  <option value="Congo (Brazzaville)">
+  <option value="RD Congo">
+  <option value="Nigeria">
+  <option value="Ghana">
+  <option value="Maroc">
+  <option value="Tunisie">
+  <option value="Algérie">
+  <option value="Belgique">
+  <option value="Allemagne">
+  <option value="Chine">
+  <option value="Émirats arabes unis">
+  <option value="Inde">
+  <option value="Turquie">
+  <option value="États-Unis">
+</datalist>

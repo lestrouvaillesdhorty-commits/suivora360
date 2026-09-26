@@ -1,8 +1,26 @@
 <?php use App\Core\View; ?>
 <a href="/index.php?r=clients" style="font-size:13px;color:#666">&larr; Retour aux clients</a>
 
-<h1><?= View::e($client['nom']) ?></h1>
-<div class="subtitle"><?= View::e($client['secteur']) ?: 'Client' ?></div>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
+  <div>
+    <h1><?= View::e($client['nom']) ?> <?php if ((int) $client['is_active'] !== 1): ?><span class="badge badge-gray">Inactif</span><?php endif; ?></h1>
+    <div class="subtitle"><?= View::e($client['secteur']) ?: 'Client' ?></div>
+  </div>
+  <div style="white-space:nowrap">
+    <a href="/index.php?r=clients/<?= $client['id'] ?>/modifier" class="btn btn-secondary">Modifier</a>
+    <?php if ((int) $client['is_active'] === 1): ?>
+      <form method="post" action="/index.php?r=clients/<?= $client['id'] ?>/desactiver" style="display:inline">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <button type="submit" class="btn btn-secondary">Désactiver</button>
+      </form>
+    <?php else: ?>
+      <form method="post" action="/index.php?r=clients/<?= $client['id'] ?>/activer" style="display:inline">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <button type="submit" class="btn">Réactiver</button>
+      </form>
+    <?php endif; ?>
+  </div>
+</div>
 
 <div class="card">
   <h2>Coordonnées</h2>

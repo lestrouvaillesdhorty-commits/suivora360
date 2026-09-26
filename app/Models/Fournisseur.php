@@ -71,6 +71,32 @@ class Fournisseur
         return (int) Database::connection()->lastInsertId();
     }
 
+    public static function update(int $id, array $data): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE fournisseurs SET nom = ?, email = ?, telephone = ?, pays = ?, ville = ?, adresse = ?, devise = ?, secteur = ?, site_web = ?, notes = ? WHERE id = ?'
+        );
+        $stmt->execute([
+            $data['nom'],
+            $data['email'] ?? '',
+            $data['telephone'] ?? '',
+            $data['pays'] ?? '',
+            $data['ville'] ?? '',
+            $data['adresse'] ?? '',
+            $data['devise'] ?? '',
+            $data['secteur'] ?? '',
+            $data['site_web'] ?? '',
+            $data['notes'] ?? '',
+            $id,
+        ]);
+    }
+
+    public static function setActive(int $id, bool $active): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE fournisseurs SET is_active = ? WHERE id = ?');
+        $stmt->execute([$active ? 1 : 0, $id]);
+    }
+
     public static function nameOf(?int $id): string
     {
         if (!$id) {

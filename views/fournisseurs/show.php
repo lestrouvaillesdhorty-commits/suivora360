@@ -1,8 +1,26 @@
 <?php use App\Core\View; ?>
 <a href="/index.php?r=fournisseurs" style="font-size:13px;color:#666">&larr; Retour aux fournisseurs</a>
 
-<h1><?= View::e($fournisseur['nom']) ?></h1>
-<div class="subtitle"><?= View::e($fournisseur['secteur']) ?: 'Fournisseur' ?><?= $fournisseur['devise'] ? ' — ' . View::e($fournisseur['devise']) : '' ?></div>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
+  <div>
+    <h1><?= View::e($fournisseur['nom']) ?> <?php if ((int) $fournisseur['is_active'] !== 1): ?><span class="badge badge-gray">Inactif</span><?php endif; ?></h1>
+    <div class="subtitle"><?= View::e($fournisseur['secteur']) ?: 'Fournisseur' ?><?= $fournisseur['devise'] ? ' — ' . View::e($fournisseur['devise']) : '' ?></div>
+  </div>
+  <div style="white-space:nowrap">
+    <a href="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/modifier" class="btn btn-secondary">Modifier</a>
+    <?php if ((int) $fournisseur['is_active'] === 1): ?>
+      <form method="post" action="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/desactiver" style="display:inline">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <button type="submit" class="btn btn-secondary">Désactiver</button>
+      </form>
+    <?php else: ?>
+      <form method="post" action="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/activer" style="display:inline">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <button type="submit" class="btn">Réactiver</button>
+      </form>
+    <?php endif; ?>
+  </div>
+</div>
 
 <div class="card">
   <h2>Coordonnées</h2>

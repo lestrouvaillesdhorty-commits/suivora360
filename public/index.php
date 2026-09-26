@@ -92,6 +92,22 @@ $router->get('/clients/{id}', function ($params) {
     Auth::requireLogin();
     (new ClientController())->show($params);
 });
+$router->get('/clients/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->edit($params);
+});
+$router->post('/clients/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->update($params);
+});
+$router->post('/clients/{id}/desactiver', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->desactiver($params);
+});
+$router->post('/clients/{id}/activer', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->activer($params);
+});
 
 // Fournisseurs
 $router->get('/fournisseurs', function () {
@@ -109,6 +125,22 @@ $router->post('/fournisseurs', function () {
 $router->get('/fournisseurs/{id}', function ($params) {
     Auth::requireLogin();
     (new FournisseurController())->show($params);
+});
+$router->get('/fournisseurs/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->edit($params);
+});
+$router->post('/fournisseurs/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->update($params);
+});
+$router->post('/fournisseurs/{id}/desactiver', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->desactiver($params);
+});
+$router->post('/fournisseurs/{id}/activer', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->activer($params);
 });
 
 // Dossiers

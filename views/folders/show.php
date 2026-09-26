@@ -48,7 +48,7 @@
           <div class="form-group"><label>Quantité</label><input type="number" step="0.01" name="quantite"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Unité</label><input type="text" name="unite"></div>
+          <div class="form-group"><label>Unité</label><input type="text" name="unite" list="unites-list"></div>
           <div class="form-group"><label>Référence</label><input type="text" name="reference"></div>
         </div>
         <div class="form-group"><label>Marque</label><input type="text" name="marque"></div>
@@ -106,3 +106,16 @@
     </div>
   </div>
 </div>
+
+<datalist id="unites-list">
+  <option value="Pièce">
+  <option value="Carton">
+  <option value="Kg">
+  <option value="Tonne">
+  <option value="Litre">
+  <option value="m³">
+  <option value="Sac">
+  <option value="Palette">
+  <option value="Conteneur 20'">
+  <option value="Conteneur 40'">
+</datalist>
