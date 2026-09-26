@@ -36,6 +36,12 @@ class SimulateurController
                 'majoration_pourcentage' => $_GET['majoration_pourcentage'] ?? ($parametres['marge_defaut_pourcentage'] ?? 0),
                 'tva_pourcentage' => $_GET['tva_pourcentage'] ?? ($parametres['tva_defaut_pourcentage'] ?? 0),
                 'taux_fcfa' => $_GET['taux_fcfa'] ?? ($parametres['taux_eur_fcfa'] ?? 0),
+                'mode_transport' => $_GET['mode_transport'] ?? '',
+                'longueur_cm' => $_GET['longueur_cm'] ?? 0,
+                'largeur_cm' => $_GET['largeur_cm'] ?? 0,
+                'hauteur_cm' => $_GET['hauteur_cm'] ?? 0,
+                'diviseur_volumetrique_aerien' => $parametres['diviseur_volumetrique_aerien'] ?? 6000,
+                'diviseur_volumetrique_maritime' => $parametres['diviseur_volumetrique_maritime'] ?? 1000,
             ]);
         }
 

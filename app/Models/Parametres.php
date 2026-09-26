@@ -20,6 +20,8 @@ class Parametres
         'dedouanement_defaut' => 0.0,
         'taux_date_maj' => null,
         'taux_source' => '',
+        'diviseur_volumetrique_aerien' => 6000.0,
+        'diviseur_volumetrique_maritime' => 1000.0,
     ];
 
     public const TVA_OPTIONS = [0, 5.5, 10, 20];
@@ -54,16 +56,18 @@ class Parametres
             (float) ($data['dedouanement_defaut'] ?? self::DEFAUTS['dedouanement_defaut']),
             ($data['taux_date_maj'] ?? null) ?: null,
             trim($data['taux_source'] ?? ''),
+            (float) ($data['diviseur_volumetrique_aerien'] ?? self::DEFAUTS['diviseur_volumetrique_aerien']),
+            (float) ($data['diviseur_volumetrique_maritime'] ?? self::DEFAUTS['diviseur_volumetrique_maritime']),
         ];
 
         if ($existing) {
             $stmt = $pdo->prepare(
-                'UPDATE parametres SET taux_eur_fcfa = ?, marge_defaut_pourcentage = ?, tva_defaut_pourcentage = ?, assurance_defaut = ?, dedouanement_defaut = ?, taux_date_maj = ?, taux_source = ?, updated_at = ? WHERE filiale_id = ?'
+                'UPDATE parametres SET taux_eur_fcfa = ?, marge_defaut_pourcentage = ?, tva_defaut_pourcentage = ?, assurance_defaut = ?, dedouanement_defaut = ?, taux_date_maj = ?, taux_source = ?, diviseur_volumetrique_aerien = ?, diviseur_volumetrique_maritime = ?, updated_at = ? WHERE filiale_id = ?'
             );
             $stmt->execute([...$values, date('Y-m-d H:i:s'), $filialeId]);
         } else {
             $stmt = $pdo->prepare(
-                'INSERT INTO parametres (filiale_id, taux_eur_fcfa, marge_defaut_pourcentage, tva_defaut_pourcentage, assurance_defaut, dedouanement_defaut, taux_date_maj, taux_source, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO parametres (filiale_id, taux_eur_fcfa, marge_defaut_pourcentage, tva_defaut_pourcentage, assurance_defaut, dedouanement_defaut, taux_date_maj, taux_source, diviseur_volumetrique_aerien, diviseur_volumetrique_maritime, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([$filialeId, ...$values, date('Y-m-d H:i:s')]);
         }

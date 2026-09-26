@@ -67,6 +67,7 @@ class CommandeController
             'commande' => $commande,
             'steps' => $steps,
             'factures' => $factures,
+            'progression' => Commande::progression($steps),
         ]);
     }
 
@@ -94,6 +95,28 @@ class CommandeController
         );
         AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_etape_commande', 'commande', $commande['id']);
         View::flash('succes', 'Étape mise à jour.');
+        header('Location: /index.php?r=dossiers/' . $commande['dossier_id'] . '/commande');
+        exit;
+    }
+
+    public function updateSuivi(array $params): void
+    {
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=commandes/' . $params['id']);
+            exit;
+        }
+
+        $user = Auth::user();
+        $commande = Commande::find((int) $params['id']);
+        if (!$commande || !Commande::userCanAccess($user, $commande)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        Commande::updateSuivi((int) $commande['id'], $_POST['prochaine_action'] ?? '', $_POST['date_relance'] ?? null);
+        AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_suivi_commande', 'commande', $commande['id']);
+        View::flash('succes', 'Suivi de la commande mis à jour.');
         header('Location: /index.php?r=dossiers/' . $commande['dossier_id'] . '/commande');
         exit;
     }

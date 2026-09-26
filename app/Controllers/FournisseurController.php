@@ -190,8 +190,9 @@ class FournisseurController
             return;
         }
 
+        $disposition = (!empty($_GET['apercu']) && Storage::estPrevisualisable($piece['type_mime'])) ? 'inline' : 'attachment';
         header('Content-Type: ' . $piece['type_mime']);
-        header('Content-Disposition: attachment; filename="' . basename($piece['nom_original']) . '"');
+        header('Content-Disposition: ' . $disposition . '; filename="' . basename($piece['nom_original']) . '"');
         header('Content-Length: ' . filesize($chemin));
         readfile($chemin);
         exit;

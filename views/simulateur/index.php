@@ -15,8 +15,29 @@
     <div class="form-group"><label>Quantité</label><input type="number" step="1" min="1" name="quantite" value="<?= View::e($input['quantite'] ?? '') ?>" required></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label>Poids total (kg) — informatif</label><input type="number" step="0.1" name="poids" value="<?= View::e($input['poids'] ?? '') ?>"></div>
+    <div class="form-group"><label>Poids réel total (kg) — informatif</label><input type="number" step="0.1" name="poids" value="<?= View::e($input['poids'] ?? '') ?>"></div>
     <div class="form-group"><label>Transport (€)</label><input type="number" step="0.01" name="transport" value="<?= View::e($input['transport'] ?? '') ?>"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Mode de transport</label>
+      <select name="mode_transport">
+        <option value="">— Non précisé —</option>
+        <option value="aerien" <?= ($input['mode_transport'] ?? '') === 'aerien' ? 'selected' : '' ?>>Aérien</option>
+        <option value="maritime" <?= ($input['mode_transport'] ?? '') === 'maritime' ? 'selected' : '' ?>>Maritime</option>
+        <option value="routier" <?= ($input['mode_transport'] ?? '') === 'routier' ? 'selected' : '' ?>>Routier</option>
+        <option value="multimodal" <?= ($input['mode_transport'] ?? '') === 'multimodal' ? 'selected' : '' ?>>Multimodal</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Dimensions du colis (cm) — L × l × H</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" step="0.1" name="longueur_cm" value="<?= View::e($input['longueur_cm'] ?? '') ?>" placeholder="L" style="width:70px">
+        <input type="number" step="0.1" name="largeur_cm" value="<?= View::e($input['largeur_cm'] ?? '') ?>" placeholder="l" style="width:70px">
+        <input type="number" step="0.1" name="hauteur_cm" value="<?= View::e($input['hauteur_cm'] ?? '') ?>" placeholder="H" style="width:70px">
+      </div>
+      <div style="font-size:12px;color:#888;margin-top:4px">Sert uniquement à estimer le poids volumétrique ci-dessous (aérien/maritime) — n'entre pas dans le calcul du coût, qui reste basé sur le montant de transport saisi.</div>
+    </div>
   </div>
   <div class="form-row">
     <div class="form-group"><label>Emballage (€)</label><input type="number" step="0.01" name="emballage" value="<?= View::e($input['emballage'] ?? '') ?>"></div>
@@ -60,6 +81,11 @@
   <div class="info-row"><span class="label">Prix TTC</span><span><strong><?= number_format($resultat['prix_ttc'], 2, ',', ' ') ?> €</strong></span></div>
   <?php if ($resultat['prix_ttc_fcfa'] !== null): ?>
   <div class="info-row"><span class="label">Prix TTC en FCFA (taux <?= View::e((string) $resultat['taux_fcfa']) ?>)</span><span><strong><?= number_format($resultat['prix_ttc_fcfa'], 0, ',', ' ') ?> FCFA</strong></span></div>
+  <?php endif; ?>
+  <?php if ($resultat['poids_volumetrique'] !== null): ?>
+  <div class="info-row" style="margin-top:10px;border-top:1px solid #f1f2f5;padding-top:10px"><span class="label">Poids volumétrique estimé</span><span><?= number_format($resultat['poids_volumetrique'], 2, ',', ' ') ?> kg</span></div>
+  <div class="info-row"><span class="label">Poids facturable estimé (le plus élevé des deux)</span><span><strong><?= number_format($resultat['poids_facturable_estime'], 2, ',', ' ') ?> kg</strong></span></div>
+  <div style="font-size:12px;color:#888;margin-top:4px">Informatif — la plupart des transporteurs facturent sur le plus élevé entre poids réel et poids volumétrique. N'affecte pas le coût de revient ci-dessus.</div>
   <?php endif; ?>
 </div>
 <?php endif; ?>

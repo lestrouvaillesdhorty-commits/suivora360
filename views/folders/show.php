@@ -171,6 +171,10 @@ $actionLabelsDossier = [
       <?php if ($commande): ?>
         <div class="info-row" style="margin-top:8px"><span class="label">Référence</span><span><?= View::e($commande['reference']) ?></span></div>
         <div class="info-row"><span class="label">Étape courante</span><span><?= Commande::ETAPES_STEPS[$commande['etape']] ?? ($commande['etape'] === 'terminee' ? 'Terminée' : $commande['etape']) ?></span></div>
+        <div class="info-row"><span class="label">Avancement</span><span><?= Commande::progression(Commande::steps((int) $commande['id'])) ?>%</span></div>
+        <?php if (Commande::estEnRetard($commande)): ?>
+          <div class="alert alert-erreur" style="margin-top:8px">À relancer (date dépassée)</div>
+        <?php endif; ?>
       <?php elseif ($cotation && $cotation['statut'] === 'acceptee'): ?>
         <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/commande" style="margin-top:12px">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
@@ -208,11 +212,15 @@ $actionLabelsDossier = [
           <tbody>
           <?php foreach ($piecesJointes as $p): ?>
             <tr>
-              <td><a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/telecharger"><?= View::e($p['nom_original']) ?></a></td>
+              <td><?= View::e($p['nom_original']) ?></td>
               <td><?= number_format($p['taille'] / 1024, 0) ?> Ko</td>
               <td><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
               <td><?= View::e($p['uploaded_by_nom']) ?></td>
               <td>
+                <?php if (\App\Core\Storage::estPrevisualisable($p['type_mime'])): ?>
+                  <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary">Aperçu</a>
+                <?php endif; ?>
+                <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/telecharger" class="btn btn-sm btn-secondary">Télécharger</a>
                 <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/supprimer" style="display:inline">
                   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
                   <button type="submit" class="btn btn-sm btn-secondary">Supprimer</button>

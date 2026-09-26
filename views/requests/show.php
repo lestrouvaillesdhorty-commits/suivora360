@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Models\Utilisateur; use App\Models\Demande; ?>
+<?php use App\Core\View; use App\Core\Storage; use App\Models\Utilisateur; use App\Models\Demande; ?>
 <a href="/index.php?r=demandes" style="font-size:13px;color:#666">&larr; Retour aux demandes</a>
 
 <?php
@@ -133,11 +133,15 @@ $actionLabels = [
           <tbody>
           <?php foreach ($piecesJointes as $p): ?>
             <tr>
-              <td><a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger"><?= View::e($p['nom_original']) ?></a></td>
+              <td><?= View::e($p['nom_original']) ?></td>
               <td><?= number_format($p['taille'] / 1024, 0) ?> Ko</td>
               <td><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
               <td><?= View::e($p['uploaded_by_nom']) ?></td>
               <td>
+                <?php if (Storage::estPrevisualisable($p['type_mime'])): ?>
+                  <a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary">Aperçu</a>
+                <?php endif; ?>
+                <a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger" class="btn btn-sm btn-secondary">Télécharger</a>
                 <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/supprimer" style="display:inline">
                   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
                   <button type="submit" class="btn btn-sm btn-secondary">Supprimer</button>
@@ -161,6 +165,17 @@ $actionLabels = [
       <div class="info-row"><span class="label">Entreprise</span><span><?= View::e($demande['expediteur_entreprise']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">E-mail</span><span><?= View::e($demande['expediteur_email']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Téléphone</span><span><?= View::e($demande['expediteur_telephone']) ?: '—' ?></span></div>
+      <?php $waNumeroExpediteur = preg_replace('/[^0-9]/', '', $demande['expediteur_telephone'] ?? ''); ?>
+      <?php if ($waNumeroExpediteur || !empty($demande['expediteur_email'])): ?>
+        <div style="margin-top:10px">
+          <?php if ($waNumeroExpediteur): ?>
+            <a href="https://wa.me/<?= $waNumeroExpediteur ?>" target="_blank" class="btn btn-sm" style="background:#2E7D5B">WhatsApp</a>
+          <?php endif; ?>
+          <?php if (!empty($demande['expediteur_email'])): ?>
+            <a href="mailto:<?= View::e($demande['expediteur_email']) ?>" class="btn btn-sm btn-secondary">E-mail</a>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
     </div>
 
     <div class="card">

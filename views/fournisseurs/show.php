@@ -91,11 +91,15 @@ $incotermsPratiques = !empty($fournisseur['incoterms_pratiques']) ? explode(',',
         <?php foreach ($piecesJointes as $p): ?>
         <tr>
           <td><?= View::e(FournisseurPieceJointe::CATEGORIES[$p['categorie']] ?? ucfirst($p['categorie'])) ?></td>
-          <td><a href="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/pieces/<?= $p['id'] ?>/telecharger"><?= View::e($p['nom_original']) ?></a></td>
+          <td><?= View::e($p['nom_original']) ?></td>
           <td><?= View::e($p['uploaded_by_nom'] ?? '—') ?></td>
           <td><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
           <td>
-            <form method="post" action="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/pieces/<?= $p['id'] ?>/supprimer">
+            <?php if (\App\Core\Storage::estPrevisualisable($p['type_mime'])): ?>
+              <a href="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary">Aperçu</a>
+            <?php endif; ?>
+            <a href="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/pieces/<?= $p['id'] ?>/telecharger" class="btn btn-sm btn-secondary">Télécharger</a>
+            <form method="post" action="/index.php?r=fournisseurs/<?= $fournisseur['id'] ?>/pieces/<?= $p['id'] ?>/supprimer" style="display:inline">
               <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
               <button type="submit" class="btn btn-sm btn-secondary">Supprimer</button>
             </form>

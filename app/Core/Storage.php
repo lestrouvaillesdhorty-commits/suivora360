@@ -29,4 +29,13 @@ class Storage
         }
         return $full;
     }
+
+    /**
+     * Types de fichiers que le navigateur peut afficher directement (aperçu
+     * inline) plutôt que de forcer un téléchargement.
+     */
+    public static function estPrevisualisable(string $typeMime): bool
+    {
+        return $typeMime === 'application/pdf' || str_starts_with($typeMime, 'image/');
+    }
 }

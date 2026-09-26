@@ -9,7 +9,13 @@ class Offre
     public const STATUTS = [
         'recue' => 'Reçue',
         'retenue' => 'Retenue',
-        'rejetee' => 'Rejetée',
+        'rejetee' => 'Écartée',
+    ];
+
+    public const CONFORMITE = [
+        'conforme' => 'Conforme',
+        'partielle' => 'Partiellement conforme',
+        'non_conforme' => 'Non conforme',
     ];
 
     public static function find(int $id): ?array
@@ -38,7 +44,8 @@ class Offre
     public static function forDossier(int $dossierId): array
     {
         $stmt = Database::connection()->prepare(
-            'SELECT o.*, fo.nom AS fournisseur_nom, cf.reference AS consultation_reference
+            'SELECT o.*, fo.nom AS fournisseur_nom, fo.note_prix, fo.note_qualite, fo.note_delai, fo.note_reactivite, fo.note_conformite, fo.note_engagements,
+                    cf.reference AS consultation_reference
              FROM offres o
              INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
              INNER JOIN consultations_fournisseur cf ON cf.id = o.consultation_id
@@ -73,8 +80,11 @@ class Offre
         try {
             $stmt = $pdo->prepare(
                 'INSERT INTO offres
-                 (consultation_id, dossier_id, filiale_id, fournisseur_id, reference, montant_total, devise, incoterm_negocie, delai_livraison, validite_offre, statut, notes, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                 (consultation_id, dossier_id, filiale_id, fournisseur_id, reference, montant_total, devise, incoterm_negocie, delai_livraison, validite_offre, statut, notes,
+                  pays_origine, lieu_depart, quantite_min, disponibilite, poids_kg, nombre_colis, volume_m3, conformite_technique, conditions_paiement, garantie,
+                  transport_montant, assurance_montant, emballage_montant, douane_montant, dedouanement_montant, autres_frais_montant,
+                  created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 $consultation['id'],
@@ -89,6 +99,22 @@ class Offre
                 $data['validite_offre'] ?: null,
                 'recue',
                 trim($data['notes'] ?? ''),
+                trim($data['pays_origine'] ?? ''),
+                trim($data['lieu_depart'] ?? ''),
+                trim($data['quantite_min'] ?? ''),
+                trim($data['disponibilite'] ?? ''),
+                self::decimalOrNull($data['poids_kg'] ?? null),
+                self::intOrNull($data['nombre_colis'] ?? null),
+                self::decimalOrNull($data['volume_m3'] ?? null),
+                trim($data['conformite_technique'] ?? '') ?: null,
+                trim($data['conditions_paiement'] ?? '') ?: null,
+                trim($data['garantie'] ?? ''),
+                self::decimalOrNull($data['transport_montant'] ?? null),
+                self::decimalOrNull($data['assurance_montant'] ?? null),
+                self::decimalOrNull($data['emballage_montant'] ?? null),
+                self::decimalOrNull($data['douane_montant'] ?? null),
+                self::decimalOrNull($data['dedouanement_montant'] ?? null),
+                self::decimalOrNull($data['autres_frais_montant'] ?? null),
                 $now,
                 $now,
             ]);
@@ -115,33 +141,77 @@ class Offre
         }
     }
 
+    private static function decimalOrNull($value): ?float
+    {
+        return ($value !== null && $value !== '') ? (float) $value : null;
+    }
+
+    private static function intOrNull($value): ?int
+    {
+        return ($value !== null && $value !== '') ? (int) $value : null;
+    }
+
+    /**
+     * Coût rendu = prix marchandises + tous les frais complémentaires
+     * détaillés sur l'offre. Reste dans la devise propre de l'offre — la
+     * conversion générale multi-devises n'existe pas encore (Phase 4).
+     */
+    public static function coutRendu(array $offre): float
+    {
+        return round(
+            (float) $offre['montant_total']
+            + (float) ($offre['transport_montant'] ?? 0)
+            + (float) ($offre['assurance_montant'] ?? 0)
+            + (float) ($offre['emballage_montant'] ?? 0)
+            + (float) ($offre['douane_montant'] ?? 0)
+            + (float) ($offre['dedouanement_montant'] ?? 0)
+            + (float) ($offre['autres_frais_montant'] ?? 0),
+            2
+        );
+    }
+
     /**
      * Marque une offre comme retenue pour le dossier et rejette les autres
-     * offres du même dossier (une seule offre retenue à la fois).
+     * offres du même dossier (une seule offre retenue à la fois). Exige un
+     * motif de décision, conservé sur l'offre retenue.
      */
-    public static function retenir(int $dossierId, int $offreId): void
+    public static function retenir(int $dossierId, int $offreId, string $motif): void
     {
         $pdo = Database::connection();
         $now = date('Y-m-d H:i:s');
         $pdo->beginTransaction();
         try {
             // Toutes les autres offres du dossier (reçues ou précédemment retenues)
-            // passent à "rejetée" : une seule offre retenue à la fois par dossier.
+            // passent à "écartée" : une seule offre retenue à la fois par dossier.
             $reset = $pdo->prepare(
                 "UPDATE offres SET statut = 'rejetee', updated_at = ? WHERE dossier_id = ? AND id != ? AND statut IN ('recue', 'retenue')"
             );
             $reset->execute([$now, $dossierId, $offreId]);
 
             $retain = $pdo->prepare(
-                "UPDATE offres SET statut = 'retenue', updated_at = ? WHERE id = ? AND dossier_id = ?"
+                "UPDATE offres SET statut = 'retenue', motif_decision = ?, updated_at = ? WHERE id = ? AND dossier_id = ?"
             );
-            $retain->execute([$now, $offreId, $dossierId]);
+            $retain->execute([$motif, $now, $offreId, $dossierId]);
 
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Revient sur une décision déjà prise : remet toutes les offres du
+     * dossier à "reçue" pour permettre un nouveau choix. Réservé aux
+     * dirigeants côté contrôleur ; le motif est tracé dans l'audit, pas sur
+     * l'offre (puisque plusieurs offres sont concernées à la fois).
+     */
+    public static function revenirSurDecision(int $dossierId): void
+    {
+        $stmt = Database::connection()->prepare(
+            "UPDATE offres SET statut = 'recue', updated_at = ? WHERE dossier_id = ? AND statut IN ('retenue', 'rejetee')"
+        );
+        $stmt->execute([date('Y-m-d H:i:s'), $dossierId]);
     }
 
     public static function userCanAccess(array $user, array $offre): bool

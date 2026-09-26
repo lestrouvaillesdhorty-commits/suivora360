@@ -12,12 +12,18 @@
 <div class="detail-grid">
   <div>
     <div class="card">
-      <h2>Étapes de suivi</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2 style="margin:0">Étapes de suivi</h2>
+        <strong style="font-size:14px"><?= $progression ?>%</strong>
+      </div>
+      <div style="background:#f1f2f5;border-radius:6px;height:8px;overflow:hidden;margin-bottom:16px">
+        <div style="background:<?= $progression === 100 ? '#16a34a' : '#4f46e5' ?>;height:100%;width:<?= $progression ?>%"></div>
+      </div>
       <?php foreach ($steps as $step): ?>
         <div style="padding:14px 0;border-bottom:1px solid #f1f2f5">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <strong><?= Commande::ETAPES_STEPS[$step['libelle']] ?? $step['libelle'] ?></strong>
-            <span class="badge <?= $step['statut'] === 'termine' ? 'badge-green' : ($step['statut'] === 'en_cours' ? 'badge-blue' : 'badge-gray') ?>"><?= Commande::STEP_STATUTS[$step['statut']] ?? $step['statut'] ?></span>
+            <span class="badge <?= $step['statut'] === 'termine' ? 'badge-green' : ($step['statut'] === 'en_cours' ? 'badge-blue' : 'badge-gray') ?>"><?= Commande::libelleStatutEtape($step['libelle'], $step['statut']) ?></span>
           </div>
           <form method="post" action="/index.php?r=commandes/<?= $commande['id'] ?>/etapes/<?= $step['id'] ?>">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
@@ -25,7 +31,7 @@
               <div class="form-group" style="margin-bottom:8px">
                 <select name="statut">
                   <?php foreach (Commande::STEP_STATUTS as $code => $label): ?>
-                    <option value="<?= $code ?>" <?= $step['statut'] === $code ? 'selected' : '' ?>><?= $label ?></option>
+                    <option value="<?= $code ?>" <?= $step['statut'] === $code ? 'selected' : '' ?>><?= Commande::libelleStatutEtape($step['libelle'], $code) ?></option>
                   <?php endforeach; ?>
                 </select>
               </div>
@@ -46,6 +52,19 @@
       <h2>Commande</h2>
       <div class="info-row"><span class="label">Statut</span><span><?= $commande['statut'] === 'terminee' ? 'Terminée' : 'En cours' ?></span></div>
       <div class="info-row"><span class="label">Étape courante</span><span><?= Commande::ETAPES_STEPS[$commande['etape']] ?? ($commande['etape'] === 'terminee' ? 'Terminée' : $commande['etape']) ?></span></div>
+    </div>
+
+    <div class="card">
+      <h2>Suivi &amp; relance</h2>
+      <?php if (Commande::estEnRetard($commande)): ?>
+        <div class="alert alert-erreur">À relancer : la date prévue (<?= date('d/m/Y', strtotime($commande['date_relance'])) ?>) est dépassée.</div>
+      <?php endif; ?>
+      <form method="post" action="/index.php?r=commandes/<?= $commande['id'] ?>/suivi">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <div class="form-group"><label>Prochaine action</label><input type="text" name="prochaine_action" value="<?= View::e($commande['prochaine_action'] ?? '') ?>" placeholder="ex: relancer le fournisseur pour la date d'expédition"></div>
+        <div class="form-group"><label>Date de relance</label><input type="date" name="date_relance" value="<?= View::e($commande['date_relance'] ?? '') ?>"></div>
+        <button type="submit" class="btn btn-sm btn-secondary">Enregistrer</button>
+      </form>
     </div>
 
     <div class="card">

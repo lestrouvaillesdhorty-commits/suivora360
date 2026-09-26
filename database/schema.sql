@@ -150,6 +150,8 @@ CREATE TABLE IF NOT EXISTS parametres (
     dedouanement_defaut DECIMAL(10,2) NOT NULL DEFAULT 0,
     taux_date_maj DATE,
     taux_source VARCHAR(100),
+    diviseur_volumetrique_aerien DECIMAL(10,2) NOT NULL DEFAULT 6000,
+    diviseur_volumetrique_maritime DECIMAL(10,2) NOT NULL DEFAULT 1000,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -255,6 +257,23 @@ CREATE TABLE IF NOT EXISTS offres (
     validite_offre DATE,
     statut VARCHAR(20) NOT NULL DEFAULT 'recue',
     notes TEXT,
+    pays_origine VARCHAR(100),
+    lieu_depart VARCHAR(150),
+    quantite_min VARCHAR(100),
+    disponibilite VARCHAR(150),
+    poids_kg DECIMAL(10,2),
+    nombre_colis INT,
+    volume_m3 DECIMAL(10,3),
+    conformite_technique VARCHAR(20),
+    conditions_paiement VARCHAR(30),
+    garantie VARCHAR(150),
+    transport_montant DECIMAL(12,2),
+    assurance_montant DECIMAL(12,2),
+    emballage_montant DECIMAL(12,2),
+    douane_montant DECIMAL(12,2),
+    dedouanement_montant DECIMAL(12,2),
+    autres_frais_montant DECIMAL(12,2),
+    motif_decision TEXT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -311,6 +330,8 @@ CREATE TABLE IF NOT EXISTS commandes (
     statut VARCHAR(20) NOT NULL DEFAULT 'en_cours',
     etape VARCHAR(30) NOT NULL DEFAULT 'paiement',
     notes TEXT,
+    prochaine_action VARCHAR(255),
+    date_relance DATE,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -326,6 +347,22 @@ CREATE TABLE IF NOT EXISTS commande_steps (
     ordre INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS consultation_partages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    consultation_id INT NOT NULL,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    masquer_client TINYINT(1) NOT NULL DEFAULT 1,
+    pieces_ids TEXT,
+    echeance_reponse DATE,
+    expire_le DATETIME NOT NULL,
+    revoque_le DATETIME,
+    marque_envoye_le DATETIME,
+    nb_consultations INT NOT NULL DEFAULT 0,
+    dernier_acces DATETIME,
+    cree_par INT,
+    created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS factures (

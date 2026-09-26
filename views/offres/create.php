@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Models\Demande; ?>
+<?php use App\Core\View; use App\Models\Demande; use App\Models\Client; use App\Models\Offre; ?>
 <a href="/index.php?r=consultations/<?= $consultation['id'] ?>" style="font-size:13px;color:#666">&larr; Retour à la consultation <?= View::e($consultation['reference']) ?></a>
 
 <h1 style="margin-top:8px">Enregistrer une offre reçue</h1>
@@ -30,6 +30,58 @@
       <div class="form-group"><label>Délai de livraison annoncé</label><input type="text" name="delai_livraison" placeholder="ex: 4 à 6 semaines"></div>
     </div>
     <div class="form-group"><label>Validité de l'offre</label><input type="date" name="validite_offre"></div>
+
+    <details open style="margin:16px 0">
+      <summary style="cursor:pointer;font-weight:600;color:#374151">Comparaison détaillée (optionnel, mais utile pour le Comparateur)</summary>
+      <div style="margin-top:12px">
+        <div class="form-row">
+          <div class="form-group"><label>Pays d'origine</label><input type="text" name="pays_origine"></div>
+          <div class="form-group"><label>Lieu de départ</label><input type="text" name="lieu_depart" placeholder="ex: Guangzhou"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Quantité minimale (MOQ)</label><input type="text" name="quantite_min"></div>
+          <div class="form-group"><label>Disponibilité</label><input type="text" name="disponibilite" placeholder="ex: en stock / à produire, 3 semaines"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Poids (kg)</label><input type="number" step="0.01" name="poids_kg"></div>
+          <div class="form-group"><label>Nombre de colis</label><input type="number" name="nombre_colis"></div>
+          <div class="form-group"><label>Volume (m³)</label><input type="number" step="0.001" name="volume_m3"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Conformité technique</label>
+            <select name="conformite_technique">
+              <option value="">— Non évaluée —</option>
+              <?php foreach (Offre::CONFORMITE as $code => $label): ?>
+                <option value="<?= $code ?>"><?= View::e($label) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Conditions de paiement proposées</label>
+            <select name="conditions_paiement">
+              <option value="">— Non précisées —</option>
+              <?php foreach (Client::CONDITIONS_PAIEMENT as $code => $label): ?>
+                <option value="<?= $code ?>"><?= View::e($label) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Garantie</label><input type="text" name="garantie" placeholder="ex: 12 mois pièces"></div>
+
+        <h2 style="font-size:13px;color:#666;margin-top:16px">Coût rendu — frais complémentaires (dans la devise de l'offre)</h2>
+        <div class="form-row">
+          <div class="form-group"><label>Transport</label><input type="number" step="0.01" name="transport_montant"></div>
+          <div class="form-group"><label>Assurance</label><input type="number" step="0.01" name="assurance_montant"></div>
+          <div class="form-group"><label>Emballage</label><input type="number" step="0.01" name="emballage_montant"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Douane / droits estimés</label><input type="number" step="0.01" name="douane_montant"></div>
+          <div class="form-group"><label>Dédouanement</label><input type="number" step="0.01" name="dedouanement_montant"></div>
+          <div class="form-group"><label>Autres frais</label><input type="number" step="0.01" name="autres_frais_montant"></div>
+        </div>
+      </div>
+    </details>
 
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center">

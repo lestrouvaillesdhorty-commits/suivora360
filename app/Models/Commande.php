@@ -20,6 +20,47 @@ class Commande
         'termine' => 'Terminé',
     ];
 
+    /**
+     * Libellés spécifiques par étape et par statut — plus explicites que le
+     * générique "À faire / En cours / Terminé", qui créait de la confusion
+     * (notamment pour la livraison : impossible de savoir si la marchandise
+     * était à préparer, expédiée ou reçue).
+     */
+    public const STEP_STATUT_LABELS = [
+        'paiement' => ['a_faire' => 'Paiement à faire', 'en_cours' => 'Paiement en cours', 'termine' => 'Payé'],
+        'expedition' => ['a_faire' => 'À préparer', 'en_cours' => 'En préparation', 'termine' => 'Expédiée'],
+        'douane' => ['a_faire' => 'Dédouanement à faire', 'en_cours' => 'En cours de dédouanement', 'termine' => 'Dédouané'],
+        'livraison' => ['a_faire' => 'À expédier', 'en_cours' => 'En transit', 'termine' => 'Reçue'],
+        'solde' => ['a_faire' => 'Solde à payer', 'en_cours' => 'Solde en cours', 'termine' => 'Soldé'],
+    ];
+
+    public static function libelleStatutEtape(string $etape, string $statut): string
+    {
+        return self::STEP_STATUT_LABELS[$etape][$statut] ?? (self::STEP_STATUTS[$statut] ?? $statut);
+    }
+
+    /**
+     * Avancement automatique (0-100) : chaque étape terminée compte pour
+     * une part égale, une étape "en cours" compte pour moitié — pas de
+     * ressaisie manuelle du pourcentage.
+     */
+    public static function progression(array $steps): int
+    {
+        if (empty($steps)) {
+            return 0;
+        }
+        $total = count($steps);
+        $poids = 0.0;
+        foreach ($steps as $step) {
+            if ($step['statut'] === 'termine') {
+                $poids += 1.0;
+            } elseif ($step['statut'] === 'en_cours') {
+                $poids += 0.5;
+            }
+        }
+        return (int) round(($poids / $total) * 100);
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM commandes WHERE id = ?');
@@ -123,6 +164,21 @@ class Commande
 
         $stmt = Database::connection()->prepare('UPDATE commandes SET etape = ?, statut = ?, updated_at = ? WHERE id = ?');
         $stmt->execute([$etape, $statut, date('Y-m-d H:i:s'), $commandeId]);
+    }
+
+    public static function updateSuivi(int $commandeId, string $prochaineAction, ?string $dateRelance): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE commandes SET prochaine_action = ?, date_relance = ?, updated_at = ? WHERE id = ?'
+        );
+        $stmt->execute([trim($prochaineAction), $dateRelance ?: null, date('Y-m-d H:i:s'), $commandeId]);
+    }
+
+    public static function estEnRetard(array $commande): bool
+    {
+        return $commande['statut'] !== 'terminee'
+            && !empty($commande['date_relance'])
+            && $commande['date_relance'] < date('Y-m-d');
     }
 
     public static function userCanAccess(array $user, array $commande): bool
