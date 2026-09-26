@@ -93,10 +93,11 @@ $activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'I
           </select>
         </div>
         <div class="form-group">
-          <label>Priorité</label>
+          <label>Urgence</label>
           <select name="priorite">
-            <option value="normale" <?= $demande['priorite'] === 'normale' ? 'selected' : '' ?>>Normale</option>
-            <option value="haute" <?= $demande['priorite'] === 'haute' ? 'selected' : '' ?>>Haute</option>
+            <?php foreach (Demande::PRIORITES as $code => $label): ?>
+              <option value="<?= $code ?>" <?= $demande['priorite'] === $code ? 'selected' : '' ?>><?= $label ?></option>
+            <?php endforeach; ?>
           </select>
         </div>
       </div>
@@ -203,10 +204,11 @@ $activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'I
           </select>
         </div>
         <div class="form-group">
-          <label>Priorité</label>
+          <label>Urgence</label>
           <select name="priorite">
-            <option value="normale">Normale</option>
-            <option value="haute">Haute</option>
+            <?php foreach (Demande::PRIORITES as $code => $label): ?>
+              <option value="<?= $code ?>" <?= $code === 'normale' ? 'selected' : '' ?>><?= $label ?></option>
+            <?php endforeach; ?>
           </select>
         </div>
       </div>

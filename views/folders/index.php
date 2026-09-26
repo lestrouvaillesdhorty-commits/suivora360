@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Models\Dossier; use App\Models\Utilisateur; ?>
+<?php use App\Core\View; use App\Models\Demande; use App\Models\Dossier; use App\Models\Utilisateur; ?>
 <h1>Dossiers</h1>
 <div class="subtitle"><?= count($dossiers) ?> dossier<?= count($dossiers) > 1 ? 's' : '' ?></div>
 
@@ -63,7 +63,7 @@
       <td><?= View::e($d['filiale_nom']) ?></td>
       <td><span class="badge badge-blue"><?= Dossier::ETAPES_LABELS[$d['etape']] ?? $d['etape'] ?></span></td>
       <td><?= View::e(Utilisateur::nameOf($d['responsable_id'])) ?></td>
-      <td><?= $d['priorite'] === 'haute' ? '<span class="badge badge-red">Haute</span>' : '<span class="badge badge-gray">Normale</span>' ?></td>
+      <td><span class="badge <?= Demande::PRIORITE_BADGES[$d['priorite']] ?? 'badge-gray' ?>"><?= Demande::PRIORITES[$d['priorite']] ?? ucfirst($d['priorite']) ?></span></td>
       <td>
         <?= $d['echeance'] ? date('d/m/Y', strtotime($d['echeance'])) : '—' ?>
         <?php if ($enRetard): ?> <span class="badge badge-red">En retard</span><?php endif; ?>

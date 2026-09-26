@@ -171,13 +171,24 @@ class Dossier
     {
         $filialeIds = Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
-            return ['actifs' => 0];
+            return ['actifs' => 0, 'en_retard' => 0];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+
         $stmt = Database::connection()->prepare(
             "SELECT COUNT(*) FROM dossiers WHERE statut = 'actif' AND filiale_id IN ($placeholders)"
         );
         $stmt->execute($filialeIds);
-        return ['actifs' => (int) $stmt->fetchColumn()];
+        $actifs = (int) $stmt->fetchColumn();
+
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM dossiers
+             WHERE statut = 'actif' AND echeance IS NOT NULL AND echeance < ?
+             AND filiale_id IN ($placeholders)"
+        );
+        $stmt->execute(array_merge([date('Y-m-d')], $filialeIds));
+        $enRetard = (int) $stmt->fetchColumn();
+
+        return ['actifs' => $actifs, 'en_retard' => $enRetard];
     }
 }

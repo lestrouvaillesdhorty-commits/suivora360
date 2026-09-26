@@ -3,6 +3,7 @@ use App\Core\View;
 use App\Models\Commande;
 use App\Models\ConsultationFournisseur;
 use App\Models\Cotation;
+use App\Models\Demande;
 use App\Models\Dossier;
 use App\Models\Facture;
 use App\Models\Utilisateur;
@@ -49,7 +50,7 @@ $actionLabelsDossier = [
       </form>
       <div class="info-row"><span class="label">Statut</span><span><?= ucfirst($dossier['statut']) ?><?php if ($enRetard): ?> <span class="badge badge-red">En retard</span><?php endif; ?></span></div>
       <div class="info-row"><span class="label">Responsable</span><span><?= View::e(Utilisateur::nameOf($dossier['responsable_id'])) ?></span></div>
-      <div class="info-row"><span class="label">Priorité</span><span><?= $dossier['priorite'] === 'haute' ? 'Haute' : 'Normale' ?></span></div>
+      <div class="info-row"><span class="label">Urgence</span><span><?= Demande::PRIORITES[$dossier['priorite']] ?? ucfirst($dossier['priorite']) ?></span></div>
       <div class="info-row"><span class="label">Échéance</span><span><?= $dossier['echeance'] ? date('d/m/Y', strtotime($dossier['echeance'])) : '—' ?></span></div>
     </div>
 

@@ -1,5 +1,6 @@
 <?php
 use App\Core\View;
+use App\Models\Demande;
 $activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'Import', 'Export', 'Dédouanement et transit', 'Négoce international', 'Représentation commerciale', 'Autre'];
 ?>
 <h1>Nouvelle demande</h1>
@@ -72,10 +73,11 @@ $activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'I
       </select>
     </div>
     <div class="form-group">
-      <label>Priorité</label>
+      <label>Urgence</label>
       <select name="priorite">
-        <option value="normale">Normale</option>
-        <option value="haute">Haute</option>
+        <?php foreach (Demande::PRIORITES as $code => $label): ?>
+          <option value="<?= $code ?>" <?= $code === 'normale' ? 'selected' : '' ?>><?= $label ?></option>
+        <?php endforeach; ?>
       </select>
     </div>
   </div>

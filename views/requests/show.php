@@ -37,7 +37,9 @@ $actionLabels = [
       <?php if (!empty($demande['qualification_type'])): ?>
         <span class="badge badge-gray"><?= View::e(Demande::QUALIFICATION_TYPES[$demande['qualification_type']] ?? $demande['qualification_type']) ?></span>
       <?php endif; ?>
-      <?php if ($demande['priorite'] === 'haute'): ?><span class="badge badge-red">Haute</span><?php endif; ?>
+      <?php if (($demande['priorite'] ?? 'normale') !== 'normale'): ?>
+        <span class="badge <?= Demande::PRIORITE_BADGES[$demande['priorite']] ?? 'badge-gray' ?>"><?= Demande::PRIORITES[$demande['priorite']] ?? ucfirst($demande['priorite']) ?></span>
+      <?php endif; ?>
     </h1>
     <div class="subtitle"><?= View::e($demande['objet']) ?> — <?= View::e($filiale['nom'] ?? '') ?></div>
   </div>
@@ -189,7 +191,7 @@ $actionLabels = [
       <h2>Suivi</h2>
       <div class="info-row"><span class="label">Activité</span><span><?= View::e($demande['activite']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Responsable</span><span><?= View::e(Utilisateur::nameOf($demande['responsable_id'])) ?></span></div>
-      <div class="info-row"><span class="label">Priorité</span><span><?= $demande['priorite'] === 'haute' ? 'Haute' : 'Normale' ?></span></div>
+      <div class="info-row"><span class="label">Urgence</span><span><?= Demande::PRIORITES[$demande['priorite']] ?? ucfirst($demande['priorite']) ?></span></div>
       <div class="info-row">
         <span class="label">Échéance</span>
         <span>

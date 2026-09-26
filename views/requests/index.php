@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Models\Utilisateur; ?>
+<?php use App\Core\View; use App\Models\Utilisateur; use App\Models\Demande; ?>
 <div style="display:flex;justify-content:space-between;align-items:center">
   <div>
     <h1>Demandes</h1>
@@ -11,6 +11,7 @@
 $statutsFiltre = [
     'a_qualifier' => 'À qualifier',
     'en_attente_info' => "En attente d'infos",
+    'en_retard' => 'En retard',
     'qualifiee' => 'Qualifiée',
     'rattachee' => 'Rattachée',
     'transformee' => 'Transformée en dossier',
@@ -78,7 +79,7 @@ $nonQualifiee = ['a_qualifier', 'en_attente_info'];
       <td><strong><?= View::e($d['objet']) ?></strong><br><span style="color:#888"><?= View::e($d['expediteur_nom']) ?></span></td>
       <td><?= View::e($d['filiale_nom']) ?></td>
       <td><?= View::e(Utilisateur::nameOf($d['responsable_id'])) ?></td>
-      <td><?= $d['priorite'] === 'haute' ? '<span class="badge badge-red">Haute</span>' : '<span class="badge badge-gray">Normale</span>' ?></td>
+      <td><span class="badge <?= Demande::PRIORITE_BADGES[$d['priorite']] ?? 'badge-gray' ?>"><?= Demande::PRIORITES[$d['priorite']] ?? ucfirst($d['priorite']) ?></span></td>
       <td>
         <?php $si = $statutBadges[$d['statut']] ?? [ucfirst($d['statut']), 'badge-gray']; ?>
         <span class="badge <?= $si[1] ?>"><?= $si[0] ?></span>

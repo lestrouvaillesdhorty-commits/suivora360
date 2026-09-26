@@ -42,6 +42,21 @@ class Demande
         'autre' => 'Autre',
     ];
 
+    // Urgence — 4 niveaux (Demande ET Dossier, qui hérite de la valeur à la création)
+    public const PRIORITES = [
+        'basse' => 'Basse',
+        'normale' => 'Normale',
+        'haute' => 'Haute',
+        'critique' => 'Critique',
+    ];
+
+    public const PRIORITE_BADGES = [
+        'basse' => 'badge-gray',
+        'normale' => 'badge-blue',
+        'haute' => 'badge-orange',
+        'critique' => 'badge-red',
+    ];
+
     public const TAKEOVER_STAGES = [
         'qualification' => 'Demande en cours de qualification',
         'recherche_fournisseurs' => 'Recherche de fournisseurs',
@@ -79,7 +94,12 @@ class Demande
                 WHERE d.filiale_id IN ($placeholders)";
         $params = $filialeIds;
 
-        if (!empty($filters['statut'])) {
+        if (!empty($filters['statut']) && $filters['statut'] === 'en_retard') {
+            // "En retard" n'est pas une valeur stockée : une demande pas encore
+            // qualifiée dont l'échéance est dépassée (même logique que Dossier).
+            $sql .= " AND d.statut IN ('a_qualifier', 'en_attente_info') AND d.echeance IS NOT NULL AND d.echeance < ?";
+            $params[] = date('Y-m-d');
+        } elseif (!empty($filters['statut'])) {
             $sql .= ' AND d.statut = ?';
             $params[] = $filters['statut'];
         }
@@ -315,13 +335,24 @@ class Demande
     {
         $filialeIds = Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
-            return ['a_qualifier' => 0];
+            return ['a_qualifier' => 0, 'en_retard' => 0];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+
         $stmt = Database::connection()->prepare(
             "SELECT COUNT(*) FROM demandes WHERE statut = 'a_qualifier' AND filiale_id IN ($placeholders)"
         );
         $stmt->execute($filialeIds);
-        return ['a_qualifier' => (int) $stmt->fetchColumn()];
+        $aQualifier = (int) $stmt->fetchColumn();
+
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM demandes
+             WHERE statut IN ('a_qualifier', 'en_attente_info') AND echeance IS NOT NULL AND echeance < ?
+             AND filiale_id IN ($placeholders)"
+        );
+        $stmt->execute(array_merge([date('Y-m-d')], $filialeIds));
+        $enRetard = (int) $stmt->fetchColumn();
+
+        return ['a_qualifier' => $aQualifier, 'en_retard' => $enRetard];
     }
 }
