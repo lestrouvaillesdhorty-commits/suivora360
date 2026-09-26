@@ -145,13 +145,24 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
     $pdo->exec("CREATE TABLE IF NOT EXISTS clients (
         id $id,
         filiale_id INT NOT NULL,
+        code VARCHAR(20),
         nom VARCHAR(255) NOT NULL,
+        statut VARCHAR(20) NOT NULL DEFAULT 'actif',
+        type VARCHAR(30),
         email VARCHAR(255),
         telephone VARCHAR(50),
         pays VARCHAR(100),
         ville VARCHAR(100),
+        code_postal VARCHAR(20),
         adresse VARCHAR(255),
+        adresse_livraison VARCHAR(255),
         secteur VARCHAR(100),
+        siret VARCHAR(50),
+        tva VARCHAR(50),
+        incoterm_habituel VARCHAR(10),
+        mode_transport_habituel VARCHAR(30),
+        conditions_paiement VARCHAR(30),
+        fonction_contact VARCHAR(100),
         notes TEXT,
         is_active TINYINT(1) NOT NULL DEFAULT 1,
         created_at DATETIME NOT NULL
@@ -160,7 +171,9 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
     $pdo->exec("CREATE TABLE IF NOT EXISTS fournisseurs (
         id $id,
         filiale_id INT NOT NULL,
+        code VARCHAR(20),
         nom VARCHAR(255) NOT NULL,
+        statut VARCHAR(20) NOT NULL DEFAULT 'a_qualifier',
         email VARCHAR(255),
         telephone VARCHAR(50),
         pays VARCHAR(100),
@@ -169,9 +182,46 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         devise VARCHAR(10),
         secteur VARCHAR(100),
         site_web VARCHAR(255),
+        categories_produits VARCHAR(255),
+        marques VARCHAR(255),
+        pays_desservis VARCHAR(255),
+        incoterms_pratiques VARCHAR(255),
+        quantite_min VARCHAR(100),
+        fonction_contact VARCHAR(100),
+        note_prix TINYINT,
+        note_qualite TINYINT,
+        note_delai TINYINT,
+        note_reactivite TINYINT,
+        note_conformite TINYINT,
+        note_engagements TINYINT,
         notes TEXT,
         is_active TINYINT(1) NOT NULL DEFAULT 1,
         created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS fournisseur_pieces_jointes (
+        id $id,
+        fournisseur_id INT NOT NULL,
+        categorie VARCHAR(30) NOT NULL DEFAULT 'autre',
+        nom_original VARCHAR(255) NOT NULL,
+        nom_fichier VARCHAR(255) NOT NULL,
+        taille INT NOT NULL DEFAULT 0,
+        type_mime VARCHAR(100),
+        uploaded_by INT,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS parametres (
+        id $id,
+        filiale_id INT NOT NULL UNIQUE,
+        taux_eur_fcfa DECIMAL(10,3) NOT NULL DEFAULT 655.957,
+        marge_defaut_pourcentage DECIMAL(6,2) NOT NULL DEFAULT 20,
+        tva_defaut_pourcentage DECIMAL(5,2) NOT NULL DEFAULT 20,
+        assurance_defaut DECIMAL(10,2) NOT NULL DEFAULT 0,
+        dedouanement_defaut DECIMAL(10,2) NOT NULL DEFAULT 0,
+        taux_date_maj DATE,
+        taux_source VARCHAR(100),
+        updated_at DATETIME NOT NULL
     )$engine");
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS audit_logs (

@@ -13,6 +13,8 @@ use App\Controllers\FactureController;
 use App\Controllers\FilialeController;
 use App\Controllers\FournisseurController;
 use App\Controllers\OffreController;
+use App\Controllers\ParametresController;
+use App\Controllers\SimulateurController;
 use App\Controllers\UtilisateurController;
 use App\Core\Auth;
 use App\Core\Env;
@@ -168,6 +170,18 @@ $router->post('/fournisseurs/{id}/activer', function ($params) {
     Auth::requireLogin();
     (new FournisseurController())->activer($params);
 });
+$router->post('/fournisseurs/{id}/pieces', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->uploadPiece($params);
+});
+$router->get('/fournisseurs/{id}/pieces/{pieceId}/telecharger', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->telechargerPiece($params);
+});
+$router->post('/fournisseurs/{id}/pieces/{pieceId}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->supprimerPiece($params);
+});
 
 // Dossiers
 $router->get('/dossiers', function () {
@@ -309,6 +323,22 @@ $router->post('/utilisateurs', function () {
 $router->post('/utilisateurs/{id}/acces', function ($params) {
     Auth::requireLogin();
     (new UtilisateurController())->updateAcces($params);
+});
+
+// Paramètres de calcul (dirigeant uniquement)
+$router->get('/parametres', function () {
+    Auth::requireLogin();
+    (new ParametresController())->index();
+});
+$router->post('/parametres', function () {
+    Auth::requireLogin();
+    (new ParametresController())->update();
+});
+
+// Simulateur de prix
+$router->get('/simulateur', function () {
+    Auth::requireLogin();
+    (new SimulateurController())->index();
 });
 
 $routeParam = $_GET['r'] ?? '/';

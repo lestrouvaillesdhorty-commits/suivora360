@@ -49,6 +49,24 @@ class ConsultationFournisseur
         return $stmt->fetchAll();
     }
 
+    /**
+     * Historique des consultations envoyées à un fournisseur donné, tous
+     * dossiers confondus — pour la fiche fournisseur.
+     */
+    public static function forFournisseur(int $fournisseurId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT cf.*, d.reference AS dossier_reference,
+                    (SELECT COUNT(*) FROM offres o WHERE o.consultation_id = cf.id) AS nb_offres
+             FROM consultations_fournisseur cf
+             INNER JOIN dossiers d ON d.id = cf.dossier_id
+             WHERE cf.fournisseur_id = ?
+             ORDER BY cf.created_at DESC'
+        );
+        $stmt->execute([$fournisseurId]);
+        return $stmt->fetchAll();
+    }
+
     public static function create(int $dossierId, int $filialeId, array $data, int $userId): int
     {
         $pdo = Database::connection();

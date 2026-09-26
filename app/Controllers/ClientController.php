@@ -49,12 +49,22 @@ class ClientController
         $clientId = Client::create([
             'filiale_id' => $filialeId,
             'nom' => trim($_POST['nom']),
+            'statut' => $_POST['statut'] ?? 'actif',
+            'type' => trim($_POST['type'] ?? ''),
             'email' => trim($_POST['email'] ?? ''),
             'telephone' => trim($_POST['telephone'] ?? ''),
             'pays' => trim($_POST['pays'] ?? ''),
             'ville' => trim($_POST['ville'] ?? ''),
+            'code_postal' => trim($_POST['code_postal'] ?? ''),
             'adresse' => trim($_POST['adresse'] ?? ''),
+            'adresse_livraison' => trim($_POST['adresse_livraison'] ?? ''),
             'secteur' => trim($_POST['secteur'] ?? ''),
+            'siret' => trim($_POST['siret'] ?? ''),
+            'tva' => trim($_POST['tva'] ?? ''),
+            'incoterm_habituel' => trim($_POST['incoterm_habituel'] ?? ''),
+            'mode_transport_habituel' => trim($_POST['mode_transport_habituel'] ?? ''),
+            'conditions_paiement' => trim($_POST['conditions_paiement'] ?? ''),
+            'fonction_contact' => trim($_POST['fonction_contact'] ?? ''),
             'notes' => trim($_POST['notes'] ?? ''),
         ]);
 
@@ -73,7 +83,11 @@ class ClientController
             View::render('errors/404');
             return;
         }
-        View::render('clients/show', ['client' => $client]);
+        View::render('clients/show', [
+            'client' => $client,
+            'caTotal' => Client::caTotal((int) $client['id']),
+            'resteAPayer' => Client::resteAPayer((int) $client['id']),
+        ]);
     }
 
     public function edit(array $params): void
@@ -110,12 +124,22 @@ class ClientController
 
         Client::update((int) $client['id'], [
             'nom' => trim($_POST['nom']),
+            'statut' => $_POST['statut'] ?? 'actif',
+            'type' => trim($_POST['type'] ?? ''),
             'email' => trim($_POST['email'] ?? ''),
             'telephone' => trim($_POST['telephone'] ?? ''),
             'pays' => trim($_POST['pays'] ?? ''),
             'ville' => trim($_POST['ville'] ?? ''),
+            'code_postal' => trim($_POST['code_postal'] ?? ''),
             'adresse' => trim($_POST['adresse'] ?? ''),
+            'adresse_livraison' => trim($_POST['adresse_livraison'] ?? ''),
             'secteur' => trim($_POST['secteur'] ?? ''),
+            'siret' => trim($_POST['siret'] ?? ''),
+            'tva' => trim($_POST['tva'] ?? ''),
+            'incoterm_habituel' => trim($_POST['incoterm_habituel'] ?? ''),
+            'mode_transport_habituel' => trim($_POST['mode_transport_habituel'] ?? ''),
+            'conditions_paiement' => trim($_POST['conditions_paiement'] ?? ''),
+            'fonction_contact' => trim($_POST['fonction_contact'] ?? ''),
             'notes' => trim($_POST['notes'] ?? ''),
         ]);
 

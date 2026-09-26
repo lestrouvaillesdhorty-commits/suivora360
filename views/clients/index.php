@@ -1,4 +1,4 @@
-<?php use App\Core\View; ?>
+<?php use App\Core\View; use App\Models\Client; ?>
 <div style="display:flex;justify-content:space-between;align-items:center">
   <div>
     <h1>Clients</h1>
@@ -12,22 +12,24 @@
 <?php else: ?>
 <table>
   <thead>
-    <tr><th>Nom</th><th>E-mail</th><th>Téléphone</th><th>Pays</th><th>Secteur</th><th>Statut</th><th>Actions</th></tr>
+    <tr><th>Code</th><th>Nom</th><th>Type</th><th>Contact</th><th>Pays</th><th>Statut</th><th>Actions</th></tr>
   </thead>
   <tbody>
     <?php foreach ($clients as $c): ?>
+    <?php $wa = preg_replace('/[^0-9]/', '', $c['telephone'] ?? ''); ?>
     <tr onclick="window.location='/index.php?r=clients/<?= $c['id'] ?>'" style="cursor:pointer">
+      <td><?= View::e($c['code'] ?? '') ?: '—' ?></td>
       <td><strong><?= View::e($c['nom']) ?></strong></td>
-      <td><?= View::e($c['email']) ?: '—' ?></td>
-      <td><?= View::e($c['telephone']) ?: '—' ?></td>
+      <td><?= !empty($c['type']) ? View::e(Client::TYPES[$c['type']] ?? $c['type']) : '—' ?></td>
+      <td onclick="event.stopPropagation()">
+        <?= View::e($c['email']) ?: '' ?> <?= View::e($c['telephone']) ?: '' ?>
+        <?php if ($wa): ?> <a href="https://wa.me/<?= $wa ?>" target="_blank" title="WhatsApp">💬</a><?php endif; ?>
+        <?php if (!empty($c['email'])): ?> <a href="mailto:<?= View::e($c['email']) ?>" title="E-mail">✉️</a><?php endif; ?>
+      </td>
       <td><?= View::e($c['pays']) ?: '—' ?></td>
-      <td><?= View::e($c['secteur']) ?: '—' ?></td>
       <td>
-        <?php if ((int) $c['is_active'] === 1): ?>
-          <span class="badge badge-green">Actif</span>
-        <?php else: ?>
-          <span class="badge badge-gray">Inactif</span>
-        <?php endif; ?>
+        <?php $sc = Client::STATUT_BADGES[$c['statut'] ?? 'actif'] ?? 'badge-gray'; ?>
+        <span class="badge <?= $sc ?>"><?= View::e(Client::STATUTS[$c['statut'] ?? 'actif'] ?? ucfirst($c['statut'] ?? '')) ?></span>
       </td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap">
         <a href="/index.php?r=clients/<?= $c['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a>

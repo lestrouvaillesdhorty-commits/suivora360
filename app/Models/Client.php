@@ -6,6 +6,47 @@ use App\Core\Database;
 
 class Client
 {
+    public const STATUTS = [
+        'prospect' => 'Prospect',
+        'actif' => 'Actif',
+        'suspendu' => 'Suspendu',
+        'inactif' => 'Inactif',
+    ];
+
+    public const STATUT_BADGES = [
+        'prospect' => 'badge-blue',
+        'actif' => 'badge-green',
+        'suspendu' => 'badge-orange',
+        'inactif' => 'badge-gray',
+    ];
+
+    public const TYPES = [
+        'particulier' => 'Particulier',
+        'entreprise' => 'Entreprise',
+        'distributeur' => 'Distributeur',
+        'grossiste' => 'Grossiste',
+        'revendeur' => 'Revendeur',
+        'gms' => 'GMS / Enseigne',
+        'administration' => 'Administration',
+    ];
+
+    public const CONDITIONS_PAIEMENT = [
+        'comptant' => 'Comptant',
+        'acompte_solde' => 'Acompte et solde avant expédition',
+        '30j' => '30 jours',
+        '45j' => '45 jours',
+        '60j' => '60 jours',
+        'autre' => 'Autre',
+    ];
+
+    public const MODES_TRANSPORT = [
+        'maritime' => 'Maritime',
+        'aerien' => 'Aérien',
+        'routier' => 'Routier',
+        'multimodal' => 'Multimodal',
+        'autre' => 'Autre',
+    ];
+
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM clients WHERE id = ?');
@@ -50,19 +91,36 @@ class Client
 
     public static function create(array $data): int
     {
-        $stmt = Database::connection()->prepare(
-            'INSERT INTO clients (filiale_id, nom, email, telephone, pays, ville, adresse, secteur, notes, is_active, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)'
+        $pdo = Database::connection();
+        $filiale = Filiale::find((int) $data['filiale_id']);
+        $numero = Compteur::next((int) $filiale['organisation_id'], 'client');
+        $code = Compteur::formatReference('CLI', $numero);
+
+        $stmt = $pdo->prepare(
+            'INSERT INTO clients
+             (filiale_id, code, nom, statut, type, email, telephone, pays, ville, code_postal, adresse, adresse_livraison, secteur, siret, tva, incoterm_habituel, mode_transport_habituel, conditions_paiement, fonction_contact, notes, is_active, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)'
         );
         $stmt->execute([
             $data['filiale_id'],
+            $code,
             $data['nom'],
+            $data['statut'] ?? 'actif',
+            $data['type'] ?? '',
             $data['email'] ?? '',
             $data['telephone'] ?? '',
             $data['pays'] ?? '',
             $data['ville'] ?? '',
+            $data['code_postal'] ?? '',
             $data['adresse'] ?? '',
+            $data['adresse_livraison'] ?? '',
             $data['secteur'] ?? '',
+            $data['siret'] ?? '',
+            $data['tva'] ?? '',
+            $data['incoterm_habituel'] ?? '',
+            $data['mode_transport_habituel'] ?? '',
+            $data['conditions_paiement'] ?? '',
+            $data['fonction_contact'] ?? '',
             $data['notes'] ?? '',
             date('Y-m-d H:i:s'),
         ]);
@@ -72,25 +130,40 @@ class Client
     public static function update(int $id, array $data): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE clients SET nom = ?, email = ?, telephone = ?, pays = ?, ville = ?, adresse = ?, secteur = ?, notes = ? WHERE id = ?'
+            'UPDATE clients SET nom = ?, statut = ?, type = ?, email = ?, telephone = ?, pays = ?, ville = ?, code_postal = ?, adresse = ?, adresse_livraison = ?, secteur = ?, siret = ?, tva = ?, incoterm_habituel = ?, mode_transport_habituel = ?, conditions_paiement = ?, fonction_contact = ?, notes = ? WHERE id = ?'
         );
         $stmt->execute([
             $data['nom'],
+            $data['statut'] ?? 'actif',
+            $data['type'] ?? '',
             $data['email'] ?? '',
             $data['telephone'] ?? '',
             $data['pays'] ?? '',
             $data['ville'] ?? '',
+            $data['code_postal'] ?? '',
             $data['adresse'] ?? '',
+            $data['adresse_livraison'] ?? '',
             $data['secteur'] ?? '',
+            $data['siret'] ?? '',
+            $data['tva'] ?? '',
+            $data['incoterm_habituel'] ?? '',
+            $data['mode_transport_habituel'] ?? '',
+            $data['conditions_paiement'] ?? '',
+            $data['fonction_contact'] ?? '',
             $data['notes'] ?? '',
             $id,
         ]);
     }
 
+    /**
+     * Désactiver/Réactiver : conservé pour compatibilité (bouton rapide),
+     * agit à la fois sur is_active (ancien mécanisme) et sur statut (nouveau,
+     * plus riche — Prospect/Actif/Suspendu/Inactif).
+     */
     public static function setActive(int $id, bool $active): void
     {
-        $stmt = Database::connection()->prepare('UPDATE clients SET is_active = ? WHERE id = ?');
-        $stmt->execute([$active ? 1 : 0, $id]);
+        $stmt = Database::connection()->prepare('UPDATE clients SET is_active = ?, statut = ? WHERE id = ?');
+        $stmt->execute([$active ? 1 : 0, $active ? 'actif' : 'inactif', $id]);
     }
 
     public static function nameOf(?int $id): string
@@ -100,5 +173,33 @@ class Client
         }
         $client = self::find($id);
         return $client ? $client['nom'] : '—';
+    }
+
+    /**
+     * Chiffre d'affaires total : somme des cotations acceptées liées au client.
+     */
+    public static function caTotal(int $clientId): float
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COALESCE(SUM(montant_total), 0) FROM cotations WHERE client_id = ? AND statut = 'acceptee'"
+        );
+        $stmt->execute([$clientId]);
+        return (float) $stmt->fetchColumn();
+    }
+
+    /**
+     * Montant restant à payer : somme des factures non payées (émises, non
+     * annulées) rattachées aux cotations de ce client.
+     */
+    public static function resteAPayer(int $clientId): float
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COALESCE(SUM(fa.montant), 0)
+             FROM factures fa
+             INNER JOIN cotations co ON co.id = fa.cotation_id
+             WHERE co.client_id = ? AND fa.statut = 'emise'"
+        );
+        $stmt->execute([$clientId]);
+        return (float) $stmt->fetchColumn();
     }
 }
