@@ -1,10 +1,12 @@
 <?php
 
 use App\Controllers\AuthController;
+use App\Controllers\ClientController;
 use App\Controllers\DashboardController;
 use App\Controllers\DemandeController;
 use App\Controllers\DossierController;
 use App\Controllers\FilialeController;
+use App\Controllers\FournisseurController;
 use App\Controllers\UtilisateurController;
 use App\Core\Auth;
 use App\Core\Env;
@@ -48,9 +50,65 @@ $router->get('/demandes/{id}', function ($params) {
     Auth::requireLogin();
     (new DemandeController())->show($params);
 });
-$router->post('/demandes/{id}/qualifier', function ($params) {
+$router->get('/demandes/{id}/qualifier', function ($params) {
     Auth::requireLogin();
-    (new DemandeController())->qualifier($params);
+    (new DemandeController())->qualifierForm($params);
+});
+$router->post('/demandes/{id}/qualifier/nouvelle', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->qualifierNouvelle($params);
+});
+$router->post('/demandes/{id}/qualifier/complement', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->qualifierComplement($params);
+});
+$router->post('/demandes/{id}/qualifier/reprise', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->qualifierReprise($params);
+});
+$router->post('/demandes/{id}/creer-dossier', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->creerDossier($params);
+});
+$router->post('/demandes/{id}/rejeter', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->rejeter($params);
+});
+
+// Clients
+$router->get('/clients', function () {
+    Auth::requireLogin();
+    (new ClientController())->index();
+});
+$router->get('/clients/nouveau', function () {
+    Auth::requireLogin();
+    (new ClientController())->create();
+});
+$router->post('/clients', function () {
+    Auth::requireLogin();
+    (new ClientController())->store();
+});
+$router->get('/clients/{id}', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->show($params);
+});
+
+// Fournisseurs
+$router->get('/fournisseurs', function () {
+    Auth::requireLogin();
+    (new FournisseurController())->index();
+});
+$router->get('/fournisseurs/nouveau', function () {
+    Auth::requireLogin();
+    (new FournisseurController())->create();
+});
+$router->post('/fournisseurs', function () {
+    Auth::requireLogin();
+    (new FournisseurController())->store();
+});
+$router->get('/fournisseurs/{id}', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->show($params);
 });
 
 // Dossiers

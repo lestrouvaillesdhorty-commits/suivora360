@@ -27,6 +27,8 @@ function navActive(string $path, string $prefix): string {
       <div class="section-label">Opérations</div>
       <a href="/index.php?r=demandes" class="<?= navActive($path, '/demandes') ?>">Demandes</a>
       <a href="/index.php?r=dossiers" class="<?= navActive($path, '/dossiers') ?>">Dossiers</a>
+      <a href="/index.php?r=clients" class="<?= navActive($path, '/clients') ?>">Clients</a>
+      <a href="/index.php?r=fournisseurs" class="<?= navActive($path, '/fournisseurs') ?>">Fournisseurs</a>
       <?php if ($currentUser && $currentUser['role'] === 'dirigeant'): ?>
       <div class="section-label">Administration</div>
       <a href="/index.php?r=filiales" class="<?= navActive($path, '/filiales') ?>">Filiales</a>

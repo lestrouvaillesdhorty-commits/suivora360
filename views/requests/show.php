@@ -1,53 +1,90 @@
-<?php use App\Core\View; use App\Models\Utilisateur; ?>
+<?php use App\Core\View; use App\Models\Utilisateur; use App\Models\Demande; ?>
 <a href="/index.php?r=demandes" style="font-size:13px;color:#666">&larr; Retour aux demandes</a>
+
+<?php
+$statutBadges = [
+    'a_qualifier' => ['À qualifier', 'badge-yellow'],
+    'en_attente_info' => ["En attente d'infos", 'badge-yellow'],
+    'qualifiee' => ['Qualifiée', 'badge-blue'],
+    'rattachee' => ['Rattachée', 'badge-blue'],
+    'transformee' => ['Transformée en dossier', 'badge-green'],
+    'rejetee' => ['Rejetée', 'badge-red'],
+    'archivee' => ['Archivée', 'badge-gray'],
+];
+$statutInfo = $statutBadges[$demande['statut']] ?? [ucfirst($demande['statut']), 'badge-gray'];
+$peutQualifier = in_array($demande['statut'], ['a_qualifier', 'en_attente_info'], true);
+$peutCreerDossier = $demande['statut'] === 'qualifiee' && !$dossier;
+$peutRejeter = in_array($demande['statut'], ['a_qualifier', 'en_attente_info', 'qualifiee'], true);
+?>
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
   <div>
     <h1>
       <?= View::e($demande['reference']) ?>
-      <?php if ($demande['statut'] === 'a_qualifier'): ?>
-        <span class="badge badge-yellow">À qualifier</span>
-      <?php else: ?>
-        <span class="badge badge-blue">Qualifiée</span>
+      <span class="badge <?= $statutInfo[1] ?>"><?= View::e($statutInfo[0]) ?></span>
+      <?php if (!empty($demande['qualification_type'])): ?>
+        <span class="badge badge-gray"><?= View::e(Demande::QUALIFICATION_TYPES[$demande['qualification_type']] ?? $demande['qualification_type']) ?></span>
       <?php endif; ?>
       <?php if ($demande['priorite'] === 'haute'): ?><span class="badge badge-red">Haute</span><?php endif; ?>
     </h1>
     <div class="subtitle"><?= View::e($demande['objet']) ?> — <?= View::e($filiale['nom'] ?? '') ?></div>
   </div>
-  <div>
-    <?php if ($demande['statut'] === 'a_qualifier'): ?>
-      <button class="btn" onclick="document.getElementById('qualifier-form').style.display='block'">Qualifier la demande</button>
+  <div style="display:flex;gap:8px">
+    <?php if ($peutQualifier): ?>
+      <a href="/index.php?r=demandes/<?= $demande['id'] ?>/qualifier" class="btn">Qualifier la demande</a>
+    <?php elseif ($peutCreerDossier): ?>
+      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/creer-dossier">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <button type="submit" class="btn">Créer le dossier</button>
+      </form>
     <?php elseif ($dossier): ?>
       <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" class="btn">Voir le dossier <?= View::e($dossier['reference']) ?></a>
+    <?php endif; ?>
+    <?php if ($peutRejeter): ?>
+      <button class="btn btn-secondary" onclick="document.getElementById('rejeter-form').style.display='block'">Rejeter</button>
     <?php endif; ?>
   </div>
 </div>
 
-<?php if ($demande['statut'] === 'a_qualifier'): ?>
-<div class="card" id="qualifier-form" style="display:none">
-  <h2>Qualifier la demande</h2>
-  <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/qualifier">
+<?php if ($peutRejeter): ?>
+<div class="card" id="rejeter-form" style="display:none">
+  <h2>Rejeter la demande</h2>
+  <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/rejeter">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-    <div class="form-row">
-      <div class="form-group">
-        <label>Responsable</label>
-        <input type="text" name="responsable_id" placeholder="ID utilisateur (optionnel)" value="<?= View::e((string) $demande['responsable_id']) ?>">
-      </div>
-      <div class="form-group">
-        <label>Priorité</label>
-        <select name="priorite">
-          <option value="normale" <?= $demande['priorite'] === 'normale' ? 'selected' : '' ?>>Normale</option>
-          <option value="haute" <?= $demande['priorite'] === 'haute' ? 'selected' : '' ?>>Haute</option>
-        </select>
-      </div>
-    </div>
     <div class="form-group">
-      <label>Échéance</label>
-      <input type="date" name="echeance" value="<?= View::e($demande['echeance']) ?>">
+      <label>Motif *</label>
+      <textarea name="motif" rows="2" required></textarea>
     </div>
-    <button type="submit" class="btn">Qualifier et créer le dossier</button>
-    <button type="button" class="btn btn-secondary" onclick="document.getElementById('qualifier-form').style.display='none'">Annuler</button>
+    <button type="submit" class="btn">Confirmer le rejet</button>
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('rejeter-form').style.display='none'">Annuler</button>
   </form>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($demande['qualification_type']) || $demande['statut'] === 'rejetee'): ?>
+<div class="card">
+  <h2>Qualification</h2>
+  <?php if ($demande['qualification_type'] === 'ADDITION'): ?>
+    <div class="info-row"><span class="label">Rattachée à</span><span>
+      <?php if ($linkedDemande): ?>
+        <a href="/index.php?r=demandes/<?= $linkedDemande['id'] ?>">Demande <?= View::e($linkedDemande['reference']) ?></a>
+      <?php elseif ($linkedDossier): ?>
+        <a href="/index.php?r=dossiers/<?= $linkedDossier['id'] ?>">Dossier <?= View::e($linkedDossier['reference']) ?></a>
+      <?php else: ?>—<?php endif; ?>
+    </span></div>
+  <?php elseif ($demande['qualification_type'] === 'EXTERNAL_TAKEOVER'): ?>
+    <div class="info-row"><span class="label">Étape actuelle</span><span><?= View::e(Demande::TAKEOVER_STAGES[$demande['takeover_stage']] ?? $demande['takeover_stage']) ?></span></div>
+    <div class="info-row"><span class="label">Démarré le</span><span><?= $demande['original_started_at'] ? date('d/m/Y', strtotime($demande['original_started_at'])) : '—' ?></span></div>
+    <div class="info-row"><span class="label">Enregistré dans Suivora le</span><span><?= $demande['registered_in_suivora_at'] ? date('d/m/Y', strtotime($demande['registered_in_suivora_at'])) : '—' ?></span></div>
+    <div class="info-row"><span class="label">Origine externe</span><span><?= View::e($demande['external_source']) ?: '—' ?></span></div>
+    <div class="info-row"><span class="label">Référence externe</span><span><?= View::e($demande['external_reference']) ?: '—' ?></span></div>
+  <?php endif; ?>
+  <?php if (!empty($demande['qualification_notes'])): ?>
+    <div class="info-row"><span class="label">Notes</span><span><?= nl2br(View::e($demande['qualification_notes'])) ?></span></div>
+  <?php endif; ?>
+  <?php if (!empty($demande['qualified_at'])): ?>
+    <div class="info-row"><span class="label">Qualifiée le</span><span><?= date('d/m/Y H:i', strtotime($demande['qualified_at'])) ?> par <?= View::e(Utilisateur::nameOf($demande['qualified_by'] ?? null)) ?></span></div>
+  <?php endif; ?>
 </div>
 <?php endif; ?>
 

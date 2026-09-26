@@ -71,6 +71,9 @@ class Dossier
             if (!$demande) {
                 throw new \RuntimeException('Demande introuvable.');
             }
+            if ($demande['statut'] !== 'qualifiee') {
+                throw new \RuntimeException("La demande doit d'abord être qualifiée (voie Nouvelle demande ou Reprise) avant de créer un dossier.");
+            }
 
             $existing = self::findByDemande($demandeId);
             if ($existing) {
