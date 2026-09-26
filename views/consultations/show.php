@@ -14,7 +14,10 @@ $badges = [
     <h1><?= View::e($consultation['reference']) ?></h1>
     <div class="subtitle">Consultation envoyée à <?= View::e($consultation['fournisseur_nom']) ?></div>
   </div>
-  <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/offres/nouvelle" class="btn">+ Enregistrer une offre reçue</a>
+  <div>
+    <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/nouvelle" class="btn btn-secondary">Demander une offre (PDF + WhatsApp)</a>
+    <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/offres/nouvelle" class="btn">+ Enregistrer une offre reçue</a>
+  </div>
 </div>
 
 <div class="detail-grid">

@@ -14,6 +14,7 @@ use App\Controllers\FilialeController;
 use App\Controllers\FournisseurController;
 use App\Controllers\OffreController;
 use App\Controllers\ParametresController;
+use App\Controllers\PartagePublicController;
 use App\Controllers\SimulateurController;
 use App\Controllers\UtilisateurController;
 use App\Core\Auth;
@@ -235,6 +236,37 @@ $router->post('/consultations/{id}/statut', function ($params) {
     (new ConsultationController())->updateStatut($params);
 });
 
+// Parcours "Demander une offre" — récapitulatif PDF/HTML + lien fournisseur + WhatsApp
+$router->get('/consultations/{id}/partages/nouvelle', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->preparerPartage($params);
+});
+$router->post('/consultations/{id}/partages', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->creerPartage($params);
+});
+$router->get('/consultations/{id}/partages/{partageId}', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->afficherPartage($params);
+});
+$router->post('/consultations/{id}/partages/{partageId}/envoye', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->marquerPartageEnvoye($params);
+});
+$router->post('/consultations/{id}/partages/{partageId}/revoquer', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->revoquerPartage($params);
+});
+
+// Page publique (aucune authentification) consultée par le fournisseur via
+// son lien sécurisé — token aléatoire, expirable, révocable.
+$router->get('/partage-public/{token}', function ($params) {
+    (new PartagePublicController())->show($params);
+});
+$router->get('/partage-public/{token}/pieces/{pieceId}', function ($params) {
+    (new PartagePublicController())->telechargerPiece($params);
+});
+
 // Offres fournisseurs
 $router->get('/consultations/{id}/offres/nouvelle', function ($params) {
     Auth::requireLogin();
@@ -253,6 +285,10 @@ $router->get('/dossiers/{id}/comparateur', function ($params) {
 $router->post('/dossiers/{id}/comparateur/retenir', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->retenir($params);
+});
+$router->post('/dossiers/{id}/comparateur/revenir', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->revenir($params);
 });
 
 // Cotations client
@@ -285,6 +321,10 @@ $router->get('/dossiers/{id}/commande', function ($params) {
 $router->post('/commandes/{id}/etapes/{stepId}', function ($params) {
     Auth::requireLogin();
     (new CommandeController())->updateStep($params);
+});
+$router->post('/commandes/{id}/suivi', function ($params) {
+    Auth::requireLogin();
+    (new CommandeController())->updateSuivi($params);
 });
 
 // Factures

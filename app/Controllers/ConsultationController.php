@@ -6,7 +6,9 @@ use App\Core\Auth;
 use App\Core\View;
 use App\Models\AuditLog;
 use App\Models\ConsultationFournisseur;
+use App\Models\ConsultationPartage;
 use App\Models\Dossier;
+use App\Models\DossierPieceJointe;
 use App\Models\Fournisseur;
 use App\Models\Offre;
 
@@ -103,5 +105,142 @@ class ConsultationController
         View::flash('succes', 'Statut de la consultation mis à jour.');
         header('Location: /index.php?r=consultations/' . $consultation['id']);
         exit;
+    }
+
+    /**
+     * Parcours "Demander une offre" : formulaire de préparation du
+     * récapitulatif (masquage client, pièces à partager, échéance, durée
+     * du lien) avant de générer le lien sécurisé + le message WhatsApp.
+     */
+    public function preparerPartage(array $params): void
+    {
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $dossier = Dossier::find((int) $consultation['dossier_id']);
+        $pieces = DossierPieceJointe::forDossier((int) $dossier['id']);
+        $partages = ConsultationPartage::forConsultation((int) $consultation['id']);
+
+        View::render('consultations/partage_preparer', [
+            'consultation' => $consultation,
+            'pieces' => $pieces,
+            'partages' => $partages,
+        ]);
+    }
+
+    public function creerPartage(array $params): void
+    {
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=consultations/' . $params['id']);
+            exit;
+        }
+
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $partage = ConsultationPartage::create((int) $consultation['id'], $_POST, (int) $user['id']);
+        AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'creation_partage_consultation', 'consultation_fournisseur', (int) $consultation['id']);
+
+        header('Location: /index.php?r=consultations/' . $consultation['id'] . '/partages/' . $partage['id']);
+        exit;
+    }
+
+    /**
+     * Écran du lien généré : lien à copier, message WhatsApp prérempli, et
+     * bouton "Marquer comme envoyé" — jamais marqué automatiquement.
+     */
+    public function afficherPartage(array $params): void
+    {
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $partage = ConsultationPartage::find((int) $params['partageId']);
+        if (!$partage || (int) $partage['consultation_id'] !== (int) $consultation['id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $lienPublic = self::urlPublique($partage['token']);
+        $fournisseur = Fournisseur::find((int) $consultation['fournisseur_id']);
+        $telephone = preg_replace('/[^0-9]/', '', $fournisseur['telephone'] ?? '');
+        $message = "Bonjour {$consultation['fournisseur_nom']}, merci de bien vouloir nous transmettre votre meilleure offre pour la demande {$consultation['dossier_reference']}"
+            . (!empty($partage['echeance_reponse']) ? ' (échéance de réponse : ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '')
+            . ". Vous trouverez le récapitulatif ici : {$lienPublic}";
+
+        View::render('consultations/partage_lien', [
+            'consultation' => $consultation,
+            'partage' => $partage,
+            'lienPublic' => $lienPublic,
+            'lienWhatsapp' => $telephone !== '' ? ('https://wa.me/' . $telephone . '?text=' . rawurlencode($message)) : null,
+            'messagePrepare' => $message,
+        ]);
+    }
+
+    public function marquerPartageEnvoye(array $params): void
+    {
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=consultations/' . $params['id']);
+            exit;
+        }
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::find((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $partage = ConsultationPartage::find((int) $params['partageId']);
+        if ($partage && (int) $partage['consultation_id'] === (int) $consultation['id']) {
+            ConsultationPartage::marquerEnvoye((int) $partage['id']);
+            AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'partage_marque_envoye', 'consultation_fournisseur', (int) $consultation['id']);
+            View::flash('succes', 'Marqué comme envoyé.');
+        }
+        header('Location: /index.php?r=consultations/' . $consultation['id'] . '/partages/' . $params['partageId']);
+        exit;
+    }
+
+    public function revoquerPartage(array $params): void
+    {
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=consultations/' . $params['id']);
+            exit;
+        }
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::find((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $partage = ConsultationPartage::find((int) $params['partageId']);
+        if ($partage && (int) $partage['consultation_id'] === (int) $consultation['id']) {
+            ConsultationPartage::revoquer((int) $partage['id']);
+            AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'partage_revoque', 'consultation_fournisseur', (int) $consultation['id']);
+            View::flash('succes', 'Lien révoqué : il n\'est plus accessible.');
+        }
+        header('Location: /index.php?r=consultations/' . $consultation['id']);
+        exit;
+    }
+
+    private static function urlPublique(string $token): string
+    {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        return $scheme . '://' . $host . '/index.php?r=partage-public/' . $token;
     }
 }
