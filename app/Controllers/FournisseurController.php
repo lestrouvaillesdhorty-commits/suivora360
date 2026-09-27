@@ -29,6 +29,7 @@ class FournisseurController
 
     public function store(): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             View::flash('erreur', 'Session expirée, merci de réessayer.');
             header('Location: /index.php?r=fournisseurs/nouveau');
@@ -100,6 +101,7 @@ class FournisseurController
 
     public function uploadPiece(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $fournisseur = Fournisseur::find((int) $params['id']);
         if (!$fournisseur || !Fournisseur::userCanAccess($user, $fournisseur)) {
@@ -200,6 +202,7 @@ class FournisseurController
 
     public function supprimerPiece(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $fournisseur = Fournisseur::find((int) $params['id']);
         if (!$fournisseur || !Fournisseur::userCanAccess($user, $fournisseur)) {
@@ -242,6 +245,7 @@ class FournisseurController
 
     public function update(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $fournisseur = Fournisseur::find((int) $params['id']);
         if (!$fournisseur || !Fournisseur::userCanAccess($user, $fournisseur)) {
@@ -294,6 +298,7 @@ class FournisseurController
 
     public function desactiver(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $fournisseur = Fournisseur::find((int) $params['id']);
         if (!$fournisseur || !Fournisseur::userCanAccess($user, $fournisseur)) {
@@ -315,6 +320,7 @@ class FournisseurController
 
     public function activer(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $fournisseur = Fournisseur::find((int) $params['id']);
         if (!$fournisseur || !Fournisseur::userCanAccess($user, $fournisseur)) {

@@ -7,7 +7,7 @@ use App\Core\View;
 use App\Models\Filiale;
 
 /**
- * Gestion des filiales — réservé au rôle "dirigeant".
+ * Gestion des filiales — réservée aux rôles Propriétaire et Admin d'organisation.
  */
 class FilialeController
 {
@@ -15,7 +15,7 @@ class FilialeController
 
     public function index(): void
     {
-        $this->requireDirigeant();
+        Auth::requireAdmin();
         $user = Auth::user();
         $filiales = Filiale::allForOrganisation((int) $user['organisation_id']);
         View::render('branches/index', [
@@ -26,7 +26,7 @@ class FilialeController
 
     public function store(): void
     {
-        $this->requireDirigeant();
+        Auth::requireAdmin();
 
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=filiales');
@@ -53,14 +53,5 @@ class FilialeController
         View::flash('succes', 'Filiale créée.');
         header('Location: /index.php?r=filiales');
         exit;
-    }
-
-    private function requireDirigeant(): void
-    {
-        if (!Auth::isDirigeant()) {
-            http_response_code(403);
-            View::render('errors/403');
-            exit;
-        }
     }
 }

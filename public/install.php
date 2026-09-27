@@ -60,7 +60,7 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         nom VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
         mot_de_passe_hash VARCHAR(255) NOT NULL,
-        role VARCHAR(20) NOT NULL DEFAULT 'employe',
+        role VARCHAR(20) NOT NULL DEFAULT 'lecture_seule',
         actif TINYINT(1) NOT NULL DEFAULT 1,
         created_at DATETIME NOT NULL
     )$engine");
@@ -444,7 +444,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'insta
                 'INSERT INTO utilisateurs (organisation_id, nom, email, mot_de_passe_hash, role, actif, created_at)
                  VALUES (?, ?, ?, ?, ?, 1, ?)'
             );
-            $stmt->execute([$orgId, $dirNom, $dirEmail, password_hash($dirPass, PASSWORD_DEFAULT), 'dirigeant', date('Y-m-d H:i:s')]);
+            $stmt->execute([$orgId, $dirNom, $dirEmail, password_hash($dirPass, PASSWORD_DEFAULT), 'proprietaire', date('Y-m-d H:i:s')]);
 
             $success = "Installation terminée ! Vous pouvez maintenant vous connecter avec l'email $dirEmail.";
             $alreadyInstalled = true;

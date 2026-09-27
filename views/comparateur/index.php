@@ -22,10 +22,10 @@ function afficheOuNonRenseigne($valeur, string $suffixe = ''): string
   <div class="card"><div class="empty-state">Aucune offre reçue pour ce dossier pour le moment. Envoyez des consultations aux fournisseurs depuis le dossier, puis enregistrez leurs offres ici.</div></div>
 <?php else: ?>
 
-  <?php if ($decisionExistante && $estDirigeant): ?>
+  <?php if ($decisionExistante && $peutValider): ?>
   <div class="card" style="background:#fffbeb;border:1px solid #fde68a">
     <details>
-      <summary style="cursor:pointer;font-weight:600;color:#92400e">Revenir sur la décision déjà prise (réservé au dirigeant)</summary>
+      <summary style="cursor:pointer;font-weight:600;color:#92400e">Revenir sur la décision déjà prise (réservé à Propriétaire/Achats)</summary>
       <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/revenir" style="margin-top:12px">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
         <div class="form-group">
@@ -85,7 +85,7 @@ function afficheOuNonRenseigne($valeur, string $suffixe = ''): string
           </span>
         </td>
         <td>
-          <?php if ($o['statut'] !== 'retenue' && !$decisionExistante): ?>
+          <?php if ($o['statut'] !== 'retenue' && !$decisionExistante && $peutValider): ?>
           <details>
             <summary style="cursor:pointer" class="btn btn-sm">Retenir…</summary>
             <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir" style="margin-top:8px;min-width:220px">

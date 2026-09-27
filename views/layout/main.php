@@ -1,4 +1,6 @@
 <?php
+use App\Core\Auth;
+use App\Core\Permissions;
 use App\Core\View;
 use App\Models\Organisation;
 
@@ -30,17 +32,21 @@ function navActive(string $path, string $prefix): string {
       <a href="/index.php?r=clients" class="<?= navActive($path, '/clients') ?>">Clients</a>
       <a href="/index.php?r=fournisseurs" class="<?= navActive($path, '/fournisseurs') ?>">Fournisseurs</a>
       <a href="/index.php?r=simulateur" class="<?= navActive($path, '/simulateur') ?>">Simulateur de prix</a>
-      <?php if ($currentUser && $currentUser['role'] === 'dirigeant'): ?>
+      <?php if ($currentUser && (Permissions::isAdmin($currentUser['role']) || Permissions::canManageParametres($currentUser['role']))): ?>
       <div class="section-label">Administration</div>
+      <?php if (Permissions::isAdmin($currentUser['role'])): ?>
       <a href="/index.php?r=filiales" class="<?= navActive($path, '/filiales') ?>">Filiales</a>
       <a href="/index.php?r=utilisateurs" class="<?= navActive($path, '/utilisateurs') ?>">Utilisateurs &amp; accès</a>
+      <?php endif; ?>
+      <?php if (Permissions::canManageParametres($currentUser['role'])): ?>
       <a href="/index.php?r=parametres" class="<?= navActive($path, '/parametres') ?>">Paramètres</a>
+      <?php endif; ?>
       <?php endif; ?>
     </nav>
     <?php if ($currentUser): ?>
     <div class="user-box">
       <div><strong><?= View::e($currentUser['nom']) ?></strong></div>
-      <div class="role"><?= $currentUser['role'] === 'dirigeant' ? 'Dirigeant(e)' : 'Employé(e)' ?></div>
+      <div class="role"><?= View::e(Permissions::label($currentUser['role'])) ?></div>
       <form method="post" action="/index.php?r=logout">
         <button type="submit" class="logout">Déconnexion</button>
       </form>

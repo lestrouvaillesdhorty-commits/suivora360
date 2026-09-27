@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Models\Cotation; use App\Models\Commande; ?>
+<?php use App\Core\Auth; use App\Core\View; use App\Models\Cotation; use App\Models\Commande; ?>
 <?php
 $badges = [
     'brouillon' => 'badge-gray',
@@ -59,8 +59,10 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
   <div>
     <div class="card">
       <h2>Détails financiers</h2>
+      <?php if (Auth::canSeeMarges()): ?>
       <div class="info-row"><span class="label">Montant d'achat</span><span><?= $cotation['montant_achat'] !== null ? number_format((float) $cotation['montant_achat'], 2, ',', ' ') . ' ' . View::e($cotation['devise']) : '—' ?></span></div>
       <div class="info-row"><span class="label">Marge</span><span><?= $cotation['marge_montant'] !== null ? number_format((float) $cotation['marge_montant'], 2, ',', ' ') . ' ' . View::e($cotation['devise']) : '—' ?><?= $cotation['marge_pourcentage'] !== null ? ' (' . rtrim(rtrim(number_format((float) $cotation['marge_pourcentage'], 2), '0'), '.') . '%)' : '' ?></span></div>
+      <?php endif; ?>
       <div class="info-row"><span class="label">Montant total client</span><span><strong><?= number_format((float) $cotation['montant_total'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></strong></span></div>
       <div class="info-row"><span class="label">Mode de paiement négocié</span><span><?= View::e($cotation['mode_paiement_negocie']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Incoterm client</span><span><?= View::e($cotation['incoterm_client']) ?: '—' ?></span></div>

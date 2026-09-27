@@ -46,6 +46,12 @@ class Utilisateur
         return (int) Database::connection()->lastInsertId();
     }
 
+    public static function updateRole(int $id, string $role): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE utilisateurs SET role = ? WHERE id = ?');
+        $stmt->execute([$role, $id]);
+    }
+
     public static function setFiliales(int $utilisateurId, array $filialeIds): void
     {
         $pdo = Database::connection();

@@ -16,6 +16,11 @@ class CotationController
 {
     public function create(array $params): void
     {
+        if (!Auth::canGererCotations()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
         $user = Auth::user();
         $dossier = Dossier::find((int) $params['id']);
         if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
@@ -38,6 +43,11 @@ class CotationController
 
     public function store(array $params): void
     {
+        if (!Auth::canGererCotations()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=dossiers/' . $params['id']);
             exit;
@@ -95,6 +105,11 @@ class CotationController
 
     public function updateStatut(array $params): void
     {
+        if (!Auth::canGererCotations()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=cotations/' . $params['id']);
             exit;

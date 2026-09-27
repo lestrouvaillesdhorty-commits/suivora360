@@ -34,6 +34,7 @@ class FactureController
 
     public function store(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=dossiers/' . $params['id']);
             exit;
@@ -59,6 +60,7 @@ class FactureController
 
     public function updateStatut(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=dossiers');
             exit;

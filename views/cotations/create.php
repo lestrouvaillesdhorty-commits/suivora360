@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Models\Demande; ?>
+<?php use App\Core\Auth; use App\Core\View; use App\Models\Demande; ?>
 <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" style="font-size:13px;color:#666">&larr; Retour au dossier <?= View::e($dossier['reference']) ?></a>
 
 <h1 style="margin-top:8px">Nouvelle cotation client</h1>
@@ -34,10 +34,14 @@
       </select>
     </div>
 
+    <?php if (Auth::canSeeMarges()): ?>
     <div class="form-row">
       <div class="form-group"><label>Montant d'achat (coût fournisseur)</label><input type="number" step="0.01" name="montant_achat" value="<?= $offreRetenue['montant_total'] ?? '' ?>"></div>
       <div class="form-group"><label>Marge (%)</label><input type="number" step="0.01" name="marge_pourcentage" placeholder="ex: 15"></div>
     </div>
+    <?php else: ?>
+      <input type="hidden" name="montant_achat" value="<?= $offreRetenue['montant_total'] ?? '' ?>">
+    <?php endif; ?>
     <div class="form-row">
       <div class="form-group"><label>Montant total facturé au client</label><input type="number" step="0.01" name="montant_total" required></div>
       <div class="form-group">

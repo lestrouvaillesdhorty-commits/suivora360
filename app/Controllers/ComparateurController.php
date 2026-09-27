@@ -58,7 +58,7 @@ class ComparateurController
             'meilleurCoutRenduParDevise' => $meilleurCoutRenduParDevise,
             'meilleurPrixParDevise' => $meilleurPrixParDevise,
             'decisionExistante' => $decisionExistante,
-            'estDirigeant' => Auth::isDirigeant(),
+            'peutValider' => Auth::canValiderOffres(),
         ]);
     }
 
@@ -74,6 +74,11 @@ class ComparateurController
         if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
             http_response_code(404);
             View::render('errors/404');
+            return;
+        }
+        if (!Auth::canValiderOffres()) {
+            http_response_code(403);
+            View::render('errors/403');
             return;
         }
 
@@ -95,8 +100,8 @@ class ComparateurController
 
     /**
      * Revenir sur une décision déjà prise (remet toutes les offres du
-     * dossier à "reçue"). Réservé aux dirigeants, motif obligatoire,
-     * toujours tracé dans l'audit.
+     * dossier à "reçue"). Réservé à Propriétaire + Achats (comme "Retenir
+     * cette offre"), motif obligatoire, toujours tracé dans l'audit.
      */
     public function revenir(array $params): void
     {
@@ -112,7 +117,7 @@ class ComparateurController
             View::render('errors/404');
             return;
         }
-        if (!Auth::isDirigeant()) {
+        if (!Auth::canValiderOffres()) {
             http_response_code(403);
             View::render('errors/403');
             return;

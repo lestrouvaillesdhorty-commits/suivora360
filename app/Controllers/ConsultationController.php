@@ -33,6 +33,7 @@ class ConsultationController
 
     public function store(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=dossiers/' . $params['id']);
             exit;
@@ -84,6 +85,7 @@ class ConsultationController
 
     public function updateStatut(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=consultations/' . $params['id']);
             exit;
@@ -135,6 +137,7 @@ class ConsultationController
 
     public function creerPartage(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=consultations/' . $params['id']);
             exit;
@@ -193,6 +196,7 @@ class ConsultationController
 
     public function marquerPartageEnvoye(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=consultations/' . $params['id']);
             exit;
@@ -216,6 +220,7 @@ class ConsultationController
 
     public function revoquerPartage(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=consultations/' . $params['id']);
             exit;

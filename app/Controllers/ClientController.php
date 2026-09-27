@@ -26,6 +26,7 @@ class ClientController
 
     public function store(): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             View::flash('erreur', 'Session expirée, merci de réessayer.');
             header('Location: /index.php?r=clients/nouveau');
@@ -104,6 +105,7 @@ class ClientController
 
     public function update(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $client = Client::find((int) $params['id']);
         if (!$client || !Client::userCanAccess($user, $client)) {
@@ -151,6 +153,7 @@ class ClientController
 
     public function desactiver(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $client = Client::find((int) $params['id']);
         if (!$client || !Client::userCanAccess($user, $client)) {
@@ -172,6 +175,7 @@ class ClientController
 
     public function activer(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $client = Client::find((int) $params['id']);
         if (!$client || !Client::userCanAccess($user, $client)) {

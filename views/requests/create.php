@@ -22,7 +22,7 @@ $activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'I
   <?php elseif (count($filiales) === 1): ?>
     <input type="hidden" name="filiale_id" value="<?= $filiales[0]['id'] ?>">
   <?php else: ?>
-    <div class="alert alert-erreur">Aucune filiale ne vous est assignée. Contactez votre dirigeant.</div>
+    <div class="alert alert-erreur">Aucune filiale ne vous est assignée. Contactez votre administrateur.</div>
   <?php endif; ?>
 
   <div class="form-group">

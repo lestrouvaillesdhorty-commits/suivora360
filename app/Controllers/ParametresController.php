@@ -9,7 +9,8 @@ use App\Models\Parametres;
 
 /**
  * Paramètres de calcul (taux de change, majoration/TVA par défaut, frais
- * par défaut) — réservé au rôle "dirigeant". Modifier ces valeurs ne
+ * par défaut) — réservé aux rôles Propriétaire, Admin d'organisation et
+ * Finance. Modifier ces valeurs ne
  * recalcule jamais rétroactivement une simulation, une offre ou une
  * commande déjà enregistrée : elles ne servent qu'à préremplir les
  * futures simulations.
@@ -18,7 +19,7 @@ class ParametresController
 {
     public function index(): void
     {
-        $this->requireDirigeant();
+        Auth::requireParametres();
         $user = Auth::user();
         $filiales = Filiale::visibleFor($user);
         $filialeId = (int) ($_GET['filiale_id'] ?? ($filiales[0]['id'] ?? 0));
@@ -36,7 +37,7 @@ class ParametresController
 
     public function update(): void
     {
-        $this->requireDirigeant();
+        Auth::requireParametres();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             View::flash('erreur', 'Session expirée, merci de réessayer.');
             header('Location: /index.php?r=parametres');
@@ -71,14 +72,5 @@ class ParametresController
         View::flash('succes', 'Paramètres enregistrés. Les simulations, offres et commandes déjà enregistrées ne sont jamais recalculées.');
         header('Location: /index.php?r=parametres&filiale_id=' . $filialeId);
         exit;
-    }
-
-    private function requireDirigeant(): void
-    {
-        if (!Auth::isDirigeant()) {
-            http_response_code(403);
-            View::render('errors/403');
-            exit;
-        }
     }
 }

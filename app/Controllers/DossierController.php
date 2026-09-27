@@ -82,6 +82,7 @@ class DossierController
 
     public function updateEtape(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=dossiers/' . $params['id']);
             exit;
@@ -104,6 +105,7 @@ class DossierController
 
     public function addArticle(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=dossiers/' . $params['id']);
             exit;
@@ -134,6 +136,7 @@ class DossierController
 
     public function updateNotes(array $params): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=dossiers/' . $params['id']);
             exit;
@@ -160,6 +163,7 @@ class DossierController
      */
     public function uploadPiece(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $dossier = Dossier::find((int) $params['id']);
         if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
@@ -254,6 +258,7 @@ class DossierController
 
     public function supprimerPiece(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $dossier = Dossier::find((int) $params['id']);
         if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {

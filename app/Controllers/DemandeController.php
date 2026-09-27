@@ -47,6 +47,7 @@ class DemandeController
 
     public function store(): void
     {
+        Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             View::flash('erreur', 'Session expirée, merci de réessayer.');
             header('Location: /index.php?r=demandes/nouvelle');
@@ -156,6 +157,7 @@ class DemandeController
 
     public function qualifierNouvelle(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -177,6 +179,7 @@ class DemandeController
 
     public function qualifierComplement(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -224,6 +227,7 @@ class DemandeController
 
     public function qualifierReprise(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -248,6 +252,7 @@ class DemandeController
      */
     public function creerDossier(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -282,6 +287,7 @@ class DemandeController
      */
     public function uploadPiece(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -372,6 +378,7 @@ class DemandeController
 
     public function supprimerPiece(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -405,6 +412,7 @@ class DemandeController
      */
     public function extraireIa(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -438,6 +446,7 @@ class DemandeController
 
     public function confirmerExtractionIa(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {
@@ -484,6 +493,7 @@ class DemandeController
 
     public function rejeter(array $params): void
     {
+        Auth::requireWrite();
         $user = Auth::user();
         $demande = $this->loadDemandeOrRedirect($user, $params);
         if (!$demande) {

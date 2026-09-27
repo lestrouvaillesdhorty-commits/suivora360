@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Core\Database;
+use App\Core\Permissions;
 
 class Filiale
 {
@@ -23,12 +24,12 @@ class Filiale
 
     /**
      * Filiales visibles par un utilisateur donné :
-     * - dirigeant : toutes les filiales de son organisation
-     * - employé : uniquement celles qui lui sont assignées
+     * - Propriétaire / Admin d'organisation : toutes les filiales de l'organisation
+     * - autres rôles : uniquement celles qui leur sont assignées
      */
     public static function visibleFor(array $user): array
     {
-        if ($user['role'] === 'dirigeant') {
+        if (Permissions::seesAllFiliales($user['role'])) {
             return self::allForOrganisation((int) $user['organisation_id']);
         }
 
@@ -49,7 +50,7 @@ class Filiale
 
     public static function userCanAccess(array $user, int $filialeId): bool
     {
-        if ($user['role'] === 'dirigeant') {
+        if (Permissions::seesAllFiliales($user['role'])) {
             $filiale = self::find($filialeId);
             return $filiale && (int) $filiale['organisation_id'] === (int) $user['organisation_id'];
         }

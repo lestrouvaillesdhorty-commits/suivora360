@@ -3,18 +3,20 @@
 namespace App\Controllers;
 
 use App\Core\Auth;
+use App\Core\Permissions;
 use App\Core\View;
 use App\Models\Filiale;
 use App\Models\Utilisateur;
 
 /**
- * Gestion des utilisateurs et de leurs accès aux filiales — réservé au dirigeant.
+ * Gestion des utilisateurs et de leurs accès aux filiales — réservée aux
+ * rôles Propriétaire et Admin d'organisation.
  */
 class UtilisateurController
 {
     public function index(): void
     {
-        $this->requireDirigeant();
+        Auth::requireAdmin();
         $user = Auth::user();
         $utilisateurs = Utilisateur::allForOrganisation((int) $user['organisation_id']);
         $filiales = Filiale::allForOrganisation((int) $user['organisation_id']);
@@ -33,7 +35,7 @@ class UtilisateurController
 
     public function store(): void
     {
-        $this->requireDirigeant();
+        Auth::requireAdmin();
 
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=utilisateurs');
@@ -44,8 +46,17 @@ class UtilisateurController
         $nom = trim($_POST['nom'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $motDePasse = $_POST['mot_de_passe'] ?? '';
-        $role = $_POST['role'] ?? 'employe';
+        $role = $_POST['role'] ?? 'lecture_seule';
         $filialeIds = $_POST['filiale_ids'] ?? [];
+
+        if (!Permissions::isValidRole($role)) {
+            $role = 'lecture_seule';
+        }
+        if (!Permissions::canAssignRole(Auth::role(), $role)) {
+            View::flash('erreur', "Seul un Propriétaire peut attribuer le rôle Propriétaire.");
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
 
         if ($nom === '' || $email === '' || strlen($motDePasse) < 6) {
             View::flash('erreur', 'Nom, email et mot de passe (6 caractères min.) sont obligatoires.');
@@ -64,10 +75,10 @@ class UtilisateurController
             'nom' => $nom,
             'email' => $email,
             'mot_de_passe' => $motDePasse,
-            'role' => $role === 'dirigeant' ? 'dirigeant' : 'employe',
+            'role' => $role,
         ]);
 
-        if ($role !== 'dirigeant') {
+        if (!Permissions::seesAllFiliales($role)) {
             Utilisateur::setFiliales($newId, array_map('intval', $filialeIds));
         }
 
@@ -78,7 +89,7 @@ class UtilisateurController
 
     public function updateAcces(array $params): void
     {
-        $this->requireDirigeant();
+        Auth::requireAdmin();
 
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             header('Location: /index.php?r=utilisateurs');
@@ -93,12 +104,47 @@ class UtilisateurController
         exit;
     }
 
-    private function requireDirigeant(): void
+    /**
+     * Changement de rôle d'un utilisateur existant — introduit avec les
+     * rôles fins pour permettre de répartir les comptes "employé" migrés
+     * automatiquement vers Commercial (voir migrate_v10.php) vers leur rôle
+     * définitif, un par un et sans se presser.
+     */
+    public function updateRole(array $params): void
     {
-        if (!Auth::isDirigeant()) {
-            http_response_code(403);
-            View::render('errors/403');
+        Auth::requireAdmin();
+
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=utilisateurs');
             exit;
         }
+
+        $cible = Utilisateur::find((int) $params['id']);
+        if (!$cible) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $role = $_POST['role'] ?? '';
+        if (!Permissions::isValidRole($role)) {
+            View::flash('erreur', 'Rôle invalide.');
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+        if (!Permissions::canAssignRole(Auth::role(), $role)) {
+            View::flash('erreur', "Seul un Propriétaire peut attribuer le rôle Propriétaire.");
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        Utilisateur::updateRole((int) $cible['id'], $role);
+        if (Permissions::seesAllFiliales($role)) {
+            Utilisateur::setFiliales((int) $cible['id'], []);
+        }
+
+        View::flash('succes', 'Rôle mis à jour.');
+        header('Location: /index.php?r=utilisateurs');
+        exit;
     }
 }

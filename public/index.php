@@ -341,7 +341,7 @@ $router->post('/factures/{id}/statut', function ($params) {
     (new FactureController())->updateStatut($params);
 });
 
-// Filiales (dirigeant uniquement)
+// Filiales (Propriétaire / Admin d'organisation)
 $router->get('/filiales', function () {
     Auth::requireLogin();
     (new FilialeController())->index();
@@ -351,7 +351,7 @@ $router->post('/filiales', function () {
     (new FilialeController())->store();
 });
 
-// Utilisateurs et gestion des accès (dirigeant uniquement)
+// Utilisateurs et gestion des accès (Propriétaire / Admin d'organisation)
 $router->get('/utilisateurs', function () {
     Auth::requireLogin();
     (new UtilisateurController())->index();
@@ -364,8 +364,12 @@ $router->post('/utilisateurs/{id}/acces', function ($params) {
     Auth::requireLogin();
     (new UtilisateurController())->updateAcces($params);
 });
+$router->post('/utilisateurs/{id}/role', function ($params) {
+    Auth::requireLogin();
+    (new UtilisateurController())->updateRole($params);
+});
 
-// Paramètres de calcul (dirigeant uniquement)
+// Paramètres de calcul (Propriétaire / Admin d'organisation / Finance)
 $router->get('/parametres', function () {
     Auth::requireLogin();
     (new ParametresController())->index();

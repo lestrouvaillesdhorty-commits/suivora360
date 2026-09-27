@@ -61,10 +61,86 @@ class Auth
         }
     }
 
+    /**
+     * @deprecated depuis les rôles fins (Phase 4) — conservé comme alias de
+     * isProprietaire() au cas où du code non repéré s'y référerait encore.
+     */
     public static function isDirigeant(): bool
     {
+        return self::isProprietaire();
+    }
+
+    public static function role(): string
+    {
         $user = self::user();
-        return $user && $user['role'] === 'dirigeant';
+        return $user['role'] ?? 'lecture_seule';
+    }
+
+    public static function isProprietaire(): bool
+    {
+        return self::role() === 'proprietaire';
+    }
+
+    public static function isAdmin(): bool
+    {
+        return Permissions::isAdmin(self::role());
+    }
+
+    public static function canManageParametres(): bool
+    {
+        return Permissions::canManageParametres(self::role());
+    }
+
+    public static function canSeeMarges(): bool
+    {
+        return Permissions::canSeeMarges(self::role());
+    }
+
+    public static function canValiderOffres(): bool
+    {
+        return Permissions::canValiderOffres(self::role());
+    }
+
+    public static function canGererCotations(): bool
+    {
+        return Permissions::canGererCotations(self::role());
+    }
+
+    public static function canWrite(): bool
+    {
+        return Permissions::canWrite(self::role());
+    }
+
+    /**
+     * Bloque toute action de création/modification/suppression pour le rôle
+     * Lecture seule. À appeler en tête de chaque action d'écriture qui n'a
+     * pas déjà une restriction plus spécifique (requireAdmin, etc.).
+     */
+    public static function requireWrite(): void
+    {
+        if (!self::canWrite()) {
+            http_response_code(403);
+            View::render('errors/403');
+            exit;
+        }
+    }
+
+    public static function requireAdmin(): void
+    {
+        if (!self::isAdmin()) {
+            http_response_code(403);
+            View::render('errors/403');
+            exit;
+        }
+    }
+
+    public static function requireParametres(): void
+    {
+        if (!self::canManageParametres()) {
+            http_response_code(403);
+            View::render('errors/403');
+            exit;
+        }
     }
 
     public static function csrfToken(): string

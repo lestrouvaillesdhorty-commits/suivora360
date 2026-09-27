@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
     nom VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     mot_de_passe_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'employe',
+    role VARCHAR(20) NOT NULL DEFAULT 'lecture_seule',
     actif TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

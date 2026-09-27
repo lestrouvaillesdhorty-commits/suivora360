@@ -1,6 +1,6 @@
-<?php use App\Core\View; ?>
+<?php use App\Core\Auth; use App\Core\Permissions; use App\Core\View; ?>
 <h1>Utilisateurs &amp; accès</h1>
-<div class="subtitle">Le rôle dirigeant voit toutes les filiales et les données sensibles. Un employé ne voit que les filiales qui lui sont assignées.</div>
+<div class="subtitle">Propriétaire et Admin d'organisation voient toutes les filiales. Les autres rôles ne voient que les filiales qui leur sont assignées. Le rôle détermine les actions possibles (voir la feuille de route pour le détail).</div>
 
 <div class="card">
   <h2>Ajouter un utilisateur</h2>
@@ -14,9 +14,11 @@
       <div class="form-group"><label>Mot de passe</label><input type="password" name="mot_de_passe" required minlength="6"></div>
       <div class="form-group">
         <label>Rôle</label>
-        <select name="role" onchange="document.getElementById('filiales-choice').style.display = this.value === 'dirigeant' ? 'none' : 'block'">
-          <option value="employe">Employé</option>
-          <option value="dirigeant">Dirigeant</option>
+        <select name="role" onchange="document.getElementById('filiales-choice').style.display = ['proprietaire','admin_organisation'].includes(this.value) ? 'none' : 'block'">
+          <?php foreach (Permissions::ROLES as $code => $label): ?>
+            <?php if ($code === 'proprietaire' && !Auth::isProprietaire()) continue; ?>
+            <option value="<?= $code ?>" <?= $code === 'lecture_seule' ? 'selected' : '' ?>><?= View::e($label) ?></option>
+          <?php endforeach; ?>
         </select>
       </div>
     </div>
@@ -42,9 +44,19 @@
     <tr>
       <td><?= View::e($u['nom']) ?></td>
       <td><?= View::e($u['email']) ?></td>
-      <td><?= $u['role'] === 'dirigeant' ? '<span class="badge badge-blue">Dirigeant</span>' : '<span class="badge badge-gray">Employé</span>' ?></td>
       <td>
-        <?php if ($u['role'] === 'dirigeant'): ?>
+        <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/role">
+          <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+          <select name="role" onchange="this.form.submit()" style="font-size:12px">
+            <?php foreach (Permissions::ROLES as $code => $label): ?>
+              <?php if ($code === 'proprietaire' && !Auth::isProprietaire() && $u['role'] !== 'proprietaire') continue; ?>
+              <option value="<?= $code ?>" <?= $u['role'] === $code ? 'selected' : '' ?>><?= View::e($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </form>
+      </td>
+      <td>
+        <?php if (Permissions::seesAllFiliales($u['role'])): ?>
           Toutes (automatique)
         <?php else: ?>
           <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/acces">
