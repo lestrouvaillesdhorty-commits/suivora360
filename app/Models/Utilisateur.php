@@ -52,6 +52,38 @@ class Utilisateur
         $stmt->execute([$role, $id]);
     }
 
+    public static function updateInfo(int $id, string $nom, string $email): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE utilisateurs SET nom = ?, email = ? WHERE id = ?');
+        $stmt->execute([$nom, $email, $id]);
+    }
+
+    public static function setActive(int $id, bool $actif): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE utilisateurs SET actif = ? WHERE id = ?');
+        $stmt->execute([$actif ? 1 : 0, $id]);
+    }
+
+    public static function updatePassword(int $id, string $motDePasse): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE utilisateurs SET mot_de_passe_hash = ? WHERE id = ?');
+        $stmt->execute([password_hash($motDePasse, PASSWORD_DEFAULT), $id]);
+    }
+
+    /**
+     * Nombre de comptes Propriétaire actifs dans l'organisation — sert à
+     * empêcher de désactiver le dernier Propriétaire restant (on se
+     * retrouverait sans personne pour ré-administrer les accès).
+     */
+    public static function countProprietairesActifs(int $organisationId, int $excludeId = 0): int
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM utilisateurs WHERE organisation_id = ? AND role = 'proprietaire' AND actif = 1 AND id != ?"
+        );
+        $stmt->execute([$organisationId, $excludeId]);
+        return (int) $stmt->fetchColumn();
+    }
+
     public static function setFiliales(int $utilisateurId, array $filialeIds): void
     {
         $pdo = Database::connection();

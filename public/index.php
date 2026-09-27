@@ -368,6 +368,22 @@ $router->post('/utilisateurs/{id}/role', function ($params) {
     Auth::requireLogin();
     (new UtilisateurController())->updateRole($params);
 });
+$router->post('/utilisateurs/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new UtilisateurController())->update($params);
+});
+$router->post('/utilisateurs/{id}/desactiver', function ($params) {
+    Auth::requireLogin();
+    (new UtilisateurController())->desactiver($params);
+});
+$router->post('/utilisateurs/{id}/activer', function ($params) {
+    Auth::requireLogin();
+    (new UtilisateurController())->activer($params);
+});
+$router->post('/utilisateurs/{id}/mot-de-passe', function ($params) {
+    Auth::requireLogin();
+    (new UtilisateurController())->resetPassword($params);
+});
 
 // Paramètres de calcul (Propriétaire / Admin d'organisation / Finance)
 $router->get('/parametres', function () {

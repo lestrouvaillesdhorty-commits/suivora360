@@ -38,12 +38,31 @@
   <div class="card"><div class="empty-state">Aucun utilisateur pour le moment.</div></div>
 <?php else: ?>
 <table>
-  <thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Filiales accessibles</th><th></th></tr></thead>
+  <thead><tr><th>Nom / Email</th><th>Rôle</th><th>Filiales accessibles</th><th>Statut</th><th>Actions</th></tr></thead>
   <tbody>
   <?php foreach ($utilisateurs as $u): ?>
     <tr>
-      <td><?= View::e($u['nom']) ?></td>
-      <td><?= View::e($u['email']) ?></td>
+      <td>
+        <div><?= View::e($u['nom']) ?></div>
+        <div style="font-size:12px;color:#666"><?= View::e($u['email']) ?></div>
+        <details>
+          <summary style="cursor:pointer;font-size:12px;color:#4f46e5">Modifier</summary>
+          <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/modifier" style="margin-top:8px">
+            <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+            <div class="form-group"><label>Nom</label><input type="text" name="nom" value="<?= View::e($u['nom']) ?>" required></div>
+            <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= View::e($u['email']) ?>" required></div>
+            <button type="submit" class="btn btn-sm">Enregistrer</button>
+          </form>
+        </details>
+        <details>
+          <summary style="cursor:pointer;font-size:12px;color:#4f46e5">Réinitialiser le mot de passe</summary>
+          <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/mot-de-passe" style="margin-top:8px">
+            <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+            <div class="form-group"><label>Nouveau mot de passe</label><input type="password" name="mot_de_passe" required minlength="6"></div>
+            <button type="submit" class="btn btn-sm btn-secondary">Réinitialiser</button>
+          </form>
+        </details>
+      </td>
       <td>
         <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/role">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
@@ -74,7 +93,28 @@
           </form>
         <?php endif; ?>
       </td>
-      <td></td>
+      <td>
+        <span class="badge <?= ((int) $u['actif'] === 1) ? 'badge-green' : 'badge-gray' ?>">
+          <?= ((int) $u['actif'] === 1) ? 'Actif' : 'Inactif' ?>
+        </span>
+      </td>
+      <td>
+        <?php if ((int) $u['actif'] === 1): ?>
+          <?php if ((int) $u['id'] === $currentUserId): ?>
+            <span style="font-size:12px;color:#999">(vous)</span>
+          <?php else: ?>
+            <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/desactiver" style="display:inline">
+              <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+              <button type="submit" class="btn btn-sm btn-secondary">Désactiver</button>
+            </form>
+          <?php endif; ?>
+        <?php else: ?>
+          <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/activer" style="display:inline">
+            <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+            <button type="submit" class="btn btn-sm">Réactiver</button>
+          </form>
+        <?php endif; ?>
+      </td>
     </tr>
   <?php endforeach; ?>
   </tbody>

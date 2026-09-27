@@ -30,6 +30,7 @@ class UtilisateurController
             'utilisateurs' => $utilisateurs,
             'filiales' => $filiales,
             'accesParUtilisateur' => $accesParUtilisateur,
+            'currentUserId' => (int) $user['id'],
         ]);
     }
 
@@ -144,6 +145,149 @@ class UtilisateurController
         }
 
         View::flash('succes', 'Rôle mis à jour.');
+        header('Location: /index.php?r=utilisateurs');
+        exit;
+    }
+
+    /**
+     * Modification du nom / email d'un utilisateur existant.
+     */
+    public function update(array $params): void
+    {
+        Auth::requireAdmin();
+
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        $cible = Utilisateur::find((int) $params['id']);
+        $user = Auth::user();
+        if (!$cible || (int) $cible['organisation_id'] !== (int) $user['organisation_id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $nom = trim($_POST['nom'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+
+        if ($nom === '' || $email === '') {
+            View::flash('erreur', 'Nom et email sont obligatoires.');
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        $existant = Utilisateur::findByEmail($email);
+        if ($existant && (int) $existant['id'] !== (int) $cible['id']) {
+            View::flash('erreur', 'Cet email est déjà utilisé par un autre compte.');
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        Utilisateur::updateInfo((int) $cible['id'], $nom, $email);
+
+        View::flash('succes', 'Utilisateur modifié.');
+        header('Location: /index.php?r=utilisateurs');
+        exit;
+    }
+
+    /**
+     * Désactivation d'un compte — bloque la connexion (voir Auth::attempt)
+     * sans supprimer les données. On empêche de se désactiver soi-même et
+     * de désactiver le dernier Propriétaire actif de l'organisation.
+     */
+    public function desactiver(array $params): void
+    {
+        Auth::requireAdmin();
+
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        $cible = Utilisateur::find((int) $params['id']);
+        $user = Auth::user();
+        if (!$cible || (int) $cible['organisation_id'] !== (int) $user['organisation_id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        if ((int) $cible['id'] === (int) $user['id']) {
+            View::flash('erreur', 'Vous ne pouvez pas désactiver votre propre compte.');
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        if ($cible['role'] === 'proprietaire'
+            && Utilisateur::countProprietairesActifs((int) $user['organisation_id'], (int) $cible['id']) === 0
+        ) {
+            View::flash('erreur', "Impossible de désactiver le dernier compte Propriétaire actif.");
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        Utilisateur::setActive((int) $cible['id'], false);
+        View::flash('succes', 'Compte désactivé. Il ne peut plus se connecter mais reste visible et peut être réactivé.');
+        header('Location: /index.php?r=utilisateurs');
+        exit;
+    }
+
+    public function activer(array $params): void
+    {
+        Auth::requireAdmin();
+
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        $cible = Utilisateur::find((int) $params['id']);
+        $user = Auth::user();
+        if (!$cible || (int) $cible['organisation_id'] !== (int) $user['organisation_id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        Utilisateur::setActive((int) $cible['id'], true);
+        View::flash('succes', 'Compte réactivé.');
+        header('Location: /index.php?r=utilisateurs');
+        exit;
+    }
+
+    /**
+     * Réinitialisation du mot de passe par un admin/propriétaire — le mot
+     * de passe existant n'est jamais affiché (il n'est même pas stocké en
+     * clair), on ne peut qu'en définir un nouveau.
+     */
+    public function resetPassword(array $params): void
+    {
+        Auth::requireAdmin();
+
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        $cible = Utilisateur::find((int) $params['id']);
+        $user = Auth::user();
+        if (!$cible || (int) $cible['organisation_id'] !== (int) $user['organisation_id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $motDePasse = $_POST['mot_de_passe'] ?? '';
+        if (strlen($motDePasse) < 6) {
+            View::flash('erreur', 'Le mot de passe doit contenir au moins 6 caractères.');
+            header('Location: /index.php?r=utilisateurs');
+            exit;
+        }
+
+        Utilisateur::updatePassword((int) $cible['id'], $motDePasse);
+        View::flash('succes', 'Mot de passe réinitialisé.');
         header('Location: /index.php?r=utilisateurs');
         exit;
     }
