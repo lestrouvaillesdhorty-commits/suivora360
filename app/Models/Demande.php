@@ -346,6 +346,26 @@ class Demande
         return $results;
     }
 
+    /**
+     * Demandes actuellement "en cours" (ni rejetées ni déjà transformées en
+     * dossier) — utilisé par le bloc "Suivi des opérations" du tableau de
+     * bord pour donner un volume global, distinct du compteur "à qualifier".
+     */
+    public static function enCoursCount(array $user): int
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM demandes
+             WHERE statut IN ('a_qualifier','en_attente_info','qualifiee') AND filiale_id IN ($placeholders)"
+        );
+        $stmt->execute($filialeIds);
+        return (int) $stmt->fetchColumn();
+    }
+
     public static function counts(array $user): array
     {
         $filialeIds = Filiale::visibleIdsFor($user);

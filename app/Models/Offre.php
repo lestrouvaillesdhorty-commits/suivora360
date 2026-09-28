@@ -287,4 +287,29 @@ class Offre
         $stmt->execute($filialeIds);
         return $stmt->fetchAll();
     }
+
+    /**
+     * Offres reçues et toujours pas analysées depuis plus de $seuilJours
+     * jours — sous-ensemble "à risque" de aAnalyserFor(), pour le bloc
+     * Alertes du tableau de bord.
+     */
+    public static function enAttenteDepuis(array $user, int $seuilJours, int $limite = 10): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $seuilDate = date('Y-m-d H:i:s', strtotime("-$seuilJours days"));
+        $stmt = Database::connection()->prepare(
+            "SELECT o.*, d.id AS dossier_id_reel, d.reference AS dossier_reference, d.objet AS dossier_objet, fo.nom AS fournisseur_nom
+             FROM offres o
+             INNER JOIN dossiers d ON d.id = o.dossier_id
+             INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
+             WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND o.created_at <= ?
+             ORDER BY o.created_at ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute(array_merge($filialeIds, [$seuilDate]));
+        return $stmt->fetchAll();
+    }
 }

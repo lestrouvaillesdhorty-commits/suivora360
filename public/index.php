@@ -416,6 +416,18 @@ $router->get('/pilotage', function () {
     Auth::requireLogin();
     (new PilotageController())->index();
 });
+$router->get('/pilotage/detail', function () {
+    Auth::requireLogin();
+    (new PilotageController())->detail();
+});
+$router->get('/pilotage/export.csv', function () {
+    Auth::requireLogin();
+    (new PilotageController())->exportCsv();
+});
+$router->get('/pilotage/export.pdf', function () {
+    Auth::requireLogin();
+    (new PilotageController())->exportPdf();
+});
 
 // Notifications internes (cloche)
 $router->get('/notifications', function () {

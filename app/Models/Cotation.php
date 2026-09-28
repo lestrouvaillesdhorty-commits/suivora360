@@ -158,4 +158,30 @@ class Cotation
         $stmt->execute($filialeIds);
         return $stmt->fetchAll();
     }
+
+    /**
+     * Cotations envoyées et toujours sans réponse depuis plus de
+     * $seuilJours jours — sous-ensemble "à risque" de aRelancerFor(), pour
+     * le bloc Alertes du tableau de bord (spec : signaler ce qui traîne,
+     * pas seulement compter).
+     */
+    public static function enAttenteDepuis(array $user, int $seuilJours, int $limite = 10): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $seuilDate = date('Y-m-d H:i:s', strtotime("-$seuilJours days"));
+        $stmt = Database::connection()->prepare(
+            "SELECT co.*, d.id AS dossier_id, d.reference AS dossier_reference, cl.nom AS client_nom
+             FROM cotations co
+             INNER JOIN dossiers d ON d.id = co.dossier_id
+             INNER JOIN clients cl ON cl.id = co.client_id
+             WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND co.created_at <= ?
+             ORDER BY co.created_at ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute(array_merge($filialeIds, [$seuilDate]));
+        return $stmt->fetchAll();
+    }
 }

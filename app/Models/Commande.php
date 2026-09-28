@@ -181,6 +181,30 @@ class Commande
             && $commande['date_relance'] < date('Y-m-d');
     }
 
+    /**
+     * Commandes en cours dont la date de relance est dépassée — pour le
+     * bloc Alertes du tableau de bord (même règle que estEnRetard(), en
+     * requête directe pour lister les cas plutôt que de les tester un par un).
+     */
+    public static function enRetardFor(array $user, int $limite = 10): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet
+             FROM commandes c
+             INNER JOIN dossiers d ON d.id = c.dossier_id
+             WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)
+               AND c.date_relance IS NOT NULL AND c.date_relance < ?
+             ORDER BY c.date_relance ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute(array_merge($filialeIds, [date('Y-m-d')]));
+        return $stmt->fetchAll();
+    }
+
     public static function userCanAccess(array $user, array $commande): bool
     {
         return Filiale::userCanAccess($user, (int) $commande['filiale_id']);
@@ -211,7 +235,7 @@ class Commande
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $stmt = Database::connection()->prepare(
-            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet
+            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet, d.responsable_id
              FROM commandes c
              INNER JOIN dossiers d ON d.id = c.dossier_id
              WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)
@@ -219,5 +243,54 @@ class Commande
         );
         $stmt->execute($filialeIds);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Commandes actuellement à l'étape "livraison" (en_cours, pas encore
+     * terminée) — bloc "Livraisons à suivre" du tableau de bord. La
+     * destination vient de demandes.destination_pays (seul champ de
+     * destination existant dans le schéma) et le fournisseur de l'offre
+     * retenue du dossier ; l'ETA reprend commande_steps.date_prevue pour
+     * l'étape "livraison" (aucun champ ETA dédié n'existe).
+     */
+    public static function livraisonsEnCoursCount(array $user): int
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND etape = 'livraison' AND filiale_id IN ($placeholders)"
+        );
+        $stmt->execute($filialeIds);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public static function livraisonsEnCoursFor(array $user, int $limite = 5): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet, dm.destination_pays,
+                    cs.date_prevue AS livraison_prevue, cs.date_reelle AS livraison_reelle, cs.statut AS livraison_statut
+             FROM commandes c
+             INNER JOIN dossiers d ON d.id = c.dossier_id
+             INNER JOIN demandes dm ON dm.id = d.demande_id
+             LEFT JOIN commande_steps cs ON cs.commande_id = c.id AND cs.libelle = 'livraison'
+             WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders)
+             ORDER BY (cs.date_prevue IS NULL), cs.date_prevue ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute($filialeIds);
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $offreRetenue = Offre::retenueForDossier((int) $row['dossier_id']);
+            $row['fournisseur_nom'] = $offreRetenue['fournisseur_nom'] ?? null;
+        }
+        unset($row);
+        return $rows;
     }
 }
