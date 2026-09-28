@@ -106,6 +106,11 @@ class Auth
         return Permissions::canGererCotations(self::role());
     }
 
+    public static function canVoirPilotage(): bool
+    {
+        return Permissions::canVoirPilotage(self::role());
+    }
+
     public static function canWrite(): bool
     {
         return Permissions::canWrite(self::role());
@@ -137,6 +142,15 @@ class Auth
     public static function requireParametres(): void
     {
         if (!self::canManageParametres()) {
+            http_response_code(403);
+            View::render('errors/403');
+            exit;
+        }
+    }
+
+    public static function requirePilotage(): void
+    {
+        if (!self::canVoirPilotage()) {
             http_response_code(403);
             View::render('errors/403');
             exit;

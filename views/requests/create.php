@@ -1,7 +1,7 @@
 <?php
 use App\Core\View;
 use App\Models\Demande;
-$activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'Import', 'Export', 'Dédouanement et transit', 'Négoce international', 'Représentation commerciale', 'Autre'];
+$activiteListe = Demande::ACTIVITES;
 ?>
 <h1>Nouvelle demande</h1>
 <div class="subtitle">Enregistrer une nouvelle demande client</div>

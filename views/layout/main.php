@@ -26,6 +26,12 @@ function navActive(string $path, string $prefix): string {
     <?php if ($org): ?><div class="org-name"><?= View::e($org['nom']) ?></div><?php endif; ?>
     <nav>
       <a href="/index.php" class="<?= $path === '/' ? 'active' : '' ?>">Tableau de bord</a>
+      <?php if ($currentUser): ?>
+      <a href="/index.php?r=notifications" class="<?= navActive($path, '/notifications') ?>" style="display:flex;align-items:center;justify-content:space-between">
+        <span>🔔 Notifications</span>
+        <?php if (!empty($notifNonLues)): ?><span class="badge badge-red"><?= $notifNonLues ?></span><?php endif; ?>
+      </a>
+      <?php endif; ?>
       <div class="section-label">Opérations</div>
       <a href="/index.php?r=demandes" class="<?= navActive($path, '/demandes') ?>">Demandes</a>
       <a href="/index.php?r=dossiers" class="<?= navActive($path, '/dossiers') ?>">Dossiers</a>
@@ -37,6 +43,9 @@ function navActive(string $path, string $prefix): string {
       <?php if (Permissions::isAdmin($currentUser['role'])): ?>
       <a href="/index.php?r=filiales" class="<?= navActive($path, '/filiales') ?>">Filiales</a>
       <a href="/index.php?r=utilisateurs" class="<?= navActive($path, '/utilisateurs') ?>">Utilisateurs &amp; accès</a>
+      <?php endif; ?>
+      <?php if (Permissions::canVoirPilotage($currentUser['role'])): ?>
+      <a href="/index.php?r=pilotage" class="<?= navActive($path, '/pilotage') ?>">Pilotage</a>
       <?php endif; ?>
       <?php if (Permissions::canManageParametres($currentUser['role'])): ?>
       <a href="/index.php?r=parametres" class="<?= navActive($path, '/parametres') ?>">Paramètres</a>

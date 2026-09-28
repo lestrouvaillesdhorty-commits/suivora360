@@ -191,4 +191,26 @@ class Dossier
 
         return ['actifs' => $actifs, 'en_retard' => $enRetard];
     }
+
+    /**
+     * Dossiers actifs dont l'échéance arrive dans les prochains jours (pas
+     * encore en retard) — bloc "échéances à venir" du tableau de bord.
+     */
+    public static function echeancesAVenirFor(array $user, int $jours = 7, int $limite = 8): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT d.* FROM dossiers d
+             WHERE d.filiale_id IN ($placeholders)
+             AND d.statut = 'actif'
+             AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?
+             ORDER BY d.echeance ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute(array_merge($filialeIds, [date('Y-m-d'), date('Y-m-d', strtotime('+' . $jours . ' days'))]));
+        return $stmt->fetchAll();
+    }
 }

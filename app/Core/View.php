@@ -2,6 +2,7 @@
 
 namespace App\Core;
 
+use App\Models\Notification;
 use App\Models\Utilisateur;
 
 class View
@@ -13,6 +14,10 @@ class View
         $data['currentUser'] = Auth::user();
         $data['csrfToken'] = Auth::csrfToken();
         $data['flash'] = self::takeFlash();
+        // Calculé pour chaque page (coût négligeable) afin que la cloche de
+        // notifications du menu reste toujours à jour, sans que chaque
+        // contrôleur ait à y penser.
+        $data['notifNonLues'] = $data['currentUser'] ? Notification::nonLuesCountFor((int) $data['currentUser']['id']) : 0;
 
         extract($data);
         $content = self::capture(self::BASE . $template . '.php', $data);

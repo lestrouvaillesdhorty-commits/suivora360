@@ -274,6 +274,7 @@ CREATE TABLE IF NOT EXISTS offres (
     dedouanement_montant DECIMAL(12,2),
     autres_frais_montant DECIMAL(12,2),
     motif_decision TEXT,
+    created_by INT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -381,4 +382,39 @@ CREATE TABLE IF NOT EXISTS factures (
     notes TEXT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ==========================================================================
+-- Collaborateurs de dossier (sourcing multi-collaborateurs) + notifications
+-- ==========================================================================
+
+-- Un collaborateur assigné à un dossier, dédié à un fournisseur précis (ex :
+-- une personne de confiance côté partenaire local qui suit ce fournisseur
+-- pour accélérer la collecte des devis). Retiré automatiquement quand
+-- l'offre du fournisseur associé n'est pas retenue (voir Offre::retenir()).
+CREATE TABLE IF NOT EXISTS dossier_collaborateurs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dossier_id INT NOT NULL,
+    filiale_id INT NOT NULL,
+    fournisseur_id INT NOT NULL,
+    utilisateur_id INT NOT NULL,
+    assigned_by INT,
+    created_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Notifications internes (cloche) pour tout mouvement important — la
+-- première utilisation est l'assignation/retrait d'un collaborateur de
+-- dossier ; le type reste générique pour être réutilisé plus tard.
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    filiale_id INT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    titre VARCHAR(255) NOT NULL,
+    message TEXT,
+    lien VARCHAR(255),
+    entite_type VARCHAR(50),
+    entite_id INT,
+    lu TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

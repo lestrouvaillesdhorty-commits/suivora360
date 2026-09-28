@@ -58,6 +58,16 @@ h2 { font-size: 18px; margin: 0 0 12px; }
 .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-bottom: 20px; }
 
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .grid-2, .detail-grid { grid-template-columns: 1fr; } }
+
+.bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 140px; padding-top: 10px; }
+.bar-chart .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.bar-chart .bar { width: 100%; max-width: 34px; background: #4f46e5; border-radius: 4px 4px 0 0; min-height: 2px; }
+.bar-chart .bar-n { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.bar-chart .bar-label { font-size: 11px; color: #888; margin-top: 6px; }
+
+.kpi-note { font-size: 12px; color: #999; margin-top: 4px; }
 .stat-tile { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
 .stat-tile .value { font-size: 28px; font-weight: 700; }
 .stat-tile .label { font-size: 13px; color: #666; margin-top: 4px; }

@@ -185,4 +185,39 @@ class Commande
     {
         return Filiale::userCanAccess($user, (int) $commande['filiale_id']);
     }
+
+    /**
+     * Commandes en cours (exécution) — bloc "Exécution" du tableau de bord.
+     */
+    public static function enCoursCount(array $user): int
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND filiale_id IN ($placeholders)"
+        );
+        $stmt->execute($filialeIds);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public static function enCoursFor(array $user, int $limite = 5): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet
+             FROM commandes c
+             INNER JOIN dossiers d ON d.id = c.dossier_id
+             WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)
+             ORDER BY (c.date_relance IS NULL), c.date_relance ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute($filialeIds);
+        return $stmt->fetchAll();
+    }
 }

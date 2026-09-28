@@ -49,7 +49,7 @@ class OffreController
             ];
         }
 
-        $offreId = \App\Models\Offre::create($consultation, $_POST, $items);
+        $offreId = \App\Models\Offre::create($consultation, $_POST, $items, (int) $user['id']);
 
         AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'creation_offre', 'offre', $offreId);
         View::flash('succes', 'Offre enregistrée.');

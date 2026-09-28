@@ -69,7 +69,12 @@ function afficheOuNonRenseigne($valeur, string $suffixe = ''): string
       $noteFournisseur = \App\Models\Fournisseur::noteGlobale($o);
     ?>
       <tr style="<?= $o['statut'] === 'retenue' ? 'background:#f0fdf4' : '' ?>">
-        <td><strong><?= View::e($o['fournisseur_nom']) ?></strong></td>
+        <td>
+          <strong><?= View::e($o['fournisseur_nom']) ?></strong>
+          <?php if (!empty($o['created_by'])): ?>
+            <br><span style="font-size:11px;color:#888">Saisie par <?= View::e(\App\Models\Utilisateur::nameOf((int) $o['created_by'])) ?></span>
+          <?php endif; ?>
+        </td>
         <td><?= View::e($o['reference']) ?></td>
         <td><?= $o['conformite_technique'] ? View::e(Offre::CONFORMITE[$o['conformite_technique']] ?? $o['conformite_technique']) : afficheOuNonRenseigne(null) ?></td>
         <td><?= View::e($devise) ?></td>

@@ -121,4 +121,41 @@ class Cotation
     {
         return Filiale::userCanAccess($user, (int) $cotation['filiale_id']);
     }
+
+    /**
+     * Cotations envoyées au client, en attente de réponse — bloc
+     * "commercial" du tableau de bord ("cotations à relancer").
+     */
+    public static function aRelancerCount(array $user): int
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM cotations WHERE statut = 'envoyee' AND filiale_id IN ($placeholders)"
+        );
+        $stmt->execute($filialeIds);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public static function aRelancerFor(array $user, int $limite = 5): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT co.*, d.reference AS dossier_reference, cl.nom AS client_nom
+             FROM cotations co
+             INNER JOIN dossiers d ON d.id = co.dossier_id
+             INNER JOIN clients cl ON cl.id = co.client_id
+             WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders)
+             ORDER BY co.created_at ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute($filialeIds);
+        return $stmt->fetchAll();
+    }
 }

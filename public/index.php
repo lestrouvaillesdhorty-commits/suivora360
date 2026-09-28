@@ -12,9 +12,11 @@ use App\Controllers\DossierController;
 use App\Controllers\FactureController;
 use App\Controllers\FilialeController;
 use App\Controllers\FournisseurController;
+use App\Controllers\NotificationController;
 use App\Controllers\OffreController;
 use App\Controllers\ParametresController;
 use App\Controllers\PartagePublicController;
+use App\Controllers\PilotageController;
 use App\Controllers\SimulateurController;
 use App\Controllers\UtilisateurController;
 use App\Core\Auth;
@@ -217,6 +219,14 @@ $router->post('/dossiers/{id}/pieces/{pieceId}/supprimer', function ($params) {
     Auth::requireLogin();
     (new DossierController())->supprimerPiece($params);
 });
+$router->post('/dossiers/{id}/collaborateurs', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->assignerCollaborateur($params);
+});
+$router->post('/dossiers/{id}/collaborateurs/{collaborateurId}/retirer', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->retirerCollaborateur($params);
+});
 
 // Consultations fournisseurs (sourcing)
 $router->get('/dossiers/{id}/consultations/nouvelle', function ($params) {
@@ -399,6 +409,26 @@ $router->post('/parametres', function () {
 $router->get('/simulateur', function () {
     Auth::requireLogin();
     (new SimulateurController())->index();
+});
+
+// Pilotage (analyse par période/activité/responsable — Propriétaire / Admin d'organisation / Finance)
+$router->get('/pilotage', function () {
+    Auth::requireLogin();
+    (new PilotageController())->index();
+});
+
+// Notifications internes (cloche)
+$router->get('/notifications', function () {
+    Auth::requireLogin();
+    (new NotificationController())->index();
+});
+$router->post('/notifications/{id}/lue', function ($params) {
+    Auth::requireLogin();
+    (new NotificationController())->marquerLue($params);
+});
+$router->post('/notifications/tout-marquer-lu', function () {
+    Auth::requireLogin();
+    (new NotificationController())->marquerToutesLues();
 });
 
 $routeParam = $_GET['r'] ?? '/';

@@ -308,6 +308,7 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         dedouanement_montant DECIMAL(12,2),
         autres_frais_montant DECIMAL(12,2),
         motif_decision TEXT,
+        created_by INT,
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL
     )$engine");
@@ -415,6 +416,32 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         notes TEXT,
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL
+    )$engine");
+
+    // Collaborateurs de dossier (sourcing multi-collaborateurs, dédiés à un
+    // fournisseur précis) + notifications internes (cloche).
+    $pdo->exec("CREATE TABLE IF NOT EXISTS dossier_collaborateurs (
+        id $id,
+        dossier_id INT NOT NULL,
+        filiale_id INT NOT NULL,
+        fournisseur_id INT NOT NULL,
+        utilisateur_id INT NOT NULL,
+        assigned_by INT,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
+        id $id,
+        utilisateur_id INT NOT NULL,
+        filiale_id INT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        titre VARCHAR(255) NOT NULL,
+        message TEXT,
+        lien VARCHAR(255),
+        entite_type VARCHAR(50),
+        entite_id INT,
+        lu TINYINT(1) NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL
     )$engine");
 }
 

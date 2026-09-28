@@ -68,7 +68,7 @@ class Offre
         return $row ?: null;
     }
 
-    public static function create(array $consultation, array $data, array $items): int
+    public static function create(array $consultation, array $data, array $items, ?int $createdBy = null): int
     {
         $pdo = Database::connection();
         $filiale = Filiale::find((int) $consultation['filiale_id']);
@@ -83,8 +83,8 @@ class Offre
                  (consultation_id, dossier_id, filiale_id, fournisseur_id, reference, montant_total, devise, incoterm_negocie, delai_livraison, validite_offre, statut, notes,
                   pays_origine, lieu_depart, quantite_min, disponibilite, poids_kg, nombre_colis, volume_m3, conformite_technique, conditions_paiement, garantie,
                   transport_montant, assurance_montant, emballage_montant, douane_montant, dedouanement_montant, autres_frais_montant,
-                  created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                  created_by, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 $consultation['id'],
@@ -115,6 +115,7 @@ class Offre
                 self::decimalOrNull($data['douane_montant'] ?? null),
                 self::decimalOrNull($data['dedouanement_montant'] ?? null),
                 self::decimalOrNull($data['autres_frais_montant'] ?? null),
+                $createdBy,
                 $now,
                 $now,
             ]);
@@ -179,6 +180,8 @@ class Offre
     {
         $pdo = Database::connection();
         $now = date('Y-m-d H:i:s');
+        $offreRetenue = self::find($offreId);
+
         $pdo->beginTransaction();
         try {
             // Toutes les autres offres du dossier (reçues ou précédemment retenues)
@@ -197,6 +200,35 @@ class Offre
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
+        }
+
+        // Hors transaction et volontairement best-effort : un souci ici ne
+        // doit jamais remettre en cause la décision qui vient d'être validée
+        // ci-dessus. Les collaborateurs rattachés à un fournisseur non
+        // retenu n'ont plus de raison de suivre ce dossier — on les retire
+        // et on les prévient (cloche + email).
+        if ($offreRetenue) {
+            try {
+                $retires = DossierCollaborateur::retirerNonRetenus($dossierId, (int) $offreRetenue['fournisseur_id']);
+                foreach ($retires as $retire) {
+                    $utilisateur = Utilisateur::find((int) $retire['utilisateur_id']);
+                    if (!$utilisateur) {
+                        continue;
+                    }
+                    Notification::notifier(
+                        $utilisateur,
+                        (int) $retire['filiale_id'],
+                        'collaborateur_retire',
+                        'Retiré du suivi d’un dossier',
+                        "Le fournisseur " . $retire['fournisseur_nom'] . " n'a pas été retenu sur ce dossier : vous n'avez plus besoin de le suivre.",
+                        '/index.php?r=dossiers/' . $dossierId,
+                        'dossier',
+                        $dossierId
+                    );
+                }
+            } catch (\Throwable $e) {
+                // best-effort : ne fait jamais échouer la décision ci-dessus.
+            }
         }
     }
 
@@ -217,5 +249,42 @@ class Offre
     public static function userCanAccess(array $user, array $offre): bool
     {
         return Filiale::userCanAccess($user, (int) $offre['filiale_id']);
+    }
+
+    /**
+     * Offres reçues pas encore analysées (décision "retenue"/"écartée" pas
+     * encore prise) — bloc "Achats" du tableau de bord.
+     */
+    public static function aAnalyserCount(array $user): int
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM offres WHERE statut = 'recue' AND filiale_id IN ($placeholders)"
+        );
+        $stmt->execute($filialeIds);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public static function aAnalyserFor(array $user, int $limite = 5): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT o.*, d.id AS dossier_id_reel, d.reference AS dossier_reference, d.objet AS dossier_objet, fo.nom AS fournisseur_nom
+             FROM offres o
+             INNER JOIN dossiers d ON d.id = o.dossier_id
+             INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
+             WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)
+             ORDER BY o.created_at ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute($filialeIds);
+        return $stmt->fetchAll();
     }
 }

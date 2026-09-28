@@ -12,9 +12,12 @@ use App\Models\Cotation;
 use App\Models\Demande;
 use App\Models\DemandeArticle;
 use App\Models\Dossier;
+use App\Models\DossierCollaborateur;
 use App\Models\DossierPieceJointe;
 use App\Models\Facture;
 use App\Models\Filiale;
+use App\Models\Fournisseur;
+use App\Models\Notification;
 use App\Models\Offre;
 use App\Models\Utilisateur;
 
@@ -63,6 +66,14 @@ class DossierController
         $factures = Facture::forDossier((int) $dossier['id']);
         $historique = AuditLog::forDossier((int) $dossier['id']);
         $piecesJointes = DossierPieceJointe::forDossier((int) $dossier['id']);
+        $collaborateurs = DossierCollaborateur::forDossier((int) $dossier['id']);
+        // Candidats à l'assignation : utilisateurs actifs de l'organisation
+        // ayant déjà accès à la filiale du dossier (sinon ils ne pourraient
+        // pas ouvrir le dossier une fois assignés).
+        $collaborateursPossibles = array_values(array_filter(
+            Utilisateur::allForOrganisation((int) $user['organisation_id']),
+            fn($u) => (bool) $u['actif'] && Filiale::userCanAccess($u, (int) $dossier['filiale_id'])
+        ));
 
         View::render('folders/show', [
             'dossier' => $dossier,
@@ -77,6 +88,8 @@ class DossierController
             'factures' => $factures,
             'historique' => $historique,
             'piecesJointes' => $piecesJointes,
+            'collaborateurs' => $collaborateurs,
+            'collaborateursPossibles' => $collaborateursPossibles,
         ]);
     }
 
@@ -281,6 +294,125 @@ class DossierController
             DossierPieceJointe::delete($piece['id']);
             AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'suppression_piece_jointe', 'dossier', (int) $dossier['id'], $piece['nom_original']);
             View::flash('succes', 'Pièce jointe supprimée.');
+        }
+
+        header('Location: /index.php?r=dossiers/' . $dossier['id']);
+        exit;
+    }
+
+    /**
+     * Associe un collaborateur additionnel au dossier, dédié à un
+     * fournisseur précis (déjà consulté sur ce dossier) — pour accélérer la
+     * collecte des devis sur les demandes urgentes. Notifie la personne
+     * assignée (cloche + email best-effort).
+     */
+    public function assignerCollaborateur(array $params): void
+    {
+        Auth::requireWrite();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=dossiers/' . $params['id']);
+            exit;
+        }
+
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $fournisseurId = (int) ($_POST['fournisseur_id'] ?? 0);
+        $utilisateurId = (int) ($_POST['utilisateur_id'] ?? 0);
+
+        $fournisseursDuDossier = array_map(
+            fn($c) => (int) $c['fournisseur_id'],
+            ConsultationFournisseur::forDossier((int) $dossier['id'])
+        );
+        if ($fournisseurId <= 0 || !in_array($fournisseurId, $fournisseursDuDossier, true)) {
+            View::flash('erreur', 'Fournisseur invalide : il doit avoir déjà été consulté sur ce dossier.');
+            header('Location: /index.php?r=dossiers/' . $dossier['id']);
+            exit;
+        }
+
+        $collaborateur = Utilisateur::find($utilisateurId);
+        if (
+            !$collaborateur
+            || (int) $collaborateur['organisation_id'] !== (int) $user['organisation_id']
+            || !$collaborateur['actif']
+        ) {
+            View::flash('erreur', 'Utilisateur invalide.');
+            header('Location: /index.php?r=dossiers/' . $dossier['id']);
+            exit;
+        }
+        if (!Filiale::userCanAccess($collaborateur, (int) $dossier['filiale_id'])) {
+            View::flash('erreur', "Cette personne n'a pas accès à la filiale de ce dossier — donnez-lui d'abord accès depuis Paramètres > Utilisateurs.");
+            header('Location: /index.php?r=dossiers/' . $dossier['id']);
+            exit;
+        }
+
+        DossierCollaborateur::assigner(
+            (int) $dossier['id'],
+            (int) $dossier['filiale_id'],
+            $fournisseurId,
+            $utilisateurId,
+            (int) $user['id']
+        );
+        AuditLog::log(
+            (int) $dossier['filiale_id'],
+            (int) $user['id'],
+            'collaborateur_assigne',
+            'dossier',
+            (int) $dossier['id'],
+            $collaborateur['nom']
+        );
+
+        $fournisseur = Fournisseur::find($fournisseurId);
+        Notification::notifier(
+            $collaborateur,
+            (int) $dossier['filiale_id'],
+            'collaborateur_assigne',
+            'Nouveau dossier à suivre',
+            'Vous avez été ajouté au suivi du dossier ' . $dossier['reference'] . ' (' . $dossier['objet'] . ')'
+                . ' pour le fournisseur ' . ($fournisseur['nom'] ?? '—') . '.',
+            '/index.php?r=dossiers/' . $dossier['id'],
+            'dossier',
+            (int) $dossier['id']
+        );
+
+        View::flash('succes', 'Collaborateur assigné et notifié.');
+        header('Location: /index.php?r=dossiers/' . $dossier['id']);
+        exit;
+    }
+
+    public function retirerCollaborateur(array $params): void
+    {
+        Auth::requireWrite();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=dossiers/' . $params['id']);
+            exit;
+        }
+
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        $collaboration = DossierCollaborateur::find((int) ($params['collaborateurId'] ?? 0));
+        if ($collaboration && (int) $collaboration['dossier_id'] === (int) $dossier['id']) {
+            DossierCollaborateur::retirer((int) $collaboration['id']);
+            AuditLog::log(
+                (int) $dossier['filiale_id'],
+                (int) $user['id'],
+                'collaborateur_retire',
+                'dossier',
+                (int) $dossier['id'],
+                Utilisateur::nameOf((int) $collaboration['utilisateur_id'])
+            );
+            View::flash('succes', 'Collaborateur retiré du dossier.');
         }
 
         header('Location: /index.php?r=dossiers/' . $dossier['id']);

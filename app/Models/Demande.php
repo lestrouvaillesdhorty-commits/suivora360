@@ -57,6 +57,21 @@ class Demande
         'critique' => 'badge-red',
     ];
 
+    // Activité : un simple champ à liste de valeurs sur la Demande (repris
+    // par le Dossier via une jointure sur demande_id, voir Pilotage) — pas
+    // un module séparé (décision confirmée avec Marie Laure, feuille de
+    // route section 7).
+    public const ACTIVITES = [
+        'Sourcing et approvisionnement',
+        'Transport et logistique',
+        'Import',
+        'Export',
+        'Dédouanement et transit',
+        'Négoce international',
+        'Représentation commerciale',
+        'Autre',
+    ];
+
     public const TAKEOVER_STAGES = [
         'qualification' => 'Demande en cours de qualification',
         'recherche_fournisseurs' => 'Recherche de fournisseurs',
@@ -354,5 +369,48 @@ class Demande
         $enRetard = (int) $stmt->fetchColumn();
 
         return ['a_qualifier' => $aQualifier, 'en_retard' => $enRetard];
+    }
+
+    /**
+     * Dernières demandes reçues (bloc "action rapide" du tableau de bord).
+     */
+    public static function recentesFor(array $user, int $limite = 5): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT d.*, f.nom AS filiale_nom FROM demandes d
+             INNER JOIN filiales f ON f.id = d.filiale_id
+             WHERE d.filiale_id IN ($placeholders)
+             ORDER BY d.created_at DESC LIMIT " . (int) $limite
+        );
+        $stmt->execute($filialeIds);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Demandes non encore qualifiées dont l'échéance arrive dans les
+     * prochains jours (pas encore en retard) — bloc "échéances à venir".
+     */
+    public static function echeancesAVenirFor(array $user, int $jours = 7, int $limite = 8): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT d.*, f.nom AS filiale_nom FROM demandes d
+             INNER JOIN filiales f ON f.id = d.filiale_id
+             WHERE d.filiale_id IN ($placeholders)
+             AND d.statut IN ('a_qualifier', 'en_attente_info')
+             AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?
+             ORDER BY d.echeance ASC LIMIT " . (int) $limite
+        );
+        $stmt->execute(array_merge($filialeIds, [date('Y-m-d'), date('Y-m-d', strtotime('+' . $jours . ' days'))]));
+        return $stmt->fetchAll();
     }
 }

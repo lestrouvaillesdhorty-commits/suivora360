@@ -43,6 +43,14 @@ class Permissions
     /** Création/modification d'une Cotation (prix client) — pas l'équipe achats. */
     private const ROLES_GESTION_COTATIONS = ['proprietaire', 'admin_organisation', 'commercial', 'finance'];
 
+    /**
+     * Module Pilotage (analyse par période/activité/responsable) : expose la
+     * valeur active et la marge prévisionnelle, données au même niveau de
+     * sensibilité que la marge sur une Cotation — mêmes rôles que
+     * ROLES_MARGES/ROLES_PARAMETRES.
+     */
+    private const ROLES_PILOTAGE = ['proprietaire', 'admin_organisation', 'finance'];
+
     public static function label(string $role): string
     {
         return self::ROLES[$role] ?? $role;
@@ -81,6 +89,11 @@ class Permissions
     public static function canGererCotations(string $role): bool
     {
         return in_array($role, self::ROLES_GESTION_COTATIONS, true);
+    }
+
+    public static function canVoirPilotage(string $role): bool
+    {
+        return in_array($role, self::ROLES_PILOTAGE, true);
     }
 
     /**

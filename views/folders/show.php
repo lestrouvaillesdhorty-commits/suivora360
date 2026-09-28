@@ -23,6 +23,8 @@ $actionLabelsDossier = [
     'maj_etape_commande' => 'Étape de la commande mise à jour',
     'creation_facture' => 'Facture créée',
     'changement_statut_facture' => 'Statut de la facture changé',
+    'collaborateur_assigne' => 'Collaborateur assigné',
+    'collaborateur_retire' => 'Collaborateur retiré',
 ];
 ?>
 <a href="/index.php?r=dossiers" style="font-size:13px;color:#666">&larr; Retour aux dossiers</a>
@@ -141,6 +143,70 @@ $actionLabelsDossier = [
 
       <?php if ($offreRetenue): ?>
         <div class="alert alert-succes" style="margin-top:16px;margin-bottom:0">Offre retenue : <?= View::e($offreRetenue['fournisseur_nom']) ?> — <?= number_format((float) $offreRetenue['montant_total'], 2, ',', ' ') ?> <?= View::e($offreRetenue['devise']) ?></div>
+      <?php endif; ?>
+    </div>
+
+    <div class="card">
+      <h2>Collaborateurs</h2>
+      <div class="subtitle" style="margin-bottom:12px">Personnes additionnelles assignées à ce dossier pour accélérer la collecte des devis, chacune dédiée à un fournisseur — notifiées (cloche + email) dès l'assignation, et retirées automatiquement si ce fournisseur n'est finalement pas retenu.</div>
+
+      <?php if (empty($collaborateurs)): ?>
+        <div class="empty-state">Aucun collaborateur assigné pour le moment.</div>
+      <?php else: ?>
+        <table style="margin-bottom:16px">
+          <thead><tr><th>Collaborateur</th><th>Fournisseur suivi</th><th></th></tr></thead>
+          <tbody>
+          <?php foreach ($collaborateurs as $c): ?>
+            <tr>
+              <td><?= View::e($c['utilisateur_nom']) ?></td>
+              <td><?= View::e($c['fournisseur_nom']) ?></td>
+              <td>
+                <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/collaborateurs/<?= $c['id'] ?>/retirer" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                  <button type="submit" class="btn btn-sm btn-secondary">Retirer</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+
+      <?php
+        $fournisseursConsultes = [];
+        foreach ($consultations as $cf) {
+            $fournisseursConsultes[(int) $cf['fournisseur_id']] = $cf['fournisseur_nom'];
+        }
+      ?>
+      <?php if (empty($fournisseursConsultes)): ?>
+        <div class="empty-state">Consultez d'abord un fournisseur sur ce dossier pour pouvoir y assigner un collaborateur dédié.</div>
+      <?php elseif (empty($collaborateursPossibles)): ?>
+        <div class="empty-state">Aucun autre utilisateur n'a accès à cette filiale pour être assigné.</div>
+      <?php else: ?>
+        <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/collaborateurs" style="padding-top:12px;border-top:1px solid #eef0f4">
+          <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fournisseur suivi</label>
+              <select name="fournisseur_id" required>
+                <option value="">— Choisir —</option>
+                <?php foreach ($fournisseursConsultes as $fid => $fnom): ?>
+                  <option value="<?= $fid ?>"><?= View::e($fnom) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Collaborateur</label>
+              <select name="utilisateur_id" required>
+                <option value="">— Choisir —</option>
+                <?php foreach ($collaborateursPossibles as $u): ?>
+                  <option value="<?= $u['id'] ?>"><?= View::e($u['nom']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-sm">+ Assigner</button>
+        </form>
       <?php endif; ?>
     </div>
 

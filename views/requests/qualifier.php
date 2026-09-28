@@ -1,7 +1,7 @@
 <?php
 use App\Core\View;
 use App\Models\Demande;
-$activiteListe = ['Sourcing et approvisionnement', 'Transport et logistique', 'Import', 'Export', 'Dédouanement et transit', 'Négoce international', 'Représentation commerciale', 'Autre'];
+$activiteListe = Demande::ACTIVITES;
 ?>
 <a href="/index.php?r=demandes/<?= $demande['id'] ?>" style="font-size:13px;color:#666">&larr; Retour à la demande</a>
 
