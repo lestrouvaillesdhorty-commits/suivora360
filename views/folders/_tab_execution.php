@@ -185,3 +185,6 @@ use App\Core\Auth;
   <?php endif; ?>
 </div>
 <?php endif; ?>
+
+<?php if ($typeDossier === 'transport_logistique') { include __DIR__ . '/_tab_execution_transport.php'; } ?>
+<?php if ($typeDossier === 'achat_sourcing') { include __DIR__ . '/_tab_execution_sourcing.php'; } ?>
