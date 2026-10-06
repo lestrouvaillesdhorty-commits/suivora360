@@ -68,6 +68,12 @@ CREATE TABLE IF NOT EXISTS demandes (
     external_source VARCHAR(100),
     takeover_stage VARCHAR(50),
     historical_takeover TINYINT(1) NOT NULL DEFAULT 0,
+    -- [ajouté v14, module Demandes 04/10] Date souhaitée PAR LE CLIENT,
+    -- distincte de `echeance` (échéance interne de traitement).
+    date_souhaitee_client DATE,
+    -- [ajouté v14] Notes internes d'affectation, utilisables dès la
+    -- création/modification — distinctes de `qualification_notes`.
+    notes_internes TEXT,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -152,6 +158,7 @@ CREATE TABLE IF NOT EXISTS parametres (
     taux_source VARCHAR(100),
     diviseur_volumetrique_aerien DECIMAL(10,2) NOT NULL DEFAULT 6000,
     diviseur_volumetrique_maritime DECIMAL(10,2) NOT NULL DEFAULT 1000,
+    commercial_peut_modifier_marge TINYINT(1) NOT NULL DEFAULT 0,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -174,6 +181,13 @@ CREATE TABLE IF NOT EXISTS demande_articles (
     unite VARCHAR(20),
     reference VARCHAR(100),
     marque VARCHAR(100),
+    -- [ajouté v14, module Demandes 04/10] Conditionnement / précision de la
+    -- ligne (ex. "sacs de 50 kg", "carton de 12"), distinct de reference/marque.
+    conditionnement VARCHAR(100),
+    -- [ajouté 06/10, migrate_v16.php pour les bases existantes] Colonne
+    -- "Caractéristiques" du tableau Articles de la maquette Dossiers
+    -- (Besoin.dc.html), reportée fidèlement sur demande de Marie Laure.
+    caracteristiques VARCHAR(255),
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -196,6 +210,8 @@ CREATE TABLE IF NOT EXISTS dossier_pieces_jointes (
     taille INT NOT NULL DEFAULT 0,
     type_mime VARCHAR(100),
     uploaded_by INT,
+    categorie VARCHAR(30) NOT NULL DEFAULT 'autre', -- migrate_v19.php
+    visibilite VARCHAR(10) NOT NULL DEFAULT 'interne', -- migrate_v19.php : 'interne' | 'client'
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -207,10 +223,27 @@ CREATE TABLE IF NOT EXISTS dossiers (
     objet VARCHAR(255) NOT NULL,
     etape VARCHAR(20) NOT NULL DEFAULT 'qualifie',
     statut VARCHAR(20) NOT NULL DEFAULT 'actif',
+    type_dossier VARCHAR(30) NOT NULL DEFAULT 'autre',
     responsable_id INT,
     priorite VARCHAR(20),
     echeance DATE,
     notes TEXT,
+    -- [ajouté 06/10, migrate_v15.php pour les bases existantes] Onglet
+    -- Exécution, déclinaison Prestation entreprise (cahier des charges
+    -- section 9) — voir Dossier::TYPES_PRESTATION / TYPES_PRESTATION_CHAMPS.
+    type_prestation VARCHAR(30),
+    visite_terrain_necessaire TINYINT(1) DEFAULT 1,
+    prestation_mesure_1 VARCHAR(255),
+    prestation_mesure_2 VARCHAR(255),
+    -- [ajouté 06/10, migrate_v16.php pour les bases existantes] Carte
+    -- "Évaluation du besoin — visite terrain" de la maquette Dossiers
+    -- (ExecutionPrestation.dc.html), reportée fidèlement sur demande de
+    -- Marie Laure — voir Dossier::updatePrestation().
+    prestation_site VARCHAR(255),
+    prestation_technicien VARCHAR(255),
+    prestation_delai_estime VARCHAR(100),
+    prestation_constat TEXT,
+    prestation_contraintes VARCHAR(255),
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -220,7 +253,12 @@ CREATE TABLE IF NOT EXISTS compteurs (
     organisation_id INT NOT NULL,
     type VARCHAR(20) NOT NULL,
     annee INT NOT NULL,
-    valeur INT NOT NULL DEFAULT 0
+    valeur INT NOT NULL DEFAULT 0,
+    -- [ajouté 03/10, migrate_v13.php pour les bases existantes] Empêche
+    -- deux lignes de compteur pour le même (organisation, type, année) —
+    -- voir Compteur::next() pour la fenêtre de course que cette contrainte
+    -- referme (toute première utilisation d'un compteur donné).
+    UNIQUE KEY uniq_compteurs_org_type_annee (organisation_id, type, annee)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==========================================================================
@@ -274,6 +312,10 @@ CREATE TABLE IF NOT EXISTS offres (
     dedouanement_montant DECIMAL(12,2),
     autres_frais_montant DECIMAL(12,2),
     motif_decision TEXT,
+    mode_transport VARCHAR(100),
+    perimetre_mission TEXT,
+    version INT NOT NULL DEFAULT 1, -- migrate_v17.php : fournisseur renvoie une offre révisée
+    offre_precedente_id INT, -- migrate_v17.php : chaîne vers la version remplacée
     created_by INT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
@@ -307,6 +349,8 @@ CREATE TABLE IF NOT EXISTS cotations (
     validite_devis DATE,
     statut VARCHAR(20) NOT NULL DEFAULT 'brouillon',
     notes TEXT,
+    version INT NOT NULL DEFAULT 1, -- migrate_v18.php : v1, v2... d'une cotation sur un même dossier
+    cotation_precedente_id INT, -- migrate_v18.php : chaîne vers la version remplacée
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -333,6 +377,10 @@ CREATE TABLE IF NOT EXISTS commandes (
     notes TEXT,
     prochaine_action VARCHAR(255),
     date_relance DATE,
+    tracking_numero VARCHAR(100),
+    date_transit_debut DATE,
+    date_transit_fin DATE,
+    livrables TEXT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -399,6 +447,7 @@ CREATE TABLE IF NOT EXISTS dossier_collaborateurs (
     fournisseur_id INT NOT NULL,
     utilisateur_id INT NOT NULL,
     assigned_by INT,
+    role VARCHAR(100), -- migrate_v19.php : rôle dans le dossier (texte libre)
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -417,4 +466,20 @@ CREATE TABLE IF NOT EXISTS notifications (
     entite_id INT,
     lu TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Budget prévisionnel vs réalisé de l'onglet Exécution (migrate_v20.php) :
+-- une ligne par (dossier, catégorie), 6 catégories fixes (DossierBudget::CATEGORIES).
+CREATE TABLE IF NOT EXISTS dossier_budget_lignes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dossier_id INT NOT NULL,
+    filiale_id INT NOT NULL,
+    categorie VARCHAR(30) NOT NULL,
+    montant_previsionnel DECIMAL(14,2) NOT NULL DEFAULT 0,
+    montant_realise DECIMAL(14,2),
+    devise VARCHAR(10) NOT NULL DEFAULT 'FCFA',
+    detail VARCHAR(255),
+    updated_by INT,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uq_budget_dossier_cat (dossier_id, categorie)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

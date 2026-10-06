@@ -35,6 +35,11 @@ class CommandeController
             header('Location: /index.php?r=dossiers/' . $dossier['id']);
             exit;
         }
+        if ($cotation['statut'] !== 'acceptee') {
+            View::flash('erreur', 'Une commande ne peut être créée qu\'à partir d\'une cotation acceptée.');
+            header('Location: /index.php?r=dossiers/' . $dossier['id']);
+            exit;
+        }
 
         $commandeId = Commande::create((int) $dossier['id'], (int) $dossier['filiale_id'], $cotationId);
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'creation_commande', 'commande', $commandeId);
@@ -120,6 +125,62 @@ class CommandeController
         Commande::updateSuivi((int) $commande['id'], $_POST['prochaine_action'] ?? '', $_POST['date_relance'] ?? null);
         AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_suivi_commande', 'commande', $commande['id']);
         View::flash('succes', 'Suivi de la commande mis à jour.');
+        header('Location: /index.php?r=dossiers/' . $commande['dossier_id'] . '/commande');
+        exit;
+    }
+
+    /**
+     * Section 9 de la feuille de route : champs additionnels selon le type
+     * de dossier — tracking/dates de transit (Transport/Logistique) ou
+     * livrables (Prestation entreprise). Mêmes garde-fous que updateSuivi().
+     */
+    public function updateLogistique(array $params): void
+    {
+        Auth::requireWrite();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=commandes/' . $params['id']);
+            exit;
+        }
+
+        $user = Auth::user();
+        $commande = Commande::find((int) $params['id']);
+        if (!$commande || !Commande::userCanAccess($user, $commande)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        Commande::updateLogistique(
+            (int) $commande['id'],
+            $_POST['tracking_numero'] ?? null,
+            $_POST['date_transit_debut'] ?? null,
+            $_POST['date_transit_fin'] ?? null
+        );
+        AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_suivi_commande', 'commande', $commande['id']);
+        View::flash('succes', 'Suivi logistique mis à jour.');
+        header('Location: /index.php?r=dossiers/' . $commande['dossier_id'] . '/commande');
+        exit;
+    }
+
+    public function updateLivrables(array $params): void
+    {
+        Auth::requireWrite();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=commandes/' . $params['id']);
+            exit;
+        }
+
+        $user = Auth::user();
+        $commande = Commande::find((int) $params['id']);
+        if (!$commande || !Commande::userCanAccess($user, $commande)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+
+        Commande::updateLivrables((int) $commande['id'], $_POST['livrables'] ?? '');
+        AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_suivi_commande', 'commande', $commande['id']);
+        View::flash('succes', 'Livrables mis à jour.');
         header('Location: /index.php?r=dossiers/' . $commande['dossier_id'] . '/commande');
         exit;
     }

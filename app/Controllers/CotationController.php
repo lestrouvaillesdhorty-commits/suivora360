@@ -33,11 +33,27 @@ class CotationController
         $clients = Client::allForFiliale((int) $dossier['filiale_id']);
         $offreRetenue = Offre::retenueForDossier((int) $dossier['id']);
 
+        // [ajouté 06/10, étape 3] ?version_de=<cotationId> : nouvelle version
+        // pré-remplie à partir de la cotation indiquée (doit appartenir au
+        // même dossier et ne pas être déjà remplacée).
+        $cotationPrecedente = null;
+        $itemsPrecedents = [];
+        $versionDe = (int) ($_GET['version_de'] ?? 0);
+        if ($versionDe > 0) {
+            $candidate = Cotation::find($versionDe);
+            if ($candidate && (int) $candidate['dossier_id'] === (int) $dossier['id'] && $candidate['statut'] !== 'remplacee') {
+                $cotationPrecedente = $candidate;
+                $itemsPrecedents = CotationItem::forCotation((int) $candidate['id']);
+            }
+        }
+
         View::render('cotations/create', [
             'dossier' => $dossier,
             'demande' => $demande,
             'clients' => $clients,
             'offreRetenue' => $offreRetenue,
+            'cotationPrecedente' => $cotationPrecedente,
+            'itemsPrecedents' => $itemsPrecedents,
         ]);
     }
 
@@ -78,10 +94,19 @@ class CotationController
             ];
         }
 
-        $cotationId = Cotation::create((int) $dossier['id'], (int) $dossier['filiale_id'], $_POST, $items);
+        $cotationPrecedente = null;
+        $precedenteId = (int) ($_POST['cotation_precedente_id'] ?? 0);
+        if ($precedenteId > 0) {
+            $candidate = Cotation::find($precedenteId);
+            if ($candidate && (int) $candidate['dossier_id'] === (int) $dossier['id'] && $candidate['statut'] !== 'remplacee') {
+                $cotationPrecedente = $candidate;
+            }
+        }
 
-        AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'creation_cotation', 'cotation', $cotationId);
-        View::flash('succes', 'Cotation créée.');
+        $cotationId = Cotation::create((int) $dossier['id'], (int) $dossier['filiale_id'], $_POST, $items, $cotationPrecedente);
+
+        AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], $cotationPrecedente ? 'revision_cotation' : 'creation_cotation', 'cotation', $cotationId);
+        View::flash('succes', $cotationPrecedente ? 'Nouvelle version de la cotation créée.' : 'Cotation créée.');
         header('Location: /index.php?r=cotations/' . $cotationId);
         exit;
     }
@@ -123,10 +148,26 @@ class CotationController
             return;
         }
 
-        Cotation::updateStatut((int) $cotation['id'], $_POST['statut'] ?? '');
+        // [ajouté 06/10, étape 3] Une version remplacée est figée ("conservée
+        // pour historique, non modifiable" — maquette) ; "remplacee" n'est
+        // jamais choisi à la main.
+        $nouveauStatut = $_POST['statut'] ?? '';
+        if ($cotation['statut'] === 'remplacee' || !array_key_exists($nouveauStatut, Cotation::statutsManuels())) {
+            View::flash('erreur', 'Statut non modifiable pour cette cotation.');
+            header('Location: /index.php?r=cotations/' . $cotation['id']);
+            exit;
+        }
+
+        Cotation::updateStatut((int) $cotation['id'], $nouveauStatut);
         AuditLog::log((int) $cotation['filiale_id'], (int) $user['id'], 'changement_statut_cotation', 'cotation', $cotation['id'], $_POST['statut'] ?? '');
         View::flash('succes', 'Statut de la cotation mis à jour.');
-        header('Location: /index.php?r=cotations/' . $cotation['id']);
+        // [ajouté 06/10, étape 3] Les boutons de l'onglet Cotations client
+        // renvoient ici avec retour=dossier pour revenir sur l'onglet.
+        if (($_POST['retour'] ?? '') === 'dossier') {
+            header('Location: /index.php?r=dossiers/' . $cotation['dossier_id'] . '&onglet=cotations');
+        } else {
+            header('Location: /index.php?r=cotations/' . $cotation['id']);
+        }
         exit;
     }
 }

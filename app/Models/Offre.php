@@ -10,6 +10,11 @@ class Offre
         'recue' => 'Reçue',
         'retenue' => 'Retenue',
         'rejetee' => 'Écartée',
+        // [ajouté 06/10, migrate_v17] Une offre passe à "remplacee" quand le
+        // fournisseur en renvoie une version révisée sur la même
+        // consultation — l'ancienne reste en base (historique des
+        // versions) mais sort des listes "offres actuelles".
+        'remplacee' => 'Remplacée (version antérieure)',
     ];
 
     public const CONFORMITE = [
@@ -41,16 +46,23 @@ class Offre
      * Toutes les offres reçues pour un dossier, tous fournisseurs confondus
      * — utilisé par le comparateur.
      */
+    /**
+     * Offres "courantes" d'un dossier — une seule ligne par offre révisée
+     * (la dernière version), les versions antérieures ("remplacee", voir
+     * migrate_v17) sont exclues. Utilisé par la Synthèse, le sous-onglet
+     * "Offres reçues" et le Comparateur : comparer une ancienne version à
+     * côté de sa propre révision n'aurait pas de sens.
+     */
     public static function forDossier(int $dossierId): array
     {
         $stmt = Database::connection()->prepare(
-            'SELECT o.*, fo.nom AS fournisseur_nom, fo.note_prix, fo.note_qualite, fo.note_delai, fo.note_reactivite, fo.note_conformite, fo.note_engagements,
+            "SELECT o.*, fo.nom AS fournisseur_nom, fo.note_prix, fo.note_qualite, fo.note_delai, fo.note_reactivite, fo.note_conformite, fo.note_engagements,
                     cf.reference AS consultation_reference
              FROM offres o
              INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
              INNER JOIN consultations_fournisseur cf ON cf.id = o.consultation_id
-             WHERE o.dossier_id = ?
-             ORDER BY o.montant_total ASC'
+             WHERE o.dossier_id = ? AND o.statut != 'remplacee'
+             ORDER BY o.montant_total ASC"
         );
         $stmt->execute([$dossierId]);
         return $stmt->fetchAll();
@@ -68,12 +80,28 @@ class Offre
         return $row ?: null;
     }
 
-    public static function create(array $consultation, array $data, array $items, ?int $createdBy = null): int
+    /**
+     * $offrePrecedente : null pour une première réponse (v1, nouvelle
+     * référence via Compteur) ; sinon l'offre qu'on révise (le fournisseur
+     * a renvoyé une offre modifiée sur la même consultation — demande
+     * explicite de Marie Laure le 06/10) — la version reprend alors la
+     * même référence, incrémente "version", et l'ancienne ligne passe au
+     * statut "remplacee" plutôt que d'être écrasée (historique conservé).
+     */
+    public static function create(array $consultation, array $data, array $items, ?int $createdBy = null, ?array $offrePrecedente = null): int
     {
         $pdo = Database::connection();
-        $filiale = Filiale::find((int) $consultation['filiale_id']);
-        $numero = Compteur::next((int) $filiale['organisation_id'], 'offre');
-        $reference = Compteur::formatReference('OFR', $numero);
+        if ($offrePrecedente) {
+            $reference = $offrePrecedente['reference'];
+            $version = (int) $offrePrecedente['version'] + 1;
+            $offrePrecedenteId = (int) $offrePrecedente['id'];
+        } else {
+            $filiale = Filiale::find((int) $consultation['filiale_id']);
+            $numero = Compteur::next((int) $filiale['organisation_id'], 'offre');
+            $reference = Compteur::formatReference('OFR', $numero);
+            $version = 1;
+            $offrePrecedenteId = null;
+        }
         $now = date('Y-m-d H:i:s');
 
         $pdo->beginTransaction();
@@ -83,8 +111,9 @@ class Offre
                  (consultation_id, dossier_id, filiale_id, fournisseur_id, reference, montant_total, devise, incoterm_negocie, delai_livraison, validite_offre, statut, notes,
                   pays_origine, lieu_depart, quantite_min, disponibilite, poids_kg, nombre_colis, volume_m3, conformite_technique, conditions_paiement, garantie,
                   transport_montant, assurance_montant, emballage_montant, douane_montant, dedouanement_montant, autres_frais_montant,
+                  mode_transport, perimetre_mission, version, offre_precedente_id,
                   created_by, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 $consultation['id'],
@@ -115,6 +144,10 @@ class Offre
                 self::decimalOrNull($data['douane_montant'] ?? null),
                 self::decimalOrNull($data['dedouanement_montant'] ?? null),
                 self::decimalOrNull($data['autres_frais_montant'] ?? null),
+                trim($data['mode_transport'] ?? '') ?: null,
+                trim($data['perimetre_mission'] ?? '') ?: null,
+                $version,
+                $offrePrecedenteId,
                 $createdBy,
                 $now,
                 $now,
@@ -126,6 +159,11 @@ class Offre
                     continue;
                 }
                 OffreItem::create($offreId, $item);
+            }
+
+            if ($offrePrecedenteId !== null) {
+                $pdo->prepare("UPDATE offres SET statut = 'remplacee', updated_at = ? WHERE id = ?")
+                    ->execute([$now, $offrePrecedenteId]);
             }
 
             // Une réponse a été reçue : la consultation associée est marquée en conséquence.
@@ -140,6 +178,51 @@ class Offre
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Historique des versions d'une offre (de la plus ancienne à la plus
+     * récente), en remontant la chaîne offre_precedente_id. Utilisé pour
+     * afficher "v1 → v2 → v3" sur le sous-onglet Offres reçues.
+     */
+    public static function versions(array $offre): array
+    {
+        $chaine = [$offre];
+        $courante = $offre;
+        while (!empty($courante['offre_precedente_id'])) {
+            $precedente = self::find((int) $courante['offre_precedente_id']);
+            if (!$precedente) {
+                break;
+            }
+            $chaine[] = $precedente;
+            $courante = $precedente;
+        }
+        return array_reverse($chaine);
+    }
+
+    /**
+     * [ajouté 06/10, étape 2 du découpage Dossiers] "Transport inclus" du
+     * sous-onglet "Offres reçues" — dérivé de l'incoterm négocié plutôt que
+     * stocké (décision Marie Laure, 06/10) : les incoterms où le vendeur
+     * prend le transport à sa charge (CFR/CIF/CPT/CIP/DAP/DPU/DDP) comptent
+     * comme "inclus" ; ceux où l'acheteur l'organise/le paie lui-même
+     * (EXW/FCA/FAS/FOB) comptent comme "non inclus". Retourne null si
+     * l'incoterm n'est pas renseigné ou non reconnu (affichage "Non
+     * renseigné" plutôt qu'un badge Oui/Non trompeur).
+     */
+    public const INCOTERMS_TRANSPORT_NON_INCLUS = ['EXW', 'FCA', 'FAS', 'FOB'];
+    public const INCOTERMS_TRANSPORT_INCLUS = ['CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
+
+    public static function transportInclus(?string $incoterm): ?bool
+    {
+        $incoterm = strtoupper(trim((string) $incoterm));
+        if (in_array($incoterm, self::INCOTERMS_TRANSPORT_INCLUS, true)) {
+            return true;
+        }
+        if (in_array($incoterm, self::INCOTERMS_TRANSPORT_NON_INCLUS, true)) {
+            return false;
+        }
+        return null;
     }
 
     private static function decimalOrNull($value): ?float
@@ -255,36 +338,56 @@ class Offre
      * Offres reçues pas encore analysées (décision "retenue"/"écartée" pas
      * encore prise) — bloc "Achats" du tableau de bord.
      */
-    public static function aAnalyserCount(array $user): int
+    /**
+     * [ajouté 03/10] $filialeIds/$activite : filtres optionnels du switcher
+     * Tableau de bord (voir DashboardController) — null = comportement
+     * d'origine. Jointure sur `demandes` (via le Dossier) dès que
+     * `$activite` est fourni, puisque l'Activité vit sur la Demande d'origine.
+     */
+    public static function aAnalyserCount(array $user, ?array $filialeIds = null, ?string $activite = null): int
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return 0;
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT COUNT(*) FROM offres WHERE statut = 'recue' AND filiale_id IN ($placeholders)"
-        );
-        $stmt->execute($filialeIds);
+        $sql = "SELECT COUNT(*) FROM offres o WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)";
+        $params = $filialeIds;
+        if ($activite) {
+            $sql = "SELECT COUNT(*) FROM offres o
+                    INNER JOIN dossiers d ON d.id = o.dossier_id
+                    INNER JOIN demandes dm ON dm.id = d.demande_id
+                    WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND dm.activite = ?";
+            $params[] = $activite;
+        }
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return (int) $stmt->fetchColumn();
     }
 
-    public static function aAnalyserFor(array $user, int $limite = 5): array
+    public static function aAnalyserFor(array $user, int $limite = 5, ?array $filialeIds = null, ?string $activite = null): array
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT o.*, d.id AS dossier_id_reel, d.reference AS dossier_reference, d.objet AS dossier_objet, fo.nom AS fournisseur_nom
-             FROM offres o
-             INNER JOIN dossiers d ON d.id = o.dossier_id
-             INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
-             WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)
-             ORDER BY o.created_at ASC LIMIT " . (int) $limite
-        );
-        $stmt->execute($filialeIds);
+        $sql = "SELECT o.*, d.id AS dossier_id_reel, d.reference AS dossier_reference, d.objet AS dossier_objet, d.responsable_id, fo.nom AS fournisseur_nom
+                FROM offres o
+                INNER JOIN dossiers d ON d.id = o.dossier_id
+                INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id";
+        $params = $filialeIds;
+        if ($activite) {
+            $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
+        }
+        $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)";
+        if ($activite) {
+            $sql .= ' AND dm.activite = ?';
+            $params[] = $activite;
+        }
+        $sql .= ' ORDER BY o.created_at ASC LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
@@ -293,23 +396,30 @@ class Offre
      * jours — sous-ensemble "à risque" de aAnalyserFor(), pour le bloc
      * Alertes du tableau de bord.
      */
-    public static function enAttenteDepuis(array $user, int $seuilJours, int $limite = 10): array
+    public static function enAttenteDepuis(array $user, int $seuilJours, int $limite = 10, ?array $filialeIds = null, ?string $activite = null): array
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $seuilDate = date('Y-m-d H:i:s', strtotime("-$seuilJours days"));
-        $stmt = Database::connection()->prepare(
-            "SELECT o.*, d.id AS dossier_id_reel, d.reference AS dossier_reference, d.objet AS dossier_objet, fo.nom AS fournisseur_nom
-             FROM offres o
-             INNER JOIN dossiers d ON d.id = o.dossier_id
-             INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
-             WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND o.created_at <= ?
-             ORDER BY o.created_at ASC LIMIT " . (int) $limite
-        );
-        $stmt->execute(array_merge($filialeIds, [$seuilDate]));
+        $sql = "SELECT o.*, d.id AS dossier_id_reel, d.reference AS dossier_reference, d.objet AS dossier_objet, fo.nom AS fournisseur_nom
+                FROM offres o
+                INNER JOIN dossiers d ON d.id = o.dossier_id
+                INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id";
+        if ($activite) {
+            $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
+        }
+        $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND o.created_at <= ?";
+        $params = array_merge($filialeIds, [$seuilDate]);
+        if ($activite) {
+            $sql .= ' AND dm.activite = ?';
+            $params[] = $activite;
+        }
+        $sql .= ' ORDER BY o.created_at ASC LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 }

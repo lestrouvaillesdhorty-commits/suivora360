@@ -39,14 +39,9 @@ svg.icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
   border-bottom: 1px solid rgba(255,255,255,.08);
   margin-bottom: 10px;
 }
-.sidebar .brand-mark {
-  width: 34px; height: 34px; border-radius: 9px; background: var(--primary);
-  color: #fff; display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 16px; flex-shrink: 0;
-}
-.sidebar .brand-text { line-height: 1.25; overflow: hidden; }
-.sidebar .brand-text .name { font-weight: 700; font-size: 17px; color: #fff; }
-.sidebar .brand-text .tagline { font-size: 11px; color: #7d84a0; }
+/* [remplacé 05/10, intégration du logo réel] .brand-mark/.brand-text (carré "S" + texte) remplacés par le vrai logo Suivora360 (icône + wordmark, fond blanc recoloré en blanc pour la sidebar sombre — voir logo-suivora360.md). */
+.sidebar .brand-logo { height: 30px; width: auto; max-width: 100%; flex-shrink: 0; display: block; }
+.sidebar .brand-tagline { font-size: 11px; color: #7d84a0; padding: 0 20px 10px; margin-top: -2px; }
 .sidebar .brand-close { margin-left: auto; background: none; border: none; color: #aab0c6; font-size: 18px; cursor: pointer; display: none; }
 .sidebar .org-name { font-size: 12px; color: #7d84a0; padding: 0 20px 14px; }
 .sidebar nav { flex: 1; padding: 0 12px; }
@@ -94,7 +89,7 @@ h2 { font-size: 16px; margin: 0 0 14px; }
 
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-@media (max-width: 900px) { .grid-2, .detail-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
 
 .bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 140px; padding-top: 10px; }
 .bar-chart .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
@@ -155,6 +150,16 @@ textarea { resize: vertical; }
 .tabs a.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
 .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+/* [corrigé 04/10] Ce retour à une seule colonne sous 900px ne s'appliquait
+   en réalité jamais : il était défini plus haut dans le fichier (ancienne
+   position), et la règle de base ci-dessus (sans condition media), placée
+   après lui dans le fichier, l'emportait systématiquement dans la cascade à
+   spécificité égale — quel que soit la largeur d'écran. Repéré en testant le
+   tableau de bord sur mobile (ses 2 colonnes ne s'empilaient jamais), mais
+   touche 7 écrans au total (Dashboard, Commandes, Consultations, Cotations,
+   Dossiers, Demandes). Règle désormais placée après la règle de base qu'elle
+   doit surcharger, pour qu'elle s'applique réellement. */
+@media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
 .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f2f5; font-size: 14px; }
 .info-row:last-child { border-bottom: none; }
 .info-row .label { color: #666; }
@@ -239,6 +244,22 @@ textarea { resize: vertical; }
 .kpi-body .kpi-sub { font-size: 12px; color: #999; margin-top: 3px; }
 .kpi-body .kpi-warn { font-size: 11px; color: #b45309; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
 .kpi-body .kpi-link { font-size: 11.5px; color: var(--primary); font-weight: 700; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; }
+/* [ajouté 05/10, report de la maquette] Note de portée sous une rangée de KPI (ex. liste Demandes) — précise la période/le périmètre des chiffres affichés. */
+.scope-note { font-size: 12px; color: #888; margin: -12px 0 18px; }
+
+/* [ajouté 05/10, report de la maquette] Bandeau d'infos compact en tête de
+   fiche (ex. demande) — remplace une série de kv-row verticales par des
+   blocs horizontaux pour les champs de suivi les plus consultés. */
+.info-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); background: #fafbfd; border: 1px solid var(--border); border-radius: 14px; margin: 18px 0 20px; }
+.info-strip .ii { display: flex; gap: 10px; align-items: flex-start; padding: 16px 20px; border-right: 1px solid var(--border); }
+.info-strip .ii:last-child { border-right: none; }
+.info-strip .ii svg { color: var(--primary); margin-top: 1px; flex-shrink: 0; }
+.info-strip .ii .il { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #888; font-weight: 700; }
+.info-strip .ii .iv { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-top: 2px; }
+@media (max-width: 720px) {
+  .info-strip { grid-template-columns: 1fr 1fr; }
+  .info-strip .ii:nth-child(2n) { border-right: none; }
+}
 
 /* Badge de tendance (comparaison vs période précédente) — cartes KPI Pilotage */
 .trend-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; vertical-align: middle; }
@@ -342,6 +363,79 @@ textarea { resize: vertical; }
 .ops-sep { color: #d5d7e2; padding: 0 2px; display: flex; align-items: center; }
 .ops-sep svg { width: 16px; height: 16px; }
 
+/* [ajouté 04/10, maquette de référence de Marie Laure] Grille du tableau de
+   bord sous les indicateurs : sur ordinateur, une grille 2 colonnes où
+   "Suivi des opérations" occupe toute la largeur en haut et "Actions
+   prioritaires" (gauche) s'étend sur la hauteur des 3 cartes de droite —
+   tout aligné sur les mêmes colonnes/marges que la ligne d'indicateurs
+   au-dessus (même conteneur, pas de largeur ou marge spécifique à ce bloc).
+   Sur téléphone, passage en colonne unique en flexbox pour pouvoir réordonner
+   les blocs sans dupliquer de HTML : "Actions prioritaires" d'abord, puis
+   "Suivi des opérations" (repliable, cf. .ops-collapse), puis le reste —
+   demande explicite de Marie Laure ("Placer le récapitulatif des opérations
+   dans un bloc repliable après les priorités"). */
+.dash-grid { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: auto auto auto auto; gap: 20px; }
+.dash-grid > .dg-ops { grid-column: 1 / -1; grid-row: 1; margin-bottom: 0; }
+.dash-grid > .dg-actions { grid-column: 1; grid-row: 2 / span 3; margin-bottom: 0; }
+.dash-grid > .dg-echeances { grid-column: 2; grid-row: 2; margin-bottom: 0; }
+.dash-grid > .dg-demandes { grid-column: 2; grid-row: 3; margin-bottom: 0; }
+.dash-grid > .dg-livraisons { grid-column: 2; grid-row: 4; margin-bottom: 0; }
+@media (max-width: 900px) {
+  .dash-grid { display: flex; flex-direction: column; grid-template-columns: none; }
+  .dash-grid > .dg-actions { order: 1; }
+  .dash-grid > .dg-ops { order: 2; }
+  .dash-grid > .dg-echeances { order: 3; }
+  .dash-grid > .dg-demandes { order: 4; }
+  .dash-grid > .dg-livraisons { order: 5; }
+}
+
+/* [ajouté 04/10] "Suivi des opérations" replié par défaut sur téléphone
+   uniquement (le triangle <summary> est masqué et le clic désactivé au-delà
+   de 900px, pour conserver exactement le rendu "bandeau toujours visible"
+   existant sur ordinateur). */
+.ops-collapse { display: flex; align-items: center; }
+.ops-collapse summary { list-style: none; cursor: default; display: flex; align-items: center; margin-right: 12px; }
+.ops-collapse summary::-webkit-details-marker { display: none; }
+.ops-collapse summary::marker { content: ''; }
+.ops-collapse summary h2 { margin-right: 0; }
+.ops-collapse .ops-chevron { display: none; margin-left: 10px; flex-shrink: 0; color: #999; }
+.ops-collapse .ops-chevron svg { transform: rotate(-90deg); transition: transform .15s; }
+.ops-collapse:not([open]) .ops-chevron svg { transform: rotate(90deg); }
+.ops-collapse:not([open]) .ops-items { display: none; }
+@media (max-width: 900px) {
+  .ops-collapse { display: block; }
+  .ops-collapse summary { cursor: pointer; margin-right: 0; }
+  .ops-collapse .ops-chevron { display: inline-flex; }
+}
+
+/* [ajouté 04/10] Carte "Actions prioritaires" — fusion des anciens blocs
+   Alertes + Mes priorités en une seule liste à onglets (En retard /
+   Aujourd'hui / À venir), chaque demande/commande/cotation/offre n'y
+   apparaissant qu'une fois (voir DashboardController::construireActionsPrioritaires). */
+.prio-tabs { display: flex; gap: 4px; margin: 2px 0 14px; border-bottom: 1px solid #eef0f4; }
+.prio-tab { background: none; border: none; padding: 9px 14px 11px; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 7px; }
+.prio-tab.active { color: var(--pilotage-violet); border-bottom-color: var(--pilotage-violet); }
+.prio-tab .prio-tab-count { background: #f1f2f5; color: #666; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+.prio-tab.active .prio-tab-count { background: #EEEBFF; color: var(--pilotage-violet); }
+.prio-list { list-style: none; margin: 0; padding: 0; }
+.prio-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f1f2f5; cursor: pointer; }
+.prio-item:last-child { border-bottom: none; }
+.prio-type { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.prio-main { flex: 1.1 1 180px; min-width: 0; }
+.prio-main .pm-title { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prio-main .pm-ref { font-size: 11.5px; color: #888; }
+.prio-action { flex: 1.4 1 200px; min-width: 0; font-size: 13px; color: #333; }
+.prio-side { flex-shrink: 0; text-align: right; font-size: 12px; color: #666; min-width: 108px; }
+.prio-side .ps-echeance { display: block; font-weight: 600; }
+.prio-side .ps-resp { display: block; color: #999; font-size: 11.5px; margin-top: 2px; }
+.prio-more-toggle { margin-top: 10px; background: none; border: none; color: var(--pilotage-violet); font-weight: 600; font-size: 12.5px; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; text-decoration: none; }
+.prio-more-toggle svg { transform: rotate(90deg); }
+@media (max-width: 700px) {
+  .prio-item { flex-wrap: wrap; }
+  .prio-action { flex-basis: 100%; order: 3; margin-top: 4px; }
+  .prio-side { flex-basis: 100%; order: 4; text-align: left; margin-top: 4px; display: flex; gap: 14px; min-width: 0; }
+}
+
 .dossier-cell { display: flex; align-items: center; gap: 12px; }
 
 .timeline { list-style: none; margin: 0; padding: 0; }
@@ -354,6 +448,25 @@ textarea { resize: vertical; }
 .timeline .tl-body { flex: 1; min-width: 0; }
 .timeline .tl-title { font-weight: 600; font-size: 13.5px; }
 .timeline .tl-sub { font-size: 12px; color: #888; }
+
+/* [ajouté 04/10] Liste compacte pour la colonne de droite du tableau de bord
+   (Dernières demandes, Livraisons à suivre) — même rythme que .timeline
+   (ligne + séparateur fin) mais avec une puce icône colorée au lieu d'un
+   bloc date, pour du contenu qui n'a pas de date "hero" à mettre en avant. */
+.feed-list { list-style: none; margin: 0; padding: 0; }
+.feed-list li { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f1f2f5; cursor: pointer; }
+.feed-list li:last-child { border-bottom: none; }
+.feed-list .fl-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.feed-list .fl-body { flex: 1; min-width: 0; }
+.feed-list .fl-title { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-list .fl-sub { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-list .fl-meta { font-size: 11.5px; color: #999; flex-shrink: 0; text-align: right; line-height: 1.5; }
+
+/* [ajouté 04/10] Tronque un intitulé long sur une seule ligne plutôt que de
+   le laisser retourner à la ligne, sans jamais imposer de largeur fixe en
+   pixels (la largeur dépend du conteneur flex parent — important sur
+   téléphone, où une largeur fixe type 420px dépasserait le viewport). */
+.truncate { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @media (max-width: 768px) {
   .sidebar.sidebar-collapsible { position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; transition: transform .2s ease; overflow-y: auto; }
@@ -379,5 +492,175 @@ textarea { resize: vertical; }
 }
 
 @media (max-width: 480px) {
-  .grid-3, .kpi-row, .dash-kpi-row, .grid-2 { grid-template-columns: 1fr; }
+  .grid-3, .kpi-row, .grid-2 { grid-template-columns: 1fr; }
+  /* [corrigé 04/10] .dash-kpi-row exclu volontairement : la maquette demande
+     une grille 2×2 pour les 4 indicateurs du tableau de bord jusqu'aux plus
+     petits écrans, pas un empilement vertical. La règle à 768px (2 colonnes)
+     reste donc la dernière à s'appliquer pour ce composant. */
+
+  /* [corrigé 04/10] Sur un écran étroit, "référence · statut" pouvait
+     dépasser la largeur disponible (ex. "DEM-2026-00017 · À qualifier") :
+     le badge de statut se retrouvait tronqué en "..." par l'ellipsis plutôt
+     que de rester lisible. On autorise le retour à la ligne ici seulement
+     (desktop/tablette gardent une ligne unique, où ça ne pose pas problème). */
+  .feed-list .fl-sub { white-space: normal; }
 }
+
+/* [ajouté 04/10, refonte du module Demandes] Libellé au-dessus de la valeur,
+   alignés à gauche — remplace .info-row (libellé à gauche / valeur plaquée
+   à droite par justify-content:space-between) UNIQUEMENT dans les vues du
+   module Demandes, pour corriger le chevauchement sur les messages longs
+   sans toucher .info-row ailleurs dans l'application (Dossiers, Clients,
+   Fournisseurs... non revus dans ce tour de travail). */
+.kv-row { padding: 8px 0; border-bottom: 1px solid #f1f2f5; font-size: 14px; }
+.kv-row:last-child { border-bottom: none; }
+.kv-row .label { display: block; color: #666; font-size: 11.5px; text-transform: uppercase; letter-spacing: .02em; margin-bottom: 3px; }
+.kv-row .value { display: block; text-align: left; }
+
+/* [ajouté 04/10, refonte du module Demandes] Lien de type bouton texte
+   (ex. "Créer rapidement un client") — même couleur qu'un lien classique
+   mais rendu comme <button> pour rester actionnable au clavier sans
+   dépendre d'une vraie navigation. */
+.btn-link { background: none; border: none; padding: 0; color: var(--primary); font-weight: 600; font-size: inherit; cursor: pointer; text-decoration: underline; }
+
+/* [ajouté 04/10] Onglets "Formulaire / Documents & affectation" du
+   formulaire Demandes (création/modification) : sur ordinateur, les deux
+   panneaux restent côte à côte (le bandeau d'onglets ne sert à rien et est
+   masqué) ; sur mobile, un seul panneau visible à la fois — le JS de la vue
+   bascule juste `display`, rien n'est jamais retiré du DOM, donc aucune
+   saisie n'est perdue en changeant d'onglet. */
+.form-tabs { display: none; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.form-tabs .ft-btn { background: none; border: none; padding: 9px 14px 11px; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; }
+.form-tabs .ft-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+@media (max-width: 900px) {
+  .form-tabs { display: flex; }
+}
+
+/* [ajouté 06/10, report de la maquette Dossiers] .kv-row (ajoutée pour
+   Demandes le 04/10, voir note ci-dessus) est désormais aussi utilisée par
+   la fiche Dossier (onglets Synthèse/Besoin) — même raison : libellé
+   au-dessus de la valeur, pas de chevauchement sur les contenus longs. */
+
+/* [ajouté 06/10, corrigé 06/10 pour coller précisément aux valeurs de
+   shared.css de la maquette Dossiers] Onglets de la fiche Dossier
+   (Synthèse / Besoin / Achats et offres / Cotations client / Exécution /
+   Documents / Équipe et historique) — vraies pages (lien ?onglet=...), pas
+   un simple bascule JS, la fiche étant trop volumineuse pour tout garder
+   chargé en même temps. */
+.dos-tabs { display: flex; gap: 2px; border-bottom: 1px solid #e5e7eb; margin: 18px 0 22px; flex-wrap: wrap; }
+.dos-tab { padding: 11px 18px; font-size: 13.5px; font-weight: 600; color: #666; border-bottom: 2px solid transparent; }
+.dos-tab:hover { text-decoration: none; background: #f7f8fa; }
+.dos-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* [ajouté 06/10] Bandeau d'en-tête de la fiche Dossier (Activité,
+   Responsable, Priorité, Échéances) — même esprit que .info-strip côté
+   Demandes (05/10), adapté aux champs du Dossier. Valeurs reprises à
+   l'identique du <style> local de Synthese.dc.html (maquette). */
+.fiche-header-meta { display: flex; flex-wrap: wrap; gap: 18px 28px; margin-top: 10px; }
+.fhm-item { font-size: 12.5px; }
+.fhm-item .fhm-label { color: #888; font-size: 11px; }
+.fhm-item .fhm-value { color: var(--ink); font-weight: 600; margin-top: 2px; }
+
+/* [ajouté 06/10] Grille de cartes de l'onglet Synthèse — idem, reprises à
+   l'identique du <style> local de Synthese.dc.html (maquette). */
+.fiche-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 980px) { .fiche-grid { grid-template-columns: 1fr; } }
+.card-link-hint { font-size: 12px; color: var(--primary); font-weight: 600; text-decoration: none; }
+.badge-purple { background: #ede9fe; color: #5b21b6; }
+
+/* [ajouté 06/10, corrigé 06/10 pour coller précisément aux valeurs de
+   shared.css de la maquette Dossiers] Progression du dossier adaptée au
+   type (onglet Synthèse et onglet Exécution) — remplace les divs stylées
+   en inline déjà utilisées sur l'ancienne fiche Dossier à une seule page
+   (mini-stepper "Avancement du dossier", conservé pour compatibilité
+   visuelle sur la liste des dossiers). */
+.phase-stepper { display: flex; align-items: flex-start; margin: 4px 0 22px; }
+.phase-step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; text-align: center; }
+.phase-step .ps-dot { width: 26px; height: 26px; border-radius: 999px; background: #fff; border: 2.5px solid #d1d3dd; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #9ca3af; z-index: 1; }
+.phase-step.done .ps-dot { background: #16a34a; border-color: #16a34a; color: #fff; }
+.phase-step.current .ps-dot { background: var(--primary); border-color: var(--primary); color: #fff; }
+.phase-step .ps-line { position: absolute; top: 13px; left: calc(-50% + 13px); width: 100%; height: 2.5px; background: #d1d3dd; z-index: 0; }
+.phase-step:first-child .ps-line { display: none; }
+.phase-step.done .ps-line, .phase-step.current .ps-line { background: #16a34a; }
+.phase-step .ps-label { font-size: 11.5px; color: #666; margin-top: 7px; max-width: 110px; line-height: 1.3; }
+.phase-step.current .ps-label { color: var(--primary); font-weight: 700; }
+.phase-step.done .ps-label { color: #16a34a; font-weight: 600; }
+
+/* [ajouté 06/10] Onglet Besoin — citation du message d'origine (non
+   modifiable) et badge "À préciser" du tableau Articles, repris à
+   l'identique du <style> local de Besoin.dc.html (maquette). */
+.quote-block { background: #f7f8fa; border-left: 3px solid var(--border); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 13.5px; color: #444; font-style: italic; margin-bottom: 16px; }
+.a-preciser { font-size: 11.5px; font-weight: 700; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 1px 7px; border-radius: 999px; }
+
+/* [ajouté 06/10] Onglet Exécution (Prestation) — case "Visite terrain" et
+   grille de photos, repris à l'identique du <style> local de
+   ExecutionPrestation.dc.html (maquette). */
+.checkbox-field { display: flex; align-items: center; gap: 8px; height: 38px; }
+.checkbox-field input { width: 16px; height: 16px; margin: 0; }
+.checkbox-field span { font-size: 13px; color: #333; }
+.photo-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.photo-thumb { width: 84px; height: 64px; border-radius: 8px; object-fit: cover; display: block; }
+.photo-ph { width: 84px; height: 64px; border-radius: 8px; background: #eef0f4; display: flex; align-items: center; justify-content: center; color: #aab0c6; }
+
+/* [ajouté 06/10, étape 2 du découpage Dossiers] Sous-onglets de "Achats et
+   offres" (Consultations / Offres reçues / Comparaison) — repris à
+   l'identique du <style> local de AchatsConsultations.dc.html (maquette).
+   Valeurs copiées verbatim de shared.css. */
+.sub-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.sub-tab { padding: 9px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; color: #555; background: #eef0f4; border: none; cursor: pointer; }
+.sub-tab.active { background: var(--primary); color: #fff; }
+
+/* [ajouté 06/10, étape 2 du découpage Dossiers] Bandeau d'information
+   contextuelle (ex: rappel sur le statut d'une consultation) — repris à
+   l'identique de shared.css (maquette). */
+.info-note { display: flex; gap: 8px; align-items: flex-start; background: #eef4ff; border: 1px solid #cfe0fb; color: #1e4ea8; border-radius: 10px; padding: 10px 12px; font-size: 12.5px; }
+.info-note svg { flex-shrink: 0; margin-top: 1px; }
+
+/* [ajouté 06/10, étape 2 du découpage Dossiers] Tableau "liste" utilisé
+   par les sous-onglets Consultations/Offres reçues — repris à l'identique
+   de shared.css (maquette), distinct du tableau transposé du Comparateur
+   (qui reste en style inline, non touché). */
+.table-scroll { overflow-x: auto; }
+.dtable { width: 100%; border-collapse: collapse; }
+.dtable thead th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: #888; font-weight: 700; padding: 12px 16px; border-bottom: 1px solid var(--border); background: #fafbfd; }
+.dtable tbody td { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; vertical-align: middle; }
+.dtable tbody tr:hover { background: #fafbfd; }
+.dtable tbody tr:last-child td { border-bottom: none; }
+.row-title { font-weight: 600; color: var(--ink); }
+
+/* [ajouté 06/10, étape 3 du découpage Dossiers] Versions de cotation —
+   copié à l'identique de la maquette (Cotations.dc.html). */
+.cot-version { border:1px solid var(--border, #e5e7eb); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+.cot-version.current { border-color: var(--primary, #4f46e5); background: var(--primary-light, #eef2ff); }
+.cot-version-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+.cot-version-head .cv-title { font-weight:700; font-size:14px; color:var(--ink, #1f2937); }
+.hint { font-size: 12px; color: #888; margin-top: 4px; } /* [ajouté 06/10, étape 3] copié de la maquette (shared.css) */
+
+/* [ajouté 06/10, étape 4 du découpage Dossiers] Documents + Équipe et
+   historique — copié de la maquette (shared.css / Documents.dc.html).
+   La frise s'appelle .dos-timeline car .timeline existe déjà (Tableau de
+   bord) avec un autre style. */
+.doc-cat-head { font-size:12px; font-weight:700; color:#888; letter-spacing:.02em; padding:14px 22px 6px; }
+.visibility-tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.visibility-tag.interne { background: #f1f2f5; color: #4b5563; }
+.visibility-tag.client { background: #eef4ff; color: #1e4ea8; }
+.avatar-sm { width: 26px; height: 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; margin-right: 8px; vertical-align: middle; }
+.dos-timeline { position: relative; padding-left: 22px; }
+.dos-timeline::before { content: ""; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+.dos-timeline .tl-item { position: relative; padding-bottom: 20px; }
+.dos-timeline .tl-item:last-child { padding-bottom: 0; }
+.dos-timeline .tl-item::before { content: ""; position: absolute; left: -22px; top: 3px; width: 10px; height: 10px; border-radius: 999px; background: var(--primary); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--primary-light); }
+.dos-timeline .tl-date { font-size: 11.5px; color: #888; }
+.dos-timeline .tl-title { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-top: 1px; }
+.dos-timeline .tl-author { font-size: 12px; color: #888; margin-top: 1px; }
+
+/* [ajouté 06/10, étape 5 du découpage Dossiers] Budget prévisionnel vs réalisé — valeurs de shared.css (maquette) */
+.budget-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.6fr; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f2f5; font-size: 13.5px; }
+.budget-row:last-child { border-bottom: none; }
+.budget-row .bl { font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.budget-row .bl svg { color: var(--primary); flex-shrink: 0; }
+.budget-row .bv { color: #888; font-size: 12px; }
+.budget-row .bv strong { color: var(--ink); font-size: 13.5px; display: block; }
+.budget-row .bv input { display: block; width: 100%; margin-top: 2px; }
+.budget-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 4px; font-size: 14px; font-weight: 700; color: var(--ink); border-top: 2px solid var(--border); margin-top: 6px; }
+@media (max-width: 700px) { .budget-row { grid-template-columns: 1fr 1fr; } .budget-row .bl { grid-column: 1 / -1; } }

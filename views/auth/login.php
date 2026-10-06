@@ -8,16 +8,18 @@ if ($flash) unset($_SESSION['flash']);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connexion — Suivora360</title>
+<link rel="icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/css/app.css">
 <style>
 body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#1a1d29; }
 .login-card { background:#fff; padding:36px; border-radius:12px; width:100%; max-width:380px; }
-.login-card h1 { text-align:center; margin-bottom:24px; }
+.login-logo { display:block; margin:0 auto 28px; max-width:260px; width:100%; height:auto; }
 </style>
 </head>
 <body>
 <div class="login-card">
-  <h1>Suivora360</h1>
+  <img src="/assets/img/logo-full.png" alt="Suivora360 — La maîtrise de vos opérations." class="login-logo">
   <?php if ($flash): ?>
     <div class="alert alert-<?= $flash['type'] === 'erreur' ? 'erreur' : 'succes' ?>"><?= htmlspecialchars($flash['message']) ?></div>
   <?php endif; ?>

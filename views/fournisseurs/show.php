@@ -1,4 +1,5 @@
 <?php use App\Core\View;
+use App\Models\ConsultationFournisseur;
 use App\Models\Demande;
 use App\Models\Fournisseur;
 use App\Models\FournisseurPieceJointe;
@@ -138,7 +139,7 @@ $incotermsPratiques = !empty($fournisseur['incoterms_pratiques']) ? explode(',',
         <?php foreach ($historique as $h): ?>
         <tr onclick="window.location='/index.php?r=consultations/<?= $h['id'] ?>'" style="cursor:pointer">
           <td><?= View::e($h['dossier_reference']) ?></td>
-          <td><?= View::e(ucfirst($h['statut'])) ?></td>
+          <td><?= View::e(ConsultationFournisseur::STATUTS[$h['statut']] ?? ucfirst($h['statut'])) ?></td>
           <td><?= (int) $h['nb_offres'] ?></td>
           <td><?= date('d/m/Y', strtotime($h['created_at'])) ?></td>
         </tr>

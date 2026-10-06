@@ -18,7 +18,20 @@ class AiExtracteur
     private const MODEL = 'claude-sonnet-4-5-20250929';
 
     /**
-     * @return array<int, array{designation:string, quantite:?float, unite:string}>
+     * [ajouté 05/10, report de la maquette] Vérification légère, sans appel
+     * réseau, pour afficher un état de repli discret (bouton "Extraire avec
+     * l'IA" remplacé par un message) plutôt que de laisser l'utilisateur
+     * cliquer dans le vide puis découvrir l'échec après coup — le vrai appel
+     * (extraireArticles()) continue de son côté à vérifier la clé lui-même,
+     * cette méthode n'est qu'un raccourci d'affichage.
+     */
+    public static function estDisponible(): bool
+    {
+        return (bool) Env::get('ANTHROPIC_API_KEY');
+    }
+
+    /**
+     * @return array<int, array{designation:string, quantite:?float, unite:string, conditionnement:string, reference:string, marque:string, ambigu:bool, note_ambiguite:string}>
      * @throws \RuntimeException si la clé API est absente ou si l'appel échoue
      */
     public static function extraireArticles(string $messageBrut): array
@@ -31,11 +44,32 @@ class AiExtracteur
             return [];
         }
 
+        // [complété 04/10, refonte du module Demandes] Sépare désormais
+        // aussi référence/marque/conditionnement (au lieu de désignation/
+        // quantité/unité seulement), et signale les informations ambiguës
+        // plutôt que de les deviner — ex. "5 palettes de riz parfumé de
+        // 50 kg" : la quantité de riz (combien de kg au total) n'est PAS
+        // déductible du nombre de palettes sans connaître leur gabarit, donc
+        // le poids ne doit jamais être recalculé/inventé ici.
         $prompt = <<<PROMPT
 Voici le message brut envoyé par un client à une société de sourcing/import-export.
 Extrais la liste des articles/produits demandés sous forme d'un tableau JSON strict, sans aucun texte autour, sans balises de code.
-Chaque élément : {"designation": string, "quantite": nombre ou null, "unite": string ou ""}.
-Si aucun article n'est identifiable, réponds [].
+
+Chaque élément : {"designation": string, "quantite": nombre ou null, "unite": string ou "", "conditionnement": string ou "", "reference": string ou "", "marque": string ou "", "ambigu": booléen, "note_ambiguite": string ou ""}.
+
+Règles :
+- "designation" : le produit lui-même (ex. "Biscuits"), jamais la quantité ni le conditionnement.
+- "unite" : l'unité de comptage (ex. "Carton", "Palette", "Sac"), jamais un poids/volume total.
+- "conditionnement" : la précision de conditionnement si elle est donnée (ex. "sacs de 50 kg", "carton de 12") — ne jamais recalculer un total à partir du nombre d'unités, juste rapporter ce que le client a écrit.
+- "reference" et "marque" : uniquement si explicitement mentionnées.
+- "ambigu" = true dès qu'une information nécessaire ne peut pas être déduite sans supposer un fait non donné (ex. poids total inconnu sans gabarit de palette) ; dans ce cas, laisse le champ concerné à null/"" plutôt que de l'inventer, et explique brièvement dans "note_ambiguite" ce qui reste à clarifier.
+- Si aucun article n'est identifiable, réponds [].
+
+Exemple — message "20 cartons de biscuits réf BX100 marque Fatima" :
+[{"designation": "Biscuits", "quantite": 20, "unite": "Carton", "conditionnement": "", "reference": "BX100", "marque": "Fatima", "ambigu": false, "note_ambiguite": ""}]
+
+Exemple — message "5 palettes de riz parfumé de 50 kg" (poids total non déductible du nombre de palettes) :
+[{"designation": "Riz parfumé", "quantite": 5, "unite": "Palette", "conditionnement": "sacs de 50 kg", "reference": "", "marque": "", "ambigu": true, "note_ambiguite": "Poids total non précisé (dépend du nombre de sacs par palette)."}]
 
 Message :
 """
@@ -97,6 +131,11 @@ PROMPT;
                 'designation' => (string) $a['designation'],
                 'quantite' => isset($a['quantite']) && is_numeric($a['quantite']) ? (float) $a['quantite'] : null,
                 'unite' => isset($a['unite']) ? (string) $a['unite'] : '',
+                'conditionnement' => isset($a['conditionnement']) ? (string) $a['conditionnement'] : '',
+                'reference' => isset($a['reference']) ? (string) $a['reference'] : '',
+                'marque' => isset($a['marque']) ? (string) $a['marque'] : '',
+                'ambigu' => !empty($a['ambigu']),
+                'note_ambiguite' => isset($a['note_ambiguite']) ? (string) $a['note_ambiguite'] : '',
             ];
         }
         return $resultat;

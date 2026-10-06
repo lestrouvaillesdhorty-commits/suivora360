@@ -67,6 +67,17 @@ class ParametresController
             'dedouanement_defaut' => $_POST['dedouanement_defaut'] ?? 0,
             'taux_date_maj' => $_POST['taux_date_maj'] ?? null,
             'taux_source' => $_POST['taux_source'] ?? '',
+            // Corrigé en même temps que l'ajout du verrou marge ci-dessous :
+            // ces deux champs étaient soumis par le formulaire mais jamais
+            // transmis ici, donc Parametres::update() les réinitialisait
+            // silencieusement aux valeurs par défaut (6000/1000) à chaque
+            // "Enregistrer", effaçant toute valeur personnalisée.
+            'diviseur_volumetrique_aerien' => $_POST['diviseur_volumetrique_aerien'] ?? Parametres::DEFAUTS['diviseur_volumetrique_aerien'],
+            'diviseur_volumetrique_maritime' => $_POST['diviseur_volumetrique_maritime'] ?? Parametres::DEFAUTS['diviseur_volumetrique_maritime'],
+            // Verrouillage/déverrouillage de la saisie de marge pour le
+            // Commercial, décidé par filiale par le Propriétaire/Admin/Finance
+            // (décision du 03/10 révisée). Case absente du POST = décochée.
+            'commercial_peut_modifier_marge' => !empty($_POST['commercial_peut_modifier_marge']),
         ]);
 
         View::flash('succes', 'Paramètres enregistrés. Les simulations, offres et commandes déjà enregistrées ne sont jamais recalculées.');

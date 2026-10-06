@@ -1,6 +1,14 @@
-<?php use App\Core\View; use App\Models\Demande; use App\Models\Dossier; use App\Models\Utilisateur; ?>
-<h1>Dossiers</h1>
-<div class="subtitle"><?= count($dossiers) ?> dossier<?= count($dossiers) > 1 ? 's' : '' ?></div>
+<?php use App\Core\Icon; use App\Core\View; use App\Models\Demande; use App\Models\Dossier; use App\Models\Utilisateur; ?>
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+  <div>
+    <h1>Dossiers</h1>
+    <div class="subtitle"><?= count($dossiers) ?> dossier<?= count($dossiers) > 1 ? 's' : '' ?></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="/index.php?r=dossiers/export.csv&<?= http_build_query($filters) ?>" class="btn btn-secondary"><?= Icon::svg('download', 'icon', 15) ?> Exporter (CSV)</a>
+    <a href="/index.php?r=dossiers/importer" class="btn btn-secondary"><?= Icon::svg('upload', 'icon', 15) ?> Importer</a>
+  </div>
+</div>
 
 <form method="get" action="/index.php" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
   <input type="hidden" name="r" value="dossiers">
@@ -52,7 +60,7 @@
 <?php else: ?>
 <table>
   <thead>
-    <tr><th>Référence</th><th>Objet</th><th>Filiale</th><th>Étape</th><th>Responsable</th><th>Priorité</th><th>Échéance</th><th>Statut</th></tr>
+    <tr><th>Référence</th><th>Objet</th><th>Filiale</th><th>Étape</th><th>Avancement</th><th>Responsable</th><th>Priorité</th><th>Échéance</th><th>Statut</th></tr>
   </thead>
   <tbody>
     <?php foreach ($dossiers as $d): ?>
@@ -62,6 +70,13 @@
       <td><?= View::e($d['objet']) ?></td>
       <td><?= View::e($d['filiale_nom']) ?></td>
       <td><span class="badge badge-blue"><?= Dossier::ETAPES_LABELS[$d['etape']] ?? $d['etape'] ?></span></td>
+      <td style="min-width:110px">
+        <?php $prog = Dossier::progression($d['etape']); ?>
+        <div style="background:#f1f2f5;border-radius:6px;height:6px;overflow:hidden;margin-bottom:3px" title="<?= View::e(implode(' → ', Dossier::ETAPES_LABELS)) ?>">
+          <div style="background:<?= $prog === 100 ? '#16a34a' : '#4f46e5' ?>;height:100%;width:<?= $prog ?>%"></div>
+        </div>
+        <span style="font-size:12px;color:#666"><?= $prog ?>%</span>
+      </td>
       <td><?= View::e(Utilisateur::nameOf($d['responsable_id'])) ?></td>
       <td><span class="badge <?= Demande::PRIORITE_BADGES[$d['priorite']] ?? 'badge-gray' ?>"><?= Demande::PRIORITES[$d['priorite']] ?? ucfirst($d['priorite']) ?></span></td>
       <td>

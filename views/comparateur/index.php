@@ -1,8 +1,18 @@
-<?php use App\Core\View; use App\Models\Offre; use App\Models\Client; ?>
-<a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" style="font-size:13px;color:#666">&larr; Retour au dossier <?= View::e($dossier['reference']) ?></a>
-
-<h1 style="margin-top:8px">Comparateur d'offres</h1>
-<div class="subtitle">Dossier <?= View::e($dossier['reference']) ?> — <?= View::e($dossier['objet']) ?></div>
+<?php use App\Core\View; use App\Models\Offre; use App\Models\Client; use App\Models\Dossier; ?>
+<?php
+// [modifié 06/10, étape 2 du découpage Dossiers] Le lien de retour isolé
+// et le h1/subtitle propres à cette page sont remplacés par la coquille
+// commune de la fiche Dossier (_dossier_header.php) + les sous-onglets de
+// "Achats et offres" (_achats_subtabs.php, "Comparaison" actif) — cette
+// page garde sa propre route (/dossiers/{id}/comparateur, accès direct
+// depuis le menu, décision du 29/09) mais s'affiche désormais comme un
+// sous-onglet intégré plutôt qu'une page isolée.
+$onglet = 'achats';
+$sousOngletAchats = 'comparaison';
+$nbOffres = count($offres);
+?>
+<?php include __DIR__ . '/../folders/_dossier_header.php'; ?>
+<?php include __DIR__ . '/../folders/_achats_subtabs.php'; ?>
 
 <?php
 function afficheOuNonRenseigne($valeur, string $suffixe = ''): string
@@ -12,6 +22,8 @@ function afficheOuNonRenseigne($valeur, string $suffixe = ''): string
     }
     return View::e((string) $valeur) . $suffixe;
 }
+$typeDossier = $dossier['type_dossier'] ?? 'autre';
+$libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
 ?>
 
 <?php if (count($offres) < 2): ?>
@@ -19,7 +31,7 @@ function afficheOuNonRenseigne($valeur, string $suffixe = ''): string
 <?php endif; ?>
 
 <?php if (empty($offres)): ?>
-  <div class="card"><div class="empty-state">Aucune offre reçue pour ce dossier pour le moment. Envoyez des consultations aux fournisseurs depuis le dossier, puis enregistrez leurs offres ici.</div></div>
+  <div class="card"><div class="empty-state">Aucune offre reçue pour ce dossier pour le moment. Envoyez des consultations aux <?= View::e(mb_strtolower($libelleFournisseur)) ?>s depuis le dossier, puis enregistrez leurs offres ici.</div></div>
 <?php else: ?>
 
   <?php if ($decisionExistante && $peutValider): ?>
@@ -42,117 +54,242 @@ function afficheOuNonRenseigne($valeur, string $suffixe = ''): string
     Le meilleur résultat (prix marchandises et coût rendu les plus bas) est surligné <strong>par devise</strong> — les montants dans des devises différentes ne sont pas encore convertis automatiquement (multi-devises prévu plus tard), donc comparez d'abord les offres dans la même devise.
   </div>
 
+  <?php
+    // Tableau transposé (décision Marie Laure, 29/09) : les critères en
+    // lignes, chaque offre en colonne — pour comparer toutes les offres sur
+    // un même critère en lisant horizontalement.
+    $labelCol = 220;
+  ?>
   <div style="overflow-x:auto">
-  <table>
+  <table style="table-layout:fixed">
+    <colgroup>
+      <col style="width:<?= $labelCol ?>px">
+      <?php foreach ($offres as $o): ?><col style="width:200px"><?php endforeach; ?>
+    </colgroup>
     <thead>
       <tr>
-        <th>Fournisseur</th>
-        <th>Réf. offre</th>
-        <th>Conformité</th>
-        <th>Devise</th>
-        <th>Prix marchandises</th>
-        <th>Coût rendu estimé</th>
-        <th>Incoterm</th>
-        <th>Délai</th>
-        <th>Validité</th>
-        <th>Note fournisseur</th>
-        <th>Statut</th>
-        <th></th>
+        <th style="position:sticky;left:0;background:#fafbfd;z-index:1">Critère</th>
+        <?php foreach ($offres as $o): ?>
+          <th style="<?= $o['statut'] === 'retenue' ? 'background:#f0fdf4' : '' ?>">
+            <div style="text-transform:none;font-size:13.5px;font-weight:700;color:#111"><?= View::e($o['fournisseur_nom']) ?></div>
+            <div style="text-transform:none;font-weight:400;color:#888">Réf. <?= View::e($o['reference']) ?></div>
+            <?php if (!empty($o['created_by'])): ?>
+              <div style="text-transform:none;font-weight:400;color:#888">Saisie par <?= View::e(\App\Models\Utilisateur::nameOf((int) $o['created_by'])) ?></div>
+            <?php endif; ?>
+          </th>
+        <?php endforeach; ?>
       </tr>
     </thead>
     <tbody>
-    <?php foreach ($offres as $o):
-      $devise = $o['devise'] ?: '—';
-      $coutRendu = Offre::coutRendu($o);
-      $estMeilleurPrix = isset($meilleurPrixParDevise[$devise]) && (float) $o['montant_total'] === $meilleurPrixParDevise[$devise];
-      $estMeilleurCoutRendu = isset($meilleurCoutRenduParDevise[$devise]) && $coutRendu === $meilleurCoutRenduParDevise[$devise];
-      $noteFournisseur = \App\Models\Fournisseur::noteGlobale($o);
-    ?>
-      <tr style="<?= $o['statut'] === 'retenue' ? 'background:#f0fdf4' : '' ?>">
-        <td>
-          <strong><?= View::e($o['fournisseur_nom']) ?></strong>
-          <?php if (!empty($o['created_by'])): ?>
-            <br><span style="font-size:11px;color:#888">Saisie par <?= View::e(\App\Models\Utilisateur::nameOf((int) $o['created_by'])) ?></span>
-          <?php endif; ?>
-        </td>
-        <td><?= View::e($o['reference']) ?></td>
-        <td><?= $o['conformite_technique'] ? View::e(Offre::CONFORMITE[$o['conformite_technique']] ?? $o['conformite_technique']) : afficheOuNonRenseigne(null) ?></td>
-        <td><?= View::e($devise) ?></td>
-        <td style="<?= $estMeilleurPrix ? 'background:#dcfce7;font-weight:600' : '' ?>"><?= number_format((float) $o['montant_total'], 2, ',', ' ') ?> <?= View::e($devise) ?></td>
-        <td style="<?= $estMeilleurCoutRendu ? 'background:#dcfce7;font-weight:600' : '' ?>"><?= number_format($coutRendu, 2, ',', ' ') ?> <?= View::e($devise) ?></td>
-        <td><?= afficheOuNonRenseigne($o['incoterm_negocie']) ?></td>
-        <td><?= afficheOuNonRenseigne($o['delai_livraison']) ?></td>
-        <td><?= $o['validite_offre'] ? date('d/m/Y', strtotime($o['validite_offre'])) : afficheOuNonRenseigne(null) ?></td>
-        <td><?= $noteFournisseur !== null ? number_format($noteFournisseur, 1) . '/5' : afficheOuNonRenseigne(null) ?></td>
-        <td>
-          <span class="badge <?= $o['statut'] === 'retenue' ? 'badge-green' : ($o['statut'] === 'rejetee' ? 'badge-red' : 'badge-blue') ?>">
-            <?= Offre::STATUTS[$o['statut']] ?? $o['statut'] ?>
-          </span>
-        </td>
-        <td>
-          <?php if ($o['statut'] !== 'retenue' && !$decisionExistante && $peutValider): ?>
-          <details>
-            <summary style="cursor:pointer" class="btn btn-sm">Retenir…</summary>
-            <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir" style="margin-top:8px;min-width:220px">
-              <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-              <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
-              <label style="font-size:12px">Motif de la décision (obligatoire)</label>
-              <textarea name="motif_decision" rows="2" required placeholder="ex: meilleur coût rendu, délai compatible"></textarea>
-              <button type="submit" class="btn btn-sm" style="margin-top:6px">Confirmer — retenir cette offre</button>
-            </form>
-          </details>
-          <?php elseif ($o['statut'] === 'retenue'): ?>
-            <span style="font-size:12px;color:#065f46;font-weight:600">✓ Retenue</span>
-            <?php if (!empty($o['motif_decision'])): ?>
-              <div style="font-size:11px;color:#666;margin-top:4px;max-width:220px"><?= View::e($o['motif_decision']) ?></div>
-            <?php endif; ?>
-          <?php endif; ?>
-        </td>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff"><?= View::e($libelleFournisseur) ?> — statut</th>
+        <?php foreach ($offres as $o): ?>
+          <td style="<?= $o['statut'] === 'retenue' ? 'background:#f0fdf4' : '' ?>">
+            <span class="badge <?= $o['statut'] === 'retenue' ? 'badge-green' : ($o['statut'] === 'rejetee' ? 'badge-red' : 'badge-blue') ?>">
+              <?= Offre::STATUTS[$o['statut']] ?? $o['statut'] ?>
+            </span>
+          </td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Conformité</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= $o['conformite_technique'] ? View::e(Offre::CONFORMITE[$o['conformite_technique']] ?? $o['conformite_technique']) : afficheOuNonRenseigne(null) ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Devise</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= View::e($o['devise'] ?: '—') ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Prix marchandises</th>
+        <?php foreach ($offres as $o):
+          $devise = $o['devise'] ?: '—';
+          $estMeilleurPrix = isset($meilleurPrixParDevise[$devise]) && (float) $o['montant_total'] === $meilleurPrixParDevise[$devise];
+        ?>
+          <td style="<?= $estMeilleurPrix ? 'background:#dcfce7;font-weight:600' : '' ?>"><?= number_format((float) $o['montant_total'], 2, ',', ' ') ?> <?= View::e($devise) ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Coût rendu estimé</th>
+        <?php foreach ($offres as $o):
+          $devise = $o['devise'] ?: '—';
+          $coutRendu = Offre::coutRendu($o);
+          $estMeilleurCoutRendu = isset($meilleurCoutRenduParDevise[$devise]) && $coutRendu === $meilleurCoutRenduParDevise[$devise];
+        ?>
+          <td style="<?= $estMeilleurCoutRendu ? 'background:#dcfce7;font-weight:600' : '' ?>"><?= number_format($coutRendu, 2, ',', ' ') ?> <?= View::e($devise) ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Incoterm</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['incoterm_negocie']) ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <?php if ($typeDossier === 'transport_logistique'): ?>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Mode de transport</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['mode_transport'] ?? null) ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <?php elseif ($typeDossier === 'prestation_entreprise'): ?>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Périmètre de mission proposé</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['perimetre_mission'] ?? null) ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <?php endif; ?>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Délai</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['delai_livraison']) ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Validité de l'offre</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= $o['validite_offre'] ? date('d/m/Y', strtotime($o['validite_offre'])) : afficheOuNonRenseigne(null) ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Note <?= View::e(mb_strtolower($libelleFournisseur)) ?></th>
+        <?php foreach ($offres as $o):
+          $noteFournisseur = \App\Models\Fournisseur::noteGlobale($o);
+        ?>
+          <td><?= $noteFournisseur !== null ? number_format($noteFournisseur, 1) . '/5' : afficheOuNonRenseigne(null) ?></td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr><td colspan="<?= count($offres) + 1 ?>" style="background:#fafbfc;padding:6px 14px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em">Coût rendu — détail des frais complémentaires</td></tr>
+
+      <?php foreach ([
+        'transport_montant' => 'Transport',
+        'assurance_montant' => 'Assurance',
+        'emballage_montant' => 'Emballage',
+        'douane_montant' => 'Douane / droits estimés',
+        'dedouanement_montant' => 'Dédouanement',
+        'autres_frais_montant' => 'Autres frais',
+      ] as $champ => $label): ?>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff"><?= $label ?></th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o[$champ] ?? null) ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <?php endforeach; ?>
+
+      <tr><td colspan="<?= count($offres) + 1 ?>" style="background:#fafbfc;padding:6px 14px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em">Logistique et conditions</td></tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Pays d'origine</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['pays_origine']) ?></td>
+        <?php endforeach; ?>
       </tr>
       <tr>
-        <td colspan="12" style="background:#fafbfc">
-          <details>
-            <summary style="cursor:pointer;font-size:12px;color:#666;padding:4px 0">Détail (coût rendu, logistique, articles, conditions)</summary>
-            <div style="padding:8px 0">
-              <div class="form-row" style="font-size:12px">
-                <div><span class="label">Transport</span><br><?= afficheOuNonRenseigne($o['transport_montant']) ?></div>
-                <div><span class="label">Assurance</span><br><?= afficheOuNonRenseigne($o['assurance_montant']) ?></div>
-                <div><span class="label">Emballage</span><br><?= afficheOuNonRenseigne($o['emballage_montant']) ?></div>
-                <div><span class="label">Douane</span><br><?= afficheOuNonRenseigne($o['douane_montant']) ?></div>
-                <div><span class="label">Dédouanement</span><br><?= afficheOuNonRenseigne($o['dedouanement_montant']) ?></div>
-                <div><span class="label">Autres frais</span><br><?= afficheOuNonRenseigne($o['autres_frais_montant']) ?></div>
-              </div>
-              <div class="form-row" style="font-size:12px;margin-top:8px">
-                <div><span class="label">Pays d'origine</span><br><?= afficheOuNonRenseigne($o['pays_origine']) ?></div>
-                <div><span class="label">Lieu de départ</span><br><?= afficheOuNonRenseigne($o['lieu_depart']) ?></div>
-                <div><span class="label">Qté minimale</span><br><?= afficheOuNonRenseigne($o['quantite_min']) ?></div>
-                <div><span class="label">Disponibilité</span><br><?= afficheOuNonRenseigne($o['disponibilite']) ?></div>
-                <div><span class="label">Poids / colis / volume</span><br><?= afficheOuNonRenseigne($o['poids_kg'], ' kg') ?> — <?= afficheOuNonRenseigne($o['nombre_colis']) ?> colis — <?= afficheOuNonRenseigne($o['volume_m3'], ' m³') ?></div>
-                <div><span class="label">Conditions de paiement</span><br><?= $o['conditions_paiement'] ? View::e(Client::CONDITIONS_PAIEMENT[$o['conditions_paiement']] ?? $o['conditions_paiement']) : afficheOuNonRenseigne(null) ?></div>
-              </div>
-              <div style="font-size:12px;margin-top:8px"><span class="label">Garantie</span><br><?= afficheOuNonRenseigne($o['garantie']) ?></div>
-
-              <?php if (!empty($itemsByOffre[$o['id']])): ?>
-              <table style="margin-top:10px;box-shadow:none">
-                <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Prix unitaire</th><th>Montant</th></tr></thead>
-                <tbody>
-                <?php foreach ($itemsByOffre[$o['id']] as $item): ?>
-                  <tr>
-                    <td><?= View::e($item['designation']) ?></td>
-                    <td><?= View::e((string) $item['quantite']) ?></td>
-                    <td><?= View::e($item['unite']) ?></td>
-                    <td><?= $item['prix_unitaire'] !== null ? number_format((float) $item['prix_unitaire'], 2, ',', ' ') : '—' ?></td>
-                    <td><?= $item['montant'] !== null ? number_format((float) $item['montant'], 2, ',', ' ') : '—' ?></td>
-                  </tr>
-                <?php endforeach; ?>
-                </tbody>
-              </table>
-              <?php endif; ?>
-            </div>
-          </details>
-        </td>
+        <th style="position:sticky;left:0;background:#fff">Lieu de départ</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['lieu_depart']) ?></td>
+        <?php endforeach; ?>
       </tr>
-    <?php endforeach; ?>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Quantité minimale</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['quantite_min']) ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Disponibilité</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['disponibilite']) ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Poids / colis / volume</th>
+        <?php foreach ($offres as $o): ?>
+          <td style="font-size:12px"><?= afficheOuNonRenseigne($o['poids_kg'], ' kg') ?> — <?= afficheOuNonRenseigne($o['nombre_colis']) ?> colis — <?= afficheOuNonRenseigne($o['volume_m3'], ' m³') ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Conditions de paiement</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= $o['conditions_paiement'] ? View::e(Client::CONDITIONS_PAIEMENT[$o['conditions_paiement']] ?? $o['conditions_paiement']) : afficheOuNonRenseigne(null) ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Garantie</th>
+        <?php foreach ($offres as $o): ?>
+          <td><?= afficheOuNonRenseigne($o['garantie']) ?></td>
+        <?php endforeach; ?>
+      </tr>
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Articles</th>
+        <?php foreach ($offres as $o): ?>
+          <td>
+            <?php if (!empty($itemsByOffre[$o['id']])): ?>
+              <details>
+                <summary style="cursor:pointer;font-size:12px;color:#4f46e5">Voir le détail (<?= count($itemsByOffre[$o['id']]) ?>)</summary>
+                <table style="margin-top:8px;box-shadow:none;font-size:11.5px">
+                  <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Px unit.</th><th>Montant</th></tr></thead>
+                  <tbody>
+                  <?php foreach ($itemsByOffre[$o['id']] as $item): ?>
+                    <tr>
+                      <td><?= View::e($item['designation']) ?></td>
+                      <td><?= View::e((string) $item['quantite']) ?></td>
+                      <td><?= View::e($item['unite']) ?></td>
+                      <td><?= $item['prix_unitaire'] !== null ? number_format((float) $item['prix_unitaire'], 2, ',', ' ') : '—' ?></td>
+                      <td><?= $item['montant'] !== null ? number_format((float) $item['montant'], 2, ',', ' ') : '—' ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </details>
+            <?php else: ?>
+              <span style="color:#9ca3af;font-style:italic">Aucun</span>
+            <?php endif; ?>
+          </td>
+        <?php endforeach; ?>
+      </tr>
+
+      <tr>
+        <th style="position:sticky;left:0;background:#fff">Décision</th>
+        <?php foreach ($offres as $o): ?>
+          <td>
+            <?php if ($o['statut'] !== 'retenue' && !$decisionExistante && $peutValider): ?>
+            <details>
+              <summary style="cursor:pointer" class="btn btn-sm">Retenir…</summary>
+              <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir" style="margin-top:8px;min-width:200px">
+                <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
+                <label style="font-size:12px">Motif de la décision (obligatoire)</label>
+                <textarea name="motif_decision" rows="2" required placeholder="ex: meilleur coût rendu, délai compatible"></textarea>
+                <button type="submit" class="btn btn-sm" style="margin-top:6px">Confirmer — retenir cette offre</button>
+              </form>
+            </details>
+            <?php elseif ($o['statut'] === 'retenue'): ?>
+              <span style="font-size:12px;color:#065f46;font-weight:600">✓ Retenue</span>
+              <?php if (!empty($o['motif_decision'])): ?>
+                <div style="font-size:11px;color:#666;margin-top:4px"><?= View::e($o['motif_decision']) ?></div>
+              <?php endif; ?>
+            <?php else: ?>
+              <span style="color:#9ca3af;font-style:italic">—</span>
+            <?php endif; ?>
+          </td>
+        <?php endforeach; ?>
+      </tr>
     </tbody>
   </table>
   </div>

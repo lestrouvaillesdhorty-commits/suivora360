@@ -5,7 +5,9 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\View;
 use App\Models\AuditLog;
+use App\Models\Demande;
 use App\Models\Dossier;
+use App\Models\Filiale;
 use App\Models\Offre;
 use App\Models\OffreItem;
 
@@ -51,8 +53,17 @@ class ComparateurController
             }
         }
 
+        // [ajouté 06/10, étape 2 du découpage Dossiers] $filiale/$demande et
+        // 'onglet' => 'achats' : requis par views/folders/_dossier_header.php,
+        // désormais réutilisée ici pour que cette page (route restée
+        // séparée — accès direct depuis le menu, décision du 29/09) affiche
+        // la même coquille de navigation que la fiche Dossier plutôt que
+        // son propre lien de retour isolé.
         View::render('comparateur/index', [
             'dossier' => $dossier,
+            'filiale' => Filiale::find((int) $dossier['filiale_id']),
+            'demande' => Demande::find((int) $dossier['demande_id']),
+            'onglet' => 'achats',
             'offres' => $offres,
             'itemsByOffre' => $itemsByOffre,
             'meilleurCoutRenduParDevise' => $meilleurCoutRenduParDevise,

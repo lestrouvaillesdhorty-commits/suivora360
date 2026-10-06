@@ -34,14 +34,40 @@ class Permissions
     /** Paramètres de calcul (taux, marge/TVA par défaut) : administratif + finance. */
     private const ROLES_PARAMETRES = ['proprietaire', 'admin_organisation', 'finance'];
 
-    /** Marge (marge_pourcentage / marge_montant sur une cotation) : donnée la plus sensible. */
-    private const ROLES_MARGES = ['proprietaire', 'admin_organisation', 'finance'];
+    /**
+     * Marge (marge_pourcentage / marge_montant sur une cotation) : donnée
+     * sensible, mais que Achats et Commercial doivent voir pour coter le
+     * client ensemble (confirmé par Marie Laure le 03/10 après discussion
+     * avec l'entreprise cliente — ce sont les Achats qui fixent la marge,
+     * au moment de coter le client juste après avoir validé l'offre
+     * fournisseur, en synergie avec le Commercial). Voir ROLES_MODIFIER_MARGES
+     * ci-dessous pour qui peut la *saisir*.
+     */
+    private const ROLES_MARGES = ['proprietaire', 'admin_organisation', 'finance', 'achats', 'commercial'];
+
+    /**
+     * Qui peut *toujours* saisir/modifier la marge (montant d'achat, % de
+     * marge) sur une cotation, quelle que soit la filiale — Achats la fixe
+     * normalement, Propriétaire/Admin/Finance supervisent.
+     *
+     * Le Commercial n'est PAS dans cette liste fixe : par défaut il voit la
+     * marge (ROLES_MARGES) sans pouvoir la modifier, mais ce verrou est
+     * configurable par filiale (paramètre `commercial_peut_modifier_marge`,
+     * décoché par défaut) — décision du 03/10 révisée le même jour : "ne
+     * verrouille pas la marge au commercial, laisse le choix au dirigeant
+     * ou à l'admin de verrouiller ça". Voir canModifierMarge() ci-dessous.
+     */
+    private const ROLES_MODIFIER_MARGES = ['proprietaire', 'admin_organisation', 'finance', 'achats'];
 
     /** Décision au Comparateur ("Retenir cette offre" / "Revenir sur une décision"). */
     private const ROLES_VALIDATION_OFFRES = ['proprietaire', 'achats'];
 
-    /** Création/modification d'une Cotation (prix client) — pas l'équipe achats. */
-    private const ROLES_GESTION_COTATIONS = ['proprietaire', 'admin_organisation', 'commercial', 'finance'];
+    /**
+     * Création/modification d'une Cotation (prix client) : Commercial et
+     * Achats travaillent en synergie sur ce module (décision du 03/10) —
+     * Achats y fixe la marge, Commercial gère le reste (client, conditions).
+     */
+    private const ROLES_GESTION_COTATIONS = ['proprietaire', 'admin_organisation', 'commercial', 'finance', 'achats'];
 
     /**
      * Module Pilotage (analyse par période/activité/responsable) : expose la
@@ -79,6 +105,20 @@ class Permissions
     public static function canSeeMarges(string $role): bool
     {
         return in_array($role, self::ROLES_MARGES, true);
+    }
+
+    /**
+     * $filialeAutoriseCommercial vient du paramètre par filiale
+     * `commercial_peut_modifier_marge` (voir Parametres::DEFAUTS) — seul le
+     * rôle Commercial est concerné par ce toggle, les autres rôles de
+     * ROLES_MODIFIER_MARGES restent toujours autorisés.
+     */
+    public static function canModifierMarge(string $role, bool $filialeAutoriseCommercial = false): bool
+    {
+        if (in_array($role, self::ROLES_MODIFIER_MARGES, true)) {
+            return true;
+        }
+        return $role === 'commercial' && $filialeAutoriseCommercial;
     }
 
     public static function canValiderOffres(string $role): bool

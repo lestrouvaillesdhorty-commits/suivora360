@@ -23,7 +23,12 @@ class FactureController
         }
 
         $commande = Commande::findByDossier((int) $dossier['id']);
-        $cotations = Cotation::forDossier((int) $dossier['id']);
+        // [ajouté 06/10, étape 3] Les versions remplacées partagent la même
+        // référence que leur version courante : on ne propose que les actives.
+        $cotations = array_values(array_filter(
+            Cotation::forDossier((int) $dossier['id']),
+            fn($c) => $c['statut'] !== 'remplacee'
+        ));
 
         View::render('factures/create', [
             'dossier' => $dossier,

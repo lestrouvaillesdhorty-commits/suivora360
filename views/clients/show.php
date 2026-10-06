@@ -43,14 +43,29 @@ $statutBadge = Client::STATUT_BADGES[$client['statut'] ?? 'actif'] ?? 'badge-gra
 
 <div class="grid-3">
   <div class="stat-tile">
-    <div class="value"><?= number_format($caTotal, 0, ',', ' ') ?> €</div>
+    <?php if (empty($caTotal)): ?>
+      <div class="value">0</div>
+    <?php else: ?>
+      <?php foreach ($caTotal as $devise => $montant): ?>
+        <div class="value"><?= number_format($montant, 0, ',', ' ') ?> <?= View::e($devise) ?></div>
+      <?php endforeach; ?>
+    <?php endif; ?>
     <div class="label">CA total (cotations acceptées)</div>
   </div>
   <div class="stat-tile">
-    <div class="value" style="<?= $resteAPayer > 0 ? 'color:#991b1b' : '' ?>"><?= number_format($resteAPayer, 0, ',', ' ') ?> €</div>
+    <?php if (empty($resteAPayer)): ?>
+      <div class="value">0</div>
+    <?php else: ?>
+      <?php foreach ($resteAPayer as $devise => $montant): ?>
+        <div class="value" style="<?= $montant > 0 ? 'color:#991b1b' : '' ?>"><?= number_format($montant, 0, ',', ' ') ?> <?= View::e($devise) ?></div>
+      <?php endforeach; ?>
+    <?php endif; ?>
     <div class="label">Reste à payer (factures émises)</div>
   </div>
 </div>
+<?php if (count($caTotal) > 1 || count($resteAPayer) > 1): ?>
+  <div style="font-size:12px;color:#888;margin:-6px 0 12px">Montants affichés séparément par devise (pas de conversion automatique).</div>
+<?php endif; ?>
 
 <div class="card">
   <h2>Coordonnées</h2>
@@ -75,6 +90,40 @@ $statutBadge = Client::STATUT_BADGES[$client['statut'] ?? 'actif'] ?? 'badge-gra
   <?php if (!empty($client['conditions_paiement'])): ?><div class="info-row"><span class="label">Conditions de paiement</span><span><?= View::e(Client::CONDITIONS_PAIEMENT[$client['conditions_paiement']] ?? $client['conditions_paiement']) ?></span></div><?php endif; ?>
 </div>
 <?php endif; ?>
+
+<div class="card">
+  <h2>Historique des demandes</h2>
+  <?php if (empty($demandes)): ?>
+    <div class="empty-state">Aucune demande rattachée à ce client pour le moment.</div>
+  <?php else: ?>
+    <?php
+      $statutsDemande = [
+          'a_qualifier' => ['À qualifier', 'badge-yellow'],
+          'en_attente_info' => ["En attente d'infos", 'badge-yellow'],
+          'qualifiee' => ['Qualifiée', 'badge-blue'],
+          'rattachee' => ['Rattachée', 'badge-blue'],
+          'transformee' => ['Transformée en dossier', 'badge-green'],
+          'rejetee' => ['Rejetée', 'badge-red'],
+          'archivee' => ['Archivée', 'badge-gray'],
+      ];
+    ?>
+    <table>
+      <thead><tr><th>Référence</th><th>Objet</th><th>Statut</th><th>Dossier</th><th>Date</th></tr></thead>
+      <tbody>
+        <?php foreach ($demandes as $de): ?>
+          <?php $si = $statutsDemande[$de['statut']] ?? [ucfirst($de['statut']), 'badge-gray']; ?>
+          <tr onclick="window.location='/index.php?r=demandes/<?= $de['id'] ?>'" style="cursor:pointer">
+            <td><?= View::e($de['reference']) ?></td>
+            <td><?= View::e($de['objet']) ?></td>
+            <td><span class="badge <?= $si[1] ?>"><?= View::e($si[0]) ?></span></td>
+            <td><?= !empty($de['dossier_id']) ? View::e($de['dossier_reference']) : '—' ?></td>
+            <td><?= date('d/m/Y', strtotime($de['created_at'])) ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+</div>
 
 <?php if (!empty($client['notes'])): ?>
 <div class="card">

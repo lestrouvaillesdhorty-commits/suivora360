@@ -80,6 +80,17 @@
     </div>
   </div>
 
+  <h2 style="font-size:14px;color:#666;margin-top:8px">Droits sur les cotations</h2>
+  <div class="form-group">
+    <label style="display:flex;align-items:flex-start;gap:8px;font-weight:normal">
+      <input type="checkbox" name="commercial_peut_modifier_marge" value="1" style="margin-top:3px" <?= !empty($parametres['commercial_peut_modifier_marge']) ? 'checked' : '' ?>>
+      <span>
+        Autoriser le rôle Commercial à saisir/modifier la marge sur une cotation (montant d'achat, % de marge)
+        <div style="font-size:12px;color:#888;margin-top:2px">Par défaut (décoché), seuls Achats, Finance, Admin d'organisation et Propriétaire peuvent fixer la marge — le Commercial la voit sans pouvoir la modifier. Cochez pour autoriser aussi le Commercial, filiale par filiale.</div>
+      </span>
+    </label>
+  </div>
+
   <div class="alert" style="background:#eef2ff;color:#3730a3;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px">
     Modifier ces valeurs ne recalcule jamais une simulation, une offre ou une commande déjà enregistrée — elles ne servent qu'à préremplir les futures simulations.
   </div>

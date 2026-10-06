@@ -53,6 +53,22 @@ $router->get('/demandes/nouvelle', function () {
     Auth::requireLogin();
     (new DemandeController())->create();
 });
+$router->get('/demandes/export.csv', function () {
+    Auth::requireLogin();
+    (new DemandeController())->exportCsv();
+});
+$router->get('/demandes/importer', function () {
+    Auth::requireLogin();
+    (new DemandeController())->importForm();
+});
+$router->post('/demandes/importer', function () {
+    Auth::requireLogin();
+    (new DemandeController())->importStore();
+});
+$router->get('/demandes/importer/modele.csv', function () {
+    Auth::requireLogin();
+    (new DemandeController())->importModele();
+});
 $router->post('/demandes', function () {
     Auth::requireLogin();
     (new DemandeController())->store();
@@ -60,6 +76,38 @@ $router->post('/demandes', function () {
 $router->get('/demandes/{id}', function ($params) {
     Auth::requireLogin();
     (new DemandeController())->show($params);
+});
+$router->get('/demandes/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->edit($params);
+});
+$router->post('/demandes/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->update($params);
+});
+$router->post('/demandes/{id}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->supprimer($params);
+});
+$router->post('/demandes/{id}/archiver', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->archiver($params);
+});
+$router->post('/demandes/{id}/desarchiver', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->desarchiver($params);
+});
+$router->post('/demandes/{id}/articles', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->ajouterArticle($params);
+});
+$router->post('/demandes/{id}/articles/{articleId}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->modifierArticle($params);
+});
+$router->post('/demandes/{id}/articles/{articleId}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->supprimerArticle($params);
 });
 $router->get('/demandes/{id}/qualifier', function ($params) {
     Auth::requireLogin();
@@ -118,6 +166,10 @@ $router->get('/clients/nouveau', function () {
 $router->post('/clients', function () {
     Auth::requireLogin();
     (new ClientController())->store();
+});
+$router->post('/clients/creation-rapide', function () {
+    Auth::requireLogin();
+    (new ClientController())->creationRapide();
 });
 $router->get('/clients/{id}', function ($params) {
     Auth::requireLogin();
@@ -191,6 +243,22 @@ $router->get('/dossiers', function () {
     Auth::requireLogin();
     (new DossierController())->index();
 });
+$router->get('/dossiers/export.csv', function () {
+    Auth::requireLogin();
+    (new DossierController())->exportCsv();
+});
+$router->get('/dossiers/importer', function () {
+    Auth::requireLogin();
+    (new DossierController())->importForm();
+});
+$router->post('/dossiers/importer', function () {
+    Auth::requireLogin();
+    (new DossierController())->importStore();
+});
+$router->get('/dossiers/importer/modele.csv', function () {
+    Auth::requireLogin();
+    (new DossierController())->importModele();
+});
 $router->get('/dossiers/{id}', function ($params) {
     Auth::requireLogin();
     (new DossierController())->show($params);
@@ -198,6 +266,18 @@ $router->get('/dossiers/{id}', function ($params) {
 $router->post('/dossiers/{id}/etape', function ($params) {
     Auth::requireLogin();
     (new DossierController())->updateEtape($params);
+});
+$router->post('/dossiers/{id}/type', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->changerType($params);
+});
+$router->post('/dossiers/{id}/prestation', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->updatePrestation($params);
+});
+$router->post('/dossiers/{id}/budget', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->updateBudget($params);
 });
 $router->post('/dossiers/{id}/articles', function ($params) {
     Auth::requireLogin();
@@ -218,6 +298,10 @@ $router->get('/dossiers/{id}/pieces/{pieceId}/telecharger', function ($params) {
 $router->post('/dossiers/{id}/pieces/{pieceId}/supprimer', function ($params) {
     Auth::requireLogin();
     (new DossierController())->supprimerPiece($params);
+});
+$router->post('/dossiers/{id}/pieces/{pieceId}/classer', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->classerPiece($params);
 });
 $router->post('/dossiers/{id}/collaborateurs', function ($params) {
     Auth::requireLogin();
@@ -336,6 +420,14 @@ $router->post('/commandes/{id}/suivi', function ($params) {
     Auth::requireLogin();
     (new CommandeController())->updateSuivi($params);
 });
+$router->post('/commandes/{id}/logistique', function ($params) {
+    Auth::requireLogin();
+    (new CommandeController())->updateLogistique($params);
+});
+$router->post('/commandes/{id}/livrables', function ($params) {
+    Auth::requireLogin();
+    (new CommandeController())->updateLivrables($params);
+});
 
 // Factures
 $router->get('/dossiers/{id}/factures/nouvelle', function ($params) {
@@ -359,6 +451,14 @@ $router->get('/filiales', function () {
 $router->post('/filiales', function () {
     Auth::requireLogin();
     (new FilialeController())->store();
+});
+$router->post('/filiales/{id}/renommer', function ($params) {
+    Auth::requireLogin();
+    (new FilialeController())->renommer($params);
+});
+$router->post('/filiales/{id}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new FilialeController())->supprimer($params);
 });
 
 // Utilisateurs et gestion des accès (Propriétaire / Admin d'organisation)

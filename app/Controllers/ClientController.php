@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\View;
 use App\Models\AuditLog;
 use App\Models\Client;
+use App\Models\Demande;
 use App\Models\Filiale;
 
 class ClientController
@@ -75,6 +76,81 @@ class ClientController
         exit;
     }
 
+    /**
+     * [ajouté 04/10] Création rapide d'un client depuis le module Demandes
+     * (section 2.B) : endpoint JSON appelé en AJAX pour ne jamais perdre la
+     * saisie en cours du formulaire de demande. Si `force` n'est pas
+     * envoyé, un doublon probable (même nom ou même e-mail dans la filiale)
+     * est signalé sans créer — la personne confirme explicitement avant
+     * d'insister (`force=1`), plutôt que de bloquer silencieusement sans
+     * recours.
+     */
+    public function creationRapide(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!Auth::canWrite()) {
+            http_response_code(403);
+            echo json_encode(['erreur' => "Vous n'avez pas le droit de créer un client."]);
+            return;
+        }
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            http_response_code(419);
+            echo json_encode(['erreur' => 'Session expirée, merci de recharger la page.']);
+            return;
+        }
+
+        $user = Auth::user();
+        $filialeId = (int) ($_POST['filiale_id'] ?? 0);
+        $nom = trim($_POST['nom'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+
+        if (!$filialeId || !Filiale::userCanAccess($user, $filialeId)) {
+            http_response_code(403);
+            echo json_encode(['erreur' => "Vous n'avez pas accès à cette filiale."]);
+            return;
+        }
+        if ($nom === '') {
+            http_response_code(422);
+            echo json_encode(['erreur' => 'Le nom du client est obligatoire.']);
+            return;
+        }
+
+        $force = !empty($_POST['force']);
+        if (!$force) {
+            $doublon = Client::rechercherDoublon($filialeId, $nom, $email);
+            if ($doublon) {
+                echo json_encode([
+                    'doublon' => true,
+                    'existant' => [
+                        'id' => (int) $doublon['id'],
+                        'nom' => $doublon['nom'],
+                        'email' => $doublon['email'],
+                        'telephone' => $doublon['telephone'],
+                    ],
+                ]);
+                return;
+            }
+        }
+
+        $clientId = Client::create([
+            'filiale_id' => $filialeId,
+            'nom' => $nom,
+            'type' => trim($_POST['type'] ?? ''),
+            'email' => $email,
+            'telephone' => trim($_POST['telephone'] ?? ''),
+            'fonction_contact' => trim($_POST['fonction_contact'] ?? ''),
+        ]);
+        AuditLog::log($filialeId, (int) $user['id'], 'creation_client', 'client', $clientId, 'Création rapide depuis une demande');
+
+        $client = Client::find($clientId);
+        echo json_encode([
+            'id' => $clientId,
+            'nom' => $client['nom'],
+            'email' => $client['email'],
+            'telephone' => $client['telephone'],
+        ]);
+    }
+
     public function show(array $params): void
     {
         $user = Auth::user();
@@ -88,6 +164,7 @@ class ClientController
             'client' => $client,
             'caTotal' => Client::caTotal((int) $client['id']),
             'resteAPayer' => Client::resteAPayer((int) $client['id']),
+            'demandes' => Demande::forClient((int) $client['id']),
         ]);
     }
 

@@ -89,6 +89,54 @@ class Client
         return Filiale::userCanAccess($user, (int) $client['filiale_id']);
     }
 
+    /**
+     * Recherche simple pour le sélecteur client du module Demandes (section
+     * 2.B — "Recherche d'un client existant") : filtre côté serveur sur le
+     * nom, limité à la filiale, pour rester utilisable même quand la liste
+     * de clients est longue (pas de dépendance JS obligatoire : un simple
+     * select reste toujours utilisable, cette recherche ne fait qu'aider).
+     */
+    public static function rechercherPourFiliale(int $filialeId, string $terme, int $limite = 30): array
+    {
+        $sql = 'SELECT * FROM clients WHERE filiale_id = ? AND is_active = 1';
+        $params = [$filialeId];
+        if (trim($terme) !== '') {
+            $sql .= ' AND nom LIKE ?';
+            $params[] = '%' . trim($terme) . '%';
+        }
+        $sql .= ' ORDER BY nom LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * [ajouté 04/10, création rapide de client depuis le module Demandes]
+     * Contrôle des doublons avant création — même nom (insensible à la
+     * casse/aux espaces) OU même e-mail non vide, au sein de la même
+     * filiale. Ne bloque rien : signale seulement le client existant pour
+     * que la personne choisisse (réutiliser ou confirmer malgré tout).
+     */
+    public static function rechercherDoublon(int $filialeId, string $nom, string $email): ?array
+    {
+        $nom = trim($nom);
+        $email = trim($email);
+        if ($nom === '' && $email === '') {
+            return null;
+        }
+        $sql = 'SELECT * FROM clients WHERE filiale_id = ? AND (LOWER(nom) = LOWER(?)';
+        $params = [$filialeId, $nom];
+        if ($email !== '') {
+            $sql .= ' OR (email != \'\' AND LOWER(email) = LOWER(?))';
+            $params[] = $email;
+        }
+        $sql .= ')';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
     public static function create(array $data): int
     {
         $pdo = Database::connection();
@@ -176,30 +224,46 @@ class Client
     }
 
     /**
-     * Chiffre d'affaires total : somme des cotations acceptées liées au client.
+     * Chiffre d'affaires total : somme des cotations acceptées liées au
+     * client, regroupée par devise (pas de conversion multi-devises pour
+     * l'instant — Phase 4 — donc on n'additionne jamais des montants dans
+     * des devises différentes sous un seul total, ce qui serait trompeur).
+     * Retourne ['EUR' => 1200.0, 'FCFA' => 500000.0, ...].
      */
-    public static function caTotal(int $clientId): float
+    public static function caTotal(int $clientId): array
     {
         $stmt = Database::connection()->prepare(
-            "SELECT COALESCE(SUM(montant_total), 0) FROM cotations WHERE client_id = ? AND statut = 'acceptee'"
+            "SELECT COALESCE(devise, '—') AS devise, SUM(montant_total) AS total
+             FROM cotations WHERE client_id = ? AND statut = 'acceptee'
+             GROUP BY devise"
         );
         $stmt->execute([$clientId]);
-        return (float) $stmt->fetchColumn();
+        $result = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $result[$row['devise']] = (float) $row['total'];
+        }
+        return $result;
     }
 
     /**
-     * Montant restant à payer : somme des factures non payées (émises, non
-     * annulées) rattachées aux cotations de ce client.
+     * Montant restant à payer : somme des factures émises (non payées,
+     * non annulées) rattachées aux cotations de ce client, regroupée par
+     * devise pour la même raison que caTotal().
      */
-    public static function resteAPayer(int $clientId): float
+    public static function resteAPayer(int $clientId): array
     {
         $stmt = Database::connection()->prepare(
-            "SELECT COALESCE(SUM(fa.montant), 0)
+            "SELECT COALESCE(fa.devise, '—') AS devise, SUM(fa.montant) AS total
              FROM factures fa
              INNER JOIN cotations co ON co.id = fa.cotation_id
-             WHERE co.client_id = ? AND fa.statut = 'emise'"
+             WHERE co.client_id = ? AND fa.statut = 'emise'
+             GROUP BY fa.devise"
         );
         $stmt->execute([$clientId]);
-        return (float) $stmt->fetchColumn();
+        $result = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $result[$row['devise']] = (float) $row['total'];
+        }
+        return $result;
     }
 }

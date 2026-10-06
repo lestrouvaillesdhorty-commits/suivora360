@@ -63,7 +63,7 @@ class DossierCollaborateur
      * Idempotent : si déjà assigné (même trio dossier/fournisseur/utilisateur),
      * renvoie l'assignation existante sans en recréer une.
      */
-    public static function assigner(int $dossierId, int $filialeId, int $fournisseurId, int $utilisateurId, ?int $assignedBy): int
+    public static function assigner(int $dossierId, int $filialeId, int $fournisseurId, int $utilisateurId, ?int $assignedBy, ?string $role = null): int
     {
         $stmt = Database::connection()->prepare(
             'SELECT id FROM dossier_collaborateurs WHERE dossier_id = ? AND fournisseur_id = ? AND utilisateur_id = ?'
@@ -75,10 +75,11 @@ class DossierCollaborateur
         }
 
         $stmt = Database::connection()->prepare(
-            'INSERT INTO dossier_collaborateurs (dossier_id, filiale_id, fournisseur_id, utilisateur_id, assigned_by, created_at)
-             VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO dossier_collaborateurs (dossier_id, filiale_id, fournisseur_id, utilisateur_id, assigned_by, role, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->execute([$dossierId, $filialeId, $fournisseurId, $utilisateurId, $assignedBy, date('Y-m-d H:i:s')]);
+        $role = $role !== null ? mb_substr(trim($role), 0, 100) : null;
+        $stmt->execute([$dossierId, $filialeId, $fournisseurId, $utilisateurId, $assignedBy, ($role !== '' ? $role : null), date('Y-m-d H:i:s')]);
         return (int) Database::connection()->lastInsertId();
     }
 

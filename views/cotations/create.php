@@ -1,7 +1,13 @@
 <?php use App\Core\Auth; use App\Core\View; use App\Models\Demande; ?>
+<?php
+// [ajouté 06/10, étape 3] Nouvelle version d'une cotation : mêmes champs,
+// pré-remplis depuis $cotationPrecedente (null = création normale).
+$v = fn(string $champ) => $cotationPrecedente[$champ] ?? '';
+$vNum = fn(string $champ) => ($cotationPrecedente[$champ] ?? null) !== null ? rtrim(rtrim(number_format((float) $cotationPrecedente[$champ], 2, '.', ''), '0'), '.') : '';
+?>
 <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" style="font-size:13px;color:#666">&larr; Retour au dossier <?= View::e($dossier['reference']) ?></a>
 
-<h1 style="margin-top:8px">Nouvelle cotation client</h1>
+<h1 style="margin-top:8px"><?= $cotationPrecedente ? 'Nouvelle version de la cotation ' . View::e($cotationPrecedente['reference']) . ' (v' . ((int) $cotationPrecedente['version'] + 1) . ')' : 'Nouvelle cotation client' ?></h1>
 <div class="subtitle">Dossier <?= View::e($dossier['reference']) ?> — <?= View::e($dossier['objet']) ?></div>
 
 <?php if ($offreRetenue): ?>
@@ -22,33 +28,48 @@
 <div class="card" style="max-width:760px">
   <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/cotations">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-    <input type="hidden" name="offre_id" value="<?= $offreRetenue['id'] ?? '' ?>">
+    <input type="hidden" name="offre_id" value="<?= ($cotationPrecedente['offre_id'] ?? null) ?: ($offreRetenue['id'] ?? '') ?>">
+    <?php if ($cotationPrecedente): ?><input type="hidden" name="cotation_precedente_id" value="<?= (int) $cotationPrecedente['id'] ?>"><?php endif; ?>
 
     <div class="form-group">
       <label>Client</label>
       <select name="client_id" required>
         <option value="">— Sélectionner —</option>
         <?php foreach ($clients as $c): ?>
-          <option value="<?= $c['id'] ?>" <?= (!empty($demande['client_id']) && (int) $demande['client_id'] === (int) $c['id']) ? 'selected' : '' ?>><?= View::e($c['nom']) ?></option>
+          <?php $clientDefaut = $cotationPrecedente ? (int) $cotationPrecedente['client_id'] : (int) ($demande['client_id'] ?? 0); ?>
+          <option value="<?= $c['id'] ?>" <?= ($clientDefaut === (int) $c['id']) ? 'selected' : '' ?>><?= View::e($c['nom']) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
 
-    <?php if (Auth::canSeeMarges()): ?>
+    <?php if (Auth::canModifierMarge((int) $dossier['filiale_id'])): ?>
     <div class="form-row">
-      <div class="form-group"><label>Montant d'achat (coût fournisseur)</label><input type="number" step="0.01" name="montant_achat" value="<?= $offreRetenue['montant_total'] ?? '' ?>"></div>
-      <div class="form-group"><label>Marge (%)</label><input type="number" step="0.01" name="marge_pourcentage" placeholder="ex: 15"></div>
+      <div class="form-group"><label>Montant d'achat (coût fournisseur)</label><input type="number" step="0.01" name="montant_achat" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>"></div>
+      <div class="form-group"><label>Marge (%)</label><input type="number" step="0.01" name="marge_pourcentage" placeholder="ex: 15" value="<?= $vNum('marge_pourcentage') ?>"></div>
+    </div>
+    <?php elseif (Auth::canSeeMarges()): ?>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Montant d'achat (coût fournisseur)</label>
+        <input type="number" step="0.01" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>" disabled>
+        <input type="hidden" name="montant_achat" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>">
+      </div>
+      <div class="form-group">
+        <label>Marge (%)</label>
+        <input type="number" step="0.01" value="" disabled placeholder="Fixée par les Achats">
+        <div style="font-size:11px;color:#888;margin-top:2px">Visible une fois saisie par les Achats — non modifiable depuis ce rôle.</div>
+      </div>
     </div>
     <?php else: ?>
-      <input type="hidden" name="montant_achat" value="<?= $offreRetenue['montant_total'] ?? '' ?>">
+      <input type="hidden" name="montant_achat" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>">
     <?php endif; ?>
     <div class="form-row">
-      <div class="form-group"><label>Montant total facturé au client</label><input type="number" step="0.01" name="montant_total" required></div>
+      <div class="form-group"><label>Montant total facturé au client</label><input type="number" step="0.01" name="montant_total" required value="<?= $vNum('montant_total') ?>"></div>
       <div class="form-group">
         <label>Devise</label>
         <select name="devise">
           <?php foreach (['EUR', 'USD', 'XOF', 'XAF', 'GBP', 'CNY'] as $d): ?>
-            <option <?= ($offreRetenue['devise'] ?? '') === $d ? 'selected' : '' ?>><?= $d ?></option>
+            <option <?= (($cotationPrecedente['devise'] ?? ($offreRetenue['devise'] ?? '')) === $d) ? 'selected' : '' ?>><?= $d ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -59,7 +80,7 @@
         <select name="mode_paiement_negocie">
           <option value="">— Non précisé —</option>
           <?php foreach (Demande::MODES_PAIEMENT as $code => $label): ?>
-            <option value="<?= $code ?>" <?= ($demande['mode_paiement_souhaite'] ?? '') === $code ? 'selected' : '' ?>><?= View::e($label) ?></option>
+            <option value="<?= $code ?>" <?= (($cotationPrecedente['mode_paiement_negocie'] ?? ($demande['mode_paiement_souhaite'] ?? '')) === $code) ? 'selected' : '' ?>><?= View::e($label) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -68,12 +89,12 @@
         <select name="incoterm_client">
           <option value="">— Non précisé —</option>
           <?php foreach (Demande::INCOTERMS as $code => $label): ?>
-            <option value="<?= $code ?>" <?= ($demande['incoterm_souhaite'] ?? '') === $code ? 'selected' : '' ?>><?= View::e($label) ?></option>
+            <option value="<?= $code ?>" <?= (($cotationPrecedente['incoterm_client'] ?? ($demande['incoterm_souhaite'] ?? '')) === $code) ? 'selected' : '' ?>><?= View::e($label) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
     </div>
-    <div class="form-group"><label>Validité du devis</label><input type="date" name="validite_devis"></div>
+    <div class="form-group"><label>Validité du devis</label><input type="date" name="validite_devis" value="<?= View::e($v('validite_devis')) ?>"></div>
 
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -82,13 +103,31 @@
       </div>
       <table style="margin-top:10px" id="items-table">
         <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Prix unitaire</th><th></th></tr></thead>
-        <tbody id="items-body"></tbody>
+        <tbody id="items-body">
+        <?php foreach ($itemsPrecedents ?? [] as $it): ?>
+          <tr>
+            <td><input type="text" name="item_designation[]" value="<?= View::e($it['designation']) ?>"></td>
+            <td><input type="number" step="0.01" name="item_quantite[]" style="width:90px" value="<?= $it['quantite'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['quantite'], 2, '.', ''), '0'), '.')) : '' ?>"></td>
+            <td>
+              <select name="item_unite[]">
+                <option value="">—</option>
+                <?php $unites = ['Pièce', 'Carton', 'Kg', 'Tonne', 'Litre', 'm³', 'Sac', 'Palette', "Conteneur 20'", "Conteneur 40'"]; if ($it['unite'] !== '' && !in_array($it['unite'], $unites, true)) { $unites[] = $it['unite']; } ?>
+                <?php foreach ($unites as $u): ?>
+                  <option <?= $it['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </td>
+            <td><input type="number" step="0.01" name="item_prix_unitaire[]" style="width:110px" value="<?= $it['prix_unitaire'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['prix_unitaire'], 2, '.', ''), '0'), '.')) : '' ?>"></td>
+            <td><button type="button" class="btn btn-sm btn-secondary remove-item">&times;</button></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
       </table>
     </div>
 
-    <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"></textarea></div>
+    <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e($v('notes')) ?></textarea></div>
 
-    <button type="submit" class="btn">Créer la cotation</button>
+    <button type="submit" class="btn"><?= $cotationPrecedente ? 'Créer la nouvelle version' : 'Créer la cotation' ?></button>
     <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" class="btn btn-secondary">Annuler</a>
   </form>
 </div>
@@ -114,9 +153,11 @@
 document.getElementById('add-item').addEventListener('click', function () {
   var tpl = document.getElementById('item-row-template');
   var clone = tpl.content.cloneNode(true);
-  clone.querySelector('.remove-item').addEventListener('click', function (e) {
-    e.target.closest('tr').remove();
-  });
   document.getElementById('items-body').appendChild(clone);
+});
+document.getElementById('items-body').addEventListener('click', function (e) {
+  if (e.target.classList.contains('remove-item')) {
+    e.target.closest('tr').remove();
+  }
 });
 </script>

@@ -2,6 +2,7 @@
 
 namespace App\Core;
 
+use App\Models\Parametres;
 use App\Models\Utilisateur;
 
 class Auth
@@ -94,6 +95,23 @@ class Auth
     public static function canSeeMarges(): bool
     {
         return Permissions::canSeeMarges(self::role());
+    }
+
+    /**
+     * $filialeId est nécessaire pour trancher le cas Commercial : son droit
+     * de modifier la marge dépend du paramètre `commercial_peut_modifier_marge`
+     * de la filiale du dossier en cours (décision du 03/10 révisée — voir
+     * Permissions::canModifierMarge()). Les autres rôles n'en ont pas besoin,
+     * mais on le lit systématiquement pour garder un seul point de vérité.
+     */
+    public static function canModifierMarge(int $filialeId): bool
+    {
+        $role = self::role();
+        if ($role !== 'commercial') {
+            return Permissions::canModifierMarge($role);
+        }
+        $parametres = $filialeId ? Parametres::forFiliale($filialeId) : [];
+        return Permissions::canModifierMarge($role, !empty($parametres['commercial_peut_modifier_marge']));
     }
 
     public static function canValiderOffres(): bool

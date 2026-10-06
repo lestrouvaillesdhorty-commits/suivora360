@@ -78,6 +78,21 @@
         <?php if (Permissions::seesAllFiliales($u['role'])): ?>
           Toutes (automatique)
         <?php else: ?>
+          <?php if (empty($accesParUtilisateur[$u['id']])): ?>
+            <!--
+              [ajouté 03/10] Avertissement — demande explicite de Marie Laure
+              suite à la question soulevée en revoyant ce module : quand un
+              utilisateur repasse d'un rôle "toutes filiales" (Propriétaire/
+              Admin) à un rôle à accès limité, ses anciennes filiales ne sont
+              pas restaurées automatiquement (voir Utilisateur::setFiliales
+              vidée au moment de la promotion, dans UtilisateurController::
+              updateRole()) — décision retenue : pas de restauration
+              automatique (plus sûr, pas d'accès périmé redonné sans
+              validation), mais ce badge rend le "zéro filiale" visible tout
+              de suite au lieu de le laisser passer silencieusement.
+            -->
+            <div class="badge badge-red" style="margin-bottom:6px;display:inline-block">Aucune filiale assignée</div>
+          <?php endif; ?>
           <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/acces">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
             <div class="access-grid">

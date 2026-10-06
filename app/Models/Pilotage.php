@@ -383,21 +383,54 @@ class Pilotage
     {
         $periode = in_array($input['periode'] ?? '', array_keys(self::PERIODES), true) ? $input['periode'] : 'mois';
         $base = in_array($input['base'] ?? '', array_keys(self::BASES), true) ? $input['base'] : 'previsionnel';
-        $devise = trim($input['devise'] ?? '') ?: 'EUR';
+        $devise = trim(self::champScalaire($input['devise'] ?? '')) ?: 'EUR';
 
-        [$dateDebut, $dateFin, $periodeLabel] = self::bornesPeriode($periode, $input['date_debut'] ?? '', $input['date_fin'] ?? '');
+        [$dateDebut, $dateFin, $periodeLabel] = self::bornesPeriode(
+            $periode,
+            self::dateValide($input['date_debut'] ?? ''),
+            self::dateValide($input['date_fin'] ?? '')
+        );
 
         return [
             'periode' => $periode,
             'periode_label' => $periodeLabel,
             'date_debut' => $dateDebut,
             'date_fin' => $dateFin,
-            'activite' => trim($input['activite'] ?? ''),
-            'responsable_id' => $input['responsable_id'] ?? '',
+            'activite' => trim(self::champScalaire($input['activite'] ?? '')),
+            'responsable_id' => self::champScalaire($input['responsable_id'] ?? ''),
             'base' => $base,
             'devise' => $devise,
             'role' => in_array($input['role'] ?? '', array_keys(self::ROLES_COLLABORATEUR), true) ? $input['role'] : 'commercial',
         ];
+    }
+
+    /**
+     * Un filtre reçu depuis $_GET peut être un tableau (ex. ?responsable_id[]=1
+     * dans l'URL) au lieu de la chaîne attendue — PDO lève alors un warning
+     * "Array to string conversion" en paramètre de requête préparée. On
+     * neutralise cette entrée en chaîne vide plutôt que de la laisser remonter
+     * telle quelle jusqu'à la requête SQL.
+     */
+    private static function champScalaire($valeur): string
+    {
+        return is_scalar($valeur) ? (string) $valeur : '';
+    }
+
+    /**
+     * Valide qu'une date saisie (ex. ?date_debut=...) est bien une date
+     * Y-m-d réelle avant de l'utiliser. Une date invalide ou absente est
+     * neutralisée en chaîne vide : bornesPeriode() applique alors son
+     * défaut (début du mois / aujourd'hui) au lieu de fabriquer une date
+     * du type 1970-01-01 via strtotime(false).
+     */
+    private static function dateValide($valeur): string
+    {
+        $valeur = self::champScalaire($valeur);
+        if ($valeur === '') {
+            return '';
+        }
+        $ts = strtotime($valeur);
+        return $ts !== false ? date('Y-m-d', $ts) : '';
     }
 
     private static function bornesPeriode(string $periode, string $debutSaisi, string $finSaisi): array
@@ -1328,15 +1361,23 @@ class Pilotage
         usort($lignes, fn($a, $b) => $b['ventes_ht'] <=> $a['ventes_ht']);
 
         // Tendances (totaux uniquement) vs période précédente de même durée.
+        // Même périmètre que le total courant ci-dessus : seules les commandes
+        // dont le dossier a un responsable assigné (rid > 0) sont comptées,
+        // des deux côtés de la comparaison — sinon une commande sans
+        // responsable présente sur une seule des deux périodes fausserait
+        // le badge de tendance (comparaison de deux populations différentes).
         $filtresPrec = self::filtresPeriodePrecedente($filters);
-        $lignesCommandesPrec = self::commandesConfirmees($user, $filtresPrec);
+        $lignesCommandesPrecAvecResponsable = array_filter(
+            self::commandesConfirmees($user, $filtresPrec),
+            fn($l) => (int) ($l['responsable_id'] ?? 0) > 0
+        );
         $ventesPrec = self::agregerMontants(
-            array_map(fn($l) => ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']], $lignesCommandesPrec),
+            array_map(fn($l) => ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']], $lignesCommandesPrecAvecResponsable),
             $filters['devise'],
             $filialeIds
         );
         $margesPrec = self::agregerMontants(
-            array_map(fn($l) => ['montant' => $l['marge_montant'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']], array_filter($lignesCommandesPrec, fn($l) => $l['marge_montant'] !== null)),
+            array_map(fn($l) => ['montant' => $l['marge_montant'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']], array_filter($lignesCommandesPrecAvecResponsable, fn($l) => $l['marge_montant'] !== null)),
             $filters['devise'],
             $filialeIds
         );

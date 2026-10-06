@@ -1,4 +1,5 @@
-<?php use App\Core\View; use App\Models\Commande; use App\Models\Facture; ?>
+<?php use App\Core\View; use App\Models\Commande; use App\Models\Facture; use App\Models\Dossier; ?>
+<?php $typeDossier = $dossier['type_dossier'] ?? 'autre'; ?>
 <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" style="font-size:13px;color:#666">&larr; Retour au dossier <?= View::e($dossier['reference']) ?></a>
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
@@ -66,6 +67,30 @@
         <button type="submit" class="btn btn-sm btn-secondary">Enregistrer</button>
       </form>
     </div>
+
+    <?php if ($typeDossier === 'transport_logistique'): ?>
+    <div class="card">
+      <h2>Transport</h2>
+      <form method="post" action="/index.php?r=commandes/<?= $commande['id'] ?>/logistique">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <div class="form-group"><label>Numéro de tracking</label><input type="text" name="tracking_numero" value="<?= View::e($commande['tracking_numero'] ?? '') ?>"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Début de transit</label><input type="date" name="date_transit_debut" value="<?= View::e($commande['date_transit_debut'] ?? '') ?>"></div>
+          <div class="form-group"><label>Fin de transit</label><input type="date" name="date_transit_fin" value="<?= View::e($commande['date_transit_fin'] ?? '') ?>"></div>
+        </div>
+        <button type="submit" class="btn btn-sm btn-secondary">Enregistrer</button>
+      </form>
+    </div>
+    <?php elseif ($typeDossier === 'prestation_entreprise'): ?>
+    <div class="card">
+      <h2>Livrables</h2>
+      <form method="post" action="/index.php?r=commandes/<?= $commande['id'] ?>/livrables">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <div class="form-group"><textarea name="livrables" rows="3" placeholder="ex: Rapport de prospection remis, 3 rendez-vous pris..."><?= View::e($commande['livrables'] ?? '') ?></textarea></div>
+        <button type="submit" class="btn btn-sm btn-secondary">Enregistrer</button>
+      </form>
+    </div>
+    <?php endif; ?>
 
     <div class="card">
       <h2>Factures</h2>

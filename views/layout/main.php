@@ -18,19 +18,18 @@ function navActive(string $path, string $prefix): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suivora360</title>
+<link rel="icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark">S</div>
-      <div class="brand-text">
-        <div class="name">Suivora</div>
-        <div class="tagline">Pilotage opérationnel</div>
-      </div>
+      <img src="/assets/img/logo-sidebar.png" alt="Suivora360" class="brand-logo">
       <button type="button" id="sidebarClose" class="brand-close" aria-label="Fermer le menu">✕</button>
     </div>
+    <div class="brand-tagline">Pilotage opérationnel</div>
     <?php if ($org): ?><div class="org-name"><?= View::e($org['nom']) ?></div><?php endif; ?>
     <nav>
       <a href="/index.php" class="<?= $path === '/' ? 'active' : '' ?>"><?= Icon::svg('home') ?><span>Tableau de bord</span></a>

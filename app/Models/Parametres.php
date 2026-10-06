@@ -22,6 +22,16 @@ class Parametres
         'taux_source' => '',
         'diviseur_volumetrique_aerien' => 6000.0,
         'diviseur_volumetrique_maritime' => 1000.0,
+        /**
+         * Par défaut (0 = verrouillé), seuls Achats/Propriétaire/Admin/Finance
+         * peuvent saisir ou modifier la marge d'une cotation ; le Commercial
+         * la voit sans pouvoir la modifier (décision du 03/10). Le Propriétaire,
+         * l'Admin d'organisation ou Finance peuvent ouvrir ce droit au
+         * Commercial pour cette filiale depuis Paramètres (décision du
+         * 03/10 révisée : "ne verrouille pas la marge au commercial, laisse
+         * le choix au dirigeant ou à l'admin de verrouiller ça").
+         */
+        'commercial_peut_modifier_marge' => false,
     ];
 
     public const TVA_OPTIONS = [0, 5.5, 10, 20];
@@ -58,16 +68,17 @@ class Parametres
             trim($data['taux_source'] ?? ''),
             (float) ($data['diviseur_volumetrique_aerien'] ?? self::DEFAUTS['diviseur_volumetrique_aerien']),
             (float) ($data['diviseur_volumetrique_maritime'] ?? self::DEFAUTS['diviseur_volumetrique_maritime']),
+            !empty($data['commercial_peut_modifier_marge']) ? 1 : 0,
         ];
 
         if ($existing) {
             $stmt = $pdo->prepare(
-                'UPDATE parametres SET taux_eur_fcfa = ?, marge_defaut_pourcentage = ?, tva_defaut_pourcentage = ?, assurance_defaut = ?, dedouanement_defaut = ?, taux_date_maj = ?, taux_source = ?, diviseur_volumetrique_aerien = ?, diviseur_volumetrique_maritime = ?, updated_at = ? WHERE filiale_id = ?'
+                'UPDATE parametres SET taux_eur_fcfa = ?, marge_defaut_pourcentage = ?, tva_defaut_pourcentage = ?, assurance_defaut = ?, dedouanement_defaut = ?, taux_date_maj = ?, taux_source = ?, diviseur_volumetrique_aerien = ?, diviseur_volumetrique_maritime = ?, commercial_peut_modifier_marge = ?, updated_at = ? WHERE filiale_id = ?'
             );
             $stmt->execute([...$values, date('Y-m-d H:i:s'), $filialeId]);
         } else {
             $stmt = $pdo->prepare(
-                'INSERT INTO parametres (filiale_id, taux_eur_fcfa, marge_defaut_pourcentage, tva_defaut_pourcentage, assurance_defaut, dedouanement_defaut, taux_date_maj, taux_source, diviseur_volumetrique_aerien, diviseur_volumetrique_maritime, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO parametres (filiale_id, taux_eur_fcfa, marge_defaut_pourcentage, tva_defaut_pourcentage, assurance_defaut, dedouanement_defaut, taux_date_maj, taux_source, diviseur_volumetrique_aerien, diviseur_volumetrique_maritime, commercial_peut_modifier_marge, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([$filialeId, ...$values, date('Y-m-d H:i:s')]);
         }

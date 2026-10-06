@@ -132,7 +132,12 @@ foreach ($lignes as $r) {
 <div class="card">
   <h2>Détail de l'activité</h2>
   <?php if (!$ligneDetail): ?>
-    <div class="empty-state">Sélectionnez une activité dans le filtre pour voir son détail.</div>
+    <?php /* [corrigé 03/10] $lignes ne contient que les activités ayant au
+       moins une commande sur la période : une activité explicitement
+       sélectionnée mais sans commande sur la période n'y figure jamais,
+       et affichait à tort le même message "Sélectionnez..." que l'absence
+       de sélection — distingué ici des deux cas réels. */ ?>
+    <div class="empty-state"><?= $filters['activite'] ? "Aucune commande sur cette activité pour la période sélectionnée." : "Sélectionnez une activité dans le filtre pour voir son détail." ?></div>
   <?php else: ?>
     <div class="detail-panel-head">
       <div class="kpi-icon" style="width:52px;height:52px"><?= Icon::svg('package', 'icon', 24) ?></div>

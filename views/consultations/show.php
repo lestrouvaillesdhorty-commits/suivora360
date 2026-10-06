@@ -28,15 +28,21 @@ $badges = [
         <div class="empty-state">Aucune offre reçue pour cette consultation.</div>
       <?php else: ?>
         <table>
-          <thead><tr><th>Référence</th><th>Montant</th><th>Incoterm négocié</th><th>Délai</th><th>Statut</th></tr></thead>
+          <thead><tr><th>Référence</th><th>Version</th><th>Montant</th><th>Incoterm négocié</th><th>Délai</th><th>Statut</th><th>Actions</th></tr></thead>
           <tbody>
           <?php foreach ($offres as $o): ?>
             <tr>
               <td><?= View::e($o['reference']) ?></td>
+              <td>v<?= (int) $o['version'] ?></td>
               <td><?= number_format((float) $o['montant_total'], 2, ',', ' ') ?> <?= View::e($o['devise']) ?></td>
               <td><?= View::e($o['incoterm_negocie']) ?></td>
               <td><?= View::e($o['delai_livraison']) ?></td>
-              <td><span class="badge <?= $o['statut'] === 'retenue' ? 'badge-green' : ($o['statut'] === 'rejetee' ? 'badge-red' : 'badge-blue') ?>"><?= \App\Models\Offre::STATUTS[$o['statut']] ?? $o['statut'] ?></span></td>
+              <td><span class="badge <?= $o['statut'] === 'retenue' ? 'badge-green' : ($o['statut'] === 'rejetee' ? 'badge-red' : ($o['statut'] === 'remplacee' ? 'badge-gray' : 'badge-blue')) ?>"><?= \App\Models\Offre::STATUTS[$o['statut']] ?? $o['statut'] ?></span></td>
+              <td>
+                <?php if ($o['statut'] !== 'remplacee'): ?>
+                  <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/offres/nouvelle&version_de=<?= $o['id'] ?>" class="btn btn-sm btn-secondary">+ Nouvelle version</a>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
           </tbody>

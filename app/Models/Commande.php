@@ -174,6 +174,28 @@ class Commande
         $stmt->execute([trim($prochaineAction), $dateRelance ?: null, date('Y-m-d H:i:s'), $commandeId]);
     }
 
+    /**
+     * Champs additionnels selon le type de dossier (section 9 de la feuille
+     * de route) : tracking/dates de transit pour Transport/Logistique,
+     * livrables pour Prestation entreprise. Pas de nouvelle table — mêmes
+     * colonnes optionnelles sur `commandes`, affichées conditionnellement.
+     */
+    public static function updateLogistique(int $commandeId, ?string $tracking, ?string $dateDebut, ?string $dateFin): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE commandes SET tracking_numero = ?, date_transit_debut = ?, date_transit_fin = ?, updated_at = ? WHERE id = ?'
+        );
+        $stmt->execute([trim((string) $tracking) ?: null, $dateDebut ?: null, $dateFin ?: null, date('Y-m-d H:i:s'), $commandeId]);
+    }
+
+    public static function updateLivrables(int $commandeId, string $livrables): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE commandes SET livrables = ?, updated_at = ? WHERE id = ?'
+        );
+        $stmt->execute([trim($livrables) ?: null, date('Y-m-d H:i:s'), $commandeId]);
+    }
+
     public static function estEnRetard(array $commande): bool
     {
         return $commande['statut'] !== 'terminee'
@@ -186,22 +208,35 @@ class Commande
      * bloc Alertes du tableau de bord (même règle que estEnRetard(), en
      * requête directe pour lister les cas plutôt que de les tester un par un).
      */
-    public static function enRetardFor(array $user, int $limite = 10): array
+    /**
+     * [ajouté 03/10] $filialeIds/$activite : filtres optionnels du switcher
+     * Tableau de bord (voir DashboardController) — null = comportement
+     * d'origine. Jointure sur `demandes` (via le Dossier) dès que
+     * `$activite` est fourni.
+     */
+    public static function enRetardFor(array $user, int $limite = 10, ?array $filialeIds = null, ?string $activite = null): array
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet
-             FROM commandes c
-             INNER JOIN dossiers d ON d.id = c.dossier_id
-             WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)
-               AND c.date_relance IS NOT NULL AND c.date_relance < ?
-             ORDER BY c.date_relance ASC LIMIT " . (int) $limite
-        );
-        $stmt->execute(array_merge($filialeIds, [date('Y-m-d')]));
+        $sql = "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet
+                FROM commandes c
+                INNER JOIN dossiers d ON d.id = c.dossier_id";
+        if ($activite) {
+            $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
+        }
+        $sql .= " WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)
+                  AND c.date_relance IS NOT NULL AND c.date_relance < ?";
+        $params = array_merge($filialeIds, [date('Y-m-d')]);
+        if ($activite) {
+            $sql .= ' AND dm.activite = ?';
+            $params[] = $activite;
+        }
+        $sql .= ' ORDER BY c.date_relance ASC LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
@@ -213,35 +248,50 @@ class Commande
     /**
      * Commandes en cours (exécution) — bloc "Exécution" du tableau de bord.
      */
-    public static function enCoursCount(array $user): int
+    public static function enCoursCount(array $user, ?array $filialeIds = null, ?string $activite = null): int
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return 0;
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND filiale_id IN ($placeholders)"
-        );
-        $stmt->execute($filialeIds);
+        $params = $filialeIds;
+        if ($activite) {
+            $sql = "SELECT COUNT(*) FROM commandes c
+                    INNER JOIN dossiers d ON d.id = c.dossier_id
+                    INNER JOIN demandes dm ON dm.id = d.demande_id
+                    WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders) AND dm.activite = ?";
+            $params[] = $activite;
+        } else {
+            $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND filiale_id IN ($placeholders)";
+        }
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return (int) $stmt->fetchColumn();
     }
 
-    public static function enCoursFor(array $user, int $limite = 5): array
+    public static function enCoursFor(array $user, int $limite = 5, ?array $filialeIds = null, ?string $activite = null): array
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet, d.responsable_id
-             FROM commandes c
-             INNER JOIN dossiers d ON d.id = c.dossier_id
-             WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)
-             ORDER BY (c.date_relance IS NULL), c.date_relance ASC LIMIT " . (int) $limite
-        );
-        $stmt->execute($filialeIds);
+        $sql = "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet, d.responsable_id
+                FROM commandes c
+                INNER JOIN dossiers d ON d.id = c.dossier_id";
+        $params = $filialeIds;
+        if ($activite) {
+            $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
+        }
+        $sql .= " WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)";
+        if ($activite) {
+            $sql .= ' AND dm.activite = ?';
+            $params[] = $activite;
+        }
+        $sql .= ' ORDER BY (c.date_relance IS NULL), c.date_relance ASC LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
@@ -253,38 +303,50 @@ class Commande
      * retenue du dossier ; l'ETA reprend commande_steps.date_prevue pour
      * l'étape "livraison" (aucun champ ETA dédié n'existe).
      */
-    public static function livraisonsEnCoursCount(array $user): int
+    public static function livraisonsEnCoursCount(array $user, ?array $filialeIds = null, ?string $activite = null): int
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return 0;
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND etape = 'livraison' AND filiale_id IN ($placeholders)"
-        );
-        $stmt->execute($filialeIds);
+        $params = $filialeIds;
+        if ($activite) {
+            $sql = "SELECT COUNT(*) FROM commandes c
+                    INNER JOIN dossiers d ON d.id = c.dossier_id
+                    INNER JOIN demandes dm ON dm.id = d.demande_id
+                    WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders) AND dm.activite = ?";
+            $params[] = $activite;
+        } else {
+            $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND etape = 'livraison' AND filiale_id IN ($placeholders)";
+        }
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         return (int) $stmt->fetchColumn();
     }
 
-    public static function livraisonsEnCoursFor(array $user, int $limite = 5): array
+    public static function livraisonsEnCoursFor(array $user, int $limite = 5, ?array $filialeIds = null, ?string $activite = null): array
     {
-        $filialeIds = Filiale::visibleIdsFor($user);
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $stmt = Database::connection()->prepare(
-            "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet, dm.destination_pays,
-                    cs.date_prevue AS livraison_prevue, cs.date_reelle AS livraison_reelle, cs.statut AS livraison_statut
-             FROM commandes c
-             INNER JOIN dossiers d ON d.id = c.dossier_id
-             INNER JOIN demandes dm ON dm.id = d.demande_id
-             LEFT JOIN commande_steps cs ON cs.commande_id = c.id AND cs.libelle = 'livraison'
-             WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders)
-             ORDER BY (cs.date_prevue IS NULL), cs.date_prevue ASC LIMIT " . (int) $limite
-        );
-        $stmt->execute($filialeIds);
+        $sql = "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet, dm.destination_pays,
+                       cs.date_prevue AS livraison_prevue, cs.date_reelle AS livraison_reelle, cs.statut AS livraison_statut
+                FROM commandes c
+                INNER JOIN dossiers d ON d.id = c.dossier_id
+                INNER JOIN demandes dm ON dm.id = d.demande_id
+                LEFT JOIN commande_steps cs ON cs.commande_id = c.id AND cs.libelle = 'livraison'
+                WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders)";
+        $params = $filialeIds;
+        if ($activite) {
+            $sql .= ' AND dm.activite = ?';
+            $params[] = $activite;
+        }
+        $sql .= ' ORDER BY (cs.date_prevue IS NULL), cs.date_prevue ASC LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $offreRetenue = Offre::retenueForDossier((int) $row['dossier_id']);
