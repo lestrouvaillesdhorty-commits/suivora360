@@ -93,7 +93,7 @@ class ComparateurController
             return;
         }
 
-        $offreId = (int) ($_POST['offre_id'] ?? 0);
+        $offreId = (int) \App\Core\Tenant::offreDuDossier($_POST['offre_id'] ?? 0, (int) $dossier['id']);
         $motif = trim($_POST['motif_decision'] ?? '');
         if ($offreId <= 0 || $motif === '') {
             View::flash('erreur', 'Merci d\'indiquer un motif de décision avant de retenir une offre.');

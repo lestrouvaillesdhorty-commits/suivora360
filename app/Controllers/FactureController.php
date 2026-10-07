@@ -53,6 +53,9 @@ class FactureController
             return;
         }
 
+        // Cotation et commande liées : doivent appartenir à ce dossier (isolation entre entreprises).
+        $_POST['cotation_id'] = \App\Core\Tenant::cotationDuDossier($_POST['cotation_id'] ?? 0, (int) $dossier['id']);
+        $_POST['commande_id'] = \App\Core\Tenant::commandeDuDossier($_POST['commande_id'] ?? 0, (int) $dossier['id']);
         $factureId = Facture::create((int) $dossier['id'], (int) $dossier['filiale_id'], $_POST);
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'creation_facture', 'facture', $factureId);
         View::flash('succes', 'Facture enregistrée.');

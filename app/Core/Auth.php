@@ -10,19 +10,50 @@ class Auth
     public static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
+            // Cookie de session durci : inaccessible au JavaScript (httponly), jamais
+            // envoyé depuis un autre site (samesite) ; « secure » seulement si la
+            // connexion est en HTTPS (le site tourne aussi en HTTP).
+            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path' => '/',
+                'httponly' => true,
+                'samesite' => 'Lax',
+                'secure' => $https,
+            ]);
             session_start();
         }
     }
 
+    /** Raison du dernier refus de connexion (pour un message plus précis que « identifiants incorrects »). */
+    public static string $dernierRefus = '';
+
     public static function attempt(string $email, string $password): bool
     {
+        self::$dernierRefus = '';
+        // Trop d'échecs récents : refus immédiat, même si le mot de passe est bon.
+        if (LimiteConnexion::bloque($email)) {
+            self::$dernierRefus = 'trop_de_tentatives';
+            return false;
+        }
         $user = Utilisateur::findByEmail($email);
         if (!$user || !$user['actif']) {
+            LimiteConnexion::echec($email);
             return false;
         }
         if (!password_verify($password, $user['mot_de_passe_hash'])) {
+            LimiteConnexion::echec($email);
             return false;
         }
+        LimiteConnexion::reussite($email);
+        // Entreprise suspendue par l'administrateur Suivora : accès fermé (sauf pour l'administrateur Suivora lui-même).
+        if (empty($user['is_super_admin']) && !\App\Models\Organisation::estActive((int) $user['organisation_id'])) {
+            self::$dernierRefus = 'organisation_suspendue';
+            return false;
+        }
+        // Nouvel identifiant de session à chaque connexion (anti-fixation de session).
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         return true;
     }
@@ -37,19 +68,39 @@ class Auth
         session_destroy();
     }
 
+    /**
+     * Connecté = session ouverte ET compte toujours existant et actif.
+     * Un compte désactivé (ou supprimé) perd son accès immédiatement, sans
+     * attendre la fin de sa session.
+     */
     public static function check(): bool
     {
-        return isset($_SESSION['user_id']);
+        return self::user() !== null;
     }
 
     public static function user(): ?array
     {
-        if (!self::check()) {
+        static $cached = null;
+        static $chargeePour = null;
+        if (!isset($_SESSION['user_id'])) {
+            $cached = null;
+            $chargeePour = null;
             return null;
         }
-        static $cached = null;
+        $uid = (int) $_SESSION['user_id'];
+        if ($chargeePour !== $uid) {
+            $u = Utilisateur::find($uid);
+            $cached = ($u && !empty($u['actif'])) ? $u : null;
+            // Entreprise suspendue en cours de session : accès fermé immédiatement.
+            if ($cached && empty($cached['is_super_admin']) && !\App\Models\Organisation::estActive((int) $cached['organisation_id'])) {
+                $cached = null;
+            }
+            $chargeePour = $uid;
+        }
         if ($cached === null) {
-            $cached = Utilisateur::find((int) $_SESSION['user_id']);
+            unset($_SESSION['user_id']);
+            $chargeePour = null;
+            return null;
         }
         return $cached;
     }
@@ -59,6 +110,16 @@ class Auth
         if (!self::check()) {
             header('Location: /index.php?r=login');
             exit;
+        }
+        // Mot de passe provisoire (compte créé ou réinitialisé par un administrateur) :
+        // seule la page de changement de mot de passe (et la déconnexion) reste accessible.
+        $u = self::user();
+        if (!empty($u['doit_changer_mdp'])) {
+            $r = '/' . trim((string) ($_GET['r'] ?? ''), '/');
+            if (!in_array($r, ['/mon-mot-de-passe', '/logout'], true)) {
+                header('Location: /index.php?r=mon-mot-de-passe');
+                exit;
+            }
         }
     }
 
@@ -80,6 +141,26 @@ class Auth
     public static function isProprietaire(): bool
     {
         return self::role() === 'proprietaire';
+    }
+
+    /**
+     * Administrateur Suivora : compte au-dessus de toutes les entreprises clientes
+     * (colonne utilisateurs.is_super_admin, jamais attribuée par l'application
+     * elle-même : uniquement par la migration v21, par e-mail saisi à la main).
+     */
+    public static function isSuperAdmin(): bool
+    {
+        $u = self::user();
+        return $u !== null && !empty($u['is_super_admin']);
+    }
+
+    public static function requireSuperAdmin(): void
+    {
+        if (!self::isSuperAdmin()) {
+            http_response_code(403);
+            View::render('errors/403');
+            exit;
+        }
     }
 
     public static function isAdmin(): bool

@@ -1,8 +1,8 @@
 * { box-sizing: border-box; }
 :root {
-  --primary: #5036F5;
+  --primary: #2D18FA;
   --primary-light: #EEEBFF;
-  --primary-dark: #4025d6;
+  --primary-dark: #2614D5;
   --sidebar-bg: #12152b;
   --sidebar-bg-hover: #1c2040;
   --ink: #1f2430;
@@ -32,6 +32,10 @@ svg.icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+}
+/* [ajouté 07/10] Menu plus long (Offres, Comparateur, Cotations, Commandes, Factures) : sur grand écran il reste fixe et défile seul, pour que « Déconnexion » reste atteignable. */
+@media (min-width: 769px) {
+  .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start; }
 }
 .sidebar .brand {
   display: flex; align-items: center; gap: 10px;
@@ -133,12 +137,15 @@ tr:hover .row-arrow, a:hover .row-arrow, li:hover .row-arrow, .hover-arrow:hover
 .badge-orange { background: #ffedd5; color: #9a3412; }
 .badge-gray { background: #f1f2f5; color: #4b5563; }
 
-.form-group { margin-bottom: 16px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #333; }
+.form-group { margin-bottom: 12px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; color: #333; }
 input[type=text], input[type=email], input[type=password], input[type=date], input[type=number], input[type=tel], textarea, select {
-  width: 100%; padding: 9px 11px; border: 1px solid #d7dae0; border-radius: 8px; font-size: 14px; font-family: inherit;
+  width: 100%; padding: 6px 10px; border: 1px solid #d7dae0; border-radius: 6px; font-size: 13px; font-family: inherit; line-height: 1.35;
 }
+input[type=text], input[type=email], input[type=password], input[type=date], input[type=number], input[type=tel], select { height: 34px; }
+select, textarea, input[type=text], input[type=email], input[type=password], input[type=date], input[type=number], input[type=tel] { background-color: #fff; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
 textarea { resize: vertical; }
 
 .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
@@ -242,7 +249,8 @@ textarea { resize: vertical; }
 .kpi-body .kpi-label { font-size: 13px; color: #666; display: flex; align-items: center; gap: 5px; }
 .kpi-body .kpi-value { font-size: 24px; font-weight: 700; margin-top: 2px; color: var(--ink); }
 .kpi-body .kpi-sub { font-size: 12px; color: #999; margin-top: 3px; }
-.kpi-body .kpi-warn { font-size: 11px; color: #b45309; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+.kpi-body .kpi-warn, .card > .kpi-warn { font-size: 11px; color: #b45309; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+.card > .kpi-warn { margin-top: 10px; }
 .kpi-body .kpi-link { font-size: 11.5px; color: var(--primary); font-weight: 700; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; }
 /* [ajouté 05/10, report de la maquette] Note de portée sous une rangée de KPI (ex. liste Demandes) — précise la période/le périmètre des chiffres affichés. */
 .scope-note { font-size: 12px; color: #888; margin: -12px 0 18px; }
@@ -668,3 +676,8 @@ textarea { resize: vertical; }
 /* [ajouté 06/10, étape 6 du découpage Dossiers] Bandeau d'alerte ambre — valeurs de shared.css (maquette) */
 .amber-alert { display: flex; gap: 8px; align-items: flex-start; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin: 10px 0; }
 .amber-alert svg { flex-shrink: 0; margin-top: 1px; }
+
+/* [ajouté 06/10] Page Sécurité — filtres sur une ligne qui passe à la ligne */
+.filtres-securite { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 14px 16px; }
+.filtres-securite select, .filtres-securite input { width: auto; max-width: 100%; margin: 0; }
+.filtres-securite input[type=text] { flex: 1 1 200px; }

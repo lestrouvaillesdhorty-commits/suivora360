@@ -239,7 +239,7 @@ class Dossier
                 'qualifie',
                 'actif',
                 $typeDossier,
-                $data['responsable_id'] ?: $demande['responsable_id'],
+                (\App\Core\Tenant::responsableDeFiliale($data['responsable_id'] ?? null, (int) $demande['filiale_id']) ?: $demande['responsable_id']),
                 $data['priorite'] ?: $demande['priorite'],
                 $data['echeance'] ?: $demande['echeance'],
                 '',

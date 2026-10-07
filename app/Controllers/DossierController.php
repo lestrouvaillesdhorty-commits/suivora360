@@ -73,7 +73,7 @@ class DossierController
         fputcsv($out, [], ';', '"', '\\');
         fputcsv($out, ['Référence', 'Objet', 'Filiale', 'Étape', 'Responsable', 'Priorité', 'Échéance', 'Statut'], ';', '"', '\\');
         foreach ($dossiers as $d) {
-            fputcsv($out, [
+            fputcsv($out, \App\Core\Csv::row([
                 $d['reference'],
                 $d['objet'],
                 $d['filiale_nom'],
@@ -82,7 +82,7 @@ class DossierController
                 Demande::PRIORITES[$d['priorite']] ?? $d['priorite'],
                 $d['echeance'] ? date('d/m/Y', strtotime($d['echeance'])) : '',
                 ucfirst($d['statut']),
-            ], ';', '"', '\\');
+            ]), ';', '"', '\\');
         }
         fclose($out);
         exit;

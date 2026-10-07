@@ -17,9 +17,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <div class="kpi-label">Montant HT des commandes confirmées <span class="info-tip" data-tip="Somme du montant HT de la cotation liée à chaque commande créée sur la période (date de création de la commande). Une commande confirmée ne signifie pas qu'elle est payée.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($vg['montant_ht_commandes']['total'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= $vg['nb_commandes'] ?> commande(s) <?= Pilotage::badgeTendance($vg['montant_ht_commandes_tendance']) ?></div>
-      <?php if (!empty($vg['montant_ht_commandes']['non_convertis'])): ?>
-        <div class="kpi-warn"><?= Icon::svg('alert-triangle', 'icon', 12) ?> <?= array_sum(array_column($vg['montant_ht_commandes']['non_convertis'], 'n')) ?> montant(s) non converti(s)</div>
-      <?php endif; ?>
+      <?= Pilotage::avertissementNonConvertis($vg['montant_ht_commandes']['non_convertis']) ?>
     </div>
   </div>
 
@@ -29,6 +27,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <div class="kpi-label">Marge <?= $filters['base'] === 'previsionnel' ? 'prévisionnelle' : 'réalisée' ?> <span class="info-tip" data-tip="<?= $filters['base'] === 'previsionnel' ? 'Somme de la marge des cotations acceptées sur la période (date d\'acceptation non trackée séparément : date de création de la cotation utilisée).' : 'Somme de la marge des cotations acceptées et facturées (facture émise, non annulée) sur la période. Chaque cotation comptée une seule fois même si plusieurs factures y sont rattachées.' ?>">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($vg['marge']['montant']['total'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= Pilotage::badgeTendance($vg['marge_tendance']) ?></div>
+      <?= Pilotage::avertissementNonConvertis($vg['marge']['montant']['non_convertis']) ?>
       <?php if (!empty($vg['marge']['non_renseignees'])): ?>
         <div class="kpi-warn"><?= Icon::svg('alert-triangle', 'icon', 12) ?> <?= $vg['marge']['non_renseignees'] ?> cotation(s) sans montant d'achat renseigné — marge non calculable, exclue(s) du total</div>
       <?php endif; ?>
@@ -53,6 +52,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <div class="kpi-label">Valeur des dossiers actifs <span class="info-tip" data-tip="Photographie à date : somme de la dernière cotation acceptée de chaque dossier actuellement actif. Ne dépend pas de la période sélectionnée (seuls activité/responsable s'appliquent).">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($vg['valeur_dossiers_actifs']['total'], $filters['devise']) ?></div>
       <div class="kpi-sub">Indépendant de la période</div>
+      <?= Pilotage::avertissementNonConvertis($vg['valeur_dossiers_actifs']['non_convertis']) ?>
     </div>
   </div>
 </div>
@@ -111,6 +111,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
           <?php endforeach; ?>
         </div>
       </div>
+      <?= Pilotage::avertissementNonConvertis($vg['repartition_activite']['non_convertis']) ?>
     <?php endif; ?>
   </div>
 </div>
@@ -159,14 +160,14 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
     <div class="empty-state">Aucune commande confirmée sur la période sélectionnée.</div>
   <?php else: ?>
     <table class="pilotage-table responsive-cards">
-      <thead><tr><th>Activité</th><th class="num">Commandes</th><th class="num">Montant HT</th><th class="num">Marge</th><th class="num">Marge / ventes HT</th><th class="col-arrow"></th></tr></thead>
+      <thead><tr><th>Activité</th><th class="num">Commandes</th><th class="num">Montant HT</th><th class="num">Marge sur commandes confirmées <span class="info-tip" data-tip="Toujours calculée sur les commandes confirmées de la période. La carte « Marge » en haut de page suit la base choisie (prévisionnelle ou réalisée) : les deux chiffres peuvent donc différer.">i</span></th><th class="num">Marge / ventes HT</th><th class="col-arrow"></th></tr></thead>
       <tbody>
         <?php foreach ($vg['resultats_activite']['lignes'] as $r): ?>
         <tr class="row-clickable" onclick="window.location='<?= pdDetailUrl('activite', $r['activite'], $filters, $qs) ?>'">
           <td data-label="Activité"><?= View::e($r['activite']) ?></td>
           <td data-label="Commandes" class="num"><?= $r['commandes'] ?></td>
-          <td data-label="Montant HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></td>
-          <td data-label="Marge" class="num"><?= Pilotage::fmt($r['marge'], $filters['devise']) ?><?php if ($r['marge_manquante'] > 0): ?><br><span class="cell-na"><?= $r['marge_manquante'] ?> non renseignée(s)</span><?php endif; ?></td>
+          <td data-label="Montant HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>
+          <td data-label="Marge sur commandes confirmées" class="num"><?= Pilotage::fmt($r['marge'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['marge_non_convertis']) ?><?php if ($r['marge_manquante'] > 0): ?><br><span class="cell-na"><?= $r['marge_manquante'] ?> non renseignée(s)</span><?php endif; ?></td>
           <td data-label="Marge/Ventes HT" class="num"><?= Pilotage::fmtPct($r['marge_pct']) ?></td>
           <td class="col-arrow"><?= Icon::rowArrow() ?></td>
         </tr>
@@ -174,13 +175,13 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
         <tr class="row-total">
           <td>Total</td>
           <td class="num"><?= $vg['resultats_activite']['total']['commandes'] ?></td>
-          <td class="num"><?= Pilotage::fmt($vg['resultats_activite']['total']['ventes_ht'], $filters['devise']) ?></td>
-          <td class="num"><?= Pilotage::fmt($vg['resultats_activite']['total']['marge'], $filters['devise']) ?></td>
+          <td class="num"><?= Pilotage::fmt($vg['resultats_activite']['total']['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($vg['resultats_activite']['total']['ventes_non_convertis']) ?></td>
+          <td class="num"><?= Pilotage::fmt($vg['resultats_activite']['total']['marge'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($vg['resultats_activite']['total']['marge_non_convertis']) ?></td>
           <td class="num"><?= Pilotage::fmtPct($vg['resultats_activite']['total']['marge_pct']) ?></td>
           <td></td>
         </tr>
       </tbody>
     </table>
-    <div class="kpi-note">Pourcentage global calculé à partir des totaux (pas de la moyenne des lignes). Cliquez une ligne pour voir le détail des opérations.</div>
+    <div class="kpi-note">Pourcentage global calculé à partir des totaux (pas de la moyenne des lignes). La marge de ce tableau porte toujours sur les commandes confirmées, alors que la carte « Marge » suit la base choisie (prévisionnelle ou réalisée). Cliquez une ligne pour voir le détail des opérations.</div>
   <?php endif; ?>
 </div>

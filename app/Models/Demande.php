@@ -377,6 +377,7 @@ class Demande
     public static function create(array $data): int
     {
         $pdo = Database::connection();
+        $data = self::assainirIdentifiants((int) $data['filiale_id'], $data);
         $filiale = Filiale::find((int) $data['filiale_id']);
         $numero = Compteur::next((int) $filiale['organisation_id'], 'demande');
         $reference = Compteur::formatReference('DEM', $numero);
@@ -417,8 +418,35 @@ class Demande
      * DemandeController::update() pour la vérification d'état ; ce modèle
      * n'impose pas lui-même cette règle pour rester réutilisable).
      */
+    /** Filiale d'une demande (0 si introuvable). */
+    private static function filialeDe(int $demandeId): int
+    {
+        $stmt = Database::connection()->prepare('SELECT filiale_id FROM demandes WHERE id = ?');
+        $stmt->execute([$demandeId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Isolation multi-entreprises : un client_id ou responsable_id reçu d'un
+     * formulaire n'est conservé que s'il appartient à la même organisation que
+     * la demande (garde-fou de base ; le contrôleur affine selon les filiales visibles) ;
+     * sinon il est ignoré (null). Voir App\Core\Tenant.
+     */
+    private static function assainirIdentifiants(int $filialeId, array $data): array
+    {
+        if (array_key_exists('client_id', $data)) {
+            $org = \App\Core\Tenant::organisationDeFiliale($filialeId);
+            $data['client_id'] = $org === null ? null : \App\Core\Tenant::clientDOrganisation($data['client_id'], $org);
+        }
+        if (array_key_exists('responsable_id', $data)) {
+            $data['responsable_id'] = \App\Core\Tenant::responsableDeFiliale($data['responsable_id'], $filialeId);
+        }
+        return $data;
+    }
+
     public static function update(int $id, array $data): void
     {
+        $data = self::assainirIdentifiants(self::filialeDe($id), $data);
         $stmt = Database::connection()->prepare(
             'UPDATE demandes SET
                 objet = ?, message = ?, canal = ?, expediteur_nom = ?, expediteur_entreprise = ?,
@@ -532,6 +560,7 @@ class Demande
      */
     public static function qualifyNew(int $id, array $data, int $userId): void
     {
+        $data = self::assainirIdentifiants(self::filialeDe($id), $data);
         $clientId = ($data['client_id'] ?? null) ?: null;
         $activite = trim($data['activite'] ?? '');
         $responsableId = ($data['responsable_id'] ?? null) ?: null;
@@ -606,6 +635,7 @@ class Demande
      */
     public static function qualifyTakeover(int $id, array $data, int $userId): void
     {
+        $data = self::assainirIdentifiants(self::filialeDe($id), $data);
         // [complété 05/10, report de la maquette] Ajout du client — manquait
         // jusqu'ici : le dossier créé depuis cette voie n'était rattaché à
         // aucun client (le lien client passe uniquement par

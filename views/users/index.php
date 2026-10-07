@@ -11,7 +11,7 @@
       <div class="form-group"><label>Email</label><input type="email" name="email" required></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Mot de passe</label><input type="password" name="mot_de_passe" required minlength="6"></div>
+      <div class="form-group"><label>Mot de passe</label><input type="password" name="mot_de_passe" required minlength="8"></div>
       <div class="form-group">
         <label>Rôle</label>
         <select name="role" onchange="document.getElementById('filiales-choice').style.display = ['proprietaire','admin_organisation'].includes(this.value) ? 'none' : 'block'">
@@ -58,7 +58,7 @@
           <summary style="cursor:pointer;font-size:12px;color:#4f46e5">Réinitialiser le mot de passe</summary>
           <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/mot-de-passe" style="margin-top:8px">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-            <div class="form-group"><label>Nouveau mot de passe</label><input type="password" name="mot_de_passe" required minlength="6"></div>
+            <div class="form-group"><label>Nouveau mot de passe</label><input type="password" name="mot_de_passe" required minlength="8"></div>
             <button type="submit" class="btn btn-sm btn-secondary">Réinitialiser</button>
           </form>
         </details>

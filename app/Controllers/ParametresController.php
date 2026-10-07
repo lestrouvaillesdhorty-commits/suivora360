@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\View;
+use App\Models\AuditLog;
 use App\Models\Filiale;
 use App\Models\Parametres;
 
@@ -80,6 +81,7 @@ class ParametresController
             'commercial_peut_modifier_marge' => !empty($_POST['commercial_peut_modifier_marge']),
         ]);
 
+        AuditLog::log((int) $filialeId, (int) Auth::user()['id'], 'maj_parametres', 'parametres', (int) $filialeId, 'Paramètres de calcul enregistrés');
         View::flash('succes', 'Paramètres enregistrés. Les simulations, offres et commandes déjà enregistrées ne sont jamais recalculées.');
         header('Location: /index.php?r=parametres&filiale_id=' . $filialeId);
         exit;

@@ -147,7 +147,7 @@ class DemandeController
         fputcsv($out, [], ';', '"', '\\');
         fputcsv($out, ['Référence', 'Objet', 'Expéditeur', 'Entreprise', 'Email', 'Téléphone', 'Canal', 'Reçue le', 'Activité', 'Filiale', 'Responsable', 'Priorité', 'Statut', 'Échéance'], ';', '"', '\\');
         foreach ($demandes as $d) {
-            fputcsv($out, [
+            fputcsv($out, \App\Core\Csv::row([
                 $d['reference'],
                 $d['objet'],
                 $d['expediteur_nom'],
@@ -162,7 +162,7 @@ class DemandeController
                 Demande::PRIORITES[$d['priorite']] ?? $d['priorite'],
                 $d['statut'],
                 $d['echeance'] ? date('d/m/Y', strtotime($d['echeance'])) : '',
-            ], ';', '"', '\\');
+            ]), ';', '"', '\\');
         }
         fclose($out);
         exit;
@@ -426,10 +426,8 @@ class DemandeController
             exit;
         }
 
-        $clientId = (int) ($_POST['client_id'] ?? 0);
-        if ($clientId && !Filiale::userCanAccess($user, $filialeId)) {
-            $clientId = 0;
-        }
+        // Le client doit appartenir à une filiale visible de l'utilisateur (isolation entre entreprises).
+        $clientId = (int) \App\Core\Tenant::clientVisible($_POST['client_id'] ?? 0, Filiale::visibleIdsFor($user));
 
         return [
             'filiale_id' => $filialeId,

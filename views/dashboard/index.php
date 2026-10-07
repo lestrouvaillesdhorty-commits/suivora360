@@ -30,7 +30,7 @@ $statutDemandeBadges = [
    pour que le même type de dossier se reconnaisse visuellement d'un bloc à
    l'autre du tableau de bord. */
 $prioTypeStyle = [
-    'demande' => ['bg' => '#EEEBFF', 'fg' => '#5036F5', 'icon' => 'file-text'],
+    'demande' => ['bg' => '#EEEBFF', 'fg' => '#2D18FA', 'icon' => 'file-text'],
     'offre' => ['bg' => '#dbeafe', 'fg' => '#2563eb', 'icon' => 'file'],
     'cotation' => ['bg' => '#ffedd5', 'fg' => '#c2410c', 'icon' => 'tag'],
     'commande' => ['bg' => '#dbeafe', 'fg' => '#2563eb', 'icon' => 'shopping-cart'],
@@ -89,7 +89,7 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 
 <div class="dash-kpi-row" style="margin-top:18px">
   <a href="/index.php?r=demandes&statut=a_qualifier" class="dash-kpi">
-    <div class="dk-icon" style="background:#EEEBFF;color:#5036F5"><?= Icon::svg('file-text', 'icon', 21) ?></div>
+    <div class="dk-icon" style="background:#EEEBFF;color:#2D18FA"><?= Icon::svg('file-text', 'icon', 21) ?></div>
     <div><div class="dk-value"><?= $demandeCounts['a_qualifier'] ?></div><div class="dk-label">À qualifier</div><div class="dk-link">Voir les demandes <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
   <a href="/index.php?r=demandes" class="dash-kpi">
@@ -114,7 +114,7 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 
 <?php
 $opsColors = [
-  'demandes'   => ['bg' => '#EEEBFF', 'fg' => '#5036F5', 'icon' => 'file-text'],
+  'demandes'   => ['bg' => '#EEEBFF', 'fg' => '#2D18FA', 'icon' => 'file-text'],
   'dossiers'   => ['bg' => '#d1fae5', 'fg' => '#059669', 'icon' => 'folder'],
   'offres'     => ['bg' => '#dbeafe', 'fg' => '#2563eb', 'icon' => 'file'],
   'cotations'  => ['bg' => '#ffedd5', 'fg' => '#c2410c', 'icon' => 'tag'],
@@ -228,7 +228,7 @@ $graviteBorder = ['haute' => '#dc2626', 'moyenne' => '#f97316', 'basse' => '#eab
       <?php foreach ($echeancesAVenir as $e): ?>
       <li onclick="window.location='/index.php?r=<?= $e['type'] === 'demande' ? 'demandes' : 'dossiers' ?>/<?= $e['id'] ?>'">
         <div class="tl-date"><div class="d"><?= date('d', strtotime($e['echeance'])) ?></div><div class="m"><?= strftime_fr($e['echeance']) ?></div></div>
-        <div class="tl-dot" style="background:<?= $e['type'] === 'demande' ? '#5036F5' : '#10b981' ?>"></div>
+        <div class="tl-dot" style="background:<?= $e['type'] === 'demande' ? '#2D18FA' : '#10b981' ?>"></div>
         <div class="tl-body">
           <div class="tl-title truncate"><?= View::e($e['objet']) ?></div>
           <div class="tl-sub"><?= View::e($e['reference']) ?> <span class="badge badge-gray" style="text-transform:capitalize"><?= $e['type'] ?></span></div>
@@ -248,7 +248,7 @@ $graviteBorder = ['haute' => '#dc2626', 'moyenne' => '#f97316', 'basse' => '#eab
       <ul class="feed-list">
       <?php foreach (array_slice($dernieresDemandes, 0, 3) as $d): ?>
       <li onclick="window.location='/index.php?r=demandes/<?= $d['id'] ?>'">
-        <span class="fl-icon" style="background:#EEEBFF;color:#5036F5"><?= Icon::svg('file-text', 'icon', 16) ?></span>
+        <span class="fl-icon" style="background:#EEEBFF;color:#2D18FA"><?= Icon::svg('file-text', 'icon', 16) ?></span>
         <div class="fl-body">
           <div class="fl-title"><?= View::e($d['objet']) ?></div>
           <div class="fl-sub"><?= View::e($d['reference']) ?> ·

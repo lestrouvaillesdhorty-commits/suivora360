@@ -12,12 +12,15 @@ use App\Controllers\DossierController;
 use App\Controllers\FactureController;
 use App\Controllers\FilialeController;
 use App\Controllers\FournisseurController;
+use App\Controllers\ListesController;
 use App\Controllers\NotificationController;
 use App\Controllers\OffreController;
 use App\Controllers\ParametresController;
+use App\Controllers\SecuriteController;
 use App\Controllers\PartagePublicController;
 use App\Controllers\PilotageController;
 use App\Controllers\SimulateurController;
+use App\Controllers\SuivoraAdminController;
 use App\Controllers\UtilisateurController;
 use App\Core\Auth;
 use App\Core\Env;
@@ -37,6 +40,14 @@ $router = new Router();
 $router->get('/login', fn() => (new AuthController())->showLogin());
 $router->post('/login', fn() => (new AuthController())->login());
 $router->post('/logout', fn() => (new AuthController())->logout());
+$router->get('/mon-mot-de-passe', function () {
+    Auth::requireLogin();
+    (new AuthController())->showChangePassword();
+});
+$router->post('/mon-mot-de-passe', function () {
+    Auth::requireLogin();
+    (new AuthController())->changePassword();
+});
 
 // Tableau de bord
 $router->get('/', function () {
@@ -371,6 +382,28 @@ $router->post('/consultations/{id}/offres', function ($params) {
     (new OffreController())->store($params);
 });
 
+// Listes transverses du menu (Offres, Cotations, Commandes, Factures, Comparateur)
+$router->get('/offres', function () {
+    Auth::requireLogin();
+    (new ListesController())->offres();
+});
+$router->get('/cotations', function () {
+    Auth::requireLogin();
+    (new ListesController())->cotations();
+});
+$router->get('/commandes', function () {
+    Auth::requireLogin();
+    (new ListesController())->commandes();
+});
+$router->get('/factures', function () {
+    Auth::requireLogin();
+    (new ListesController())->factures();
+});
+$router->get('/comparateur', function () {
+    Auth::requireLogin();
+    (new ListesController())->comparateur();
+});
+
 // Comparateur d'offres
 $router->get('/dossiers/{id}/comparateur', function ($params) {
     Auth::requireLogin();
@@ -441,6 +474,38 @@ $router->post('/dossiers/{id}/factures', function ($params) {
 $router->post('/factures/{id}/statut', function ($params) {
     Auth::requireLogin();
     (new FactureController())->updateStatut($params);
+});
+
+// Sécurité — journal d'audit (Propriétaire / Admin d'organisation)
+$router->get('/securite', function () {
+    Auth::requireLogin();
+    (new SecuriteController())->index();
+});
+$router->get('/securite/export', function () {
+    Auth::requireLogin();
+    (new SecuriteController())->exportCsv();
+});
+$router->get('/securite/imprimable', function () {
+    Auth::requireLogin();
+    (new SecuriteController())->imprimable();
+});
+
+// Administration Suivora (compte is_super_admin uniquement — au-dessus des entreprises clientes)
+$router->get('/admin-suivora', function () {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->index();
+});
+$router->post('/admin-suivora', function () {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->store();
+});
+$router->post('/admin-suivora/{id}/basculer', function ($params) {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->basculer($params);
+});
+$router->post('/admin-suivora/{id}/abonnement', function ($params) {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->abonnement($params);
 });
 
 // Filiales (Propriétaire / Admin d'organisation)

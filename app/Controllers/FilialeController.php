@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\View;
+use App\Models\AuditLog;
 use App\Models\Filiale;
 
 /**
@@ -49,7 +50,8 @@ class FilialeController
             exit;
         }
 
-        Filiale::create((int) $user['organisation_id'], $nom);
+        $nouvelleId = Filiale::create((int) $user['organisation_id'], $nom);
+        AuditLog::log((int) $nouvelleId, (int) $user['id'], 'creation_filiale', 'filiale', (int) $nouvelleId, $nom);
         View::flash('succes', 'Filiale créée.');
         header('Location: /index.php?r=filiales');
         exit;
@@ -84,6 +86,7 @@ class FilialeController
         }
 
         Filiale::rename((int) $filiale['id'], $nom);
+        AuditLog::log((int) $filiale['id'], (int) $user['id'], 'renommage_filiale', 'filiale', (int) $filiale['id'], $filiale['nom'] . ' → ' . $nom);
         View::flash('succes', 'Filiale renommée.');
         header('Location: /index.php?r=filiales');
         exit;
@@ -129,6 +132,7 @@ class FilialeController
         }
 
         Filiale::delete((int) $filiale['id']);
+        AuditLog::logAdmin($user, 'suppression_filiale', 'filiale', (int) $filiale['id'], $filiale['nom']);
         View::flash('succes', 'Filiale supprimée.');
         header('Location: /index.php?r=filiales');
         exit;

@@ -43,7 +43,25 @@ class Utilisateur
             $data['role'],
             date('Y-m-d H:i:s'),
         ]);
-        return (int) Database::connection()->lastInsertId();
+        $id = (int) Database::connection()->lastInsertId();
+        if (!empty($data['doit_changer_mdp'])) {
+            self::definirChangementObligatoire($id, true);
+        }
+        return $id;
+    }
+
+    /**
+     * Marque (ou démarque) un compte comme devant changer son mot de passe à sa
+     * prochaine connexion. Sans effet tant que la colonne n'existe pas (code
+     * déployé avant migrate_v21).
+     */
+    private static function definirChangementObligatoire(int $id, bool $oui): void
+    {
+        try {
+            Database::connection()->prepare('UPDATE utilisateurs SET doit_changer_mdp = ? WHERE id = ?')
+                ->execute([$oui ? 1 : 0, $id]);
+        } catch (\Throwable $e) {
+        }
     }
 
     public static function updateRole(int $id, string $role): void
@@ -64,10 +82,15 @@ class Utilisateur
         $stmt->execute([$actif ? 1 : 0, $id]);
     }
 
-    public static function updatePassword(int $id, string $motDePasse): void
+    /**
+     * $provisoire = true : mot de passe défini par un administrateur, que
+     * l'utilisateur devra changer dès sa prochaine connexion.
+     */
+    public static function updatePassword(int $id, string $motDePasse, bool $provisoire = false): void
     {
         $stmt = Database::connection()->prepare('UPDATE utilisateurs SET mot_de_passe_hash = ? WHERE id = ?');
         $stmt->execute([password_hash($motDePasse, PASSWORD_DEFAULT), $id]);
+        self::definirChangementObligatoire($id, $provisoire);
     }
 
     /**

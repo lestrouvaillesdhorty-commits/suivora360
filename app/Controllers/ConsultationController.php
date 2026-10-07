@@ -47,7 +47,8 @@ class ConsultationController
             return;
         }
 
-        if (empty($_POST['fournisseur_id'])) {
+        // Le fournisseur doit appartenir à la même filiale que le dossier (isolation entre entreprises).
+        if (!\App\Core\Tenant::fournisseurDeFiliale($_POST['fournisseur_id'] ?? 0, (int) $dossier['filiale_id'])) {
             View::flash('erreur', 'Veuillez sélectionner un fournisseur.');
             header('Location: /index.php?r=dossiers/' . $dossier['id']);
             exit;

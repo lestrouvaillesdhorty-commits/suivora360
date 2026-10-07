@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Permissions;
 use App\Core\View;
+use App\Models\AuditLog;
 use App\Models\Filiale;
 use App\Models\Utilisateur;
 
@@ -64,8 +65,8 @@ class UtilisateurController
             exit;
         }
 
-        if ($nom === '' || $email === '' || strlen($motDePasse) < 6) {
-            View::flash('erreur', 'Nom, email et mot de passe (6 caractères min.) sont obligatoires.');
+        if ($nom === '' || $email === '' || strlen($motDePasse) < 8) {
+            View::flash('erreur', 'Nom, email et mot de passe (8 caractères min.) sont obligatoires.');
             header('Location: /index.php?r=utilisateurs');
             exit;
         }
@@ -82,13 +83,15 @@ class UtilisateurController
             'email' => $email,
             'mot_de_passe' => $motDePasse,
             'role' => $role,
+            'doit_changer_mdp' => 1,
         ]);
 
         if (!Permissions::seesAllFiliales($role)) {
             Utilisateur::setFiliales($newId, Filiale::filterIdsForOrganisation($filialeIds, (int) $user['organisation_id']));
         }
 
-        View::flash('succes', 'Utilisateur créé.');
+        AuditLog::logAdmin($user, 'creation_utilisateur', 'utilisateur', (int) $newId, $nom . ' — ' . (Permissions::label($role)));
+        View::flash('succes', 'Utilisateur créé. Il devra changer son mot de passe à sa première connexion.');
         header('Location: /index.php?r=utilisateurs');
         exit;
     }
@@ -118,6 +121,7 @@ class UtilisateurController
         $filialeIds = $_POST['filiale_ids'] ?? [];
         Utilisateur::setFiliales((int) $cible['id'], Filiale::filterIdsForOrganisation($filialeIds, (int) $user['organisation_id']));
 
+        AuditLog::logAdmin($user, 'acces_filiales_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom']);
         View::flash('succes', 'Accès mis à jour.');
         header('Location: /index.php?r=utilisateurs');
         exit;
@@ -204,6 +208,7 @@ class UtilisateurController
             Utilisateur::setFiliales((int) $cible['id'], []);
         }
 
+        AuditLog::logAdmin($user, 'changement_role_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom'] . ' : ' . Permissions::label($cible['role']) . ' → ' . Permissions::label($role));
         View::flash('succes', 'Rôle mis à jour.');
         header('Location: /index.php?r=utilisateurs');
         exit;
@@ -258,6 +263,7 @@ class UtilisateurController
 
         Utilisateur::updateInfo((int) $cible['id'], $nom, $email);
 
+        AuditLog::logAdmin($user, 'modification_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom'] . ' → ' . $nom);
         View::flash('succes', 'Utilisateur modifié.');
         header('Location: /index.php?r=utilisateurs');
         exit;
@@ -310,6 +316,7 @@ class UtilisateurController
         }
 
         Utilisateur::setActive((int) $cible['id'], false);
+        AuditLog::logAdmin($user, 'desactivation_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom']);
         View::flash('succes', 'Compte désactivé. Il ne peut plus se connecter mais reste visible et peut être réactivé.');
         header('Location: /index.php?r=utilisateurs');
         exit;
@@ -333,6 +340,7 @@ class UtilisateurController
         }
 
         Utilisateur::setActive((int) $cible['id'], true);
+        AuditLog::logAdmin($user, 'reactivation_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom']);
         View::flash('succes', 'Compte réactivé.');
         header('Location: /index.php?r=utilisateurs');
         exit;
@@ -375,14 +383,15 @@ class UtilisateurController
         }
 
         $motDePasse = $_POST['mot_de_passe'] ?? '';
-        if (strlen($motDePasse) < 6) {
-            View::flash('erreur', 'Le mot de passe doit contenir au moins 6 caractères.');
+        if (strlen($motDePasse) < 8) {
+            View::flash('erreur', 'Le mot de passe doit contenir au moins 8 caractères.');
             header('Location: /index.php?r=utilisateurs');
             exit;
         }
 
-        Utilisateur::updatePassword((int) $cible['id'], $motDePasse);
-        View::flash('succes', 'Mot de passe réinitialisé.');
+        Utilisateur::updatePassword((int) $cible['id'], $motDePasse, true);
+        AuditLog::logAdmin($user, 'reset_mot_de_passe_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom']);
+        View::flash('succes', 'Mot de passe réinitialisé. L\'utilisateur devra le changer à sa prochaine connexion.');
         header('Location: /index.php?r=utilisateurs');
         exit;
     }

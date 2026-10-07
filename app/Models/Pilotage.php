@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Core\Database;
+use App\Core\Icon;
 
 /**
  * Module Pilotage v2 — trois onglets (Vue générale / Activités / Collaborateurs).
@@ -198,7 +199,7 @@ class Pilotage
     }
 
     /** Palette stable (même couleur pour une même série d'un rendu à l'autre). */
-    public const PALETTE = ['#5036F5', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6', '#ec4899', '#14b8a6'];
+    public const PALETTE = ['#2D18FA', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6', '#ec4899', '#14b8a6'];
 
     public static function couleurPour(int $index): string
     {
@@ -518,6 +519,45 @@ class Pilotage
             return ['montant' => $taux > 0 ? $montant / $taux : null, 'convertible' => $taux > 0, 'taux' => $taux, 'taux_date' => $param['taux_date_maj'], 'devise_origine' => $origine];
         }
         return ['montant' => null, 'convertible' => false, 'taux' => null, 'taux_date' => null, 'devise_origine' => $origine];
+    }
+
+    /** Fusionne plusieurs listes « non convertis » ([devise => ['n'=>, 'total'=>]]) en une seule. */
+    public static function fusionnerNonConvertis(array ...$listes): array
+    {
+        $out = [];
+        foreach ($listes as $liste) {
+            foreach ($liste as $devise => $d) {
+                $out[$devise] = $out[$devise] ?? ['n' => 0, 'total' => 0.0];
+                $out[$devise]['n'] += (int) $d['n'];
+                $out[$devise]['total'] += (float) $d['total'];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Signal « montants non convertis » : un montant dont la devise ne peut pas
+     * être convertie vers la devise d'affichage est EXCLU du total (jamais
+     * additionné tel quel). Ce signal doit apparaître partout où un total est
+     * affiché, pour que l'utilisateur sache toujours qu'un montant est exclu.
+     */
+    public static function avertissementNonConvertis(array $nonConvertis): string
+    {
+        if (empty($nonConvertis)) {
+            return '';
+        }
+        $n = array_sum(array_column($nonConvertis, 'n'));
+        return '<div class="kpi-warn">' . Icon::svg('alert-triangle', 'icon', 12) . ' ' . $n . ' montant(s) non converti(s), exclu(s) du total</div>';
+    }
+
+    /** Version compacte pour une cellule de tableau. */
+    public static function noteNonConvertis(array $nonConvertis): string
+    {
+        if (empty($nonConvertis)) {
+            return '';
+        }
+        $n = array_sum(array_column($nonConvertis, 'n'));
+        return '<br><span class="cell-na">' . $n . ' non converti(s)</span>';
     }
 
     /**
@@ -881,7 +921,7 @@ class Pilotage
             ];
         }
         usort($rows, fn($a, $b) => $b['montant'] <=> $a['montant']);
-        return ['total' => $totalGeneral, 'lignes' => $rows];
+        return ['total' => $totalGeneral, 'lignes' => $rows, 'non_convertis' => self::fusionnerNonConvertis(...array_column($rows, 'non_convertis'))];
     }
 
     /** Cotations par statut (émises/acceptées/refusées/en attente) sur la période — pour le graphique dédié. */
@@ -1047,6 +1087,8 @@ class Pilotage
                 'commandes' => $nbCommandes,
                 'ventes_ht' => $aggVentes['total'],
                 'ventes_ht_agg' => $aggVentes,
+                'ventes_non_convertis' => $aggVentes['non_convertis'],
+                'marge_non_convertis' => $aggMarge['non_convertis'],
                 'marge' => $aggMarge['total'],
                 'marge_manquante' => $nbCommandes - count($data['marges']),
                 'marge_pct' => $aggVentes['total'] > 0 ? round($aggMarge['total'] / $aggVentes['total'] * 100, 1) : null,
@@ -1071,6 +1113,8 @@ class Pilotage
                 // Pourcentage global calculé à partir des totaux, PAS de la
                 // moyenne des pourcentages par ligne (exigence spec §3).
                 'marge_pct' => $totalVentes > 0 ? round($totalMarge / $totalVentes * 100, 1) : null,
+                'ventes_non_convertis' => self::fusionnerNonConvertis(...array_column($rows, 'ventes_non_convertis')),
+                'marge_non_convertis' => self::fusionnerNonConvertis(...array_column($rows, 'marge_non_convertis')),
             ],
         ];
     }
@@ -1236,20 +1280,9 @@ class Pilotage
             'commandes' => self::tendance((float) $tableau['total']['commandes'], (float) $tableauPrec['total']['commandes']),
         ];
 
-        // Évolution mensuelle PAR activité (courbes multiples, couleur stable par activité).
-        $debut = date('Y-m-01', strtotime('-5 months'));
-        $f = $filters;
-        $f['date_debut'] = $debut;
-        $f['date_fin'] = date('Y-m-d');
-        unset($f['activite']);
-        $lignesEvo = self::commandesConfirmees($user, $f);
-        $evolutionParActivite = self::evolutionParActivite($lignesEvo, $filters['devise'], $filialeIds, 6);
-
         return [
             'tableau' => $tableau,
             'tendances' => $tendances,
-            'activites_disponibles' => self::activitesConfigurees($lignesCommandes),
-            'evolution_par_activite' => $evolutionParActivite,
         ];
     }
 
@@ -1263,33 +1296,6 @@ class Pilotage
             }
         }
         return $activites;
-    }
-
-    private static function evolutionParActivite(array $lignes, string $devise, array $filialeIds, int $mois): array
-    {
-        $parActiviteMois = [];
-        foreach ($lignes as $l) {
-            $a = $l['activite'] !== '' ? $l['activite'] : 'Non renseigné';
-            $cle = substr((string) $l['commande_date'], 0, 7);
-            $parActiviteMois[$a][$cle] = $parActiviteMois[$a][$cle] ?? [];
-            $parActiviteMois[$a][$cle][] = ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
-        }
-
-        $moisCles = [];
-        for ($i = $mois - 1; $i >= 0; $i--) {
-            $moisCles[] = date('Y-m', strtotime("-$i months"));
-        }
-
-        $series = [];
-        foreach ($parActiviteMois as $activite => $parMois) {
-            $points = [];
-            foreach ($moisCles as $cle) {
-                $agg = self::agregerMontants($parMois[$cle] ?? [], $devise, $filialeIds);
-                $points[] = ['mois' => $cle, 'label' => self::libelleMois($cle), 'valeur' => $agg['total']];
-            }
-            $series[$activite] = $points;
-        }
-        return ['mois' => array_map(fn($c) => self::libelleMois($c), $moisCles), 'series' => $series];
     }
 
     // -------------------------------------------------------------------
@@ -1354,6 +1360,8 @@ class Pilotage
                 'couts_affectes' => null, // Non renseigné — aucune source de données (voir doc de méthode)
                 'contribution_nette' => null, // dépend des coûts -> non renseigné également
                 'transformation' => $transformationParResponsable[$rid] ?? null,
+                'ventes_non_convertis' => $aggVentes['non_convertis'],
+                'marge_non_convertis' => $aggMarge['non_convertis'],
             ];
             $totalVentes += $aggVentes['total'];
             $totalMarge += $aggMarge['total'];
@@ -1390,6 +1398,8 @@ class Pilotage
                 'marge_attribuee' => $totalMarge,
                 'couts_affectes' => null,
                 'contribution_nette' => null,
+                'ventes_non_convertis' => self::fusionnerNonConvertis(...array_column($lignes, 'ventes_non_convertis')),
+                'marge_non_convertis' => self::fusionnerNonConvertis(...array_column($lignes, 'marge_non_convertis')),
             ],
             'tendances' => [
                 'ventes_ht' => self::tendance($totalVentes, $ventesPrec['total']),

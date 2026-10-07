@@ -42,6 +42,11 @@ function navActive(string $path, string $prefix): string {
       <div class="section-label">Opérations</div>
       <a href="/index.php?r=demandes" class="<?= navActive($path, '/demandes') ?>"><?= Icon::svg('inbox') ?><span>Demandes</span></a>
       <a href="/index.php?r=dossiers" class="<?= navActive($path, '/dossiers') ?>"><?= Icon::svg('folder') ?><span>Dossiers</span></a>
+      <a href="/index.php?r=offres" class="<?= navActive($path, '/offres') ?>"><?= Icon::svg('tag') ?><span>Offres</span></a>
+      <a href="/index.php?r=comparateur" class="<?= navActive($path, '/comparateur') ?>"><?= Icon::svg('layers') ?><span>Comparateur</span></a>
+      <a href="/index.php?r=cotations" class="<?= navActive($path, '/cotations') ?>"><?= Icon::svg('file-text') ?><span>Cotations</span></a>
+      <a href="/index.php?r=commandes" class="<?= navActive($path, '/commandes') ?>"><?= Icon::svg('shopping-cart') ?><span>Commandes</span></a>
+      <a href="/index.php?r=factures" class="<?= navActive($path, '/factures') ?>"><?= Icon::svg('dollar-sign') ?><span>Factures</span></a>
       <a href="/index.php?r=clients" class="<?= navActive($path, '/clients') ?>"><?= Icon::svg('users') ?><span>Clients</span></a>
       <a href="/index.php?r=fournisseurs" class="<?= navActive($path, '/fournisseurs') ?>"><?= Icon::svg('truck') ?><span>Fournisseurs</span></a>
       <a href="/index.php?r=simulateur" class="<?= navActive($path, '/simulateur') ?>"><?= Icon::svg('sliders') ?><span>Simulateur de prix</span></a>
@@ -50,6 +55,10 @@ function navActive(string $path, string $prefix): string {
       <?php if (Permissions::isAdmin($currentUser['role'])): ?>
       <a href="/index.php?r=filiales" class="<?= navActive($path, '/filiales') ?>"><?= Icon::svg('building') ?><span>Filiales</span></a>
       <a href="/index.php?r=utilisateurs" class="<?= navActive($path, '/utilisateurs') ?>"><?= Icon::svg('user') ?><span>Utilisateurs &amp; accès</span></a>
+      <a href="/index.php?r=securite" class="<?= navActive($path, '/securite') ?>"><?= Icon::svg('lock') ?><span>Sécurité</span></a>
+      <?php endif; ?>
+      <?php if (!empty($currentUser['is_super_admin'])): ?>
+      <a href="/index.php?r=admin-suivora" class="<?= navActive($path, '/admin-suivora') ?>"><?= Icon::svg('building') ?><span>Administration Suivora</span></a>
       <?php endif; ?>
       <?php if (Permissions::canVoirPilotage($currentUser['role'])): ?>
       <a href="/index.php?r=pilotage" class="<?= navActive($path, '/pilotage') ?>"><?= Icon::svg('bar-chart-2') ?><span>Pilotage</span></a>
@@ -65,6 +74,7 @@ function navActive(string $path, string $prefix): string {
       <div>
         <div class="ub-name"><?= View::e($currentUser['nom']) ?></div>
         <div class="role"><?= View::e(Permissions::label($currentUser['role'])) ?></div>
+        <a href="/index.php?r=mon-mot-de-passe" style="font-size:11.5px;color:#aab0c6;text-decoration:underline">Mon mot de passe</a>
       </div>
     </div>
     <form method="post" action="/index.php?r=logout">

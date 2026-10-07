@@ -23,6 +23,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
       <div class="kpi-label">Ventes HT attribuées <span class="info-tip" data-tip="Attribuées au responsable désigné du dossier (dossiers.responsable_id), jamais réparties entre plusieurs collaborateurs d'un même dossier.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($totaux['ventes_ht'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= Pilotage::badgeTendance($cd['tendances']['ventes_ht'] ?? null) ?></div>
+      <?= Pilotage::avertissementNonConvertis($totaux['ventes_non_convertis']) ?>
     </div>
   </div>
   <div class="kpi-card">
@@ -31,6 +32,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
       <div class="kpi-label">Marge attribuée</div>
       <div class="kpi-value"><?= Pilotage::fmt($totaux['marge_attribuee'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= Pilotage::badgeTendance($cd['tendances']['marge_attribuee'] ?? null) ?></div>
+      <?= Pilotage::avertissementNonConvertis($totaux['marge_non_convertis']) ?>
     </div>
   </div>
 </div>
@@ -48,8 +50,8 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
         <tr class="row-clickable" onclick="window.location='<?= pcDetailUrl($r['utilisateur_id'], $filters, $qs) ?>'">
           <td data-label="Collaborateur"><span class="avatar-with-name"><?= Icon::avatar($r['nom'], 32) ?><?= View::e($r['nom']) ?></span></td>
           <td data-label="Dossiers" class="num"><?= $r['dossiers'] ?></td>
-          <td data-label="Ventes HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></td>
-          <td data-label="Marge attribuée" class="num"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?></td>
+          <td data-label="Ventes HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>
+          <td data-label="Marge attribuée" class="num"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['marge_non_convertis']) ?></td>
           <td data-label="Coûts & contribution" class="num cell-na">Non renseigné</td>
           <td data-label="Transformation" class="num"><?= Pilotage::fmtPct($r['transformation']['taux'] ?? null) ?></td>
           <td class="col-arrow"><?= Icon::rowArrow() ?></td>

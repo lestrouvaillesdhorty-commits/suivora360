@@ -114,17 +114,17 @@ class PilotageController
 
         if ($onglet === 'general') {
             $vue = Pilotage::vueGenerale($user, $filters);
-            fputcsv($out, ['Activité', 'Commandes', 'Montant HT', 'Marge', 'Marge / ventes HT (%)'], ';', '"', '\\');
+            fputcsv($out, ['Activité', 'Commandes', 'Montant HT', 'Marge sur commandes confirmées', 'Marge / ventes HT (%)'], ';', '"', '\\');
             foreach ($vue['resultats_activite']['lignes'] as $r) {
-                fputcsv($out, [$r['activite'], $r['commandes'], $r['ventes_ht'], $r['marge'], $r['marge_pct']], ';', '"', '\\');
+                fputcsv($out, \App\Core\Csv::row([$r['activite'], $r['commandes'], $r['ventes_ht'], $r['marge'], $r['marge_pct']]), ';', '"', '\\');
             }
             $t = $vue['resultats_activite']['total'];
             fputcsv($out, ['Total', $t['commandes'], $t['ventes_ht'], $t['marge'], $t['marge_pct']], ';', '"', '\\');
         } elseif ($onglet === 'activites') {
             $data = Pilotage::activites($user, $filters);
-            fputcsv($out, ['Activité', 'Commandes', 'Ventes HT', 'Marge', 'Marge / ventes HT (%)', 'Part des ventes (%)'], ';', '"', '\\');
+            fputcsv($out, ['Activité', 'Commandes', 'Ventes HT', 'Marge sur commandes confirmées', 'Marge / ventes HT (%)', 'Part des ventes (%)'], ';', '"', '\\');
             foreach ($data['tableau']['lignes'] as $r) {
-                fputcsv($out, [$r['activite'], $r['commandes'], $r['ventes_ht'], $r['marge'], $r['marge_pct'], $r['part_ventes']], ';', '"', '\\');
+                fputcsv($out, \App\Core\Csv::row([$r['activite'], $r['commandes'], $r['ventes_ht'], $r['marge'], $r['marge_pct'], $r['part_ventes']]), ';', '"', '\\');
             }
             $t = $data['tableau']['total'];
             fputcsv($out, ['Total', $t['commandes'], $t['ventes_ht'], $t['marge'], $t['marge_pct'], 100], ';', '"', '\\');
@@ -133,12 +133,12 @@ class PilotageController
             fputcsv($out, ['Rôle du filtre', Pilotage::ROLES_COLLABORATEUR[$data['role']] ?? $data['role']], ';', '"', '\\');
             fputcsv($out, ['Collaborateur', 'Dossiers traités', 'Ventes HT attribuées', 'Marge attribuée', 'Coûts affectés', 'Contribution nette', 'Transformation (%)'], ';', '"', '\\');
             foreach ($data['lignes'] as $r) {
-                fputcsv($out, [
+                fputcsv($out, \App\Core\Csv::row([
                     $r['nom'], $r['dossiers'], $r['ventes_ht'], $r['marge_attribuee'],
                     $r['couts_affectes'] ?? 'Non renseigné',
                     $r['contribution_nette'] ?? 'Non renseigné',
                     $r['transformation']['taux'] ?? '—',
-                ], ';', '"', '\\');
+                ]), ';', '"', '\\');
             }
         }
 

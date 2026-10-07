@@ -11,7 +11,7 @@ $titres = ['general' => 'Vue générale', 'activites' => 'Activités', 'collabor
 <title>Pilotage — <?= View::e($titres[$onglet] ?? $onglet) ?> — Suivora360</title>
 <style>
   body { font-family: -apple-system, Arial, sans-serif; color: #1f2430; padding: 30px; }
-  h1 { font-size: 20px; margin: 0 0 4px; color: #5036F5; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #2D18FA; }
   .meta { font-size: 12px; color: #666; margin-bottom: 18px; }
   .meta span { margin-right: 18px; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
@@ -36,7 +36,7 @@ $titres = ['general' => 'Vue générale', 'activites' => 'Activités', 'collabor
 
 <?php if ($onglet === 'general'): $t = $vueGenerale['resultats_activite']; ?>
   <table>
-    <thead><tr><th>Activité</th><th class="num">Commandes</th><th class="num">Montant HT</th><th class="num">Marge</th><th class="num">Marge/Ventes HT</th></tr></thead>
+    <thead><tr><th>Activité</th><th class="num">Commandes</th><th class="num">Montant HT</th><th class="num">Marge (commandes confirmées)</th><th class="num">Marge/Ventes HT</th></tr></thead>
     <tbody>
       <?php foreach ($t['lignes'] as $r): ?>
       <tr><td><?= View::e($r['activite']) ?></td><td class="num"><?= $r['commandes'] ?></td><td class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></td><td class="num"><?= Pilotage::fmt($r['marge'], $filters['devise']) ?></td><td class="num"><?= Pilotage::fmtPct($r['marge_pct']) ?></td></tr>
@@ -44,6 +44,7 @@ $titres = ['general' => 'Vue générale', 'activites' => 'Activités', 'collabor
       <tr class="total-row"><td>Total</td><td class="num"><?= $t['total']['commandes'] ?></td><td class="num"><?= Pilotage::fmt($t['total']['ventes_ht'], $filters['devise']) ?></td><td class="num"><?= Pilotage::fmt($t['total']['marge'], $filters['devise']) ?></td><td class="num"><?= Pilotage::fmtPct($t['total']['marge_pct']) ?></td></tr>
     </tbody>
   </table>
+  <?php $nc = Pilotage::fusionnerNonConvertis($t['total']['ventes_non_convertis'], $t['total']['marge_non_convertis']); if ($nc): ?><p style="font-size:12px;color:#b45309">Attention : <?= array_sum(array_column($nc, 'n')) ?> montant(s) en devise non convertible sont exclus des totaux ci-dessus.</p><?php endif; ?>
 
 <?php elseif ($onglet === 'activites'): $t = $activitesData['tableau']; ?>
   <table>
@@ -55,6 +56,7 @@ $titres = ['general' => 'Vue générale', 'activites' => 'Activités', 'collabor
       <tr class="total-row"><td>Total</td><td class="num"><?= $t['total']['commandes'] ?></td><td class="num"><?= Pilotage::fmt($t['total']['ventes_ht'], $filters['devise']) ?></td><td class="num"><?= Pilotage::fmt($t['total']['marge'], $filters['devise']) ?></td><td class="num"><?= Pilotage::fmtPct($t['total']['marge_pct']) ?></td><td class="num">100%</td></tr>
     </tbody>
   </table>
+  <?php $nc = Pilotage::fusionnerNonConvertis($t['total']['ventes_non_convertis'], $t['total']['marge_non_convertis']); if ($nc): ?><p style="font-size:12px;color:#b45309">Attention : <?= array_sum(array_column($nc, 'n')) ?> montant(s) en devise non convertible sont exclus des totaux ci-dessus.</p><?php endif; ?>
 
 <?php else: ?>
   <p style="font-size:12px;color:#666">Coûts individuels et contribution nette réservés à la consultation à l'écran (rôles autorisés) — non inclus dans cet export imprimé au-delà des ventes/marges déjà visibles ci-dessous.</p>
@@ -66,6 +68,7 @@ $titres = ['general' => 'Vue générale', 'activites' => 'Activités', 'collabor
       <?php endforeach; ?>
     </tbody>
   </table>
+  <?php $nc = Pilotage::fusionnerNonConvertis($collaborateursData['totaux']['ventes_non_convertis'] ?? [], $collaborateursData['totaux']['marge_non_convertis'] ?? []); if ($nc): ?><p style="font-size:12px;color:#b45309">Attention : <?= array_sum(array_column($nc, 'n')) ?> montant(s) en devise non convertible sont exclus des totaux ci-dessus.</p><?php endif; ?>
 <?php endif; ?>
 
 <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 300); };</script>

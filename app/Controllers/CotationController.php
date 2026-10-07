@@ -77,7 +77,8 @@ class CotationController
             return;
         }
 
-        if (empty($_POST['client_id'])) {
+        // Client de la même filiale ; offre du même dossier (isolation entre entreprises).
+        if (!\App\Core\Tenant::clientDeFiliale($_POST['client_id'] ?? 0, (int) $dossier['filiale_id'])) {
             View::flash('erreur', 'Veuillez sélectionner un client.');
             header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/cotations/nouvelle');
             exit;
@@ -103,6 +104,7 @@ class CotationController
             }
         }
 
+        $_POST['offre_id'] = \App\Core\Tenant::offreDuDossier($_POST['offre_id'] ?? 0, (int) $dossier['id']);
         $cotationId = Cotation::create((int) $dossier['id'], (int) $dossier['filiale_id'], $_POST, $items, $cotationPrecedente);
 
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], $cotationPrecedente ? 'revision_cotation' : 'creation_cotation', 'cotation', $cotationId);

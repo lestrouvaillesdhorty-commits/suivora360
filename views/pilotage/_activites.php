@@ -19,14 +19,16 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <div class="kpi-label">Ventes HT <span class="info-tip" data-tip="Montant HT des cotations liées aux commandes confirmées sur la période, même population que la Vue générale.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($total['ventes_ht'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= Pilotage::badgeTendance($ad['tendances']['ventes_ht'] ?? null) ?></div>
+      <?= Pilotage::avertissementNonConvertis($total['ventes_non_convertis']) ?>
     </div>
   </div>
   <div class="kpi-card">
     <div class="kpi-icon green"><?= Icon::svg('pie-chart') ?></div>
     <div class="kpi-body">
-      <div class="kpi-label">Marge</div>
+      <div class="kpi-label">Marge sur commandes confirmées</div>
       <div class="kpi-value"><?= Pilotage::fmt($total['marge'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= Pilotage::badgeTendance($ad['tendances']['marge'] ?? null) ?></div>
+      <?= Pilotage::avertissementNonConvertis($total['marge_non_convertis']) ?>
     </div>
   </div>
   <div class="kpi-card">
@@ -55,10 +57,10 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <?= Pilotage::svgBarChart(
         array_column($lignes, 'activite'),
         ['Ventes HT' => array_column($lignes, 'ventes_ht'), 'Marge' => array_column($lignes, 'marge')],
-        ['Ventes HT' => '#5036F5', 'Marge' => '#14b8a6']
+        ['Ventes HT' => '#2D18FA', 'Marge' => '#14b8a6']
       ) ?>
       <div class="linechart-legend" style="margin-top:14px">
-        <span class="leg-item"><span class="dot" style="background:#5036F5"></span>Ventes HT</span>
+        <span class="leg-item"><span class="dot" style="background:#2D18FA"></span>Ventes HT</span>
         <span class="leg-item"><span class="dot" style="background:#14b8a6"></span>Marge</span>
       </div>
       <div class="kpi-note">Détail et accès par activité dans le tableau "Résultats par activité" ci-dessous.</div>
@@ -85,6 +87,7 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
           <?php endforeach; ?>
         </div>
       </div>
+      <?= Pilotage::avertissementNonConvertis($total['ventes_non_convertis']) ?>
     <?php endif; ?>
   </div>
 </div>
@@ -101,8 +104,8 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
         <tr class="row-clickable" onclick="window.location='<?= paDetailUrl('activite', $r['activite'], $filters, $qs) ?>'">
           <td data-label="Activité"><?= View::e($r['activite']) ?></td>
           <td data-label="Commandes" class="num"><?= $r['commandes'] ?></td>
-          <td data-label="Ventes HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></td>
-          <td data-label="Marge" class="num"><?= Pilotage::fmt($r['marge'], $filters['devise']) ?></td>
+          <td data-label="Ventes HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>
+          <td data-label="Marge" class="num"><?= Pilotage::fmt($r['marge'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['marge_non_convertis']) ?></td>
           <td data-label="Marge/Ventes HT" class="num"><?= Pilotage::fmtPct($r['marge_pct']) ?></td>
           <td data-label="Part des ventes" class="num"><?= $r['part_ventes'] ?> %</td>
           <td class="col-arrow"><?= Icon::rowArrow() ?></td>
@@ -111,8 +114,8 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
         <tr class="row-total">
           <td>Total</td>
           <td class="num"><?= $total['commandes'] ?></td>
-          <td class="num"><?= Pilotage::fmt($total['ventes_ht'], $filters['devise']) ?></td>
-          <td class="num"><?= Pilotage::fmt($total['marge'], $filters['devise']) ?></td>
+          <td class="num"><?= Pilotage::fmt($total['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($total['ventes_non_convertis']) ?></td>
+          <td class="num"><?= Pilotage::fmt($total['marge'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($total['marge_non_convertis']) ?></td>
           <td class="num"><?= Pilotage::fmtPct($total['marge_pct']) ?></td>
           <td class="num">100 %</td>
           <td></td>

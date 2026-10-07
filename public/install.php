@@ -44,6 +44,19 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
     $pdo->exec("CREATE TABLE IF NOT EXISTS organisations (
         id $id,
         nom VARCHAR(255) NOT NULL,
+        actif TINYINT(1) NOT NULL DEFAULT 1,
+        abonnement_offre VARCHAR(20) NULL,
+        abonnement_prix DECIMAL(12,2) NULL,
+        abonnement_devise VARCHAR(3) NULL,
+        abonnement_echeance DATE NULL,
+        abonnement_notes VARCHAR(255) NULL,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS tentatives_connexion (
+        id $id,
+        email VARCHAR(255) NOT NULL,
+        ip VARCHAR(45) NOT NULL DEFAULT '',
         created_at DATETIME NOT NULL
     )$engine");
 
@@ -62,6 +75,8 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         mot_de_passe_hash VARCHAR(255) NOT NULL,
         role VARCHAR(20) NOT NULL DEFAULT 'lecture_seule',
         actif TINYINT(1) NOT NULL DEFAULT 1,
+        is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
+        doit_changer_mdp TINYINT(1) NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL
     )$engine");
 

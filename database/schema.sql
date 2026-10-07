@@ -6,6 +6,12 @@
 CREATE TABLE IF NOT EXISTS organisations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(255) NOT NULL,
+    actif TINYINT(1) NOT NULL DEFAULT 1,
+    abonnement_offre VARCHAR(20) NULL,
+    abonnement_prix DECIMAL(12,2) NULL,
+    abonnement_devise VARCHAR(3) NULL,
+    abonnement_echeance DATE NULL,
+    abonnement_notes VARCHAR(255) NULL,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -24,6 +30,8 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
     mot_de_passe_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'lecture_seule',
     actif TINYINT(1) NOT NULL DEFAULT 1,
+    is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
+    doit_changer_mdp TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -482,4 +490,13 @@ CREATE TABLE IF NOT EXISTS dossier_budget_lignes (
     updated_by INT,
     updated_at DATETIME NOT NULL,
     UNIQUE KEY uq_budget_dossier_cat (dossier_id, categorie)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS tentatives_connexion (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    ip VARCHAR(45) NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL,
+    INDEX idx_tentatives_email (email, created_at),
+    INDEX idx_tentatives_ip (ip, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

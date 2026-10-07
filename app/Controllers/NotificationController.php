@@ -26,7 +26,9 @@ class NotificationController
 
         $user = Auth::user();
         $notification = Notification::find((int) $params['id']);
-        $destination = ($notification && !empty($notification['lien'])) ? $notification['lien'] : '/index.php?r=notifications';
+        // Le lien n'est suivi que si la notification est bien la mienne (sinon on ne révèle pas l'adresse interne d'autrui).
+        $estLaMienne = $notification && (int) $notification['utilisateur_id'] === (int) $user['id'];
+        $destination = ($estLaMienne && !empty($notification['lien'])) ? $notification['lien'] : '/index.php?r=notifications';
 
         if ($notification && (int) $notification['utilisateur_id'] === (int) $user['id']) {
             Notification::marquerLue((int) $notification['id'], (int) $user['id']);
