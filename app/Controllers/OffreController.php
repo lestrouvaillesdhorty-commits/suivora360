@@ -109,7 +109,7 @@ class OffreController
         }
         $avert = null;
         if (!empty($dossierOffre)) {
-            $avert = $this->joindreFichierOffre($dossierOffre, $user);
+            $avert = $this->joindreFichierOffre($dossierOffre, $user, (int) $offreId);
         }
         if ($avert) {
             View::flash('erreur', $avert);
@@ -210,7 +210,7 @@ class OffreController
         $offreId = Offre::create($consultation, $data, $items, (int) $user['id'], null);
 
         AuditLog::log($filialeId, (int) $user['id'], 'creation_offre', 'offre', $offreId, 'Saisie manuelle (' . Offre::SOURCES[$source] . ')');
-        $avert = $this->joindreFichierOffre($dossier, $user);
+        $avert = $this->joindreFichierOffre($dossier, $user, (int) $offreId);
         if ($avert) {
             View::flash('erreur', $avert);
         }
@@ -327,7 +327,7 @@ class OffreController
         Offre::modifier((int) $offre['id'], $data, $items);
         AuditLog::log((int) $offre['filiale_id'], (int) $user['id'], 'modification_offre', 'offre', (int) $offre['id'], $offre['reference']);
 
-        $avert = $this->joindreFichierOffre($ctx['dossier'], $user);
+        $avert = $this->joindreFichierOffre($ctx['dossier'], $user, (int) $offre['id']);
         if ($avert) {
             View::flash('erreur', $avert);
         }
@@ -341,7 +341,7 @@ class OffreController
      * dossier, catégorie « Offres fournisseurs », visibilité interne. Retourne un message d'avertissement
      * si le fichier n'a pas pu être conservé (l'offre, elle, est déjà enregistrée).
      */
-    private function joindreFichierOffre(array $dossier, array $user): ?string
+    private function joindreFichierOffre(array $dossier, array $user, int $offreId = 0): ?string
     {
         $f = $_FILES['fichier_offre'] ?? null;
         if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -367,6 +367,7 @@ class OffreController
             'uploaded_by' => (int) $user['id'],
             'categorie' => 'offres_fournisseurs',
             'visibilite' => 'interne',
+            'offre_id' => $offreId,
         ]);
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'ajout_piece_jointe', 'dossier', (int) $dossier['id'], $f['name']);
         return null;

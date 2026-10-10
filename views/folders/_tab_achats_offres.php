@@ -12,6 +12,7 @@ use App\Models\OffreItem;
 // jointe par offre n'existe encore (seules les consultations en ont, via
 // ConsultationPartage) — colonne affichée pour coller à la maquette mais
 // toujours vide pour l'instant ; à construire plus tard si besoin.
+$piecesParOffre = \App\Models\DossierPieceJointe::parOffre($piecesJointes ?? []);
 ?>
 <div class="info-note"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Un fournisseur retenu dans le comparateur ne signifie pas que le client a accepté la cotation — l'accord se formalise dans l'onglet Cotations client.</div>
 
@@ -53,7 +54,13 @@ use App\Models\OffreItem;
             </td>
             <td><?= $o['delai_livraison'] ? View::e($o['delai_livraison']) : '—' ?></td>
             <td><?= $o['validite_offre'] ? date('d/m/Y', strtotime($o['validite_offre'])) : '—' ?></td>
-            <td><span style="color:#9ca3af;font-style:italic">—</span></td>
+            <td data-label="Documents">
+              <?php $pjOffre = $piecesParOffre[(int) $o['id']] ?? []; ?>
+              <?php if (!$pjOffre): ?><span style="color:#9ca3af;font-style:italic">—</span>
+              <?php else: foreach ($pjOffre as $pj): ?>
+                <div style="margin-bottom:3px"><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>/pieces/<?= (int) $pj['id'] ?>/telecharger<?= \App\Core\Storage::estPrevisualisable((string) $pj['type_mime']) ? '&apercu=1' : '' ?>" target="_blank" rel="noopener" style="font-size:12px;word-break:break-all"><?= \App\Core\Icon::svg('paperclip', 'icon', 12) ?> <?= View::e(mb_strimwidth((string) $pj['nom_original'], 0, 28, '…')) ?></a></div>
+              <?php endforeach; endif; ?>
+            </td>
             <td>
               <?php if (\App\Core\Auth::canWrite() && $o['statut'] !== 'retenue'): ?><a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a><?php endif; ?>
               <a href="/index.php?r=consultations/<?= $o['consultation_id'] ?>/offres/nouvelle&version_de=<?= $o['id'] ?>" class="btn btn-sm btn-secondary">+ Nouvelle version</a>

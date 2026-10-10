@@ -65,6 +65,33 @@ class DossierPieceJointe
         return $row ?: null;
     }
 
+    /** La colonne offre_id existe-t-elle (migrate_v28 passée) ? */
+    public static function colonneOffre(): bool
+    {
+        static $ok = null;
+        if ($ok === null) {
+            try {
+                Database::connection()->query('SELECT offre_id FROM dossier_pieces_jointes LIMIT 1');
+                $ok = true;
+            } catch (\Throwable $e) {
+                $ok = false;
+            }
+        }
+        return $ok;
+    }
+
+    /** Fichiers du dossier regroupés par offre : [offreId => [pièces…]]. */
+    public static function parOffre(array $pieces): array
+    {
+        $res = [];
+        foreach ($pieces as $p) {
+            if (!empty($p['offre_id'])) {
+                $res[(int) $p['offre_id']][] = $p;
+            }
+        }
+        return $res;
+    }
+
     public static function create(array $data): int
     {
         $pdo = Database::connection();
@@ -83,7 +110,11 @@ class DossierPieceJointe
             self::visibiliteValide($data['visibilite'] ?? null),
             date('Y-m-d H:i:s'),
         ]);
-        return (int) $pdo->lastInsertId();
+        $id = (int) $pdo->lastInsertId();
+        if (!empty($data['offre_id']) && self::colonneOffre()) {
+            $pdo->prepare('UPDATE dossier_pieces_jointes SET offre_id = ? WHERE id = ?')->execute([(int) $data['offre_id'], $id]);
+        }
+        return $id;
     }
 
     public static function delete(int $id): void

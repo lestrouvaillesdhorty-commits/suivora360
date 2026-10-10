@@ -354,6 +354,7 @@ CREATE TABLE IF NOT EXISTS dossier_pieces_jointes (
     uploaded_by INT,
     categorie VARCHAR(30) NOT NULL DEFAULT 'autre', -- migrate_v19.php
     visibilite VARCHAR(10) NOT NULL DEFAULT 'interne', -- migrate_v19.php : 'interne' | 'client'
+    offre_id INT NULL, -- migrate_v28.php : fichier rattaché à une offre
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
