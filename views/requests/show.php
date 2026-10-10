@@ -171,10 +171,20 @@ $unitesArticle = ['Pièce', 'Carton', 'Palette', 'Sac', 'Kg', 'Tonne', 'Litre', 
       <div class="kv-row"><span class="label">Canal</span><span class="value"><?= View::e($demande['canal']) ?: 'Non renseigné' ?></span></div>
       <div class="kv-row"><span class="label">Reçue le</span><span class="value"><?= $demande['recue_le'] ? date('d/m/Y', strtotime($demande['recue_le'])) : 'Non renseigné' ?></span></div>
       <?php // [déplacé 05/10, report de la maquette] "Date souhaitée par le client" vit désormais dans le bandeau d'infos en haut de page. ?>
-      <?php if (!empty(trim($demande['message'] ?? ''))): ?>
+      <?php if (!empty(trim($demande['message'] ?? '')) || !empty($piecesJointes)): ?>
         <?php if (\App\Services\AiExtracteur::estDisponible()): ?>
         <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/extraction-ia" style="margin-top:12px;padding-top:12px;border-top:1px solid #eef0f4">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+          <?php if (!empty($piecesJointes)): ?>
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px">L'IA peut aussi lire les pièces jointes :</div>
+            <?php foreach ($piecesJointes as $pj): $lisible = \App\Services\AiExtracteur::estLisible((string) $pj['nom_original']); ?>
+              <label style="display:flex;gap:8px;align-items:center;font-weight:400;font-size:13px;margin-bottom:4px;<?= $lisible ? '' : 'color:#9ca3af' ?>">
+                <input type="checkbox" name="pj[]" value="<?= (int) $pj['id'] ?>" style="width:auto" <?= $lisible ? 'checked' : 'disabled' ?>>
+                <?= View::e($pj['nom_original']) ?><?= $lisible ? '' : ' — non lisible par l\'IA' ?>
+              </label>
+            <?php endforeach; ?>
+            <div style="font-size:12px;color:#888;margin:6px 0 10px">Formats lus : PDF, images (JPG, PNG), Excel (.xlsx), Word (.docx), texte. Les fichiers cochés sont envoyés au service IA ; vous relisez tout avant enregistrement.</div>
+          <?php endif; ?>
           <button type="submit" class="btn btn-sm btn-secondary">Extraire les articles avec l'IA</button>
         </form>
         <?php else: ?>
@@ -274,7 +284,7 @@ $unitesArticle = ['Pièce', 'Carton', 'Palette', 'Sac', 'Kg', 'Tonne', 'Litre', 
     </div>
 
     <div class="card">
-      <h2>Documents</h2>
+      <h2>Fichiers</h2>
       <?php if (empty($piecesJointes)): ?>
         <div class="empty-state">Aucune pièce jointe.</div>
       <?php else: ?>
@@ -289,7 +299,7 @@ $unitesArticle = ['Pièce', 'Carton', 'Palette', 'Sac', 'Kg', 'Tonne', 'Litre', 
               <td data-label="Par"><?= View::e($p['uploaded_by_nom']) ?></td>
               <td data-label="Actions" style="white-space:nowrap">
                 <?php if (Storage::estPrevisualisable($p['type_mime'])): ?>
-                  <a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary" title="Aperçu"><?= Icon::svg('eye', 'icon', 14) ?></a>
+                  <a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary" title="Aperçu"<?= \App\Core\Storage::attrsPhoto($p) ?>><?= Icon::svg('eye', 'icon', 14) ?></a>
                 <?php endif; ?>
                 <a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger" class="btn btn-sm btn-secondary" title="Télécharger"><?= Icon::svg('download', 'icon', 14) ?></a>
                 <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/supprimer" style="display:inline" onsubmit="return confirm('Supprimer cette pièce jointe ?');">

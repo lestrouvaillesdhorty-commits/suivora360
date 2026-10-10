@@ -9,7 +9,7 @@ $placeholderRecherche = 'Référence ou objet du dossier...';
 <?php if (empty($lignes)): ?>
   <div class="card"><div class="empty-state">Aucun dossier avec des offres pour ces critères.</div></div>
 <?php else: ?>
-<table class="responsive-cards">
+<table class="responsive-cards liste-cartes">
   <thead><tr><th>Dossier</th><th class="num">Offres</th><th>Décision</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $d): ?>

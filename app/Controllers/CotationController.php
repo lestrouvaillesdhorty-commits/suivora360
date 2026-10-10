@@ -28,6 +28,7 @@ class CotationController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
         $demande = Demande::find((int) $dossier['demande_id']);
         $clients = Client::allForFiliale((int) $dossier['filiale_id']);
@@ -76,6 +77,7 @@ class CotationController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
         // Client de la même filiale ; offre du même dossier (isolation entre entreprises).
         if (!\App\Core\Tenant::clientDeFiliale($_POST['client_id'] ?? 0, (int) $dossier['filiale_id'])) {

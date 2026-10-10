@@ -5,7 +5,7 @@
 <div class="subtitle">Dossier <?= View::e($dossier['reference']) ?></div>
 
 <div class="card" style="max-width:600px">
-  <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/factures">
+  <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/factures" data-brouillon="facture-<?= (int) $dossier['id'] ?>">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <?php if ($commande): ?><input type="hidden" name="commande_id" value="<?= $commande['id'] ?>"><?php endif; ?>
 

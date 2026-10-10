@@ -120,6 +120,81 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['action'] ?? '') === 'mig
             $log[] = 'OK (déjà présente) — table tentatives_connexion';
         }
 
+        // --- Module Clients (07/10) : relation, responsable, devise préférée, contact principal ---
+        foreach ([
+            'relation' => "VARCHAR(10) NOT NULL DEFAULT 'client'",
+            'responsable_id' => 'INT NULL',
+            'devise_preferee' => 'VARCHAR(10) NULL',
+            'contact_prenom' => 'VARCHAR(100) NULL',
+            'contact_nom' => 'VARCHAR(100) NULL',
+        ] as $col => $def) {
+            if (!colonneExiste($pdo, $driver, 'clients', $col)) {
+                $pdo->exec("ALTER TABLE clients ADD COLUMN $col $def");
+                $log[] = "CRÉÉE — colonne clients.$col";
+            } else {
+                $log[] = "OK (déjà présente) — colonne clients.$col";
+            }
+        }
+        // Séparation « relation commerciale » (prospect / client) et « statut » (actif / inactif) :
+        // l'ancien statut « prospect » devient relation = prospect + statut actif. Aucune autre donnée modifiée.
+        $n = $pdo->exec("UPDATE clients SET relation = 'prospect', statut = 'actif' WHERE statut = 'prospect' AND relation = 'client'");
+        $log[] = 'Relation reprise de l\'ancien statut « prospect » : ' . (int) $n . ' client(s)';
+
+        $engine = $driver === 'mysql' ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : '';
+        if (!tableExiste($pdo, $driver, 'client_contacts')) {
+            $pdo->exec('CREATE TABLE client_contacts (
+                id ' . Database::idColumnType() . ',
+                client_id INT NOT NULL,
+                prenom VARCHAR(100) NOT NULL DEFAULT \'\',
+                nom VARCHAR(100) NOT NULL DEFAULT \'\',
+                fonction VARCHAR(100) NOT NULL DEFAULT \'\',
+                email VARCHAR(255) NOT NULL DEFAULT \'\',
+                telephone VARCHAR(50) NOT NULL DEFAULT \'\',
+                actif TINYINT(1) NOT NULL DEFAULT 1,
+                created_at DATETIME NOT NULL
+            )' . $engine);
+            $pdo->exec('CREATE INDEX idx_client_contacts_client ON client_contacts (client_id)');
+            $log[] = 'CRÉÉE — table client_contacts (contacts supplémentaires)';
+        } else {
+            $log[] = 'OK (déjà présente) — table client_contacts';
+        }
+        if (!tableExiste($pdo, $driver, 'client_adresses')) {
+            $pdo->exec('CREATE TABLE client_adresses (
+                id ' . Database::idColumnType() . ',
+                client_id INT NOT NULL,
+                type VARCHAR(15) NOT NULL DEFAULT \'livraison\',
+                libelle VARCHAR(100) NOT NULL DEFAULT \'\',
+                adresse VARCHAR(255) NOT NULL DEFAULT \'\',
+                code_postal VARCHAR(20) NOT NULL DEFAULT \'\',
+                ville VARCHAR(100) NOT NULL DEFAULT \'\',
+                pays VARCHAR(100) NOT NULL DEFAULT \'\',
+                par_defaut TINYINT(1) NOT NULL DEFAULT 0,
+                actif TINYINT(1) NOT NULL DEFAULT 1,
+                created_at DATETIME NOT NULL
+            )' . $engine);
+            $pdo->exec('CREATE INDEX idx_client_adresses_client ON client_adresses (client_id)');
+            $log[] = 'CRÉÉE — table client_adresses (adresses de facturation / livraison supplémentaires)';
+        } else {
+            $log[] = 'OK (déjà présente) — table client_adresses';
+        }
+        if (!tableExiste($pdo, $driver, 'client_pieces_jointes')) {
+            $pdo->exec('CREATE TABLE client_pieces_jointes (
+                id ' . Database::idColumnType() . ',
+                client_id INT NOT NULL,
+                categorie VARCHAR(30) NOT NULL DEFAULT \'autre\',
+                nom_original VARCHAR(255) NOT NULL,
+                nom_fichier VARCHAR(255) NOT NULL,
+                taille INT NOT NULL DEFAULT 0,
+                type_mime VARCHAR(100) NOT NULL DEFAULT \'\',
+                uploaded_by INT,
+                created_at DATETIME NOT NULL
+            )' . $engine);
+            $pdo->exec('CREATE INDEX idx_client_pj_client ON client_pieces_jointes (client_id)');
+            $log[] = 'CRÉÉE — table client_pieces_jointes (documents du client)';
+        } else {
+            $log[] = 'OK (déjà présente) — table client_pieces_jointes';
+        }
+
         $email = strtolower(trim((string) ($_POST['email_admin'] ?? '')));
         if ($email !== '') {
             $stmt = $pdo->prepare('SELECT id, nom, actif FROM utilisateurs WHERE LOWER(email) = ?');
@@ -164,7 +239,7 @@ li.err { color: #9b1c1c; }
 <div class="card">
 <h1>Migration V21 — Administration multi-entreprises, sécurité de connexion, abonnements</h1>
 <p style="font-size:14px;color:#555">
-Ajoute des colonnes (<code>organisations.actif</code>, <code>utilisateurs.is_super_admin</code>, <code>utilisateurs.doit_changer_mdp</code>, <code>organisations.abonnement_*</code>) et la table <code>tentatives_connexion</code>. Ne modifie <strong>aucune donnée existante</strong> (toutes les entreprises restent actives) et peut être relancée sans risque.
+Ajoute des colonnes (<code>organisations.actif</code>, <code>utilisateurs.is_super_admin</code>, <code>utilisateurs.doit_changer_mdp</code>, <code>organisations.abonnement_*</code>) les tables <code>tentatives_connexion</code>, <code>client_contacts</code>, <code>client_adresses</code>, <code>client_pieces_jointes</code> et de nouvelles colonnes du module Clients (<code>clients.relation</code>, <code>responsable_id</code>, <code>devise_preferee</code>…). Ne modifie <strong>aucune donnée existante</strong> (toutes les entreprises restent actives) et peut être relancée sans risque.
 </p>
 
 <?php if ($ran): ?>

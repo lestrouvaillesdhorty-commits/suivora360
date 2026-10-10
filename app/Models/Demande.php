@@ -81,6 +81,7 @@ class Demande
         'Dédouanement et transit',
         'Négoce international',
         'Représentation commerciale',
+        'Prestation de service',
         'Autre',
     ];
 
@@ -126,6 +127,12 @@ class Demande
     // Taille de page par défaut pour la liste des demandes (section 1 de la
     // refonte du 04/10 — "Tri explicite et pagination").
     public const PAR_PAGE = 20;
+
+    /** Sur téléphone, 10 lignes par page (moins de défilement). */
+    public static function parPage(): int
+    {
+        return preg_match('/Mobi|Android|iPhone/i', $_SERVER['HTTP_USER_AGENT'] ?? '') ? 10 : self::PAR_PAGE;
+    }
 
     public const TRIS = [
         'created_at' => 'Date de réception (défaut)',
@@ -247,7 +254,7 @@ class Demande
         $sql = "SELECT d.*, f.nom AS filiale_nom $where ORDER BY $orderBy";
         if ($pagination !== null) {
             $page = max(1, (int) ($pagination['page'] ?? 1));
-            $sql .= ' LIMIT ' . self::PAR_PAGE . ' OFFSET ' . (($page - 1) * self::PAR_PAGE);
+            $sql .= ' LIMIT ' . self::parPage() . ' OFFSET ' . (($page - 1) * self::parPage());
         }
 
         $stmt = Database::connection()->prepare($sql);

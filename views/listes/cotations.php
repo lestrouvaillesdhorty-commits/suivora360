@@ -13,7 +13,7 @@ $badges = ['brouillon' => 'gray', 'envoyee' => 'blue', 'acceptee' => 'green', 'r
 <?php if (empty($lignes)): ?>
   <div class="card"><div class="empty-state">Aucune cotation pour ces critères.</div></div>
 <?php else: ?>
-<table class="responsive-cards">
+<table class="responsive-cards liste-cartes">
   <thead><tr><th>Cotation</th><th>Dossier</th><th>Client</th><th class="num">Prix de vente</th><?php if ($voirMarges): ?><th class="num">Marge</th><?php endif; ?><th>Validité du devis</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $c): $expiree = $c['statut'] === 'envoyee' && $c['validite_devis'] && $c['validite_devis'] < date('Y-m-d'); ?>

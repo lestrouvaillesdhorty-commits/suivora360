@@ -70,6 +70,23 @@ class Permissions
     private const ROLES_GESTION_COTATIONS = ['proprietaire', 'admin_organisation', 'commercial', 'finance', 'achats'];
 
     /**
+     * [07/10, module Clients] Données financières d'un client (cotations
+     * acceptées, facturé, encaissé, reste à encaisser) et export de la liste
+     * des clients : réservés aux rôles qui gèrent la relation commerciale ou
+     * la finance. Les autres rôles ne voient pas l'onglet Finances.
+     */
+    private const ROLES_CLIENTS_FINANCE = ['proprietaire', 'admin_organisation', 'finance', 'commercial'];
+
+    /** Module Fournisseurs (07/10) : onglet Finances et export de la liste. */
+    private const ROLES_FOURNISSEURS_FINANCE = ['proprietaire', 'admin_organisation', 'finance', 'achats'];
+
+    /** Décision de qualification d'un fournisseur (la saisie de critères reste ouverte à tout rôle en écriture). */
+    private const ROLES_QUALIFICATION_FOURNISSEUR = ['proprietaire', 'admin_organisation', 'achats'];
+
+    /** [07/10] Bon de commande fournisseur : l'établir / le modifier / l'envoyer. Le consulter = rôles ayant accès aux finances fournisseur. */
+    private const ROLES_BON_COMMANDE_FOURNISSEUR = ['proprietaire', 'admin_organisation', 'achats'];
+
+    /**
      * Module Pilotage (analyse par période/activité/responsable) : expose la
      * valeur active et la marge prévisionnelle, données au même niveau de
      * sensibilité que la marge sur une Cotation — mêmes rôles que
@@ -129,6 +146,26 @@ class Permissions
     public static function canGererCotations(string $role): bool
     {
         return in_array($role, self::ROLES_GESTION_COTATIONS, true);
+    }
+
+    public static function canVoirFinancesClient(string $role): bool
+    {
+        return in_array($role, self::ROLES_CLIENTS_FINANCE, true);
+    }
+
+    public static function canVoirFinancesFournisseur(string $role): bool
+    {
+        return in_array($role, self::ROLES_FOURNISSEURS_FINANCE, true);
+    }
+
+    public static function canGererBonCommandeFournisseur(string $role): bool
+    {
+        return in_array($role, self::ROLES_BON_COMMANDE_FOURNISSEUR, true);
+    }
+
+    public static function canQualifierFournisseur(string $role): bool
+    {
+        return in_array($role, self::ROLES_QUALIFICATION_FOURNISSEUR, true);
     }
 
     public static function canVoirPilotage(string $role): bool

@@ -77,6 +77,63 @@ class Notification
         return $id;
     }
 
+
+    /**
+     * [08/10] Destinataires d'une notification liée à une filiale : utilisateurs actifs de
+     * l'organisation, ayant l'un des rôles donnés, qui ont accès à cette filiale.
+     */
+    public static function destinatairesFiliale(int $filialeId, array $roles, array $exclureIds = []): array
+    {
+        $filiale = Filiale::find($filialeId);
+        if (!$filiale || empty($roles)) {
+            return [];
+        }
+        $res = [];
+        foreach (Utilisateur::allForOrganisation((int) $filiale['organisation_id']) as $u) {
+            if ((int) ($u['actif'] ?? 1) !== 1 || !in_array($u['role'], $roles, true) || in_array((int) $u['id'], $exclureIds, true)) {
+                continue;
+            }
+            if (\App\Core\Permissions::seesAllFiliales($u['role']) || in_array($filialeId, Utilisateur::filialeIds((int) $u['id']), true)) {
+                $res[] = $u;
+            }
+        }
+        return $res;
+    }
+
+    /** Responsable du dossier s'il est actif, sinon propriétaires de la filiale. */
+    public static function destinatairesDossier(array $dossier, array $exclureIds = []): array
+    {
+        if (!empty($dossier['responsable_id'])) {
+            $u = Utilisateur::find((int) $dossier['responsable_id']);
+            if ($u && (int) ($u['actif'] ?? 1) === 1 && !in_array((int) $u['id'], $exclureIds, true)) {
+                return [$u];
+            }
+        }
+        return self::destinatairesFiliale((int) $dossier['filiale_id'], ['proprietaire'], $exclureIds);
+    }
+
+    /** Vrai si une notification identique (même type + entité) existe déjà depuis $jours jours. */
+    public static function existeRecente(int $utilisateurId, string $type, string $entiteType, int $entiteId, int $jours): bool
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT COUNT(*) FROM notifications WHERE utilisateur_id = ? AND type = ? AND entite_type = ? AND entite_id = ? AND created_at >= ?'
+        );
+        $stmt->execute([$utilisateurId, $type, $entiteType, $entiteId, date('Y-m-d H:i:s', time() - $jours * 86400)]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    /** Notifie plusieurs destinataires, sans jamais lever d'exception (best-effort). */
+    public static function notifierTous(array $destinataires, int $filialeId, string $type, string $titre, string $message, ?string $lien, string $entiteType, int $entiteId): void
+    {
+        foreach ($destinataires as $u) {
+            try {
+                self::notifier($u, $filialeId, $type, $titre, $message, $lien, $entiteType, $entiteId);
+            } catch (\Throwable $e) {
+                // une notification en échec ne doit jamais bloquer l'action métier
+            }
+        }
+    }
+
     public static function nonLuesCountFor(int $utilisateurId): int
     {
         $stmt = Database::connection()->prepare(

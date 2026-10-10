@@ -19,6 +19,9 @@ class DossierPieceJointe
         'cotations_client' => 'Cotations client',
         'commande_facturation' => 'Commande et facturation',
         'transport_douane' => 'Transport et douane',
+        'fiche_technique' => 'Fiches techniques',
+        'certificat' => 'Certificats (phytosanitaire, origine, conformité…)',
+        'rapport' => 'Rapports et contrôles',
         'autre' => 'Autres documents',
     ];
     public const VISIBILITES = [

@@ -14,8 +14,9 @@ use App\Models\ConsultationPartage;
 ?>
 <div class="info-note"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Une consultation envoyée n'est pas une offre reçue — le statut ne passe à « Réponse reçue » que lorsqu'une offre est enregistrée en face.</div>
 
-<div style="display:flex;justify-content:flex-end;margin:14px 0">
+<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:14px 0">
   <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/consultations/nouvelle" class="btn">+ Nouvelle consultation</a>
+  <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/offres/manuelle" class="btn btn-secondary">+ Saisir une offre (prix trouvé en ligne…)</a>
 </div>
 
 <?php if (empty($consultations)): ?>

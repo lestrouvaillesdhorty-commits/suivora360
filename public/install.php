@@ -77,6 +77,7 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         actif TINYINT(1) NOT NULL DEFAULT 1,
         is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
         doit_changer_mdp TINYINT(1) NOT NULL DEFAULT 0,
+        filiale_active_id INT NULL,
         created_at DATETIME NOT NULL
     )$engine");
 
@@ -180,6 +181,61 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         fonction_contact VARCHAR(100),
         notes TEXT,
         is_active TINYINT(1) NOT NULL DEFAULT 1,
+        relation VARCHAR(10) NOT NULL DEFAULT 'client',
+        responsable_id INT NULL,
+        devise_preferee VARCHAR(10) NULL,
+        contact_prenom VARCHAR(100) NULL,
+        contact_nom VARCHAR(100) NULL,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS client_contacts (
+        id $id,
+        client_id INT NOT NULL,
+        prenom VARCHAR(100) NOT NULL DEFAULT '',
+        nom VARCHAR(100) NOT NULL DEFAULT '',
+        fonction VARCHAR(100) NOT NULL DEFAULT '',
+        email VARCHAR(255) NOT NULL DEFAULT '',
+        telephone VARCHAR(50) NOT NULL DEFAULT '',
+        actif TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS client_adresses (
+        id $id,
+        client_id INT NOT NULL,
+        type VARCHAR(15) NOT NULL DEFAULT 'livraison',
+        libelle VARCHAR(100) NOT NULL DEFAULT '',
+        adresse VARCHAR(255) NOT NULL DEFAULT '',
+        code_postal VARCHAR(20) NOT NULL DEFAULT '',
+        ville VARCHAR(100) NOT NULL DEFAULT '',
+        pays VARCHAR(100) NOT NULL DEFAULT '',
+        par_defaut TINYINT(1) NOT NULL DEFAULT 0,
+        actif TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS client_pieces_jointes (
+        id $id,
+        client_id INT NOT NULL,
+        categorie VARCHAR(30) NOT NULL DEFAULT 'autre',
+        nom_original VARCHAR(255) NOT NULL,
+        nom_fichier VARCHAR(255) NOT NULL,
+        taille INT NOT NULL DEFAULT 0,
+        type_mime VARCHAR(100) NOT NULL DEFAULT '',
+        uploaded_by INT,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS client_portail_liens (
+        id $id,
+        client_id INT NOT NULL,
+        token VARCHAR(64) NOT NULL UNIQUE,
+        expire_le DATETIME NOT NULL,
+        revoque_le DATETIME NULL,
+        nb_acces INT NOT NULL DEFAULT 0,
+        dernier_acces DATETIME NULL,
+        cree_par INT NULL,
         created_at DATETIME NOT NULL
     )$engine");
 
@@ -210,6 +266,24 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         note_conformite TINYINT,
         note_engagements TINYINT,
         notes TEXT,
+        nom_commercial VARCHAR(255),
+        types_partenaire VARCHAR(255),
+        specialites VARCHAR(500),
+        activites VARCHAR(255),
+        code_postal VARCHAR(20),
+        siret VARCHAR(60),
+        tva VARCHAR(60),
+        contact_prenom VARCHAR(100),
+        contact_nom VARCHAR(100),
+        devises_proposees VARCHAR(100),
+        conditions_paiement VARCHAR(30),
+        delai_indicatif VARCHAR(100),
+        conditions_livraison VARCHAR(255),
+        responsable_id INT,
+        origine_contact VARCHAR(100),
+        qualification VARCHAR(15) NOT NULL DEFAULT 'a_qualifier',
+        reexamen_le DATE,
+        client_id INT,
         is_active TINYINT(1) NOT NULL DEFAULT 1,
         created_at DATETIME NOT NULL
     )$engine");
@@ -223,7 +297,102 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         taille INT NOT NULL DEFAULT 0,
         type_mime VARCHAR(100),
         uploaded_by INT,
+        expire_le DATE,
         created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS fournisseur_contacts (
+        id $id,
+        fournisseur_id INT NOT NULL,
+        prenom VARCHAR(100) NOT NULL DEFAULT '',
+        nom VARCHAR(100) NOT NULL DEFAULT '',
+        fonction VARCHAR(100) NOT NULL DEFAULT '',
+        email VARCHAR(255) NOT NULL DEFAULT '',
+        telephone VARCHAR(50) NOT NULL DEFAULT '',
+        actif TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS fournisseur_adresses (
+        id $id,
+        fournisseur_id INT NOT NULL,
+        type VARCHAR(20) NOT NULL DEFAULT 'autre',
+        libelle VARCHAR(100) NOT NULL DEFAULT '',
+        adresse VARCHAR(255) NOT NULL DEFAULT '',
+        code_postal VARCHAR(20) NOT NULL DEFAULT '',
+        ville VARCHAR(100) NOT NULL DEFAULT '',
+        pays VARCHAR(100) NOT NULL DEFAULT '',
+        par_defaut TINYINT(1) NOT NULL DEFAULT 0,
+        actif TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS fournisseur_qualifications (
+        id $id,
+        fournisseur_id INT NOT NULL,
+        decision VARCHAR(15) NOT NULL,
+        criteres TEXT,
+        commentaire TEXT,
+        justificatifs VARCHAR(255),
+        evaluateur_id INT,
+        date_decision DATE NOT NULL,
+        date_reexamen DATE,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS fournisseur_evaluations (
+        id $id,
+        fournisseur_id INT NOT NULL,
+        dossier_id INT,
+        critere VARCHAR(60) NOT NULL,
+        resultat VARCHAR(15) NOT NULL,
+        commentaire TEXT,
+        piece_id INT,
+        evaluateur_id INT,
+        date_evaluation DATE NOT NULL,
+        created_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS bons_commande_fournisseur (
+        id $id,
+        filiale_id INT NOT NULL,
+        fournisseur_id INT NOT NULL,
+        dossier_id INT,
+        offre_id INT,
+        reference VARCHAR(30) NOT NULL,
+        statut VARCHAR(15) NOT NULL DEFAULT 'brouillon',
+        date_emission DATE NOT NULL,
+        date_livraison_souhaitee DATE,
+        devise VARCHAR(10) NOT NULL DEFAULT '',
+        incoterm VARCHAR(10) NOT NULL DEFAULT '',
+        lieu_livraison VARCHAR(255) NOT NULL DEFAULT '',
+        conditions_paiement VARCHAR(255) NOT NULL DEFAULT '',
+        reference_offre VARCHAR(60) NOT NULL DEFAULT '',
+        notes TEXT,
+        notes_internes TEXT,
+        fournisseur_nom VARCHAR(255) NOT NULL DEFAULT '',
+        fournisseur_adresse VARCHAR(500) NOT NULL DEFAULT '',
+        destinataire_nom VARCHAR(200) NOT NULL DEFAULT '',
+        destinataire_email VARCHAR(255) NOT NULL DEFAULT '',
+        montant_total DECIMAL(14,2) NOT NULL DEFAULT 0,
+        envoye_le DATETIME,
+        confirme_le DATETIME,
+        annule_le DATETIME,
+        annule_motif VARCHAR(255),
+        created_by INT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
+    )$engine");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS bon_commande_fournisseur_lignes (
+        id $id,
+        bon_id INT NOT NULL,
+        designation VARCHAR(255) NOT NULL,
+        quantite DECIMAL(12,2),
+        unite VARCHAR(20) NOT NULL DEFAULT '',
+        prix_unitaire DECIMAL(14,2),
+        montant DECIMAL(14,2),
+        ordre INT NOT NULL DEFAULT 0
     )$engine");
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS parametres (
@@ -264,6 +433,9 @@ function createSchema(\PDO $pdo, string $driver, string $id): void
         priorite VARCHAR(20),
         echeance DATE,
         notes TEXT,
+        annule_motif VARCHAR(255) NULL,
+        annule_le DATETIME NULL,
+        annule_par INT NULL,
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL
     )$engine");

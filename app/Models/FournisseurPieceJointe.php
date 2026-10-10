@@ -14,8 +14,9 @@ class FournisseurPieceJointe
         'devis' => 'Devis',
         'catalogue' => 'Catalogue',
         'fiche_technique' => 'Fiche technique',
-        'certification' => 'Certification',
-        'document_legal' => 'Document légal',
+        'certification' => 'Certification / certificat',
+        'document_legal' => 'Document administratif',
+        'assurance' => 'Assurance',
         'facture' => 'Facture',
         'autre' => 'Autre',
     ];
@@ -43,11 +44,8 @@ class FournisseurPieceJointe
     public static function create(array $data): int
     {
         $pdo = Database::connection();
-        $stmt = $pdo->prepare(
-            'INSERT INTO fournisseur_pieces_jointes (fournisseur_id, categorie, nom_original, nom_fichier, taille, type_mime, uploaded_by, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
+        $cols = ['fournisseur_id', 'categorie', 'nom_original', 'nom_fichier', 'taille', 'type_mime', 'uploaded_by', 'created_at'];
+        $vals = [
             $data['fournisseur_id'],
             $data['categorie'] ?? 'autre',
             $data['nom_original'],
@@ -56,7 +54,14 @@ class FournisseurPieceJointe
             $data['type_mime'],
             $data['uploaded_by'],
             date('Y-m-d H:i:s'),
-        ]);
+        ];
+        // Échéance facultative (disponible après migrate_v23.php).
+        if (Fournisseur::schemaPret()) {
+            $cols[] = 'expire_le';
+            $vals[] = !empty($data['expire_le']) ? $data['expire_le'] : null;
+        }
+        $pdo->prepare('INSERT INTO fournisseur_pieces_jointes (' . implode(', ', $cols) . ') VALUES (' . implode(', ', array_fill(0, count($cols), '?')) . ')')
+            ->execute($vals);
         return (int) $pdo->lastInsertId();
     }
 
@@ -64,5 +69,25 @@ class FournisseurPieceJointe
     {
         $stmt = Database::connection()->prepare('DELETE FROM fournisseur_pieces_jointes WHERE id = ?');
         $stmt->execute([$id]);
+    }
+
+    /**
+     * État d'un document par rapport à son échéance. Un document SANS échéance n'a jamais
+     * d'alerte (une certification peut expirer, un catalogue non).
+     * @return array{0:string,1:string} [code, libellé]  code : aucune|valide|bientot|expire
+     */
+    public static function etatEcheance(?string $expireLe): array
+    {
+        if (empty($expireLe)) {
+            return ['aucune', ''];
+        }
+        $aujourdhui = date('Y-m-d');
+        if ($expireLe < $aujourdhui) {
+            return ['expire', 'Expiré le ' . date('d/m/Y', strtotime($expireLe))];
+        }
+        if ($expireLe <= date('Y-m-d', strtotime('+' . Fournisseur::JOURS_ALERTE_DOCUMENT . ' days'))) {
+            return ['bientot', 'À renouveler avant le ' . date('d/m/Y', strtotime($expireLe))];
+        }
+        return ['valide', 'Valable jusqu’au ' . date('d/m/Y', strtotime($expireLe))];
     }
 }

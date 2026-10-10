@@ -87,6 +87,8 @@ h2 { font-size: 16px; margin: 0 0 14px; }
 .btn:hover { background: var(--primary-dark); text-decoration: none; }
 .btn-secondary { background: #eef0f4; color: #333; }
 .btn-secondary:hover { background: #e2e4ea; }
+.btn-danger { background: #b91c1c; color: #fff; }
+.btn-danger:hover { background: #991b1b; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 
 .card { background: #fff; border-radius: 14px; padding: 20px 22px; box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 1px 1px rgba(16,24,40,.03); margin-bottom: 20px; border: 1px solid var(--border); }
@@ -190,6 +192,9 @@ textarea { resize: vertical; }
   background: #fff; border: 1px solid var(--border); padding: 8px 14px; border-radius: 10px;
 }
 .topbar .topbar-org svg { color: var(--primary); }
+.topbar .topbar-filiale { display: flex; align-items: center; gap: 8px; margin: 0; background: #f1efff; border: 1px solid #d9d4ff; padding: 5px 6px 5px 12px; border-radius: 10px; }
+.topbar .topbar-filiale label { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--primary); }
+.topbar .topbar-filiale select { width: auto; max-width: 200px; padding: 6px 10px; font-size: 13px; font-weight: 600; border-radius: 8px; background: #fff; }
 .topbar .topbar-right { display: flex; align-items: center; gap: 12px; }
 .topbar .bell-link {
   position: relative; color: #555; text-decoration: none; width: 38px; height: 38px; border-radius: 10px;
@@ -681,3 +686,197 @@ textarea { resize: vertical; }
 .filtres-securite { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 14px 16px; }
 .filtres-securite select, .filtres-securite input { width: auto; max-width: 100%; margin: 0; }
 .filtres-securite input[type=text] { flex: 1 1 200px; }
+
+/* ==========================================================================
+   [ajouté 08/10] Version mobile — éviter le débordement horizontal et les
+   longs défilements : cartes compactes en 2 colonnes, indicateurs 2×2,
+   onglets défilables, filtres repliés, bandeau du haut sur une ligne.
+   Tout ce bloc ne s'applique qu'aux écrans ≤ 768 px (le bureau est inchangé).
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Rien ne doit élargir la page (sinon le téléphone la dézoome) */
+  .content { overflow-x: clip; }
+  .content img, .content svg { max-width: 100%; }
+  .form-row, .form-row > *, .form-group, .card, .ft-panel { min-width: 0; }
+  .form-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 10px; }
+  input, select, textarea { max-width: 100%; min-width: 0; }
+
+  /* Rangées d'onglets : une seule ligne qui défile au doigt */
+  .prio-tabs, .form-tabs, .dos-tabs, .dos-onglets, .sub-tabs { overflow-x: auto; flex-wrap: nowrap; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .prio-tabs::-webkit-scrollbar, .form-tabs::-webkit-scrollbar, .dos-tabs::-webkit-scrollbar, .dos-onglets::-webkit-scrollbar { display: none; }
+  .prio-tab, .dos-tab, .ft-btn { flex-shrink: 0; }
+
+  /* Tableaux qui ne sont pas des cartes : défilement horizontal interne (pas de la page) */
+  .content table:not(.responsive-cards) { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Bandeau du haut : une ligne, sans empilement */
+  .topbar { flex-wrap: nowrap; gap: 8px; padding: 10px 12px; }
+  .topbar > div:first-child { min-width: 0; flex: 1; gap: 8px; }
+  .topbar .topbar-org { max-width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 7px 9px; font-size: 12.5px; }
+  .topbar .topbar-org svg { display: none; }
+  .topbar .topbar-filiale { min-width: 0; padding: 4px 6px; }
+  .topbar .topbar-filiale label { display: none; }
+  .topbar .topbar-filiale select { max-width: 130px; font-size: 12.5px; }
+  .topbar .topbar-right { gap: 8px; flex-shrink: 0; }
+
+  /* Titres et boutons d'en-tête : boutons côte à côte, plus petits */
+  .content h1 { font-size: 21px; }
+  .content .btn { padding: 8px 12px; font-size: 13px; }
+
+  /* Indicateurs : grille 2×2 compacte au lieu d'une pile de 4 cartes */
+  .kpi-row, .dash-kpi-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kpi-card { padding: 10px 12px; gap: 9px; align-items: center; }
+  .kpi-icon { width: 34px; height: 34px; border-radius: 9px; }
+  .kpi-icon svg { width: 17px; height: 17px; }
+  .kpi-card .kpi-label { font-size: 11.5px; line-height: 1.25; }
+  .kpi-card .kpi-value { font-size: 20px; }
+  .content .dos-tuiles { grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+  .content .dos-tuile { flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px; }
+  .content .dos-tuile .pastille { display: none; }
+  .content .dos-tuile .lib { font-size: 11.5px; }
+  .content .dos-tuile .val { font-size: 22px; }
+  .content .dos-tuile .aide { display: none; }
+  .scope-note { font-size: 11px; margin: 4px 0 8px; }
+
+  /* Filtres repliés : mobile.js ajoute le bouton « Plus de filtres » et marque les champs à cacher */
+  .filter-bar { padding: 10px 12px; }
+  .mob-cache { display: none !important; }
+  .btn-filtres { width: 100%; margin: 6px 0 10px; }
+  .filtres-mobile { margin-bottom: 8px !important; gap: 8px !important; }
+  .filtres-mobile .form-group, .filtres-mobile .champ, .filtres-mobile .f-group { flex: 1 1 100%; min-width: 0; }
+  .filtres-mobile input[type=text], .filtres-mobile input[type=search] { max-width: none !important; width: 100%; }
+
+  /* Pastilles de 3 chiffres (Clients, etc.) : 3 sur une ligne, compactes */
+  .grid-3:has(> .stat-tile) { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-tile { padding: 10px 12px; }
+  .stat-tile .value { font-size: 22px; }
+  .stat-tile .label { font-size: 11.5px; margin-top: 2px; }
+
+  /* Fiche dossier / liste dossiers : l'icône de dossier n'est pas utile sur téléphone et décalait le titre */
+  .dos-titre .puce { display: none !important; }
+
+  /* Cartes accordéon des fiches : le titre ouvre/ferme la carte (mobile.js) */
+  .card.acc > h2:first-child { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; margin-bottom: 0; }
+  .card.acc > h2:first-child::after { content: ''; width: 8px; height: 8px; border-right: 2px solid #888; border-bottom: 2px solid #888; transform: rotate(45deg); margin-right: 4px; transition: transform .15s; flex-shrink: 0; }
+  .card.acc.acc-ferme > h2:first-child::after { transform: rotate(-45deg); }
+  .card.acc.acc-ferme > *:not(h2:first-child) { display: none !important; }
+  .card.acc:not(.acc-ferme) > h2:first-child { margin-bottom: 10px; }
+  .card.acc { padding-top: 14px; padding-bottom: 14px; }
+
+  /* Listes en cartes : 2 colonnes, libellé minuscule au-dessus, pas de colonne « Actions » */
+  table.responsive-cards { background: transparent; }
+  table.responsive-cards tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; padding: 10px 12px; margin-bottom: 8px; background: #fff; }
+  table.responsive-cards td { padding: 3px 0; text-align: left !important; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+  table.responsive-cards td::before { display: block; float: none; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: #8a8fa3; margin-bottom: 1px; }
+  table.responsive-cards td:first-child, table.responsive-cards td:nth-child(2) { grid-column: 1 / -1; }
+  table.responsive-cards.liste-cartes td:first-child::before { display: none; }
+  table.responsive-cards td[data-label="Actions"], table.responsive-cards td[data-label=""] { display: none; }
+  table.responsive-cards td .badge { white-space: nowrap; }
+  table.responsive-cards td.mob-vide { display: none; }
+  table.responsive-cards td:has(.btn) { grid-column: 1 / -1; }
+  table.responsive-cards td .btn { white-space: normal; }
+}
+@media (max-width: 480px) {
+  /* Les indicateurs restent en 2×2 (la règle à 480 px les empilait) */
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* [08/10] mobile : filtres sur une ligne + suite des listes */
+@media (max-width: 768px) {
+  form.filtres-mobile { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+  form.filtres-mobile > .mob-recherche { flex: 1 1 100%; margin-bottom: 0; }
+  form.filtres-mobile > .btn, form.filtres-mobile > button { flex: 1 1 0; width: auto; margin: 0; }
+  form.filtres-mobile > .btn-filtres-in { order: 5; }
+  .btn-suite { width: 100%; margin: 2px 0 12px; }
+  table.responsive-cards.liste-cartes td:nth-child(2)::before { display: none; }
+  table.responsive-cards tr.mob-cache { display: none; }
+}
+
+@media (max-width: 768px) {
+  form.filtres-mobile > .champ:has(button[type=submit]), form.filtres-mobile > div:has(> button[type=submit]) { flex: 1 1 0; min-width: 0; margin: 0; }
+  form.filtres-mobile > .champ:has(button[type=submit]) .btn, form.filtres-mobile > div:has(> button[type=submit]) .btn { width: 100%; justify-content: center; }
+  form.filtres-mobile > .btn-filtres-in { margin: 0; }
+}
+
+@media (max-width: 768px) {
+  .filter-bar form:not(.filtres-mobile) { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
+  .filter-bar form:not(.filtres-mobile) .f-group { min-width: 0; }
+  .filter-bar form:not(.filtres-mobile) .f-custom-dates.show, .filter-bar form:not(.filtres-mobile) .f-actions { grid-column: 1 / -1; }
+  .filter-bar .f-group .f-input-wrap select { padding-top: 8px; padding-bottom: 8px; font-size: 13px; }
+}
+
+/* [08/10] Tableau de bord : plus de grand vide sous « Actions prioritaires » (bureau) + suivi des opérations en grille (mobile) */
+@media (min-width: 769px) {
+  .dash-grid { grid-auto-flow: row; align-items: start; }
+  .dash-grid { grid-template-rows: auto repeat(6, auto); row-gap: 0; }
+  .dash-grid > .dg-ops { margin-bottom: 20px; }
+  .dash-grid > .dg-actions { grid-column: 1; grid-row: 2 / span 3; margin-bottom: 20px; }
+  .dash-grid > .dg-livraisons { grid-column: 1; grid-row: 5 / span 2; }
+  .dash-grid > .dg-echeances { grid-column: 2; grid-row: 2 / span 2; margin-bottom: 20px; }
+  .dash-grid > .dg-demandes { grid-column: 2; grid-row: 4 / span 3; }
+}
+@media (max-width: 768px) {
+  .dg-ops .ops-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .dg-ops .ops-sep { display: none; }
+  .dg-ops .ops-item { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; border: 1px solid #eef0f4; border-radius: 10px; background: #fafbff; min-width: 0; }
+  .dg-ops .ops-item .oi-icon { width: 28px; height: 28px; border-radius: 8px; }
+  .dg-ops .ops-item .oi-n { font-size: 18px; line-height: 1.1; }
+  .dg-ops .ops-item .oi-label { font-size: 11px; }
+  .dg-ops.ops-row { padding: 12px 14px; }
+}
+
+/* [08/10] Mobile : texte un peu plus grand (lisibilité) ; champs à 16 px pour éviter le zoom automatique de l'iPhone */
+@media (max-width: 768px) {
+  body { font-size: 15px; }
+  table.responsive-cards td { font-size: 14.5px; }
+  table.responsive-cards td::before { font-size: 11.5px; }
+  .subtitle, .card p, .card li { font-size: 14.5px; }
+  .card label, .form-group label { font-size: 13.5px; }
+  input[type=text], input[type=email], input[type=password], input[type=date], input[type=number], input[type=tel], input[type=search], textarea, select { font-size: 16px; }
+  input[type=text], input[type=email], input[type=password], input[type=date], input[type=number], input[type=tel], select { height: 40px; }
+  .badge { font-size: 12px; }
+  .btn { font-size: 14.5px; }
+}
+
+/* [08/10] Menu mobile : fond assombri cliquable pour refermer */
+.sidebar-fond { display: none; }
+@media (max-width: 768px) {
+  .sidebar-fond.visible { display: block; position: fixed; inset: 0; background: rgba(15, 17, 40, .45); z-index: 40; }
+}
+
+@media (max-width: 768px) {
+  /* lignes d'articles saisies à la main : champs pleine largeur, bouton de retrait explicite */
+  table.responsive-cards td input[type=text], table.responsive-cards td input[type=number], table.responsive-cards td select { width: 100% !important; }
+  table.responsive-cards td .btn-retirer-ligne::after, table.responsive-cards td .remove-item::after { content: ' Retirer la ligne'; }
+}
+
+/* [10/10] Téléphone sur mobile : indicatif au-dessus, numéro pleine largeur (le champ était écrasé) */
+@media (max-width: 768px) {
+  .tel-champ { grid-template-columns: 1fr !important; gap: 6px !important; }
+  .form-row > .form-group:has(.tel-champ), .form-group:has(.tel-champ) { grid-column: 1 / -1; }
+}
+
+/* ---- Galerie photos (galerie.js) ---- */
+.gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.gal-thumb{border:1px solid var(--border,#e3e6ec);background:#fff;border-radius:8px;padding:0;cursor:pointer;overflow:hidden;text-align:left;font:inherit}
+.gal-thumb img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#f1f3f6}
+.gal-thumb span{display:block;padding:5px 7px;font-size:12px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gal-thumb:hover,.gal-thumb:focus-visible{border-color:#2563eb;outline:none}
+.gal-ov{position:fixed;inset:0;z-index:2000;background:rgba(10,12,16,.92);display:flex;align-items:center;justify-content:center}
+.gal-ov[hidden]{display:none}
+.gal-fig{margin:0;max-width:86vw;max-height:92vh;display:flex;flex-direction:column;align-items:center;gap:8px}
+.gal-fig img{max-width:86vw;max-height:84vh;object-fit:contain;border-radius:4px}
+.gal-fig figcaption{color:#e6e8ec;font-size:14px;text-align:center}
+.gal-x,.gal-nav{position:absolute;border:0;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;border-radius:50%;line-height:1}
+.gal-x{top:12px;right:12px;width:44px;height:44px;font-size:28px}
+.gal-nav{top:50%;transform:translateY(-50%);width:48px;height:48px;font-size:34px}
+.gal-prev{left:10px}.gal-next{right:10px}
+@media (max-width:768px){
+  .gal-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  .gal-fig,.gal-fig img{max-width:100vw}
+  .gal-nav{width:42px;height:42px;font-size:28px}
+}
+
+.gal-cell{display:flex;flex-direction:column;gap:6px}
+.gal-act{display:flex;gap:6px;flex-wrap:wrap}
+.gal-act .btn{flex:1;text-align:center;padding:4px 6px;font-size:12px}

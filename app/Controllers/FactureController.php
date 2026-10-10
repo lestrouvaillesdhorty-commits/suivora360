@@ -21,6 +21,7 @@ class FactureController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
         $commande = Commande::findByDossier((int) $dossier['id']);
         // [ajouté 06/10, étape 3] Les versions remplacées partagent la même
@@ -52,6 +53,7 @@ class FactureController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
         // Cotation et commande liées : doivent appartenir à ce dossier (isolation entre entreprises).
         $_POST['cotation_id'] = \App\Core\Tenant::cotationDuDossier($_POST['cotation_id'] ?? 0, (int) $dossier['id']);

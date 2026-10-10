@@ -17,6 +17,7 @@ class View
         // Calculé pour chaque page (coût négligeable) afin que la cloche de
         // notifications du menu reste toujours à jour, sans que chaque
         // contrôleur ait à y penser.
+        if ($data['currentUser']) { \App\Services\Rappels::pourUtilisateur($data['currentUser']); }
         $data['notifNonLues'] = $data['currentUser'] ? Notification::nonLuesCountFor((int) $data['currentUser']['id']) : 0;
 
         extract($data);

@@ -87,6 +87,7 @@ class ComparateurController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
         if (!Auth::canValiderOffres()) {
             http_response_code(403);
             View::render('errors/403');

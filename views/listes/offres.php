@@ -13,7 +13,7 @@ $badges = ['recue' => 'blue', 'retenue' => 'green', 'rejetee' => 'gray', 'rempla
 <?php if (empty($lignes)): ?>
   <div class="card"><div class="empty-state">Aucune offre pour ces critères.</div></div>
 <?php else: ?>
-<table class="responsive-cards">
+<table class="responsive-cards liste-cartes">
   <thead><tr><th>Offre</th><th>Dossier</th><th>Fournisseur</th><th class="num">Montant</th><th>Incoterm</th><th>Délai</th><th>Validité</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $o): $expiree = $o['statut'] === 'recue' && $o['validite_offre'] && $o['validite_offre'] < date('Y-m-d'); ?>

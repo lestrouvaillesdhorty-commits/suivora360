@@ -22,7 +22,7 @@ $peutEcrire = Auth::canWrite();
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <input type="hidden" name="onglet_retour" value="documents">
     <div class="form-row" style="align-items:flex-end">
-      <div class="form-group" style="flex:1.6"><label>Fichier</label><input type="file" name="fichier" required></div>
+      <div class="form-group" style="flex:1.6"><label>Fichier ou photo</label><input type="file" name="fichier" required></div>
       <div class="form-group">
         <label>Catégorie</label>
         <select name="categorie">
@@ -65,7 +65,7 @@ $peutEcrire = Auth::canWrite();
           <td><span class="visibility-tag <?= ($p['visibilite'] ?? 'interne') === 'client' ? 'client' : 'interne' ?>"><?= View::e(DossierPieceJointe::VISIBILITES[$p['visibilite'] ?? 'interne'] ?? 'Interne') ?></span></td>
           <td>
             <?php if (\App\Core\Storage::estPrevisualisable($p['type_mime'])): ?>
-              <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary">Aperçu</a>
+              <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary"<?= \App\Core\Storage::attrsPhoto($p) ?>>Aperçu</a>
             <?php endif; ?>
             <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/telecharger" class="btn btn-sm btn-secondary">Télécharger</a>
             <?php if ($peutEcrire): ?>

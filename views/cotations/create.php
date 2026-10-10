@@ -7,6 +7,14 @@ $vNum = fn(string $champ) => ($cotationPrecedente[$champ] ?? null) !== null ? rt
 ?>
 <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" style="font-size:13px;color:#666">&larr; Retour au dossier <?= View::e($dossier['reference']) ?></a>
 
+<?php
+// [07/10, module Clients] Devise préférée du client de la demande : simple préremplissage d'une NOUVELLE cotation (jamais appliquée aux cotations existantes).
+$deviseClientDefaut = '';
+if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client::schemaPret()) {
+    $clientDevise = \App\Models\Client::find((int) $demande['client_id']);
+    $deviseClientDefaut = (string) ($clientDevise['devise_preferee'] ?? '');
+}
+?>
 <h1 style="margin-top:8px"><?= $cotationPrecedente ? 'Nouvelle version de la cotation ' . View::e($cotationPrecedente['reference']) . ' (v' . ((int) $cotationPrecedente['version'] + 1) . ')' : 'Nouvelle cotation client' ?></h1>
 <div class="subtitle">Dossier <?= View::e($dossier['reference']) ?> — <?= View::e($dossier['objet']) ?></div>
 
@@ -69,7 +77,7 @@ $vNum = fn(string $champ) => ($cotationPrecedente[$champ] ?? null) !== null ? rt
         <label>Devise</label>
         <select name="devise">
           <?php foreach (['EUR', 'USD', 'XOF', 'XAF', 'GBP', 'CNY'] as $d): ?>
-            <option <?= (($cotationPrecedente['devise'] ?? ($offreRetenue['devise'] ?? '')) === $d) ? 'selected' : '' ?>><?= $d ?></option>
+            <option <?= (($cotationPrecedente['devise'] ?? ($offreRetenue['devise'] ?? ($deviseClientDefaut ?? ''))) === $d) ? 'selected' : '' ?>><?= $d ?></option>
           <?php endforeach; ?>
         </select>
       </div>

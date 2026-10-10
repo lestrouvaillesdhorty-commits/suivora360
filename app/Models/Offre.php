@@ -161,6 +161,12 @@ class Offre
                 OffreItem::create($offreId, $item);
             }
 
+            // [10/10] Offre saisie manuellement : on garde la source (web, catalogue, téléphone…) et son lien.
+            if (!empty($data['source_type']) && self::colonnesSource()) {
+                $pdo->prepare('UPDATE offres SET source_type = ?, source_url = ?, source_date = ? WHERE id = ?')
+                    ->execute([$data['source_type'], trim($data['source_url'] ?? '') ?: null, ($data['source_date'] ?? '') ?: null, $offreId]);
+            }
+
             if ($offrePrecedenteId !== null) {
                 $pdo->prepare("UPDATE offres SET statut = 'remplacee', updated_at = ? WHERE id = ?")
                     ->execute([$now, $offrePrecedenteId]);
@@ -178,6 +184,89 @@ class Offre
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * [10/10] Correction d'une offre saisie (erreur de frappe, prix mis à jour…) SANS créer de nouvelle
+     * version : mêmes champs que create(), le fournisseur, la consultation et la référence ne changent pas.
+     */
+    public static function modifier(int $id, array $data, array $items): void
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'UPDATE offres SET montant_total = ?, devise = ?, incoterm_negocie = ?, delai_livraison = ?, validite_offre = ?, notes = ?,
+                  pays_origine = ?, lieu_depart = ?, quantite_min = ?, disponibilite = ?, poids_kg = ?, nombre_colis = ?, volume_m3 = ?,
+                  conformite_technique = ?, conditions_paiement = ?, garantie = ?,
+                  transport_montant = ?, assurance_montant = ?, emballage_montant = ?, douane_montant = ?, dedouanement_montant = ?, autres_frais_montant = ?,
+                  mode_transport = ?, perimetre_mission = ?, updated_at = ?
+                 WHERE id = ?'
+            )->execute([
+                (float) ($data['montant_total'] ?? 0),
+                trim($data['devise'] ?? ''),
+                trim($data['incoterm_negocie'] ?? ''),
+                trim($data['delai_livraison'] ?? ''),
+                ($data['validite_offre'] ?? '') ?: null,
+                trim($data['notes'] ?? ''),
+                trim($data['pays_origine'] ?? ''),
+                trim($data['lieu_depart'] ?? ''),
+                trim($data['quantite_min'] ?? ''),
+                trim($data['disponibilite'] ?? ''),
+                self::decimalOrNull($data['poids_kg'] ?? null),
+                self::intOrNull($data['nombre_colis'] ?? null),
+                self::decimalOrNull($data['volume_m3'] ?? null),
+                trim($data['conformite_technique'] ?? '') ?: null,
+                trim($data['conditions_paiement'] ?? '') ?: null,
+                trim($data['garantie'] ?? ''),
+                self::decimalOrNull($data['transport_montant'] ?? null),
+                self::decimalOrNull($data['assurance_montant'] ?? null),
+                self::decimalOrNull($data['emballage_montant'] ?? null),
+                self::decimalOrNull($data['douane_montant'] ?? null),
+                self::decimalOrNull($data['dedouanement_montant'] ?? null),
+                self::decimalOrNull($data['autres_frais_montant'] ?? null),
+                trim($data['mode_transport'] ?? '') ?: null,
+                trim($data['perimetre_mission'] ?? '') ?: null,
+                date('Y-m-d H:i:s'),
+                $id,
+            ]);
+            if (!empty($data['source_type']) && self::colonnesSource()) {
+                $pdo->prepare('UPDATE offres SET source_type = ?, source_url = ?, source_date = ? WHERE id = ?')
+                    ->execute([$data['source_type'], trim($data['source_url'] ?? '') ?: null, ($data['source_date'] ?? '') ?: null, $id]);
+            }
+            $pdo->prepare('DELETE FROM offre_items WHERE offre_id = ?')->execute([$id]);
+            foreach ($items as $item) {
+                if (trim($item['designation'] ?? '') !== '') {
+                    OffreItem::create($id, $item);
+                }
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    public const SOURCES = [
+        'web' => 'Site web / marketplace',
+        'catalogue' => 'Catalogue ou tarif',
+        'telephone' => 'Téléphone / WhatsApp',
+        'autre' => 'Autre',
+    ];
+
+    /** Les colonnes source_type / source_url existent-elles (migration v27 passée) ? */
+    public static function colonnesSource(): bool
+    {
+        static $ok = null;
+        if ($ok === null) {
+            try {
+                Database::connection()->query('SELECT source_type, source_url, source_date FROM offres LIMIT 1');
+                $ok = true;
+            } catch (\Throwable $e) {
+                $ok = false;
+            }
+        }
+        return $ok;
     }
 
     /**

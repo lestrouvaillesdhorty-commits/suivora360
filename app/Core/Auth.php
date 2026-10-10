@@ -55,6 +55,8 @@ class Auth
         // Nouvel identifiant de session à chaque connexion (anti-fixation de session).
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
+        // La filiale active est relue en base (dernière filiale utilisée).
+        unset($_SESSION['filiale_active']);
         return true;
     }
 
@@ -171,6 +173,26 @@ class Auth
     public static function canManageParametres(): bool
     {
         return Permissions::canManageParametres(self::role());
+    }
+
+    public static function canVoirFinancesClient(): bool
+    {
+        return Permissions::canVoirFinancesClient(self::role());
+    }
+
+    public static function canVoirFinancesFournisseur(): bool
+    {
+        return Permissions::canVoirFinancesFournisseur(self::role());
+    }
+
+    public static function canGererBonCommandeFournisseur(): bool
+    {
+        return Permissions::canGererBonCommandeFournisseur(self::role());
+    }
+
+    public static function canQualifierFournisseur(): bool
+    {
+        return Permissions::canQualifierFournisseur(self::role());
     }
 
     public static function canSeeMarges(): bool

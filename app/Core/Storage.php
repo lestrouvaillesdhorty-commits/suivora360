@@ -38,4 +38,16 @@ class Storage
     {
         return $typeMime === 'application/pdf' || str_starts_with($typeMime, 'image/');
     }
+
+    /**
+     * Attributs HTML à poser sur le lien « Aperçu » d'une pièce : si c'est une
+     * image, la galerie (galerie.js) l'ajoute aux miniatures et à la visionneuse.
+     */
+    public static function attrsPhoto(array $piece): string
+    {
+        if (!str_starts_with((string) ($piece['type_mime'] ?? ''), 'image/')) {
+            return '';
+        }
+        return ' data-galerie="1" data-nom="' . htmlspecialchars((string) ($piece['nom_original'] ?? ''), ENT_QUOTES, 'UTF-8') . '"';
+    }
 }

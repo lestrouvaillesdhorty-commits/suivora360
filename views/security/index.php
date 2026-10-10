@@ -55,17 +55,17 @@ $lienEntite = function (array $l): ?string {
 <?php else: ?>
 <div class="card" style="padding:0;overflow:hidden">
   <div class="table-scroll">
-  <table class="dtable">
+  <table class="dtable responsive-cards">
     <thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Élément</th><th>Détails</th><?php if (count($filiales) > 1): ?><th>Filiale</th><?php endif; ?></tr></thead>
     <tbody>
     <?php foreach ($evenements as $l): $lien = $lienEntite($l); ?>
       <tr>
-        <td style="white-space:nowrap"><?= date('d/m/Y H:i', strtotime($l['created_at'])) ?></td>
-        <td><?= View::e($l['utilisateur_nom'] ?? '—') ?></td>
-        <td><?= View::e(AuditLog::libelle($l['action'])) ?></td>
-        <td><?= View::e(AuditLog::ENTITES[$l['entite_type']] ?? $l['entite_type']) ?><?php if (!empty($l['entite_id'])): ?> <?= $lien ? '<a href="' . $lien . '">#' . (int) $l['entite_id'] . '</a>' : '#' . (int) $l['entite_id'] ?><?php endif; ?></td>
-        <td><?= View::e($l['details'] ?? '') ?></td>
-        <?php if (count($filiales) > 1): ?><td><?= View::e($l['filiale_nom'] ?? '—') ?></td><?php endif; ?>
+        <td data-label="Date" style="white-space:nowrap"><?= date('d/m/Y H:i', strtotime($l['created_at'])) ?></td>
+        <td data-label="Utilisateur"><?= View::e($l['utilisateur_nom'] ?? '—') ?></td>
+        <td data-label="Action"><?= View::e(AuditLog::libelle($l['action'])) ?></td>
+        <td data-label="Élément"><?= View::e(AuditLog::ENTITES[$l['entite_type']] ?? $l['entite_type']) ?><?php if (!empty($l['entite_id'])): ?> <?= $lien ? '<a href="' . $lien . '">#' . (int) $l['entite_id'] . '</a>' : '#' . (int) $l['entite_id'] ?><?php endif; ?></td>
+        <td data-label="Détails"><?= View::e($l['details'] ?? '') ?></td>
+        <?php if (count($filiales) > 1): ?><td data-label="Filiale"><?= View::e($l['filiale_nom'] ?? '—') ?></td><?php endif; ?>
       </tr>
     <?php endforeach; ?>
     </tbody>

@@ -40,6 +40,7 @@ $badges = [
               <td><span class="badge <?= $o['statut'] === 'retenue' ? 'badge-green' : ($o['statut'] === 'rejetee' ? 'badge-red' : ($o['statut'] === 'remplacee' ? 'badge-gray' : 'badge-blue')) ?>"><?= \App\Models\Offre::STATUTS[$o['statut']] ?? $o['statut'] ?></span></td>
               <td>
                 <?php if ($o['statut'] !== 'remplacee'): ?>
+                  <?php if (\App\Core\Auth::canWrite() && $o['statut'] !== 'retenue'): ?><a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a><?php endif; ?>
                   <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/offres/nouvelle&version_de=<?= $o['id'] ?>" class="btn btn-sm btn-secondary">+ Nouvelle version</a>
                 <?php endif; ?>
               </td>

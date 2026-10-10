@@ -37,7 +37,7 @@ class Filiale
      * incohérente existerait déjà (voir aussi UtilisateurController::store()/
      * updateAcces(), corrigés pour ne plus jamais écrire une telle ligne).
      */
-    public static function visibleFor(array $user): array
+    public static function accessiblesFor(array $user): array
     {
         if (Permissions::seesAllFiliales($user['role'])) {
             return self::allForOrganisation((int) $user['organisation_id']);
@@ -53,18 +53,67 @@ class Filiale
         return $stmt->fetchAll();
     }
 
+    /**
+     * [ajouté 08/10, demande de Marie Laure] Filiale active globale : celle que
+     * l'utilisateur a choisie dans la barre du haut. Mémorisée en session et
+     * en base (dernière filiale utilisée, retrouvée à la connexion). null =
+     * « Toutes les filiales ». Toujours validée contre les filiales auxquelles
+     * l'utilisateur a réellement accès.
+     */
+    public static function activeId(array $user): ?int
+    {
+        $accessibles = array_map(fn($f) => (int) $f['id'], self::accessiblesFor($user));
+        if (count($accessibles) < 2) {
+            return null;
+        }
+        if (array_key_exists('filiale_active', $_SESSION ?? [])) {
+            $id = (int) $_SESSION['filiale_active'];
+        } else {
+            $id = (int) ($user['filiale_active_id'] ?? 0);
+        }
+        return ($id > 0 && in_array($id, $accessibles, true)) ? $id : null;
+    }
+
+    /** Change la filiale active (0 = toutes) ; false si la filiale n'est pas accessible. */
+    public static function definirActive(array $user, int $filialeId): bool
+    {
+        if ($filialeId > 0 && !in_array($filialeId, array_map(fn($f) => (int) $f['id'], self::accessiblesFor($user)), true)) {
+            return false;
+        }
+        $_SESSION['filiale_active'] = $filialeId;
+        try {
+            $stmt = Database::connection()->prepare('UPDATE utilisateurs SET filiale_active_id = ? WHERE id = ?');
+            $stmt->execute([$filialeId > 0 ? $filialeId : null, $user['id']]);
+        } catch (\Throwable $e) {
+            // Colonne absente (migration v25 pas encore passée) : la session suffit.
+        }
+        return true;
+    }
+
+    /** Filiales visibles = filiales accessibles, limitées à la filiale active si une est choisie. */
+    public static function visibleFor(array $user): array
+    {
+        $liste = self::accessiblesFor($user);
+        $actif = self::activeId($user);
+        if ($actif === null) {
+            return $liste;
+        }
+        return array_values(array_filter($liste, fn($f) => (int) $f['id'] === $actif));
+    }
+
     public static function visibleIdsFor(array $user): array
     {
         return array_map(fn($f) => (int) $f['id'], self::visibleFor($user));
     }
 
+    /** Contrôle d'accès à un enregistrement précis : toutes les filiales accessibles, pas seulement l'active. */
     public static function userCanAccess(array $user, int $filialeId): bool
     {
         if (Permissions::seesAllFiliales($user['role'])) {
             $filiale = self::find($filialeId);
             return $filiale && (int) $filiale['organisation_id'] === (int) $user['organisation_id'];
         }
-        return in_array($filialeId, self::visibleIdsFor($user), true);
+        return in_array($filialeId, array_map(fn($f) => (int) $f['id'], self::accessiblesFor($user)), true);
     }
 
     public static function create(int $organisationId, string $nom): int

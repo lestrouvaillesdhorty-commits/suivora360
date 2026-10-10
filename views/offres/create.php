@@ -1,5 +1,10 @@
 <?php use App\Core\View; use App\Models\Demande; use App\Models\Client; use App\Models\Offre; use App\Models\Dossier; ?>
+<?php $manuel = $manuel ?? false; $edition = $edition ?? false; ?>
+<?php if ($manuel || $edition): ?>
+<a href="/index.php?r=dossiers/<?= (int) $dossier['id'] ?><?= $edition ? '&onglet=achats&sous=offres' : '&onglet=achats' ?>" style="font-size:13px;color:#666">&larr; Retour au dossier <?= View::e($dossier['reference']) ?></a>
+<?php else: ?>
 <a href="/index.php?r=consultations/<?= $consultation['id'] ?>" style="font-size:13px;color:#666">&larr; Retour à la consultation <?= View::e($consultation['reference']) ?></a>
+<?php endif; ?>
 
 <?php
 $typeDossier = $consultation['type_dossier'] ?? 'autre';
@@ -13,16 +18,62 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
 $offrePrecedente = $offrePrecedente ?? null;
 $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
 ?>
-<h1 style="margin-top:8px"><?= $offrePrecedente ? 'Nouvelle version (v' . ((int) $offrePrecedente['version'] + 1) . ') de l\'offre ' . View::e($offrePrecedente['reference']) : 'Enregistrer une offre reçue' ?></h1>
-<div class="subtitle"><?= View::e($libelleFournisseur) ?> : <?= View::e($consultation['fournisseur_nom']) ?> — Dossier <?= View::e($consultation['dossier_reference']) ?></div>
-<?php if ($offrePrecedente): ?>
+<h1 style="margin-top:8px"><?= $edition ? 'Modifier l\'offre ' . View::e($offrePrecedente['reference']) : ($manuel ? 'Saisir une offre manuellement' : ($offrePrecedente ? 'Nouvelle version (v' . ((int) $offrePrecedente['version'] + 1) . ') de l\'offre ' . View::e($offrePrecedente['reference']) : 'Enregistrer une offre reçue')) ?></h1>
+<div class="subtitle"><?php if ($manuel): ?>Prix trouvé sur internet, dans un catalogue ou par téléphone — sans consultation envoyée. Dossier <?= View::e($consultation['dossier_reference']) ?><?php else: ?><?= View::e($libelleFournisseur) ?> : <?= View::e($consultation['fournisseur_nom']) ?> — Dossier <?= View::e($consultation['dossier_reference']) ?><?php endif; ?></div>
+<?php if ($edition): ?>
+  <div class="info-note" style="margin-top:10px;margin-bottom:0">Vous corrigez l'offre en place (v<?= (int) $offrePrecedente['version'] ?>) : aucune nouvelle version n'est créée. Si le fournisseur a envoyé une offre révisée, utilisez plutôt « + Nouvelle version ».</div>
+<?php elseif ($offrePrecedente): ?>
   <div class="info-note" style="margin-top:10px;margin-bottom:0">Le formulaire est prérempli avec les valeurs de la v<?= (int) $offrePrecedente['version'] ?> — l'ancienne version sera conservée dans l'historique et marquée « Remplacée ».</div>
 <?php endif; ?>
 
 <div class="card" style="max-width:760px">
-  <form method="post" action="/index.php?r=consultations/<?= $consultation['id'] ?>/offres">
+  <form method="post" enctype="multipart/form-data" action="<?= $edition ? '/index.php?r=offres/' . (int) $offrePrecedente['id'] . '/modifier' : ($manuel ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '/offres/manuelle' : '/index.php?r=consultations/' . $consultation['id'] . '/offres') ?>">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-    <?php if ($offrePrecedente): ?>
+    <?php if (!$offrePrecedente || $edition): ?>
+    <div class="card" id="blocIa" style="background:#f6f8ff;box-shadow:none;border:1px solid #dbe3fb;padding:12px 14px;margin-bottom:14px">
+      <strong>Fichier de l'offre (PDF, photo, Excel, Word)</strong>
+      <div style="font-size:13px;color:#555;margin:4px 0 8px">Le fichier est <strong>enregistré dans les documents du dossier</strong> (Offres fournisseurs) quand vous enregistrez l'offre.<?php if (\App\Services\AiExtracteur::estDisponible()): ?> Vous pouvez aussi le faire lire par l'IA pour préremplir le formulaire : vous relisez et corrigez avant d'enregistrer.<?php endif; ?></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="file" name="fichier_offre" id="iaFichier" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt" style="max-width:100%">
+        <?php if (\App\Services\AiExtracteur::estDisponible()): ?><button type="button" class="btn btn-sm" id="iaLire">Lire avec l'IA</button><?php endif; ?>
+      </div>
+      <div id="iaMessage" style="font-size:13px;margin-top:8px"></div>
+    </div>
+    <?php endif; ?>
+    <?php if ($manuel): ?>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Source du prix *</label>
+        <select name="source_type" required>
+          <?php foreach (Offre::SOURCES as $code => $lib): ?><option value="<?= $code ?>"><?= View::e($lib) ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group"><label>Lien de la page (si site web)</label><input type="url" name="source_url" placeholder="https://…" maxlength="500"></div>
+    </div>
+    <div class="form-group" style="max-width:260px"><label>Prix consulté le *</label><input type="date" name="source_date" value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>" required></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Vendeur — fournisseur existant</label>
+        <select name="fournisseur_id">
+          <option value="">— Aucun (nouveau vendeur ci-contre) —</option>
+          <?php foreach ($fournisseurs as $f): ?><option value="<?= (int) $f['id'] ?>"><?= View::e($f['nom']) ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group"><label>…ou nouveau vendeur</label><input type="text" name="nouveau_vendeur" placeholder="Ex : Alibaba — Shenzhen Tech Co"></div>
+    </div>
+    <div class="info-note" style="margin-bottom:12px">Un nouveau vendeur est créé comme fournisseur « à qualifier ». Ne saisissez que ce que la source indique : laissez vide tout ce qui n'est pas précisé.</div>
+    <?php endif; ?>
+    <?php if ($edition): ?>
+      <div class="form-group"><label>Fournisseur</label><div><strong><?= View::e($consultation['fournisseur_nom'] ?? '') ?></strong> <span style="color:#888;font-size:12px">(non modifiable)</span></div></div>
+      <?php if (!empty($offrePrecedente['source_type'])): ?>
+      <div class="form-row">
+        <div class="form-group"><label>Source du prix</label>
+          <select name="source_type"><?php foreach (Offre::SOURCES as $code => $lib): ?><option value="<?= $code ?>" <?= $offrePrecedente['source_type'] === $code ? 'selected' : '' ?>><?= View::e($lib) ?></option><?php endforeach; ?></select></div>
+        <div class="form-group"><label>Lien de la page</label><input type="url" name="source_url" maxlength="500" value="<?= View::e((string) ($offrePrecedente['source_url'] ?? '')) ?>"></div>
+        <div class="form-group"><label>Prix consulté le</label><input type="date" name="source_date" value="<?= View::e((string) ($offrePrecedente['source_date'] ?? '')) ?>" max="<?= date('Y-m-d') ?>"></div>
+      </div>
+      <?php endif; ?>
+    <?php elseif ($offrePrecedente): ?>
       <input type="hidden" name="offre_precedente_id" value="<?= (int) $offrePrecedente['id'] ?>">
     <?php endif; ?>
 
@@ -137,8 +188,8 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
 
     <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e((string) $v('notes')) ?></textarea></div>
 
-    <button type="submit" class="btn">Enregistrer l'offre</button>
-    <a href="/index.php?r=consultations/<?= $consultation['id'] ?>" class="btn btn-secondary">Annuler</a>
+    <button type="submit" class="btn"><?= $edition ? 'Enregistrer les modifications' : 'Enregistrer l\'offre' ?></button>
+    <a href="<?= $edition ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '&onglet=achats&sous=offres' : ($manuel ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '&onglet=achats' : '/index.php?r=consultations/' . $consultation['id']) ?>" class="btn btn-secondary">Annuler</a>
   </form>
 </div>
 
@@ -174,4 +225,76 @@ document.getElementById('items-body').addEventListener('click', function (e) {
     e.target.closest('tr').remove();
   }
 });
+</script>
+
+<script>
+(function () {
+  var btn = document.getElementById('iaLire');
+  if (!btn) return;
+  var form = btn.closest('form'), msg = document.getElementById('iaMessage');
+  var token = <?= json_encode($csrfToken) ?>;
+  function marquer(el) { el.style.background = '#fff8dc'; }
+  function poser(nom, val) {
+    var el = form.querySelector('[name="' + nom + '"]');
+    if (!el || val === undefined || val === null || val === '') return false;
+    if (el.tagName === 'SELECT') {
+      var ok = false;
+      for (var i = 0; i < el.options.length; i++) {
+        if (el.options[i].value === String(val) || el.options[i].text === String(val)) { el.selectedIndex = i; ok = true; break; }
+      }
+      if (!ok) return false;
+    } else { el.value = val; }
+    marquer(el); return true;
+  }
+  btn.addEventListener('click', function () {
+    var f = document.getElementById('iaFichier').files[0];
+    if (!f) { msg.style.color = '#991b1b'; msg.textContent = 'Choisissez d\u2019abord un fichier.'; return; }
+    var fd = new FormData(); fd.append('csrf_token', token); fd.append('fichier', f);
+    btn.disabled = true; msg.style.color = '#555'; msg.textContent = 'Lecture en cours… (jusqu\u2019à une minute)';
+    fetch('/index.php?r=offres/extraire-ia', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        btn.disabled = false;
+        if (d.erreur) { msg.style.color = '#991b1b'; msg.textContent = d.erreur; return; }
+        var c = d.champs, n = 0;
+        Object.keys(c).forEach(function (k) {
+          if (k === 'articles' || k === 'fournisseur') return;
+          if (poser(k, c[k])) n++;
+        });
+        // Vendeur : fournisseur existant au nom proche, sinon nouveau vendeur (saisie manuelle seulement)
+        var sel = form.querySelector('select[name="fournisseur_id"]'), nv = form.querySelector('[name="nouveau_vendeur"]');
+        if (c.fournisseur && sel && nv && !sel.value) {
+          var cible = c.fournisseur.toLowerCase(), trouve = null;
+          for (var i = 1; i < sel.options.length; i++) {
+            var o = sel.options[i].text.toLowerCase();
+            if (o === cible || o.indexOf(cible) >= 0 || cible.indexOf(o) >= 0) { trouve = sel.options[i]; break; }
+          }
+          if (trouve) { sel.value = trouve.value; marquer(sel); } else { nv.value = c.fournisseur; marquer(nv); }
+          n++;
+        }
+        var tbody = document.getElementById('items-body'), tpl = document.getElementById('item-row-template');
+        if (c.articles && c.articles.length) {
+          Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function (tr) {
+            var des = tr.querySelector('[name="item_designation[]"]');
+            if (!des || !des.value.trim()) tr.remove();
+          });
+          c.articles.forEach(function (a) {
+            tbody.appendChild(tpl.content.cloneNode(true));
+            var tr = tbody.lastElementChild;
+            tr.querySelector('[name="item_designation[]"]').value = a.designation;
+            if (a.quantite !== null) tr.querySelector('[name="item_quantite[]"]').value = a.quantite;
+            if (a.prix_unitaire !== null) tr.querySelector('[name="item_prix_unitaire[]"]').value = a.prix_unitaire;
+            var u = tr.querySelector('[name="item_unite[]"]');
+            for (var i = 0; i < u.options.length; i++) { if (u.options[i].text.toLowerCase() === String(a.unite).toLowerCase()) { u.selectedIndex = i; break; } }
+            tr.querySelectorAll('input').forEach(marquer);
+          });
+          n += c.articles.length;
+        }
+        var det = form.querySelector('details'); if (det) det.open = true;
+        msg.style.color = '#166534';
+        msg.textContent = 'Formulaire prérempli (' + n + ' éléments, surlignés en jaune). Vérifiez chaque valeur avant d\u2019enregistrer.';
+      })
+      .catch(function () { btn.disabled = false; msg.style.color = '#991b1b'; msg.textContent = 'Lecture impossible, réessayez.'; });
+  });
+})();
 </script>

@@ -27,10 +27,10 @@
   <?php foreach ($filiales as $f): ?>
     <tr>
       <td>
-        <form method="post" action="/index.php?r=filiales/<?= $f['id'] ?>/renommer" style="display:flex;gap:6px;align-items:center;margin:0">
+        <form method="post" action="/index.php?r=filiales/<?= $f['id'] ?>/renommer" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
           <input type="text" name="nom" value="<?= View::e($f['nom']) ?>" style="max-width:220px" required>
-          <button type="submit" class="btn btn-sm btn-secondary">Renommer</button>
+          <button type="submit" class="btn btn-sm">Enregistrer</button>
         </form>
       </td>
       <td><?= date('d/m/Y', strtotime($f['created_at'])) ?></td>

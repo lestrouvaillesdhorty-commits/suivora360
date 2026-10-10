@@ -33,7 +33,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
   <button type="button" class="ft-btn" data-target="documents">Documents &amp; affectation</button>
 </div>
 
-<form method="post" action="<?= $actionUrl ?>" enctype="multipart/form-data" id="demandeForm">
+<form method="post" action="<?= $actionUrl ?>" enctype="multipart/form-data" id="demandeForm"<?= $estModification ? '' : ' data-brouillon="demande" data-brouillon-ajout="btnAjouterLigne"' ?>>
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
 
   <div class="detail-grid form-tabs-wrap" id="formTabsWrap">
@@ -41,6 +41,16 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
 
     <div class="card">
       <h2>Besoin</h2>
+      <div class="form-group">
+        <label>Activité *</label>
+        <select name="activite" id="activiteSelect" required>
+          <option value="">— Choisir —</option>
+          <?php foreach ($activiteListe as $a): ?>
+            <option <?= ($demande['activite'] ?? '') === $a ? 'selected' : '' ?>><?= View::e($a) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <?php if (!$estModification): ?><div style="font-size:12px;color:#888;margin-top:4px">Le formulaire s'adapte à l'activité : articles pour un achat, détails du transport, détails de la prestation.</div><?php endif; ?>
+      </div>
       <div class="form-group">
         <label>Objet *</label>
         <input type="text" name="objet" required value="<?= View::e($demande['objet'] ?? '') ?>">
@@ -85,7 +95,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
               data-filiale="<?= $c['filiale_id'] ?>"
               data-email="<?= View::e($c['email']) ?>"
               data-telephone="<?= View::e($c['telephone']) ?>"
-              <?= (string) ($demande['client_id'] ?? '') === (string) $c['id'] ? 'selected' : '' ?>>
+              <?= (string) ($demande['client_id'] ?? ($prefill['client_id'] ?? '')) === (string) $c['id'] ? 'selected' : '' ?>>
               <?= View::e($c['nom']) ?><?= View::e($c['filiale_nom'] ?? '') !== '' ? ' — ' . View::e($c['filiale_nom']) : '' ?>
             </option>
           <?php endforeach; ?>
@@ -120,17 +130,49 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eef0f4">
         <div style="font-size:12px;color:#888;margin-bottom:6px">Contact (si prospect / non enregistré) :</div>
         <div class="form-row">
-          <div class="form-group"><label>Nom</label><input type="text" name="expediteur_nom" id="expNom" value="<?= View::e($demande['expediteur_nom'] ?? '') ?>"></div>
-          <div class="form-group"><label>Entreprise</label><input type="text" name="expediteur_entreprise" value="<?= View::e($demande['expediteur_entreprise'] ?? '') ?>"></div>
+          <div class="form-group"><label>Nom</label><input type="text" name="expediteur_nom" id="expNom" value="<?= View::e($demande['expediteur_nom'] ?? ($prefill['expediteur_nom'] ?? '')) ?>"></div>
+          <div class="form-group"><label>Entreprise</label><input type="text" name="expediteur_entreprise" value="<?= View::e($demande['expediteur_entreprise'] ?? ($prefill['expediteur_entreprise'] ?? '')) ?>"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>E-mail</label><input type="email" name="expediteur_email" id="expEmail" value="<?= View::e($demande['expediteur_email'] ?? '') ?>"></div>
-          <div class="form-group"><label>Téléphone</label><input type="tel" name="expediteur_telephone" id="expTelephone" value="<?= View::e($demande['expediteur_telephone'] ?? '') ?>"></div>
+          <div class="form-group"><label>E-mail</label><input type="email" name="expediteur_email" id="expEmail" value="<?= View::e($demande['expediteur_email'] ?? ($prefill['expediteur_email'] ?? '')) ?>"></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" name="expediteur_telephone" id="expTelephone" value="<?= View::e($demande['expediteur_telephone'] ?? ($prefill['expediteur_telephone'] ?? '')) ?>"></div>
         </div>
       </div>
     </div>
 
-    <div class="card">
+
+    <?php if (!$estModification): ?>
+    <div class="card" data-activite-bloc="transport" style="display:none">
+      <h2>Détails du transport</h2>
+      <div class="form-row">
+        <div class="form-group"><label>Lieu d'enlèvement</label><input type="text" name="lieu_enlevement" placeholder="Adresse ou ville d'enlèvement"></div>
+        <div class="form-group"><label>Destination</label><input type="text" name="transport_destination" placeholder="Ville / pays de livraison"></div>
+      </div>
+      <div class="form-group"><label>Marchandises à transporter</label><input type="text" name="marchandises" placeholder="Nature des marchandises"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Poids estimé (kg)</label><input type="number" step="0.01" name="poids_estime"></div>
+        <div class="form-group"><label>Volume estimé (m³)</label><input type="number" step="0.01" name="volume_estime"></div>
+        <div class="form-group"><label>Mode souhaité</label>
+          <select name="transport_mode"><option value="">À préciser</option><?php foreach (['Maritime', 'Aérien', 'Routier', 'Ferroviaire', 'Multimodal'] as $m): ?><option><?= $m ?></option><?php endforeach; ?></select>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#888">Toute donnée inconnue reste « À préciser » — ne rien inventer.</div>
+    </div>
+
+    <div class="card" data-activite-bloc="prestation" style="display:none">
+      <h2>Détails de la prestation</h2>
+      <div class="form-group"><label>Nature du service demandé</label><input type="text" name="nature_service" placeholder="Ex : entretien de climatisation, traitement phytosanitaire…"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Type de prestation</label>
+          <select name="type_prestation_souhaite"><option value="">À préciser</option><?php foreach (\App\Models\Dossier::TYPES_PRESTATION_LABELS as $lib): ?><option><?= View::e($lib) ?></option><?php endforeach; ?></select>
+        </div>
+        <div class="form-group"><label>Site d'intervention</label><input type="text" name="site_intervention" placeholder="Adresse ou site concerné"></div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400"><input type="checkbox" name="visite_necessaire" value="1" style="width:auto"> Visite préalable nécessaire</label>
+    </div>
+    <?php endif; ?>
+
+    <div class="card" data-activite-bloc="articles">
       <h2>Articles / besoins</h2>
       <?php if (!$estModification): ?>
         <div style="font-size:12px;color:#888;margin-bottom:10px">Facultatif à ce stade — une demande de service encore peu détaillée peut être enregistrée sans aucune ligne.</div>
@@ -174,7 +216,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
         <label>Filiale *</label>
         <select name="filiale_id" required>
           <?php foreach ($filiales as $f): ?>
-            <option value="<?= $f['id'] ?>"><?= View::e($f['nom']) ?></option>
+            <option value="<?= $f['id'] ?>" <?= (string) ($prefill['filiale_id'] ?? '') === (string) $f['id'] ? 'selected' : '' ?>><?= View::e($f['nom']) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -187,15 +229,6 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
         <div class="alert alert-erreur">Aucune filiale ne vous est assignée. Contactez votre administrateur.</div>
       <?php endif; ?>
 
-      <div class="form-group">
-        <label>Activité *</label>
-        <select name="activite" required>
-          <option value="">—</option>
-          <?php foreach ($activiteListe as $a): ?>
-            <option <?= ($demande['activite'] ?? '') === $a ? 'selected' : '' ?>><?= View::e($a) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Responsable</label>
@@ -406,6 +439,25 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
       articlesBody.appendChild(clone);
     }
     btnAjouterLigne.addEventListener('click', ajouterLigne);
+  }
+
+  // [09/10] Le formulaire s'adapte à l'activité choisie (transport, prestation, sinon articles).
+  var actSel = document.getElementById('activiteSelect');
+  if (actSel) {
+    var GROUPES = {
+      'Transport et logistique': 'transport', 'Dédouanement et transit': 'transport',
+      'Représentation commerciale': 'prestation', 'Prestation de service': 'prestation'
+    };
+    function adapterActivite() {
+      var groupe = GROUPES[actSel.value] || 'articles';
+      document.querySelectorAll('[data-activite-bloc]').forEach(function (bloc) {
+        var visible = bloc.getAttribute('data-activite-bloc') === groupe;
+        bloc.style.display = visible ? '' : 'none';
+        bloc.querySelectorAll('input, select, textarea, button').forEach(function (el) { el.disabled = !visible; });
+      });
+    }
+    actSel.addEventListener('change', adapterActivite);
+    adapterActivite();
   }
 })();
 </script>

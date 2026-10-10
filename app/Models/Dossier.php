@@ -46,6 +46,7 @@ class Dossier
         'Transport et logistique' => 'transport_logistique',
         'Dédouanement et transit' => 'transport_logistique',
         'Représentation commerciale' => 'prestation_entreprise',
+        'Prestation de service' => 'prestation_entreprise',
         'Autre' => 'autre',
     ];
 
@@ -142,19 +143,39 @@ class Dossier
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $sql = "SELECT d.*, f.nom AS filiale_nom FROM dossiers d
+        $sql = "SELECT d.*, f.nom AS filiale_nom,
+                (SELECT c.nom FROM demandes dm INNER JOIN clients c ON c.id = dm.client_id WHERE dm.id = d.demande_id) AS client_nom
+                FROM dossiers d
                 INNER JOIN filiales f ON f.id = d.filiale_id
                 WHERE d.filiale_id IN ($placeholders)";
         $params = $filialeIds;
 
-        if (!empty($filters['statut']) && $filters['statut'] === 'en_retard') {
+        // [07/10, refonte liste] filtres supplémentaires : type de dossier, filiale, « mes dossiers », « à clôturer » (actif à l'étape Livraison).
+        if (!empty($filters['type_dossier'])) {
+            $sql .= ' AND d.type_dossier = ?';
+            $params[] = $filters['type_dossier'];
+        }
+        if (!empty($filters['filiale_id'])) {
+            $sql .= ' AND d.filiale_id = ?';
+            $params[] = (int) $filters['filiale_id'];
+        }
+        if (!empty($filters['mes_dossiers']) && !empty($user['id'])) {
+            $sql .= ' AND d.responsable_id = ?';
+            $params[] = (int) $user['id'];
+        }
+        if (!empty($filters['statut']) && $filters['statut'] === 'a_cloturer') {
+            $sql .= " AND d.statut = 'actif' AND d.etape = 'livraison'";
+        } elseif (!empty($filters['statut']) && $filters['statut'] === 'en_retard') {
             // "En retard" n'est pas une valeur stockée : un dossier actif dont
             // l'échéance est dépassée.
             $sql .= " AND d.statut = 'actif' AND d.echeance IS NOT NULL AND d.echeance < ?";
             $params[] = date('Y-m-d');
-        } elseif (!empty($filters['statut'])) {
+        } elseif (!empty($filters['statut']) && $filters['statut'] !== 'a_cloturer') {
             $sql .= ' AND d.statut = ?';
             $params[] = $filters['statut'];
+        } elseif (empty($filters['inclure_annules'])) {
+            // [08/10] Les dossiers annulés ne sont visibles que dans leur onglet « Annulés ».
+            $sql .= " AND d.statut <> 'annule'";
         }
         if (!empty($filters['etape'])) {
             $sql .= ' AND d.etape = ?';
@@ -164,10 +185,26 @@ class Dossier
             $sql .= ' AND d.responsable_id = ?';
             $params[] = $filters['responsable_id'];
         }
+        // [07/10, module Clients] Dossiers d'un client (via la demande d'origine) ou d'un ensemble de clients.
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND d.demande_id IN (SELECT id FROM demandes WHERE client_id = ?)';
+            $params[] = (int) $filters['client_id'];
+        }
+        if (isset($filters['client_ids']) && is_array($filters['client_ids'])) {
+            if (empty($filters['client_ids'])) {
+                $sql .= ' AND 1 = 0';
+            } else {
+                $phc = implode(',', array_fill(0, count($filters['client_ids']), '?'));
+                $sql .= " AND d.demande_id IN (SELECT id FROM demandes WHERE client_id IN ($phc))";
+                foreach ($filters['client_ids'] as $cid) {
+                    $params[] = (int) $cid;
+                }
+            }
+        }
         if (!empty($filters['recherche'])) {
-            $sql .= ' AND (d.reference LIKE ? OR d.objet LIKE ?)';
+            $sql .= ' AND (d.reference LIKE ? OR d.objet LIKE ? OR d.demande_id IN (SELECT dm2.id FROM demandes dm2 INNER JOIN clients c2 ON c2.id = dm2.client_id WHERE c2.nom LIKE ?))';
             $like = '%' . $filters['recherche'] . '%';
-            array_push($params, $like, $like);
+            array_push($params, $like, $like, $like);
         }
         if (!empty($filters['date_debut'])) {
             $sql .= ' AND d.created_at >= ?';
@@ -256,6 +293,102 @@ class Dossier
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
+        }
+    }
+
+    // ----- [ajouté 08/10, demande de Marie Laure] Annulation d'un dossier (avec motif) -----
+
+    public static function estAnnule(array $dossier): bool
+    {
+        return ($dossier['statut'] ?? '') === 'annule';
+    }
+
+    /** Les colonnes motif/date/auteur existent-elles (migration v26 passée) ? */
+    public static function colonnesAnnulation(): bool
+    {
+        static $ok = null;
+        if ($ok === null) {
+            try {
+                Database::connection()->query('SELECT annule_motif, annule_le, annule_par FROM dossiers LIMIT 1');
+                $ok = true;
+            } catch (\Throwable $e) {
+                $ok = false;
+            }
+        }
+        return $ok;
+    }
+
+    /** Raisons empêchant l'annulation (le dossier reste alors à clôturer, pas à annuler). */
+    public static function obstaclesAnnulation(int $id): array
+    {
+        $obstacles = [];
+        $stmt = Database::connection()->prepare("SELECT COUNT(*) FROM factures WHERE dossier_id = ? AND statut <> 'annulee'");
+        $stmt->execute([$id]);
+        $n = (int) $stmt->fetchColumn();
+        if ($n > 0) {
+            $obstacles[] = $n . ' facture(s) active(s) : annulez-les d\'abord dans le module Factures, ou clôturez le dossier.';
+        }
+        return $obstacles;
+    }
+
+    /** Éléments liés, pour avertir avant l'annulation. */
+    public static function elementsLies(int $id): array
+    {
+        $pdo = Database::connection();
+        $r = [];
+        foreach (['consultations_fournisseur' => 'consultation(s)', 'cotations' => 'cotation(s)', 'commandes' => 'commande(s)', 'bons_commande_fournisseur' => 'bon(s) de commande fournisseur'] as $table => $lib) {
+            try {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM $table WHERE dossier_id = ?");
+                $stmt->execute([$id]);
+                $n = (int) $stmt->fetchColumn();
+                if ($n > 0) {
+                    $r[] = $n . ' ' . $lib;
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+        return $r;
+    }
+
+    public static function annuler(int $id, string $motif, int $userId): void
+    {
+        $pdo = Database::connection();
+        $now = date('Y-m-d H:i:s');
+        if (self::colonnesAnnulation()) {
+            $stmt = $pdo->prepare("UPDATE dossiers SET statut = 'annule', annule_motif = ?, annule_le = ?, annule_par = ?, updated_at = ? WHERE id = ?");
+            $stmt->execute([$motif, $now, $userId, $now, $id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE dossiers SET statut = 'annule', updated_at = ? WHERE id = ?");
+            $stmt->execute([$now, $id]);
+        }
+    }
+
+    /** Remet le dossier dans l'état que son étape indique (clôturé si étape « clôturé », sinon actif). */
+    public static function reactiver(int $id): void
+    {
+        $dossier = self::find($id);
+        if (!$dossier || !self::estAnnule($dossier)) {
+            return;
+        }
+        $statut = $dossier['etape'] === 'cloture' ? 'cloture' : 'actif';
+        $pdo = Database::connection();
+        $now = date('Y-m-d H:i:s');
+        if (self::colonnesAnnulation()) {
+            $stmt = $pdo->prepare('UPDATE dossiers SET statut = ?, annule_motif = NULL, annule_le = NULL, annule_par = NULL, updated_at = ? WHERE id = ?');
+            $stmt->execute([$statut, $now, $id]);
+        } else {
+            $stmt = $pdo->prepare('UPDATE dossiers SET statut = ?, updated_at = ? WHERE id = ?');
+            $stmt->execute([$statut, $now, $id]);
+        }
+    }
+
+    /** Un dossier annulé est figé : refuse l'action et revient à la fiche. */
+    public static function refuserSiAnnule(array $dossier): void
+    {
+        if (self::estAnnule($dossier)) {
+            \App\Core\View::flash('erreur', 'Ce dossier est annulé : il est conservé pour l\'historique mais ne peut plus avancer. Réactivez-le d\'abord si nécessaire.');
+            header('Location: /index.php?r=dossiers/' . (int) $dossier['id']);
+            exit;
         }
     }
 

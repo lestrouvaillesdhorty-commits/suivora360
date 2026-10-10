@@ -24,23 +24,89 @@ use App\Models\Utilisateur;
 
 class DossierController
 {
+    public const PAR_PAGE = 20;
+
+    /** Sur téléphone, 10 lignes par page suffisent (moins de défilement). */
+    public static function parPage(): int
+    {
+        return preg_match('/Mobi|Android|iPhone/i', $_SERVER['HTTP_USER_AGENT'] ?? '') ? 10 : self::PAR_PAGE;
+    }
+
     public function index(): void
     {
         $user = Auth::user();
+        $statutsValides = ['actif', 'en_retard', 'a_cloturer', 'cloture', 'annule'];
         $filters = [
-            'statut' => $_GET['statut'] ?? null,
+            'statut' => in_array($_GET['statut'] ?? '', $statutsValides, true) ? $_GET['statut'] : null,
             'etape' => $_GET['etape'] ?? null,
             'responsable_id' => $_GET['responsable_id'] ?? null,
             'recherche' => $_GET['q'] ?? null,
             'date_debut' => $_GET['date_debut'] ?? null,
             'date_fin' => $_GET['date_fin'] ?? null,
+            'type_dossier' => isset(Dossier::TYPES_LABELS[$_GET['type_dossier'] ?? '']) ? $_GET['type_dossier'] : null,
+            'filiale_id' => !empty($_GET['filiale_id']) ? (int) $_GET['filiale_id'] : null,
+            'mes_dossiers' => !empty($_GET['mes']) ? 1 : null,
         ];
+        // [07/10, module Clients] Filtre par client (fiche client) ou par périmètre de la liste des clients (indicateur « Dossiers actifs »).
+        $filtreClient = null;
+        if (!empty($_GET['client_id'])) {
+            $clientFiltre = \App\Models\Client::find((int) $_GET['client_id']);
+            if ($clientFiltre && \App\Models\Client::userCanAccess($user, $clientFiltre)) {
+                $filters['client_id'] = (int) $clientFiltre['id'];
+                $filtreClient = $clientFiltre['nom'];
+            }
+        } elseif (isset($_GET['cp'])) {
+            parse_str((string) $_GET['cp'], $cpParams);
+            $filters['client_ids'] = \App\Models\Client::idsDuPerimetre($user, \App\Models\Client::filtresDepuis($cpParams));
+            $filtreClient = 'les clients sélectionnés';
+        }
         $dossiers = Dossier::visibleFor($user, $filters);
+
+        // Compteurs : même périmètre que la liste (mêmes filtres), sans le statut ni « mes dossiers » qui définissent l'onglet / l'indicateur.
+        $base = $filters;
+        $base['statut'] = null;
+        $base['mes_dossiers'] = null;
+        $aujourdhui = date('Y-m-d');
+        $compteurs = ['tous' => 0, 'mes' => 0, 'actifs' => 0, 'en_retard' => 0, 'a_cloturer' => 0, 'clotures' => 0, 'annules' => 0];
+        $base['inclure_annules'] = 1;
+        $tous = Dossier::visibleFor($user, $base);
+        foreach ($tous as $d) {
+            if ($d['statut'] === 'annule') {
+                $compteurs['annules']++;
+                continue;
+            }
+            $compteurs['tous']++;
+            if ((int) $d['responsable_id'] === (int) $user['id']) {
+                $compteurs['mes']++;
+            }
+            if ($d['statut'] === 'cloture') {
+                $compteurs['clotures']++;
+                continue;
+            }
+            $compteurs['actifs']++;
+            if (!empty($d['echeance']) && $d['echeance'] < $aujourdhui) {
+                $compteurs['en_retard']++;
+            }
+            if ($d['etape'] === 'livraison') {
+                $compteurs['a_cloturer']++;
+            }
+        }
+
+        $total = count($dossiers);
+        $pages = max(1, (int) ceil($total / self::parPage()));
+        $page = min($pages, max(1, (int) ($_GET['page'] ?? 1)));
         $utilisateurs = Utilisateur::allForOrganisation((int) $user['organisation_id']);
         View::render('folders/index', [
-            'dossiers' => $dossiers,
+            'dossiers' => array_slice($dossiers, ($page - 1) * self::parPage(), self::parPage()),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'parPage' => self::parPage(),
+            'compteurs' => $compteurs,
             'filters' => $filters,
             'utilisateurs' => $utilisateurs,
+            'filialesListe' => \App\Models\Filiale::visibleFor($user),
+            'filtreClient' => $filtreClient,
         ]);
     }
 
@@ -436,10 +502,88 @@ class DossierController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
         Dossier::updateEtape((int) $dossier['id'], $_POST['etape'] ?? '');
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'maj_etape_dossier', 'dossier', (int) $dossier['id'], $_POST['etape'] ?? '');
         View::flash('succes', 'Étape mise à jour.');
+        header('Location: /index.php?r=dossiers/' . $dossier['id']);
+        exit;
+    }
+
+    /**
+     * [ajouté 08/10, demande de Marie Laure] Annulation d'un dossier : jamais de
+     * suppression (l'historique reste), mais un statut « annulé » avec motif
+     * obligatoire. Réservé aux administrateurs et au responsable du dossier ;
+     * refusé s'il existe des factures actives.
+     */
+    public function annuler(array $params): void
+    {
+        Auth::requireWrite();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=dossiers/' . $params['id']);
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        if (!Auth::isAdmin() && (int) $dossier['responsable_id'] !== (int) $user['id']) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
+        if (Dossier::estAnnule($dossier)) {
+            header('Location: /index.php?r=dossiers/' . $dossier['id']);
+            exit;
+        }
+        $motif = trim((string) ($_POST['motif'] ?? ''));
+        if (mb_strlen($motif) < 3) {
+            View::flash('erreur', 'Merci d\'indiquer le motif de l\'annulation.');
+            header('Location: /index.php?r=dossiers/' . $dossier['id']);
+            exit;
+        }
+        $motif = mb_substr($motif, 0, 255);
+        $obstacles = Dossier::obstaclesAnnulation((int) $dossier['id']);
+        if (!empty($obstacles)) {
+            View::flash('erreur', 'Annulation impossible : ' . implode(' ', $obstacles));
+            header('Location: /index.php?r=dossiers/' . $dossier['id']);
+            exit;
+        }
+        Dossier::annuler((int) $dossier['id'], $motif, (int) $user['id']);
+        AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'annulation_dossier', 'dossier', (int) $dossier['id'], $motif);
+        View::flash('succes', 'Dossier annulé. Il reste consultable dans l\'onglet « Annulés ».');
+        header('Location: /index.php?r=dossiers/' . $dossier['id']);
+        exit;
+    }
+
+    public function reactiver(array $params): void
+    {
+        Auth::requireWrite();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=dossiers/' . $params['id']);
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        if (!Auth::isAdmin()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
+        if (Dossier::estAnnule($dossier)) {
+            Dossier::reactiver((int) $dossier['id']);
+            AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'reactivation_dossier', 'dossier', (int) $dossier['id'], (string) ($dossier['annule_motif'] ?? ''));
+            View::flash('succes', 'Dossier réactivé.');
+        }
         header('Location: /index.php?r=dossiers/' . $dossier['id']);
         exit;
     }

@@ -27,6 +27,7 @@ class CommandeController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
         $cotationId = (int) ($_POST['cotation_id'] ?? 0);
         $cotation = $cotationId ? Cotation::find($cotationId) : null;
@@ -93,6 +94,10 @@ class CommandeController
             return;
         }
 
+        $libelleEtape = null;
+        foreach (Commande::steps((int) $commande['id']) as $stp) {
+            if ((int) $stp['id'] === (int) $params['stepId']) { $libelleEtape = $stp['libelle']; }
+        }
         Commande::updateStep(
             (int) $params['stepId'],
             (int) $commande['id'],
@@ -101,6 +106,23 @@ class CommandeController
             $_POST['notes'] ?? ''
         );
         AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_etape_commande', 'commande', $commande['id']);
+        // [08/10] Livraison en transit / reçue : prévenir le responsable du dossier (cloche).
+        try {
+            $statutEtape = $_POST['statut'] ?? '';
+            if ($libelleEtape === 'livraison' && in_array($statutEtape, ['en_cours', 'termine'], true)) {
+                $dossierCmd = \App\Models\Dossier::find((int) $commande['dossier_id']);
+                if ($dossierCmd) {
+                    \App\Models\Notification::notifierTous(
+                        \App\Models\Notification::destinatairesDossier($dossierCmd, [(int) $user['id']]),
+                        (int) $commande['filiale_id'], 'livraison_maj',
+                        $statutEtape === 'termine' ? 'Livraison reçue' : 'Livraison en transit',
+                        'Commande ' . ($commande['reference'] ?? '') . ' (dossier ' . $dossierCmd['reference'] . ') : ' . ($statutEtape === 'termine' ? 'livraison reçue.' : 'la marchandise est en transit.'),
+                        '/index.php?r=dossiers/' . $dossierCmd['id'] . '/commande', 'commande', (int) $commande['id']
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+        }
         View::flash('succes', 'Étape mise à jour.');
         header('Location: /index.php?r=dossiers/' . $commande['dossier_id'] . '/commande');
         exit;

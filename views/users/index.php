@@ -37,12 +37,12 @@
 <?php if (empty($utilisateurs)): ?>
   <div class="card"><div class="empty-state">Aucun utilisateur pour le moment.</div></div>
 <?php else: ?>
-<table>
+<table class="responsive-cards">
   <thead><tr><th>Nom / Email</th><th>Rôle</th><th>Filiales accessibles</th><th>Statut</th><th>Actions</th></tr></thead>
   <tbody>
   <?php foreach ($utilisateurs as $u): ?>
     <tr>
-      <td>
+      <td data-label="Nom / E-mail">
         <div><?= View::e($u['nom']) ?></div>
         <div style="font-size:12px;color:#666"><?= View::e($u['email']) ?></div>
         <details>
@@ -63,7 +63,7 @@
           </form>
         </details>
       </td>
-      <td>
+      <td data-label="Rôle">
         <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/role">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
           <select name="role" onchange="this.form.submit()" style="font-size:12px">
@@ -74,7 +74,7 @@
           </select>
         </form>
       </td>
-      <td>
+      <td data-label="Filiales accessibles">
         <?php if (Permissions::seesAllFiliales($u['role'])): ?>
           Toutes (automatique)
         <?php else: ?>
@@ -108,12 +108,12 @@
           </form>
         <?php endif; ?>
       </td>
-      <td>
+      <td data-label="Statut">
         <span class="badge <?= ((int) $u['actif'] === 1) ? 'badge-green' : 'badge-gray' ?>">
           <?= ((int) $u['actif'] === 1) ? 'Actif' : 'Inactif' ?>
         </span>
       </td>
-      <td>
+      <td data-label="Actions">
         <?php if ((int) $u['actif'] === 1): ?>
           <?php if ((int) $u['id'] === $currentUserId): ?>
             <span style="font-size:12px;color:#999">(vous)</span>

@@ -20,9 +20,9 @@ function navActive(string $path, string $prefix): string {
 <title>Suivora360</title>
 <link rel="icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="/assets/css/app.css?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/css/app.css') ?>">
 </head>
-<body>
+<body<?= $currentUser ? ' data-uid="' . (int) $currentUser['id'] . '"' : '' ?>>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
@@ -88,6 +88,24 @@ function navActive(string $path, string $prefix): string {
       <div style="display:flex;align-items:center;gap:12px">
         <button type="button" id="sidebarOpen" aria-label="Ouvrir le menu" style="display:none;background:none;border:none;font-size:20px;cursor:pointer;color:#333"><?= Icon::svg('menu') ?></button>
         <?php if ($org): ?><div class="topbar-org"><?= Icon::svg('building', 'icon', 16) ?> <?= View::e($org['nom']) ?></div><?php endif; ?>
+        <?php
+          $filialesSel = \App\Models\Filiale::accessiblesFor($currentUser);
+          $filialeActive = \App\Models\Filiale::activeId($currentUser);
+          if (count($filialesSel) > 1):
+        ?>
+        <form method="post" action="/index.php?r=filiale-active" class="topbar-filiale" title="Filiale affichée dans tous les modules">
+          <input type="hidden" name="csrf_token" value="<?= View::e(Auth::csrfToken()) ?>">
+          <input type="hidden" name="retour" value="<?= View::e(trim($routeParam, '/')) ?>">
+          <label for="selFilialeActive">Filiale</label>
+          <select id="selFilialeActive" name="filiale_id" onchange="this.form.submit()">
+            <option value="0" <?= $filialeActive === null ? 'selected' : '' ?>>Toutes les filiales</option>
+            <?php foreach ($filialesSel as $fs): ?>
+              <option value="<?= (int) $fs['id'] ?>" <?= $filialeActive === (int) $fs['id'] ? 'selected' : '' ?>><?= View::e($fs['nom']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <noscript><button type="submit" class="btn btn-sm">OK</button></noscript>
+        </form>
+        <?php endif; ?>
       </div>
       <div class="topbar-right">
         <a href="/index.php?r=notifications" class="bell-link" title="Notifications"><?= Icon::svg('bell', 'icon', 18) ?><?php if (!empty($notifNonLues)): ?><span class="bell-dot"><?= $notifNonLues > 9 ? '9+' : $notifNonLues ?></span><?php endif; ?></a>
@@ -122,11 +140,26 @@ function navActive(string $path, string $prefix): string {
       sidebar.classList.remove('sidebar-collapsible', 'sidebar-hidden', 'sidebar-open');
     }
   }
-  openBtn.addEventListener('click', function () { sidebar.classList.remove('sidebar-hidden'); sidebar.classList.add('sidebar-open'); });
-  closeBtn.addEventListener('click', function () { sidebar.classList.add('sidebar-hidden'); sidebar.classList.remove('sidebar-open'); });
+  // [08/10] Fond assombri : un appui n'importe où hors du menu le referme (en plus de la croix).
+  var fond = document.createElement('div');
+  fond.className = 'sidebar-fond';
+  document.body.appendChild(fond);
+  function ouvrir() { sidebar.classList.remove('sidebar-hidden'); sidebar.classList.add('sidebar-open'); fond.classList.add('visible'); }
+  function fermer() { sidebar.classList.add('sidebar-hidden'); sidebar.classList.remove('sidebar-open'); fond.classList.remove('visible'); }
+  openBtn.addEventListener('click', function (e) { e.stopPropagation(); ouvrir(); });
+  closeBtn.addEventListener('click', fermer);
+  fond.addEventListener('click', fermer);
+  document.addEventListener('click', function (e) {
+    if (isMobile() && sidebar.classList.contains('sidebar-open') && !sidebar.contains(e.target) && !openBtn.contains(e.target)) { fermer(); }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { fermer(); } });
   window.addEventListener('resize', applyMode);
   applyMode();
 })();
 </script>
+<?php if ($currentUser): ?><script src="/assets/js/mdp.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/mdp.js') ?>"></script><?php endif; ?>
+<script src="/assets/js/galerie.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/galerie.js') ?>"></script>
+<script src="/assets/js/mobile.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/mobile.js') ?>"></script>
+<?php if ($currentUser): ?><script src="/assets/js/brouillon.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/brouillon.js') ?>"></script><?php endif; ?>
 </body>
 </html>

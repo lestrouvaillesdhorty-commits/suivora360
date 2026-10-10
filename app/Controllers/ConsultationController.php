@@ -23,11 +23,13 @@ class ConsultationController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
         $fournisseurs = Fournisseur::allForFiliale((int) $dossier['filiale_id']);
         View::render('consultations/create', [
             'dossier' => $dossier,
             'fournisseurs' => $fournisseurs,
+            'fournisseurPreselection' => (int) ($_GET['fournisseur_id'] ?? 0),
         ]);
     }
 
@@ -46,23 +48,62 @@ class ConsultationController
             View::render('errors/404');
             return;
         }
+        Dossier::refuserSiAnnule($dossier);
 
-        // Le fournisseur doit appartenir à la même filiale que le dossier (isolation entre entreprises).
-        if (!\App\Core\Tenant::fournisseurDeFiliale($_POST['fournisseur_id'] ?? 0, (int) $dossier['filiale_id'])) {
-            View::flash('erreur', 'Veuillez sélectionner un fournisseur.');
-            header('Location: /index.php?r=dossiers/' . $dossier['id']);
-            exit;
+        $filialeId = (int) $dossier['filiale_id'];
+        $source = array_key_exists($_POST['source_type'] ?? '', Offre::SOURCES) ? $_POST['source_type'] : '';
+        $lien = trim($_POST['source_url'] ?? '');
+        if ($lien !== '' && !preg_match('#^https?://#i', $lien)) {
+            $lien = '';
+        }
+        $noteSource = '';
+        if ($source !== '') {
+            $noteSource = 'Source : ' . Offre::SOURCES[$source] . ($lien !== '' ? ' — ' . $lien : '');
+        } elseif ($lien !== '') {
+            $noteSource = 'Lien : ' . $lien;
         }
 
-        $consultationId = ConsultationFournisseur::create(
-            (int) $dossier['id'],
-            (int) $dossier['filiale_id'],
-            $_POST,
-            (int) $user['id']
-        );
+        // Autres vendeurs (un par ligne) : fiches minimales « à qualifier ».
+        $noms = [];
+        foreach (preg_split('/\R/', (string) ($_POST['autres_vendeurs'] ?? '')) as $ligne) {
+            $ligne = trim($ligne);
+            if ($ligne !== '' && count($noms) < 20) {
+                $noms[] = mb_substr($ligne, 0, 150);
+            }
+        }
 
-        AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'creation_consultation', 'consultation_fournisseur', $consultationId);
-        View::flash('succes', 'Consultation envoyée au fournisseur.');
+        // Le fournisseur choisi doit appartenir à la même filiale que le dossier (isolation entre entreprises).
+        $fournisseurIds = [];
+        if (\App\Core\Tenant::fournisseurDeFiliale($_POST['fournisseur_id'] ?? 0, $filialeId)) {
+            $fournisseurIds[] = (int) $_POST['fournisseur_id'];
+        }
+        if (!$fournisseurIds && !$noms) {
+            View::flash('erreur', 'Veuillez sélectionner un fournisseur ou indiquer au moins un vendeur.');
+            header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/consultations/nouvelle');
+            exit;
+        }
+        foreach ($noms as $nom) {
+            $fid = Fournisseur::create([
+                'filiale_id' => $filialeId,
+                'nom' => $nom,
+                'site_web' => $source === 'web' ? $lien : '',
+                'origine_contact' => $source !== '' ? 'Consultation : ' . Offre::SOURCES[$source] : 'Consultation',
+            ]);
+            AuditLog::log($filialeId, (int) $user['id'], 'creation_fournisseur', 'fournisseur', $fid, $nom);
+            $fournisseurIds[] = $fid;
+        }
+
+        $donnees = $_POST;
+        $donnees['notes'] = trim(($noteSource !== '' ? $noteSource . "\n" : '') . trim($_POST['notes'] ?? ''));
+        $dernier = 0;
+        foreach ($fournisseurIds as $fid) {
+            $donnees['fournisseur_id'] = $fid;
+            $dernier = ConsultationFournisseur::create((int) $dossier['id'], $filialeId, $donnees, (int) $user['id']);
+            AuditLog::log($filialeId, (int) $user['id'], 'creation_consultation', 'consultation_fournisseur', $dernier);
+        }
+
+        $n = count($fournisseurIds);
+        View::flash('succes', $n > 1 ? $n . ' consultations enregistrées.' : 'Consultation enregistrée.');
         header('Location: /index.php?r=dossiers/' . $dossier['id']);
         exit;
     }

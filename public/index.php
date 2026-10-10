@@ -1,7 +1,9 @@
 <?php
 
 use App\Controllers\AuthController;
+use App\Controllers\BonCommandeFournisseurController;
 use App\Controllers\ClientController;
+use App\Controllers\PortailClientController;
 use App\Controllers\CommandeController;
 use App\Controllers\ComparateurController;
 use App\Controllers\ConsultationController;
@@ -47,6 +49,25 @@ $router->get('/mon-mot-de-passe', function () {
 $router->post('/mon-mot-de-passe', function () {
     Auth::requireLogin();
     (new AuthController())->changePassword();
+});
+
+// Filiale active globale (sélecteur de la barre du haut)
+$router->post('/filiale-active', function () {
+    Auth::requireLogin();
+    if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+        header('Location: /index.php');
+        exit;
+    }
+    $user = Auth::user();
+    $id = (int) ($_POST['filiale_id'] ?? 0);
+    if (!\App\Models\Filiale::definirActive($user, $id)) {
+        \App\Core\View::flash('erreur', 'Filiale inaccessible.');
+    }
+    // Retour sur le même module (route simple uniquement, sans filtre ni identifiant).
+    $retour = (string) ($_POST['retour'] ?? '');
+    $retour = preg_match('#^[a-z0-9\-/]{0,60}$#', $retour) && !preg_match('#/\d+#', $retour) ? $retour : '';
+    header('Location: /index.php' . ($retour !== '' ? '?r=' . $retour : ''));
+    exit;
 });
 
 // Tableau de bord
@@ -182,6 +203,10 @@ $router->post('/clients/creation-rapide', function () {
     Auth::requireLogin();
     (new ClientController())->creationRapide();
 });
+$router->get('/clients/export.csv', function () {
+    Auth::requireLogin();
+    (new ClientController())->exportCsv();
+});
 $router->get('/clients/{id}', function ($params) {
     Auth::requireLogin();
     (new ClientController())->show($params);
@@ -203,6 +228,59 @@ $router->post('/clients/{id}/activer', function ($params) {
     (new ClientController())->activer($params);
 });
 
+// Espace client externe (07/10) — PUBLIC : accès par lien privé, aucune connexion
+$router->get('/espace-client/{token}', fn($params) => (new PortailClientController())->show($params));
+$router->get('/espace-client/{token}/cotations/{id}', fn($params) => (new PortailClientController())->cotation($params));
+$router->post('/espace-client/{token}/cotations/{id}/decision', fn($params) => (new PortailClientController())->decision($params));
+$router->get('/espace-client/{token}/factures/{id}', fn($params) => (new PortailClientController())->facture($params));
+$router->post('/espace-client/{token}/demande', fn($params) => (new PortailClientController())->nouvelleDemande($params));
+
+// Gestion des liens depuis la fiche client (personnel connecté)
+$router->post('/clients/{id}/portail', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->creerLienPortail($params);
+});
+$router->post('/clients/{id}/portail/{lienId}/revoquer', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->revoquerLienPortail($params);
+});
+
+// Fiche client : contacts, adresses, documents (07/10)
+$router->post('/clients/{id}/contacts', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->enregistrerContact($params);
+});
+foreach (['principal', 'desactiver', 'reactiver'] as $actionContact) {
+    $router->post('/clients/{id}/contacts/{contactId}/' . $actionContact, function ($params) use ($actionContact) {
+        Auth::requireLogin();
+        $params['action'] = $actionContact;
+        (new ClientController())->actionContact($params);
+    });
+}
+$router->post('/clients/{id}/adresses', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->enregistrerAdresse($params);
+});
+foreach (['defaut', 'desactiver', 'reactiver'] as $actionAdresse) {
+    $router->post('/clients/{id}/adresses/{adresseId}/' . $actionAdresse, function ($params) use ($actionAdresse) {
+        Auth::requireLogin();
+        $params['action'] = $actionAdresse;
+        (new ClientController())->actionAdresse($params);
+    });
+}
+$router->post('/clients/{id}/pieces', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->uploadPiece($params);
+});
+$router->get('/clients/{id}/pieces/{pieceId}/telecharger', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->telechargerPiece($params);
+});
+$router->post('/clients/{id}/pieces/{pieceId}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->supprimerPiece($params);
+});
+
 // Fournisseurs
 $router->get('/fournisseurs', function () {
     Auth::requireLogin();
@@ -215,6 +293,14 @@ $router->get('/fournisseurs/nouveau', function () {
 $router->post('/fournisseurs', function () {
     Auth::requireLogin();
     (new FournisseurController())->store();
+});
+$router->post('/fournisseurs/creation-rapide', function () {
+    Auth::requireLogin();
+    (new FournisseurController())->creationRapide();
+});
+$router->get('/fournisseurs/export.csv', function () {
+    Auth::requireLogin();
+    (new FournisseurController())->exportCsv();
 });
 $router->get('/fournisseurs/{id}', function ($params) {
     Auth::requireLogin();
@@ -236,6 +322,37 @@ $router->post('/fournisseurs/{id}/activer', function ($params) {
     Auth::requireLogin();
     (new FournisseurController())->activer($params);
 });
+// Fiche fournisseur : contacts, adresses, qualification, évaluations (07/10)
+$router->post('/fournisseurs/{id}/contacts', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->enregistrerContact($params);
+});
+foreach (['principal', 'desactiver', 'reactiver'] as $actionContactF) {
+    $router->post('/fournisseurs/{id}/contacts/{contactId}/' . $actionContactF, function ($params) use ($actionContactF) {
+        Auth::requireLogin();
+        $params['action'] = $actionContactF;
+        (new FournisseurController())->actionContact($params);
+    });
+}
+$router->post('/fournisseurs/{id}/adresses', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->enregistrerAdresse($params);
+});
+foreach (['principale', 'desactiver', 'reactiver'] as $actionAdresseF) {
+    $router->post('/fournisseurs/{id}/adresses/{adresseId}/' . $actionAdresseF, function ($params) use ($actionAdresseF) {
+        Auth::requireLogin();
+        $params['action'] = $actionAdresseF;
+        (new FournisseurController())->actionAdresse($params);
+    });
+}
+$router->post('/fournisseurs/{id}/qualification', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->enregistrerQualification($params);
+});
+$router->post('/fournisseurs/{id}/evaluations', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->ajouterEvaluation($params);
+});
 $router->post('/fournisseurs/{id}/pieces', function ($params) {
     Auth::requireLogin();
     (new FournisseurController())->uploadPiece($params);
@@ -247,6 +364,40 @@ $router->get('/fournisseurs/{id}/pieces/{pieceId}/telecharger', function ($param
 $router->post('/fournisseurs/{id}/pieces/{pieceId}/supprimer', function ($params) {
     Auth::requireLogin();
     (new FournisseurController())->supprimerPiece($params);
+});
+
+// Bons de commande fournisseur (07/10) — routes exactes avant les routes à paramètre
+$router->get('/bons-commande', function () {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->index();
+});
+$router->get('/fournisseurs/{id}/bons-commande/nouveau', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->create($params);
+});
+$router->post('/fournisseurs/{id}/bons-commande', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->store($params);
+});
+$router->get('/bons-commande/{id}', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->show($params);
+});
+$router->get('/bons-commande/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->edit($params);
+});
+$router->post('/bons-commande/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->update($params);
+});
+$router->post('/bons-commande/{id}/statut', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->statut($params);
+});
+$router->get('/bons-commande/{id}/imprimable', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->imprimable($params);
 });
 
 // Dossiers
@@ -277,6 +428,14 @@ $router->get('/dossiers/{id}', function ($params) {
 $router->post('/dossiers/{id}/etape', function ($params) {
     Auth::requireLogin();
     (new DossierController())->updateEtape($params);
+});
+$router->post('/dossiers/{id}/annuler', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->annuler($params);
+});
+$router->post('/dossiers/{id}/reactiver', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->reactiver($params);
 });
 $router->post('/dossiers/{id}/type', function ($params) {
     Auth::requireLogin();
@@ -377,12 +536,32 @@ $router->get('/consultations/{id}/offres/nouvelle', function ($params) {
     Auth::requireLogin();
     (new OffreController())->create($params);
 });
+$router->get('/dossiers/{id}/offres/manuelle', function ($params) {
+    Auth::requireLogin();
+    (new OffreController())->createManuelle($params);
+});
+$router->post('/dossiers/{id}/offres/manuelle', function ($params) {
+    Auth::requireLogin();
+    (new OffreController())->storeManuelle($params);
+});
 $router->post('/consultations/{id}/offres', function ($params) {
     Auth::requireLogin();
     (new OffreController())->store($params);
 });
 
 // Listes transverses du menu (Offres, Cotations, Commandes, Factures, Comparateur)
+$router->get('/offres/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new OffreController())->edit($params);
+});
+$router->post('/offres/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new OffreController())->update($params);
+});
+$router->post('/offres/extraire-ia', function () {
+    Auth::requireLogin();
+    (new OffreController())->extraireIa([]);
+});
 $router->get('/offres', function () {
     Auth::requireLogin();
     (new ListesController())->offres();

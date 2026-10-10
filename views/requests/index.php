@@ -146,15 +146,13 @@ $showFiliale = count($filiales) > 1 && empty($filters['filiale_id']);
       </select>
     </div>
     <?php endif; ?>
-    <div class="f-group" style="flex-direction:row;gap:8px;min-width:230px">
-      <div>
-        <label for="fDebut">Reçue du</label>
-        <input type="date" id="fDebut" name="date_debut" value="<?= View::e($filters['date_debut'] ?? '') ?>">
-      </div>
-      <div>
-        <label for="fFin">au</label>
-        <input type="date" id="fFin" name="date_fin" value="<?= View::e($filters['date_fin'] ?? '') ?>">
-      </div>
+    <div class="f-group" style="min-width:150px;max-width:190px">
+      <label for="fDebut">Reçue du</label>
+      <input type="date" id="fDebut" name="date_debut" value="<?= View::e($filters['date_debut'] ?? '') ?>">
+    </div>
+    <div class="f-group" style="min-width:150px;max-width:190px">
+      <label for="fFin">Reçue au</label>
+      <input type="date" id="fFin" name="date_fin" value="<?= View::e($filters['date_fin'] ?? '') ?>">
     </div>
     <div class="f-group">
       <label for="fTri">Trier par</label>
@@ -180,7 +178,7 @@ $showFiliale = count($filiales) > 1 && empty($filters['filiale_id']);
   <div class="card"><div class="empty-state">Aucune demande ne correspond à ces filtres.</div></div>
 <?php else: ?>
 <div class="card" style="padding:0;overflow:hidden">
-<table class="responsive-cards">
+<table class="responsive-cards liste-cartes">
   <thead>
     <tr><th>Référence</th><th>Objet / Client ou contact</th><th>Activité</th><th>Responsable</th><th>Priorité</th><th>Statut</th><th>Échéance</th><th>Actions</th></tr>
   </thead>

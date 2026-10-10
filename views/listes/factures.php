@@ -21,7 +21,7 @@ $badges = ['emise' => 'blue', 'payee' => 'green', 'annulee' => 'gray'];
 <?php if (empty($lignes)): ?>
   <div class="card"><div class="empty-state">Aucune facture pour ces critères.</div></div>
 <?php else: ?>
-<table class="responsive-cards">
+<table class="responsive-cards liste-cartes">
   <thead><tr><th>Facture</th><th>Dossier</th><th>Type</th><th class="num">Montant</th><th>Émission</th><th>Échéance</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $fa): $retard = $fa['statut'] === 'emise' && $fa['date_echeance'] && $fa['date_echeance'] < date('Y-m-d'); ?>

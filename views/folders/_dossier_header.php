@@ -42,10 +42,51 @@ $badgeTypeDossier = match ($typeDossier) {
     <?php if ($typeDossier === 'prestation_entreprise' && !empty($dossier['type_prestation'])): ?>
       <span class="badge badge-green"><?= View::e(Dossier::TYPES_PRESTATION_LABELS[$dossier['type_prestation']] ?? ucfirst($dossier['type_prestation'])) ?></span>
     <?php endif; ?>
-    <span class="badge <?= $dossier['statut'] === 'actif' ? 'badge-green' : 'badge-red' ?>"><?= ucfirst($dossier['statut']) ?></span>
+    <span class="badge <?= $dossier['statut'] === 'actif' ? 'badge-green' : 'badge-red' ?>"><?= $dossier['statut'] === 'annule' ? 'Annulé' : ($dossier['statut'] === 'cloture' ? 'Clôturé' : 'Actif') ?></span>
     <?php if ($enRetard): ?><span class="badge badge-red">En retard</span><?php endif; ?>
   </div>
 </div>
+
+<?php
+$estAnnule = Dossier::estAnnule($dossier);
+$peutAnnuler = !$estAnnule && \App\Core\Auth::canWrite()
+    && (\App\Core\Auth::isAdmin() || (int) $dossier['responsable_id'] === (int) (\App\Core\Auth::user()['id'] ?? 0));
+$csrfEntete = \App\Core\Auth::csrfToken();
+?>
+<?php if ($estAnnule): ?>
+<div class="alert alert-erreur" style="margin-top:12px">
+  <strong>Dossier annulé</strong><?php if (!empty($dossier['annule_le'])): ?> le <?= date('d/m/Y', strtotime($dossier['annule_le'])) ?><?php endif; ?><?php if (!empty($dossier['annule_par'])): ?> par <?= View::e(\App\Models\Utilisateur::nameOf((int) $dossier['annule_par'])) ?><?php endif; ?>.
+  <?php if (!empty($dossier['annule_motif'])): ?><br>Motif : <?= View::e($dossier['annule_motif']) ?><?php endif; ?>
+  <br><span style="font-size:12.5px">Le dossier est conservé pour l'historique ; il ne peut plus avancer et n'entre plus dans les indicateurs.</span>
+  <?php if (\App\Core\Auth::isAdmin()): ?>
+  <form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/reactiver" style="margin-top:8px" onsubmit="return confirm('Réactiver ce dossier ?');">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfEntete) ?>">
+    <button type="submit" class="btn btn-sm btn-secondary">Réactiver le dossier</button>
+  </form>
+  <?php endif; ?>
+</div>
+<?php elseif ($peutAnnuler): ?>
+<?php $obstaclesAnnul = Dossier::obstaclesAnnulation((int) $dossier['id']); $liesAnnul = Dossier::elementsLies((int) $dossier['id']); ?>
+<details style="margin-top:10px;font-size:13px">
+  <summary style="cursor:pointer;color:#991b1b;width:max-content">Annuler ce dossier…</summary>
+  <div class="card" style="margin-top:8px;max-width:560px">
+    <?php if (!empty($obstaclesAnnul)): ?>
+      <p style="margin:0;color:#92400e">Annulation impossible pour le moment : <?= View::e(implode(' ', $obstaclesAnnul)) ?></p>
+    <?php else: ?>
+    <form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/annuler" onsubmit="return confirm('Annuler ce dossier ? Il restera consultable, mais ne pourra plus avancer.');">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfEntete) ?>">
+      <div class="form-group">
+        <label for="motifAnnulation">Motif de l'annulation (obligatoire)</label>
+        <input type="text" id="motifAnnulation" name="motif" required minlength="3" maxlength="255" placeholder="Ex : créé par erreur, doublon, abandonné par le client">
+      </div>
+      <?php if (!empty($liesAnnul)): ?><p style="margin:0 0 10px;color:#666">Éléments liés conservés : <?= View::e(implode(', ', $liesAnnul)) ?>.</p><?php endif; ?>
+      <p style="margin:0 0 10px;color:#666">Rien n'est supprimé : le dossier passe dans l'onglet « Annulés » et sort des indicateurs. Seul un administrateur peut le réactiver.</p>
+      <button type="submit" class="btn btn-sm btn-danger">Annuler le dossier</button>
+    </form>
+    <?php endif; ?>
+  </div>
+</details>
+<?php endif; ?>
 
 <div class="fiche-header-meta">
   <div class="fhm-item"><div class="fhm-label">Activité</div><div class="fhm-value"><?= View::e($demande['activite'] ?? '—') ?></div></div>

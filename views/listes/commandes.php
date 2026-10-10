@@ -12,7 +12,7 @@ $placeholderRecherche = 'Référence, dossier, client...';
 <?php if (empty($lignes)): ?>
   <div class="card"><div class="empty-state">Aucune commande pour ces critères.</div></div>
 <?php else: ?>
-<table class="responsive-cards">
+<table class="responsive-cards liste-cartes">
   <thead><tr><th>Commande</th><th>Dossier</th><th>Client</th><th class="num">Montant</th><th>Étape</th><th>Prochaine action</th><th>Relance</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $m): $retard = Commande::estEnRetard($m); ?>

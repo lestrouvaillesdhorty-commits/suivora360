@@ -56,7 +56,7 @@ class DemandeController
         $page = max(1, (int) ($_GET['page'] ?? 1));
 
         $total = Demande::countVisibleFor($user, $filters);
-        $totalPages = max(1, (int) ceil($total / Demande::PAR_PAGE));
+        $totalPages = max(1, (int) ceil($total / Demande::parPage()));
         $page = min($page, $totalPages);
 
         $demandes = Demande::visibleFor($user, $filters, ['page' => $page]);
@@ -398,7 +398,24 @@ class DemandeController
     public function create(): void
     {
         $user = Auth::user();
-        View::render('requests/create', $this->donneesFormulaire($user));
+        $data = $this->donneesFormulaire($user);
+        // [07/10, module Clients] « Nouvelle demande » depuis une fiche client : client et contact préremplis.
+        $data['prefill'] = [];
+        if (!empty($_GET['client_id'])) {
+            $client = Client::find((int) $_GET['client_id']);
+            if ($client && Client::userCanAccess($user, $client) && (int) $client['is_active'] === 1) {
+                $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'] ?? ''));
+                $data['prefill'] = [
+                    'client_id' => (int) $client['id'],
+                    'filiale_id' => (int) $client['filiale_id'],
+                    'expediteur_nom' => $contact,
+                    'expediteur_entreprise' => $client['nom'],
+                    'expediteur_email' => $client['email'] ?? '',
+                    'expediteur_telephone' => $client['telephone'] ?? '',
+                ];
+            }
+        }
+        View::render('requests/create', $data);
     }
 
     /**
@@ -445,8 +462,37 @@ class DemandeController
             'priorite' => $_POST['priorite'] ?? 'normale',
             'echeance' => $_POST['echeance'] ?? null,
             'date_souhaitee_client' => $_POST['date_souhaitee_client'] ?? null,
-            'notes_internes' => trim($_POST['notes_internes'] ?? ''),
+            'notes_internes' => $this->notesAvecDetailsActivite(trim($_POST['notes_internes'] ?? ''), $activite),
         ];
+    }
+
+    /**
+     * [09/10] Détails propres à l'activité saisis à la création (transport, prestation) :
+     * ajoutés en lignes de texte aux notes internes, comme à la qualification
+     * (aucune colonne dédiée). Aucune ligne si rien n'est renseigné.
+     */
+    private function notesAvecDetailsActivite(string $notes, string $activite): string
+    {
+        $type = Dossier::deduireType($activite);
+        $lignes = [];
+        $v = fn(string $k) => trim((string) ($_POST[$k] ?? ''));
+        if ($type === 'transport_logistique') {
+            if ($v('lieu_enlevement') !== '') { $lignes[] = "Lieu d'enlèvement : " . $v('lieu_enlevement'); }
+            if ($v('transport_destination') !== '') { $lignes[] = 'Destination : ' . $v('transport_destination'); }
+            if ($v('marchandises') !== '') { $lignes[] = 'Marchandises : ' . $v('marchandises'); }
+            if ($v('poids_estime') !== '') { $lignes[] = 'Poids estimé : ' . $v('poids_estime') . ' kg'; }
+            if ($v('volume_estime') !== '') { $lignes[] = 'Volume estimé : ' . $v('volume_estime') . ' m³'; }
+            if ($v('transport_mode') !== '') { $lignes[] = 'Mode de transport souhaité : ' . $v('transport_mode'); }
+        } elseif ($type === 'prestation_entreprise') {
+            if ($v('nature_service') !== '') { $lignes[] = 'Nature du service : ' . $v('nature_service'); }
+            if ($v('type_prestation_souhaite') !== '') { $lignes[] = 'Type de prestation : ' . $v('type_prestation_souhaite'); }
+            if ($v('site_intervention') !== '') { $lignes[] = "Site d'intervention : " . $v('site_intervention'); }
+            if (!empty($_POST['visite_necessaire'])) { $lignes[] = 'Visite préalable nécessaire : Oui'; }
+        }
+        if (empty($lignes)) {
+            return $notes;
+        }
+        return trim($notes . ($notes !== '' ? "\n" : '') . implode("\n", $lignes));
     }
 
     public function store(): void
@@ -466,6 +512,18 @@ class DemandeController
 
         $demandeId = Demande::create($data);
         AuditLog::log($data['filiale_id'], (int) $user['id'], 'creation', 'demande', $demandeId, 'Demande créée');
+
+        // [08/10] Prévenir ceux qui qualifient les demandes (cloche), sauf l'auteur.
+        try {
+            $refDemande = (string) (Demande::find($demandeId)['reference'] ?? '');
+            \App\Models\Notification::notifierTous(
+                \App\Models\Notification::destinatairesFiliale((int) $data['filiale_id'], ['proprietaire', 'admin_organisation', 'commercial'], [(int) $user['id']]),
+                (int) $data['filiale_id'], 'demande_a_qualifier', 'Nouvelle demande à qualifier',
+                'La demande ' . $refDemande . ' (' . ($data['objet'] ?? '') . ') vient d\'être enregistrée.',
+                '/index.php?r=demandes/' . $demandeId, 'demande', $demandeId
+            );
+        } catch (\Throwable $e) {
+        }
 
         $this->enregistrerArticlesSoumis($demandeId, $_POST);
         $erreursFichiers = $this->enregistrerPiecesJointes($demandeId, $data['filiale_id'], $user);
@@ -1264,8 +1322,32 @@ class DemandeController
             exit;
         }
 
+        // [10/10] Pièces jointes cochées : l'IA lit aussi les PDF, images, Excel, Word de la demande.
+        $fichiers = [];
+        $ignores = [];
+        $idsPj = array_slice(array_map('intval', (array) ($_POST['pj'] ?? [])), 0, 5);
+        foreach ($idsPj as $idPj) {
+            $piece = DemandePieceJointe::find($idPj);
+            if (!$piece || (int) $piece['demande_id'] !== (int) $demande['id']) {
+                continue;
+            }
+            try {
+                $fichiers[] = AiExtracteur::preparerFichier(
+                    Storage::path('uploads/demandes/' . $demande['id'] . '/' . $piece['nom_fichier']),
+                    (string) $piece['nom_original']
+                );
+            } catch (\Throwable $e) {
+                $ignores[] = $e->getMessage();
+            }
+        }
+        if (empty(trim($demande['message'] ?? '')) && empty($fichiers)) {
+            View::flash('erreur', $ignores ? implode(' ', $ignores) : "Rien à analyser : la demande n'a ni message ni pièce jointe sélectionnée.");
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+
         try {
-            $suggestions = AiExtracteur::extraireArticles($demande['message'] ?? '');
+            $suggestions = AiExtracteur::extraireArticles($demande['message'] ?? '', $fichiers);
         } catch (\Throwable $e) {
             View::flash('erreur', $e->getMessage());
             header('Location: /index.php?r=demandes/' . $demande['id']);
@@ -1273,7 +1355,7 @@ class DemandeController
         }
 
         if (empty($suggestions)) {
-            View::flash('erreur', "L'IA n'a identifié aucun article dans le message de cette demande.");
+            View::flash('erreur', "L'IA n'a identifié aucun article dans le message ou les pièces jointes sélectionnées." . ($ignores ? ' ' . implode(' ', $ignores) : ''));
             header('Location: /index.php?r=demandes/' . $demande['id']);
             exit;
         }
@@ -1287,6 +1369,9 @@ class DemandeController
         }
         unset($s);
 
+        if ($ignores) {
+            View::flash('erreur', 'Certains fichiers n\'ont pas pu être lus : ' . implode(' ', $ignores));
+        }
         View::render('requests/extraction_ia', [
             'demande' => $demande,
             'suggestions' => $suggestions,
