@@ -20,12 +20,12 @@ use App\Models\ConsultationPartage;
 </div>
 
 <?php if (empty($consultations)): ?>
-  <div class="card"><div class="empty-state">Aucune consultation envoyée pour le moment.</div></div>
+  <div class="card"><div class="empty-state">Aucune consultation pour le moment.</div></div>
 <?php else: ?>
   <div class="card" style="padding:0;overflow:hidden">
     <div class="table-scroll">
     <table class="dtable">
-      <thead><tr><th>Fournisseur</th><th>Besoin envoyé</th><th>Date d'envoi</th><th>Échéance de réponse</th><th>Pièces jointes</th><th>État</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Fournisseur</th><th>Besoin envoyé</th><th>Date d'envoi</th><th>Canal</th><th>Échéance de réponse</th><th>Pièces jointes</th><th>État</th><th>Actions</th></tr></thead>
       <tbody>
         <?php foreach ($consultations as $c): ?>
           <?php
@@ -36,6 +36,7 @@ use App\Models\ConsultationPartage;
             <td class="row-title"><?= View::e($c['fournisseur_nom']) ?></td>
             <td><a href="/index.php?r=dossiers/<?= $dossier['id'] ?>&onglet=besoin" style="color:var(--primary);text-decoration:none">Voir le Besoin (<?= View::e($dossier['reference']) ?>)</a></td>
             <td><?= !empty($c['date_envoi']) ? date('d/m/Y', strtotime($c['date_envoi'])) : '—' ?></td>
+            <td><?= !empty($c['canal_envoi']) ? View::e(ConsultationFournisseur::CANAUX[$c['canal_envoi']] ?? $c['canal_envoi']) : '—' ?></td>
             <td>
               <?php if (!empty($c['dernier_partage_echeance'])): ?>
                 <?= date('d/m/Y', strtotime($c['dernier_partage_echeance'])) ?>
@@ -46,7 +47,9 @@ use App\Models\ConsultationPartage;
             </td>
             <td><?= $nbPiecesPartage > 0 ? $nbPiecesPartage . ' fichier' . ($nbPiecesPartage > 1 ? 's' : '') : '—' ?></td>
             <td><span class="badge <?= $c['statut'] === 'reponse_recue' ? 'badge-green' : ($c['statut'] === 'sans_reponse' ? 'badge-red' : ($c['statut'] === 'relance' || $c['statut'] === 'a_envoyer' ? 'badge-orange' : 'badge-blue')) ?>"><?= ConsultationFournisseur::STATUTS[$c['statut']] ?? $c['statut'] ?></span></td>
-            <td><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Voir</a></td>
+            <td><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Voir</a>
+              <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap" target="_blank" class="btn btn-sm btn-secondary">Récap</a>
+              <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap/pdf" class="btn btn-sm btn-secondary">PDF</a></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
