@@ -26,8 +26,12 @@ class ConsultationController
         Dossier::refuserSiAnnule($dossier);
 
         $fournisseurs = Fournisseur::allForFiliale((int) $dossier['filiale_id']);
+        $demande = !empty($dossier['demande_id']) ? \App\Models\Demande::find((int) $dossier['demande_id']) : null;
         View::render('consultations/create', [
             'dossier' => $dossier,
+            'apercuArticles' => $demande ? \App\Models\DemandeArticle::forDemande((int) $demande['id']) : [],
+            'apercuDetails' => $demande ? \App\Models\Demande::detailsTransmissibles($demande, true) : [],
+            'apercuDemande' => $demande,
             'fournisseurs' => $fournisseurs,
             'fournisseurPreselection' => (int) ($_GET['fournisseur_id'] ?? 0),
         ]);

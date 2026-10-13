@@ -874,4 +874,39 @@ class Demande
         $stmt->execute($params);
         return $stmt->fetchAll();
     }
+
+    /**
+     * [13/10] Détails de la demande que le fournisseur peut voir dans une consultation : uniquement des
+     * lignes connues (détails transport / prestation saisis à la création ou à la qualification) et la
+     * date souhaitée. Les notes internes libres ne sont JAMAIS transmises.
+     *
+     * @return array<string,string> libellé => valeur
+     */
+    public static function detailsTransmissibles(array $demande, bool $masquerClient): array
+    {
+        $autorises = [
+            "Lieu d'enlèvement", 'Destination', 'Marchandises', 'Poids estimé', 'Volume estimé',
+            'Mode de transport souhaité', 'Nature du service', 'Type de prestation',
+            "Site d'intervention", 'Visite préalable nécessaire',
+        ];
+        $secretsSiClientMasque = ["Site d'intervention"];
+        $res = [];
+        foreach (preg_split('/\R/', (string) ($demande['notes_internes'] ?? '')) as $ligne) {
+            if (!str_contains($ligne, ' : ')) {
+                continue;
+            }
+            [$lib, $val] = array_map('trim', explode(' : ', $ligne, 2));
+            if (!in_array($lib, $autorises, true) || $val === '') {
+                continue;
+            }
+            if ($masquerClient && in_array($lib, $secretsSiClientMasque, true)) {
+                continue;
+            }
+            $res[$lib] = $val;
+        }
+        if (!empty($demande['date_souhaitee_client'])) {
+            $res['Date souhaitée'] = date('d/m/Y', strtotime($demande['date_souhaitee_client']));
+        }
+        return $res;
+    }
 }

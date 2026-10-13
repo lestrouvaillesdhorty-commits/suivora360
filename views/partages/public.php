@@ -40,16 +40,29 @@
 
   <?php if (!empty($articles)): ?>
   <table>
-    <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Référence</th><th>Marque</th></tr></thead>
+    <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Conditionnement</th><th>Référence</th><th>Marque</th><th>Caractéristiques</th></tr></thead>
     <tbody>
     <?php foreach ($articles as $a): ?>
       <tr>
         <td><?= View::e($a['designation']) ?></td>
         <td><?= View::e((string) $a['quantite']) ?></td>
         <td><?= View::e($a['unite']) ?></td>
+        <td><?= View::e((string) ($a['conditionnement'] ?? '')) ?></td>
         <td><?= View::e($a['reference']) ?></td>
         <td><?= View::e($a['marque']) ?></td>
+        <td><?= View::e((string) ($a['caracteristiques'] ?? '')) ?></td>
       </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php endif; ?>
+
+  <?php if (!empty($detailsDemande)): ?>
+  <h2>Détails de la demande</h2>
+  <table>
+    <tbody>
+    <?php foreach ($detailsDemande as $lib => $val): ?>
+      <tr><th style="width:38%;font-weight:600"><?= View::e($lib) ?></th><td><?= View::e($val) ?></td></tr>
     <?php endforeach; ?>
     </tbody>
   </table>

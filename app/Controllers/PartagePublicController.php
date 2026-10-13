@@ -51,6 +51,7 @@ class PartagePublicController
             'dossier' => $dossier,
             'demande' => $demande,
             'articles' => $articles,
+            'detailsDemande' => $demande ? \App\Models\Demande::detailsTransmissibles($demande, (int) $partage['masquer_client'] === 1) : [],
             'pieces' => $pieces,
             'masquerClient' => (int) $partage['masquer_client'] === 1,
         ]);

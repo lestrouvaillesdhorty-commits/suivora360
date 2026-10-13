@@ -64,9 +64,30 @@ $presel = (int) ($fournisseurPreselection ?? 0); ?>
     <div class="form-row">
       <div class="form-group"><label>Date d'envoi</label><input type="date" name="date_envoi" value="<?= date('Y-m-d') ?>"></div>
     </div>
+    <?php if (!empty($apercuArticles) || !empty($apercuDetails)): ?>
+    <details class="card" style="background:#f8f9fb;box-shadow:none;border:1px solid #e3e6ec;padding:10px 14px" open>
+      <summary style="cursor:pointer;font-weight:600">Transmis automatiquement au fournisseur (depuis la demande)</summary>
+      <div style="font-size:13px;margin-top:8px">
+        <?php if (!empty($apercuArticles)): ?>
+          <div style="margin-bottom:6px"><strong>Articles (<?= count($apercuArticles) ?>)</strong></div>
+          <ul style="margin:0 0 8px 18px;padding:0">
+            <?php foreach ($apercuArticles as $a): ?>
+              <li><?= View::e(trim(($a['quantite'] !== null && $a['quantite'] !== '' ? rtrim(rtrim(number_format((float) $a['quantite'], 2, ',', ''), '0'), ',') . ' ' : '') . ($a['unite'] ?? '') . ' ' . $a['designation'])) ?>
+                <?php $pre = array_filter([$a['conditionnement'] ?? '', $a['reference'] ? 'réf. ' . $a['reference'] : '', $a['marque'] ?? '', $a['caracteristiques'] ?? '']); if ($pre): ?><span style="color:#777">— <?= View::e(implode(' · ', $pre)) ?></span><?php endif; ?></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+        <?php if (!empty($apercuDetails)): ?>
+          <div style="margin-bottom:4px"><strong>Détails</strong></div>
+          <?php foreach ($apercuDetails as $lib => $val): ?><div><?= View::e($lib) ?> : <?= View::e($val) ?></div><?php endforeach; ?>
+        <?php endif; ?>
+        <div style="color:#888;margin-top:8px">Le récapitulatif envoyé (lien sécurisé) reprend aussi la destination et l'incoterm. Le nom du client est masqué par défaut. Vos notes internes ne sont jamais transmises. Complétez ci-dessous seulement ce qui s'ajoute.</div>
+      </div>
+    </details>
+    <?php endif; ?>
     <div class="form-group">
-      <label>Articles / besoins communiqués au fournisseur</label>
-      <textarea name="articles_demandes" rows="4" placeholder="Décrivez les articles, quantités et spécifications transmises pour consultation..."></textarea>
+      <label>Précisions complémentaires pour le fournisseur (spécifications, exigences, variantes acceptées…)</label>
+      <textarea name="articles_demandes" rows="4" placeholder="Ex. : emballage export, certificat d'origine demandé, échantillon avant commande, alternatives acceptées…"></textarea>
     </div>
     <div class="form-group">
       <label>Notes internes</label>
