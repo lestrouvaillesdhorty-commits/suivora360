@@ -72,7 +72,8 @@
           <?php endif; ?>
         </td>
         <td><a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $p['id'] ?>" class="btn btn-sm btn-secondary">Voir le lien</a>
-          <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $p['id'] ?>/apercu" target="_blank" class="btn btn-sm btn-secondary">Voir le récap</a></td>
+          <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $p['id'] ?>/apercu" target="_blank" class="btn btn-sm btn-secondary">Voir le récap</a>
+          <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $p['id'] ?>/pdf" class="btn btn-sm btn-secondary">PDF</a></td>
       </tr>
     <?php endforeach; ?>
     </tbody>

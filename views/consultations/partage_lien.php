@@ -20,6 +20,7 @@
 
   <div style="margin-bottom:14px">
     <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/apercu" target="_blank" class="btn btn-secondary">Voir ce que le fournisseur reçoit (récapitulatif)</a>
+    <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/pdf" class="btn btn-secondary">Télécharger le PDF</a>
     <div style="font-size:12px;color:#888;margin-top:4px">Ouvre le même récapitulatif que le lien, sans compter comme une consultation du fournisseur.</div>
   </div>
 
@@ -35,12 +36,13 @@
       <div class="form-group"><label for="emDest">Destinataire</label><input type="email" id="emDest" name="destinataire" value="<?= View::e($emailFournisseur) ?>" placeholder="contact@fournisseur.com"></div>
       <div class="form-group"><label for="emSujet">Objet</label><input type="text" id="emSujet" name="sujet" value="<?= View::e($sujetEmail) ?>"></div>
       <div class="form-group"><label for="emCorps">Message (le lien doit rester dans le texte)</label><textarea id="emCorps" name="corps" rows="9" style="font-size:13px"><?= View::e($corpsEmail) ?></textarea></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" name="joindre_pdf" value="1" checked style="width:auto"> Joindre le récapitulatif en PDF (envoi depuis Suivora uniquement)</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="#" class="btn" id="emMailto">Ouvrir dans ma messagerie</a>
         <?php if ($mailServeurPret): ?><button type="submit" class="btn btn-secondary">Envoyer depuis Suivora</button><?php endif; ?>
       </div>
       <div style="font-size:12px;color:#888;margin-top:6px">
-        « Ouvrir dans ma messagerie » prépare le message dans votre application e-mail (Gmail, Outlook…) : vous l'envoyez vous-même, de votre adresse, puis vous cliquez sur « Marquer comme envoyé ».
+        « Ouvrir dans ma messagerie » prépare le message dans votre application e-mail (Gmail, Outlook…) : vous l'envoyez vous-même, de votre adresse (téléchargez le PDF ci-dessus pour le joindre), puis vous cliquez sur « Marquer comme envoyé ».
         <?php if ($mailServeurPret): ?>« Envoyer depuis Suivora » l'expédie directement ; les réponses du fournisseur arrivent sur votre adresse e-mail.<?php else: ?>L'envoi direct depuis Suivora n'est pas activé sur cette installation.<?php endif; ?>
       </div>
     </form>

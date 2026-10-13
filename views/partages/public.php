@@ -13,7 +13,7 @@
   h2 { font-size: 14px; color: #374151; margin: 20px 0 8px; border-bottom: 1px solid #eef0f4; padding-bottom: 6px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #f1f2f5; }
-  .print-btn { margin-bottom: 16px; padding: 10px 18px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .print-btn { padding: 10px 18px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
   .piece-link { display: inline-block; margin: 4px 8px 4px 0; padding: 6px 12px; background: #f1f2f5; border-radius: 6px; text-decoration: none; color: #1f2937; font-size: 13px; }
   .note { font-size: 12px; color: #888; margin-top: 24px; }
   @media print {
@@ -29,9 +29,17 @@
   <strong>Aperçu interne</strong> — voici exactement ce que le fournisseur voit. Rien n'a été envoyé et aucun lien n'a été créé par cet aperçu.
 </div>
 <?php endif; ?>
-<button class="print-btn no-print" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+<?php $urlPdf = $pdfUrl ?? ('/index.php?r=partage-public/' . View::e($partage['token'] ?? '') . '/pdf'); ?>
+<div class="no-print" style="max-width:720px;margin:0 auto 16px;display:flex;gap:8px;flex-wrap:wrap">
+  <a class="print-btn" style="text-decoration:none;display:inline-block;margin:0" href="<?= $urlPdf ?>">Télécharger le PDF</a>
+  <button class="print-btn" style="background:#6b7280;margin:0" onclick="window.print()">Imprimer</button>
+  <?php if (!empty($basculeUrl)): ?>
+    <a class="print-btn" style="text-decoration:none;display:inline-block;margin:0;background:#fff;color:#374151;border:1px solid #d1d5db" href="<?= $basculeUrl ?>"><?= $masquerClient ? 'Afficher le nom du client' : 'Masquer le nom du client' ?></a>
+  <?php endif; ?>
+</div>
 
 <div class="sheet">
+  <?php $emetteur = \App\Models\Filiale::find((int) ($consultation['filiale_id'] ?? 0)); if (!empty($emetteur['nom'])): ?><div style="font-size:13px;color:#6b7280;margin-bottom:6px"><?= View::e($emetteur['nom']) ?></div><?php endif; ?>
   <h1>Demande d'offre — <?= View::e($dossier['objet'] ?? '') ?></h1>
   <div class="ref">Référence dossier : <?= View::e($dossier['reference'] ?? '') ?> — Référence consultation : <?= View::e($consultation['reference'] ?? '') ?></div>
 

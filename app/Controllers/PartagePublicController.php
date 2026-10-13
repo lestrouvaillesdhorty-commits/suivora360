@@ -66,6 +66,18 @@ class PartagePublicController
         ];
     }
 
+    /** PDF du récapitulatif, téléchargeable par le fournisseur avec son lien. */
+    public function pdf(array $params): void
+    {
+        $partage = $this->chargerPartageValide($params['token'] ?? '');
+        if (!$partage) {
+            $this->afficherLienInvalide();
+            return;
+        }
+        $consultation = ConsultationFournisseur::findWithDetails((int) $partage['consultation_id']);
+        \App\Services\RecapPdf::sortir(\App\Services\RecapPdf::generer(self::donneesRecap($partage, $consultation, false)), \App\Services\RecapPdf::nomFichier($consultation));
+    }
+
     public function telechargerPiece(array $params): void
     {
         $partage = $this->chargerPartageValide($params['token'] ?? '');

@@ -513,6 +513,18 @@ $router->get('/consultations/{id}/partages/nouvelle', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->preparerPartage($params);
 });
+$router->get('/consultations/{id}/recap', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->recapConsultation($params);
+});
+$router->get('/consultations/{id}/recap/pdf', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->recapConsultationPdf($params);
+});
+$router->get('/consultations/{id}/partages/{partageId}/pdf', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->partagePdf($params);
+});
 $router->post('/consultations/{id}/partages/apercu', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->apercuAvantCreation($params);
@@ -546,6 +558,9 @@ $router->post('/consultations/{id}/partages/{partageId}/revoquer', function ($pa
 // son lien sécurisé — token aléatoire, expirable, révocable.
 $router->get('/partage-public/{token}', function ($params) {
     (new PartagePublicController())->show($params);
+});
+$router->get('/partage-public/{token}/pdf', function ($params) {
+    (new PartagePublicController())->pdf($params);
 });
 $router->get('/partage-public/{token}/pieces/{pieceId}', function ($params) {
     (new PartagePublicController())->telechargerPiece($params);

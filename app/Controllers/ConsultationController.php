@@ -221,6 +221,60 @@ class ConsultationController
         View::renderPlain('partages/public', PartagePublicController::donneesRecap($partage, $consultation, true));
     }
 
+    /** Récapitulatif de la consultation (sans lien) : page + PDF. ?masquer_client=0 pour afficher le client. */
+    private function chargerRecapConsultation(array $params): ?array
+    {
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return null;
+        }
+        $partage = ['token' => '', 'masquer_client' => (($_GET['masquer_client'] ?? '1') === '0') ? 0 : 1, 'echeance_reponse' => null, 'pieces_ids' => '[]'];
+        return PartagePublicController::donneesRecap($partage, $consultation, true);
+    }
+
+    public function recapConsultation(array $params): void
+    {
+        $d = $this->chargerRecapConsultation($params);
+        if ($d === null) {
+            return;
+        }
+        $base = '/index.php?r=consultations/' . (int) $params['id'] . '/recap';
+        $d['pdfUrl'] = $base . '/pdf&masquer_client=' . $d['partage']['masquer_client'];
+        $d['basculeUrl'] = $base . '&masquer_client=' . ($d['partage']['masquer_client'] ? '0' : '1');
+        View::renderPlain('partages/public', $d);
+    }
+
+    public function recapConsultationPdf(array $params): void
+    {
+        $d = $this->chargerRecapConsultation($params);
+        if ($d === null) {
+            return;
+        }
+        \App\Services\RecapPdf::sortir(\App\Services\RecapPdf::generer($d), \App\Services\RecapPdf::nomFichier($d['consultation']));
+    }
+
+    /** PDF d'un lien déjà généré (mêmes réglages que le lien : client masqué, pièces, échéance). */
+    public function partagePdf(array $params): void
+    {
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $partage = ConsultationPartage::find((int) $params['partageId']);
+        if (!$partage || (int) $partage['consultation_id'] !== (int) $consultation['id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        \App\Services\RecapPdf::sortir(\App\Services\RecapPdf::generer(PartagePublicController::donneesRecap($partage, $consultation, true)), \App\Services\RecapPdf::nomFichier($consultation));
+    }
+
     /** Aperçu du récapitulatif d'un lien déjà généré (ne compte pas comme une consultation). */
     public function apercuPartage(array $params): void
     {
@@ -237,7 +291,9 @@ class ConsultationController
             View::render('errors/404');
             return;
         }
-        View::renderPlain('partages/public', PartagePublicController::donneesRecap($partage, $consultation, true));
+        $d = PartagePublicController::donneesRecap($partage, $consultation, true);
+        $d['pdfUrl'] = '/index.php?r=consultations/' . (int) $consultation['id'] . '/partages/' . (int) $partage['id'] . '/pdf';
+        View::renderPlain('partages/public', $d);
     }
 
     public function creerPartage(array $params): void
@@ -347,7 +403,12 @@ class ConsultationController
             header('Location: ' . $retour);
             exit;
         }
-        if (!\App\Services\Mailer::envoyer($destinataire, $sujet, $corps, $user['email'] ?? null)) {
+        $pieceJointe = null;
+        if (!empty($_POST['joindre_pdf'])) {
+            $recap = PartagePublicController::donneesRecap($partage, $consultation, true);
+            $pieceJointe = ['nom' => \App\Services\RecapPdf::nomFichier($consultation), 'contenu' => \App\Services\RecapPdf::generer($recap), 'type' => 'application/pdf'];
+        }
+        if (!\App\Services\Mailer::envoyer($destinataire, $sujet, $corps, $user['email'] ?? null, $pieceJointe)) {
             View::flash('erreur', "L'envoi depuis Suivora n'a pas abouti (e-mail serveur non configuré ?). Utilisez « Ouvrir dans ma messagerie ».");
             header('Location: ' . $retour);
             exit;
@@ -355,7 +416,7 @@ class ConsultationController
         ConsultationPartage::marquerEnvoye((int) $partage['id']);
         ConsultationFournisseur::marquerEnvoyee((int) $consultation['id'], 'email');
         AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'partage_envoye_email', 'consultation_fournisseur', (int) $consultation['id'], $destinataire);
-        View::flash('succes', 'E-mail envoyé à ' . $destinataire . '. Les réponses arriveront sur votre adresse.');
+        View::flash('succes', 'E-mail envoyé à ' . $destinataire . ($pieceJointe ? ' (récapitulatif PDF joint)' : '') . '. Les réponses arriveront sur votre adresse.');
         header('Location: ' . $retour);
         exit;
     }

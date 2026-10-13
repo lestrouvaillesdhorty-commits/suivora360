@@ -27,7 +27,7 @@ class Mailer
     /**
      * @return bool true si mail() a accepté le message pour envoi (ne garantit pas la remise)
      */
-    public static function envoyer(string $destinataire, string $sujet, string $corpsTexte, ?string $repondreA = null): bool
+    public static function envoyer(string $destinataire, string $sujet, string $corpsTexte, ?string $repondreA = null, ?array $pieceJointe = null): bool
     {
         if (trim($destinataire) === '' || !filter_var($destinataire, FILTER_VALIDATE_EMAIL)) {
             return false;
@@ -46,8 +46,24 @@ class Mailer
         $headers = [];
         $headers[] = 'From: ' . self::encodeHeaderValue($fromName) . ' <' . $fromAddress . '>';
         $headers[] = 'Reply-To: ' . (($repondreA && filter_var($repondreA, FILTER_VALIDATE_EMAIL)) ? $repondreA : $fromAddress);
-        $headers[] = 'Content-Type: text/plain; charset=UTF-8';
         $headers[] = 'MIME-Version: 1.0';
+        if ($pieceJointe && !empty($pieceJointe['contenu'])) {
+            // Message multipart : texte + une pièce jointe (['nom', 'contenu', 'type']).
+            $frontiere = 'suivora_' . bin2hex(random_bytes(8));
+            $headers[] = 'Content-Type: multipart/mixed; boundary="' . $frontiere . '"';
+            $nom = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string) ($pieceJointe['nom'] ?? 'piece.pdf'));
+            $corpsTexte = '--' . $frontiere . "\r\n"
+                . "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
+                . str_replace("\n", "\r\n", str_replace("\r\n", "\n", $corpsTexte)) . "\r\n"
+                . '--' . $frontiere . "\r\n"
+                . 'Content-Type: ' . ($pieceJointe['type'] ?? 'application/pdf') . '; name="' . $nom . "\"\r\n"
+                . "Content-Transfer-Encoding: base64\r\n"
+                . 'Content-Disposition: attachment; filename="' . $nom . "\"\r\n\r\n"
+                . chunk_split(base64_encode($pieceJointe['contenu']), 76, "\r\n")
+                . '--' . $frontiere . "--\r\n";
+        } else {
+            $headers[] = 'Content-Type: text/plain; charset=UTF-8';
+        }
 
         $sujetEncode = '=?UTF-8?B?' . base64_encode($sujet) . '?=';
 
