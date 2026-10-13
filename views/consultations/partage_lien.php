@@ -18,6 +18,38 @@
     <input type="text" readonly value="<?= View::e($lienPublic) ?>" onclick="this.select()" style="font-size:13px">
   </div>
 
+  <?php $lienActif = empty($partage['revoque_le']) && ConsultationPartage::estValide($partage); ?>
+  <?php if ($lienActif): ?>
+  <div class="card" style="box-shadow:none;border:1px solid #e3e6ec;margin:0 0 14px">
+    <h2 style="font-size:15px;margin-bottom:8px">Envoyer par e-mail</h2>
+    <?php if ($emailFournisseur === ''): ?>
+      <div style="font-size:13px;color:#92400e;margin-bottom:8px">Aucune adresse e-mail sur la fiche du fournisseur : saisissez-la ci-dessous (elle ne sera pas ajoutée à la fiche).</div>
+    <?php endif; ?>
+    <form method="post" action="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/email" id="formEmailPartage">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <div class="form-group"><label for="emDest">Destinataire</label><input type="email" id="emDest" name="destinataire" value="<?= View::e($emailFournisseur) ?>" placeholder="contact@fournisseur.com"></div>
+      <div class="form-group"><label for="emSujet">Objet</label><input type="text" id="emSujet" name="sujet" value="<?= View::e($sujetEmail) ?>"></div>
+      <div class="form-group"><label for="emCorps">Message (le lien doit rester dans le texte)</label><textarea id="emCorps" name="corps" rows="9" style="font-size:13px"><?= View::e($corpsEmail) ?></textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="#" class="btn" id="emMailto">Ouvrir dans ma messagerie</a>
+        <?php if ($mailServeurPret): ?><button type="submit" class="btn btn-secondary">Envoyer depuis Suivora</button><?php endif; ?>
+      </div>
+      <div style="font-size:12px;color:#888;margin-top:6px">
+        « Ouvrir dans ma messagerie » prépare le message dans votre application e-mail (Gmail, Outlook…) : vous l'envoyez vous-même, de votre adresse, puis vous cliquez sur « Marquer comme envoyé ».
+        <?php if ($mailServeurPret): ?>« Envoyer depuis Suivora » l'expédie directement ; les réponses du fournisseur arrivent sur votre adresse e-mail.<?php else: ?>L'envoi direct depuis Suivora n'est pas activé sur cette installation.<?php endif; ?>
+      </div>
+    </form>
+  </div>
+  <script>
+  document.getElementById('emMailto').addEventListener('click', function (e) {
+    e.preventDefault();
+    var f = document.getElementById('formEmailPartage');
+    window.location.href = 'mailto:' + encodeURIComponent(f.destinataire.value.trim()) +
+      '?subject=' + encodeURIComponent(f.sujet.value) + '&body=' + encodeURIComponent(f.corps.value);
+  });
+  </script>
+  <?php endif; ?>
+
   <?php if ($lienWhatsapp): ?>
     <a href="<?= View::e($lienWhatsapp) ?>" target="_blank" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp avec le message prérempli</a>
   <?php else: ?>
@@ -31,11 +63,11 @@
 
   <?php if (empty($partage['marque_envoye_le'])): ?>
     <div class="alert" style="background:#fffbeb;color:#92400e;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px">
-      Suivora ne peut pas savoir si le message a réellement été envoyé dans WhatsApp — confirmez-le vous-même une fois envoyé.
+      Suivora ne peut pas savoir si le message a réellement été envoyé (WhatsApp ou messagerie) — confirmez-le vous-même une fois envoyé.
     </div>
     <form method="post" action="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $partage['id'] ?>/envoye" style="margin-top:10px">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-      <button type="submit" class="btn btn-secondary">Marquer comme envoyé (WhatsApp ouvert)</button>
+      <button type="submit" class="btn btn-secondary">Marquer comme envoyé</button>
     </form>
   <?php else: ?>
     <div style="margin-top:12px;font-size:13px;color:#065f46;font-weight:600">✓ Marqué comme envoyé le <?= date('d/m/Y H:i', strtotime($partage['marque_envoye_le'])) ?></div>

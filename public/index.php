@@ -521,6 +521,10 @@ $router->get('/consultations/{id}/partages/{partageId}', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->afficherPartage($params);
 });
+$router->post('/consultations/{id}/partages/{partageId}/email', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->envoyerPartageEmail($params);
+});
 $router->post('/consultations/{id}/partages/{partageId}/envoye', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->marquerPartageEnvoye($params);

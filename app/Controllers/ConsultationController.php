@@ -227,13 +227,73 @@ class ConsultationController
             . (!empty($partage['echeance_reponse']) ? ' (échéance de réponse : ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '')
             . ". Vous trouverez le récapitulatif ici : {$lienPublic}";
 
+        // [13/10] Envoi par e-mail : texte plus complet que le message WhatsApp, signé par l'utilisateur.
+        $emailFournisseur = trim((string) ($fournisseur['email'] ?? ''));
+        $sujetEmail = 'Demande d\'offre — ' . $consultation['dossier_reference'];
+        $corpsEmail = "Bonjour,\n\nNous vous remercions de bien vouloir nous transmettre votre meilleure offre pour notre demande " . $consultation['dossier_reference']
+            . (!empty($partage['echeance_reponse']) ? ' (merci de répondre avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '')
+            . ".\n\nVous trouverez le récapitulatif et les pièces à consulter à cette adresse :\n{$lienPublic}\n\nCordialement,\n" . ($user['nom'] ?? '');
+
         View::render('consultations/partage_lien', [
             'consultation' => $consultation,
             'partage' => $partage,
             'lienPublic' => $lienPublic,
+            'emailFournisseur' => $emailFournisseur,
+            'sujetEmail' => $sujetEmail,
+            'corpsEmail' => $corpsEmail,
+            'mailServeurPret' => (string) \App\Core\Env::get('MAIL_FROM_ADDRESS', '') !== '',
             'lienWhatsapp' => $telephone !== '' ? ('https://wa.me/' . $telephone . '?text=' . rawurlencode($message)) : null,
             'messagePrepare' => $message,
         ]);
+    }
+
+    /** [13/10] Envoi du lien par e-mail depuis le serveur (si MAIL_FROM_ADDRESS est configuré). */
+    public function envoyerPartageEmail(array $params): void
+    {
+        Auth::requireWrite();
+        $retour = '/index.php?r=consultations/' . (int) $params['id'] . '/partages/' . (int) $params['partageId'];
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $partage = ConsultationPartage::find((int) $params['partageId']);
+        if (!$partage || (int) $partage['consultation_id'] !== (int) $consultation['id'] || !ConsultationPartage::estValide($partage)) {
+            View::flash('erreur', "Ce lien n'est plus actif : générez-en un nouveau.");
+            header('Location: ' . $retour);
+            exit;
+        }
+        $destinataire = trim($_POST['destinataire'] ?? '');
+        if (!filter_var($destinataire, FILTER_VALIDATE_EMAIL)) {
+            View::flash('erreur', "Adresse e-mail du destinataire invalide.");
+            header('Location: ' . $retour);
+            exit;
+        }
+        $lien = self::urlPublique($partage['token']);
+        $sujet = mb_substr(trim($_POST['sujet'] ?? ''), 0, 200);
+        $corps = trim($_POST['corps'] ?? '');
+        // Le lien doit rester dans le message, quoi qu'ait modifié l'utilisateur.
+        if ($sujet === '' || $corps === '' || strpos($corps, $lien) === false) {
+            View::flash('erreur', "Le message doit contenir le sujet et le lien sécurisé.");
+            header('Location: ' . $retour);
+            exit;
+        }
+        if (!\App\Services\Mailer::envoyer($destinataire, $sujet, $corps, $user['email'] ?? null)) {
+            View::flash('erreur', "L'envoi depuis Suivora n'a pas abouti (e-mail serveur non configuré ?). Utilisez « Ouvrir dans ma messagerie ».");
+            header('Location: ' . $retour);
+            exit;
+        }
+        ConsultationPartage::marquerEnvoye((int) $partage['id']);
+        AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'partage_envoye_email', 'consultation_fournisseur', (int) $consultation['id'], $destinataire);
+        View::flash('succes', 'E-mail envoyé à ' . $destinataire . '. Les réponses arriveront sur votre adresse.');
+        header('Location: ' . $retour);
+        exit;
     }
 
     public function marquerPartageEnvoye(array $params): void

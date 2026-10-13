@@ -27,7 +27,7 @@ class Mailer
     /**
      * @return bool true si mail() a accepté le message pour envoi (ne garantit pas la remise)
      */
-    public static function envoyer(string $destinataire, string $sujet, string $corpsTexte): bool
+    public static function envoyer(string $destinataire, string $sujet, string $corpsTexte, ?string $repondreA = null): bool
     {
         if (trim($destinataire) === '' || !filter_var($destinataire, FILTER_VALIDATE_EMAIL)) {
             return false;
@@ -45,7 +45,7 @@ class Mailer
 
         $headers = [];
         $headers[] = 'From: ' . self::encodeHeaderValue($fromName) . ' <' . $fromAddress . '>';
-        $headers[] = 'Reply-To: ' . $fromAddress;
+        $headers[] = 'Reply-To: ' . (($repondreA && filter_var($repondreA, FILTER_VALIDATE_EMAIL)) ? $repondreA : $fromAddress);
         $headers[] = 'Content-Type: text/plain; charset=UTF-8';
         $headers[] = 'MIME-Version: 1.0';
 
