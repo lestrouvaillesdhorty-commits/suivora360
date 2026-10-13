@@ -749,4 +749,10 @@ class ClientController
             'telephone' => $client['telephone'],
         ]);
     }
+
+    /** [13/10] Recherche IA d'informations sur un client (même mécanisme que pour les fournisseurs). */
+    public function rechercheIa(): void
+    {
+        (new FournisseurController())->rechercheIa('client');
+    }
 }

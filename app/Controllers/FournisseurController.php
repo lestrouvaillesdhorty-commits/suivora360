@@ -763,6 +763,43 @@ class FournisseurController
     // Création rapide (depuis une consultation : la saisie en cours n'est pas perdue)
     // ------------------------------------------------------------------
 
+    /**
+     * [13/10] Recherche IA d'informations sur un fournisseur (JSON). Rien n'est enregistré :
+     * le formulaire est prérempli côté navigateur, la personne relit et corrige.
+     */
+    public function rechercheIa(string $cible = 'fournisseur'): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!Auth::canWrite()) {
+            http_response_code(403);
+            echo json_encode(['erreur' => "Vous n'avez pas le droit de créer un fournisseur."]);
+            return;
+        }
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            http_response_code(419);
+            echo json_encode(['erreur' => 'Session expirée, merci de recharger la page.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        try {
+            $r = \App\Services\FournisseurRecherche::rechercher(
+                mb_substr(trim($_POST['nom'] ?? ''), 0, 200),
+                mb_substr(trim($_POST['site_web'] ?? ''), 0, 200),
+                mb_substr(trim($_POST['pays'] ?? ''), 0, 80),
+                $cible
+            );
+        } catch (\Throwable $e) {
+            http_response_code(422);
+            echo json_encode(['erreur' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (!$r['champs']) {
+            http_response_code(422);
+            echo json_encode(['erreur' => $r['remarque'] !== '' ? $r['remarque'] : "Aucune information fiable trouvée. Précisez le pays ou le site internet et réessayez."], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        echo json_encode($r, JSON_UNESCAPED_UNICODE);
+    }
+
     public function creationRapide(): void
     {
         header('Content-Type: application/json; charset=utf-8');

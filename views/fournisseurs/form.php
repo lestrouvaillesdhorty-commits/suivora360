@@ -70,6 +70,8 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
   <div class="detail-grid">
     <div>
+      <?php $rechCible = 'fournisseur'; $rechFormId = 'fournisseurForm'; $rechAvecSite = false; $rechTexte = ['nom_commercial', 'specialites', 'ville', 'adresse', 'code_postal', 'site_web', 'siret', 'tva', 'contact_prenom', 'contact_nom', 'fonction_contact', 'email', 'quantite_min', 'pays_desservis', 'marques', 'conditions_paiement']; $rechCoches = ['types', 'activites', 'devises_proposees']; include __DIR__ . '/../partials/_recherche_ia.php'; ?>
+
       <div class="card">
         <h2>Identification</h2>
         <div class="form-row">
@@ -303,3 +305,4 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
   maj();
 })();
 </script>
+

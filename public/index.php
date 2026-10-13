@@ -199,6 +199,10 @@ $router->post('/clients', function () {
     Auth::requireLogin();
     (new ClientController())->store();
 });
+$router->post('/clients/recherche-ia', function () {
+    Auth::requireLogin();
+    (new ClientController())->rechercheIa();
+});
 $router->post('/clients/creation-rapide', function () {
     Auth::requireLogin();
     (new ClientController())->creationRapide();
@@ -293,6 +297,10 @@ $router->get('/fournisseurs/nouveau', function () {
 $router->post('/fournisseurs', function () {
     Auth::requireLogin();
     (new FournisseurController())->store();
+});
+$router->post('/fournisseurs/recherche-ia', function () {
+    Auth::requireLogin();
+    (new FournisseurController())->rechercheIa();
 });
 $router->post('/fournisseurs/creation-rapide', function () {
     Auth::requireLogin();

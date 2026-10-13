@@ -60,6 +60,8 @@ $ouvrirCommercial = $estModif && ($client['secteur'] || $client['adresse_livrais
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
   <div class="detail-grid">
     <div>
+      <?php $rechCible = 'client'; $rechFormId = 'clientForm'; $rechAvecSite = true; $rechTexte = ['type', 'secteur', 'ville', 'adresse', 'code_postal', 'siret', 'tva', 'contact_prenom', 'contact_nom', 'fonction_contact', 'email', 'adresse_livraison']; $rechCoches = []; include __DIR__ . '/../partials/_recherche_ia.php'; ?>
+
       <div class="card">
         <h2>Identification</h2>
         <div class="form-group">
