@@ -187,8 +187,8 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
             <td><input type="number" step="0.01" name="art_quantite[]" style="width:80px"></td>
             <td>
               <select name="art_unite[]">
-                <option value=""></option>
-                <?php foreach (['Pièce', 'Carton', 'Palette', 'Sac', 'Kg', 'Tonne', 'Litre', 'm³', 'Lot', 'Conteneur'] as $u): ?>
+                <option value="">Choisir…</option>
+                <?php foreach (\App\Models\Demande::UNITES as $u): ?>
                   <option><?= $u ?></option>
                 <?php endforeach; ?>
               </select>

@@ -15,6 +15,14 @@ class Demande
     ];
 
     // Incoterms 2020 (ICC) — liste standard, utilisée pour le souhait initial du client
+    /** Unités proposées dans toutes les listes déroulantes d'articles (demande, besoin, offre, cotation). */
+    public const UNITES = [
+        'Pièce', 'Unité', 'Carton', 'Colis', 'Palette', 'Sac', 'Boîte', 'Bouteille', 'Bidon', 'Fût', 'Lot',
+        'Kg', 'Tonne', 'Litre', 'm', 'm²', 'm³',
+        "Conteneur 20'", "Conteneur 40'", 'Conteneur',
+        'Heure', 'Jour', 'Forfait',
+    ];
+
     public const INCOTERMS = [
         'EXW' => 'EXW — Ex Works (départ usine)',
         'FCA' => 'FCA — Free Carrier',

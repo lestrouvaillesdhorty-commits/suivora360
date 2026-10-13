@@ -172,8 +172,8 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
             <td><input type="number" step="0.01" name="item_quantite[]" style="width:90px" value="<?= View::e((string) ($item['quantite'] ?? '')) ?>"></td>
             <td>
               <select name="item_unite[]">
-                <option value="">—</option>
-                <?php foreach (['Pièce', 'Carton', 'Kg', 'Tonne', 'Litre', 'm³', 'Sac', 'Palette', "Conteneur 20'", "Conteneur 40'"] as $u): ?>
+                <option value="">Choisir…</option>
+                <?php foreach (\App\Models\Demande::UNITES as $u): ?>
                   <option <?= $item['unite'] === $u ? 'selected' : '' ?>><?= $u ?></option>
                 <?php endforeach; ?>
               </select>
@@ -199,8 +199,8 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
     <td><input type="number" step="0.01" name="item_quantite[]" style="width:90px"></td>
     <td>
       <select name="item_unite[]">
-        <option value="">—</option>
-        <?php foreach (['Pièce', 'Carton', 'Kg', 'Tonne', 'Litre', 'm³', 'Sac', 'Palette', "Conteneur 20'", "Conteneur 40'"] as $u): ?>
+        <option value="">Choisir…</option>
+        <?php foreach (\App\Models\Demande::UNITES as $u): ?>
           <option><?= $u ?></option>
         <?php endforeach; ?>
       </select>

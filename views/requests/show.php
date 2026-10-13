@@ -35,7 +35,7 @@ $actionLabels = [
 ];
 // Unités proposées pour les lignes d'articles (mêmes valeurs que le
 // formulaire de création, voir views/requests/create.php).
-$unitesArticle = ['Pièce', 'Carton', 'Palette', 'Sac', 'Kg', 'Tonne', 'Litre', 'm³', 'Lot', 'Conteneur'];
+$unitesArticle = \App\Models\Demande::UNITES;
 ?>
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px;flex-wrap:wrap;gap:10px">
@@ -249,8 +249,9 @@ $unitesArticle = ['Pièce', 'Carton', 'Palette', 'Sac', 'Kg', 'Tonne', 'Litre', 
               <td data-label="Unité">
                 <select name="unite" form="art-form-<?= $a['id'] ?>">
                   <option value="" <?= $a['unite'] === '' ? 'selected' : '' ?>></option>
-                  <?php foreach ($unitesArticle as $u): ?>
-                    <option <?= $a['unite'] === $u ? 'selected' : '' ?>><?= $u ?></option>
+                  <?php $unitesLigne = $unitesArticle; if ($a['unite'] !== '' && !in_array($a['unite'], $unitesLigne, true)) { $unitesLigne[] = $a['unite']; } ?>
+                  <?php foreach ($unitesLigne as $u): ?>
+                    <option <?= $a['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option>
                   <?php endforeach; ?>
                 </select>
               </td>

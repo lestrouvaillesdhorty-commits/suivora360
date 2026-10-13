@@ -43,7 +43,13 @@
           <?php endif; ?>
         </td>
         <td data-label="Quantité"><input type="number" step="0.01" name="quantite[<?= $i ?>]" value="<?= View::e($s['quantite'] !== null ? (string) $s['quantite'] : '') ?>" style="width:90px"></td>
-        <td data-label="Unité"><input type="text" name="unite[<?= $i ?>]" value="<?= View::e($s['unite']) ?>" style="width:110px"></td>
+        <td data-label="Unité">
+          <?php $uns = \App\Models\Demande::UNITES; $uCour = (string) $s['unite']; foreach ($uns as $uu) { if (mb_strtolower($uu) === mb_strtolower($uCour)) { $uCour = $uu; } } if ($uCour !== '' && !in_array($uCour, $uns, true)) { $uns[] = $uCour; } ?>
+          <select name="unite[<?= $i ?>]" style="min-width:110px">
+            <option value="">Choisir…</option>
+            <?php foreach ($uns as $uu): ?><option <?= $uCour === $uu ? 'selected' : '' ?>><?= View::e($uu) ?></option><?php endforeach; ?>
+          </select>
+        </td>
         <td data-label="Conditionnement"><input type="text" name="conditionnement[<?= $i ?>]" value="<?= View::e($s['conditionnement'] ?? '') ?>" style="width:140px" placeholder="Ex : sacs de 50 kg"></td>
         <td data-label="Référence"><input type="text" name="reference[<?= $i ?>]" value="<?= View::e($s['reference'] ?? '') ?>" style="width:110px"></td>
         <td data-label="Marque"><input type="text" name="marque[<?= $i ?>]" value="<?= View::e($s['marque'] ?? '') ?>" style="width:110px"></td>

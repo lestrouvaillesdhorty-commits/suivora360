@@ -119,7 +119,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
             <td>
               <select name="item_unite[]">
                 <option value="">—</option>
-                <?php $unites = ['Pièce', 'Carton', 'Kg', 'Tonne', 'Litre', 'm³', 'Sac', 'Palette', "Conteneur 20'", "Conteneur 40'"]; if ($it['unite'] !== '' && !in_array($it['unite'], $unites, true)) { $unites[] = $it['unite']; } ?>
+                <?php $unites = \App\Models\Demande::UNITES; if ($it['unite'] !== '' && !in_array($it['unite'], $unites, true)) { $unites[] = $it['unite']; } ?>
                 <?php foreach ($unites as $u): ?>
                   <option <?= $it['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option>
                 <?php endforeach; ?>
@@ -147,7 +147,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
     <td>
       <select name="item_unite[]">
         <option value="">—</option>
-        <?php foreach (['Pièce', 'Carton', 'Kg', 'Tonne', 'Litre', 'm³', 'Sac', 'Palette', "Conteneur 20'", "Conteneur 40'"] as $u): ?>
+        <?php foreach (\App\Models\Demande::UNITES as $u): ?>
           <option><?= $u ?></option>
         <?php endforeach; ?>
       </select>
