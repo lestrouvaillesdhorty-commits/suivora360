@@ -57,6 +57,7 @@
 
   <?php if ($lienWhatsapp): ?>
     <a href="<?= View::e($lienWhatsapp) ?>" target="_blank" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp avec le message prérempli</a>
+    <span style="font-size:12px;color:#888;margin-left:6px">Ouvre seulement WhatsApp : la consultation n'est pas marquée envoyée.</span>
   <?php else: ?>
     <div class="alert alert-erreur">Aucun numéro de téléphone renseigné pour ce fournisseur — ajoutez-en un sur sa fiche pour utiliser WhatsApp.</div>
   <?php endif; ?>
@@ -68,14 +69,23 @@
 
   <?php if (empty($partage['marque_envoye_le'])): ?>
     <div class="alert" style="background:#fffbeb;color:#92400e;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px">
-      Suivora ne peut pas savoir si le message a réellement été envoyé (WhatsApp ou messagerie) — confirmez-le vous-même une fois envoyé.
+      Suivora ne peut pas savoir si le message a réellement été envoyé (WhatsApp ou messagerie) — confirmez-le vous-même une fois envoyé, en indiquant le canal utilisé.
     </div>
     <form method="post" action="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $partage['id'] ?>/envoye" style="margin-top:10px">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-      <button type="submit" class="btn btn-secondary">Marquer comme envoyé</button>
+      <div class="form-group" style="max-width:360px">
+        <label for="canalEnvoi">Canal utilisé pour l'envoi</label>
+        <select name="canal_envoi" id="canalEnvoi" required>
+          <option value="">Choisir le canal…</option>
+          <?php foreach (\App\Models\ConsultationFournisseur::CANAUX as $code => $label): ?>
+            <option value="<?= $code ?>"><?= View::e($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-secondary">Confirmer : la consultation a été envoyée</button>
     </form>
   <?php else: ?>
-    <div style="margin-top:12px;font-size:13px;color:#065f46;font-weight:600">✓ Marqué comme envoyé le <?= date('d/m/Y H:i', strtotime($partage['marque_envoye_le'])) ?></div>
+    <div style="margin-top:12px;font-size:13px;color:#065f46;font-weight:600">✓ Marqué comme envoyé le <?= date('d/m/Y H:i', strtotime($partage['marque_envoye_le'])) ?><?= !empty($consultation['canal_envoi']) ? ' — canal : ' . View::e(\App\Models\ConsultationFournisseur::CANAUX[$consultation['canal_envoi']] ?? $consultation['canal_envoi']) : '' ?></div>
   <?php endif; ?>
 
   <?php if (empty($partage['revoque_le'])): ?>

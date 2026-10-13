@@ -1,6 +1,7 @@
 <?php use App\Core\View; use App\Models\ConsultationFournisseur; ?>
 <?php
 $badges = [
+    'a_envoyer' => 'badge-orange',
     'envoyee' => 'badge-blue',
     'relance' => 'badge-yellow',
     'reponse_recue' => 'badge-green',
@@ -12,13 +13,19 @@ $badges = [
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
   <div>
     <h1><?= View::e($consultation['reference']) ?></h1>
-    <div class="subtitle">Consultation envoyée à <?= View::e($consultation['fournisseur_nom']) ?></div>
+    <div class="subtitle">Consultation <?= $consultation['statut'] === 'a_envoyer' ? 'à envoyer à' : 'envoyée à' ?> <?= View::e($consultation['fournisseur_nom']) ?></div>
   </div>
   <div>
     <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/nouvelle" class="btn btn-secondary">Demander une offre (PDF + WhatsApp)</a>
     <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/offres/nouvelle" class="btn">+ Enregistrer une offre reçue</a>
   </div>
 </div>
+
+<?php if ($consultation['statut'] === 'a_envoyer'): ?>
+<div class="alert" style="background:#fffbeb;color:#92400e;padding:12px 16px;border-radius:8px;font-size:14px;margin-top:12px">
+  Cette consultation n'a pas encore été envoyée. <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/nouvelle"><strong>Préparer le récapitulatif et choisir le canal d'envoi</strong></a>.
+</div>
+<?php endif; ?>
 
 <div class="detail-grid">
   <div>
@@ -73,6 +80,7 @@ $badges = [
       <h2>Suivi</h2>
       <div class="info-row"><span class="label">Statut</span><span><span class="badge <?= $badges[$consultation['statut']] ?? 'badge-gray' ?>"><?= ConsultationFournisseur::STATUTS[$consultation['statut']] ?? $consultation['statut'] ?></span></span></div>
       <div class="info-row"><span class="label">Date d'envoi</span><span><?= $consultation['date_envoi'] ? date('d/m/Y', strtotime($consultation['date_envoi'])) : '—' ?></span></div>
+      <div class="info-row"><span class="label">Canal d'envoi</span><span><?= !empty($consultation['canal_envoi']) ? View::e(ConsultationFournisseur::CANAUX[$consultation['canal_envoi']] ?? $consultation['canal_envoi']) : '—' ?></span></div>
       <div class="info-row"><span class="label">Relance</span><span><?= $consultation['date_relance'] ? date('d/m/Y', strtotime($consultation['date_relance'])) : '—' ?></span></div>
       <div class="info-row"><span class="label">Fournisseur</span><span><?= View::e($consultation['fournisseur_nom']) ?></span></div>
 
@@ -84,6 +92,15 @@ $badges = [
             <option value="<?= $code ?>" <?= $consultation['statut'] === $code ? 'selected' : '' ?>><?= $label ?></option>
           <?php endforeach; ?>
         </select>
+        <?php if (ConsultationFournisseur::colonneCanal()): ?>
+        <label style="margin-top:10px">Canal utilisé (si envoyée)</label>
+        <select name="canal_envoi">
+          <option value="">—</option>
+          <?php foreach (ConsultationFournisseur::CANAUX as $code => $label): ?>
+            <option value="<?= $code ?>" <?= ($consultation['canal_envoi'] ?? '') === $code ? 'selected' : '' ?>><?= View::e($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <?php endif; ?>
         <label style="margin-top:10px">Date de relance</label>
         <input type="date" name="date_relance" value="<?= View::e($consultation['date_relance'] ?? '') ?>">
         <button type="submit" class="btn btn-sm" style="margin-top:10px">Enregistrer</button>

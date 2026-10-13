@@ -61,8 +61,8 @@ $presel = (int) ($fournisseurPreselection ?? 0); ?>
     </details>
     <?php endif; ?>
 
-    <div class="form-row">
-      <div class="form-group"><label>Date d'envoi</label><input type="date" name="date_envoi" value="<?= date('Y-m-d') ?>"></div>
+    <div style="font-size:13px;color:#555;background:#f8f9fb;border:1px solid #e3e6ec;border-radius:8px;padding:10px 14px;margin-bottom:12px">
+      L'enregistrement ne l'envoie pas : la consultation reste « À envoyer ». Vous choisirez ensuite le canal (WhatsApp, e-mail ou autre) ; elle passera en « Envoyée » une fois l'envoi confirmé.
     </div>
     <?php if (!empty($apercuArticles) || !empty($apercuDetails)): ?>
     <details class="card" style="background:#f8f9fb;box-shadow:none;border:1px solid #e3e6ec;padding:10px 14px" open>

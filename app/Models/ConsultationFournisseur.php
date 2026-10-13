@@ -7,11 +7,51 @@ use App\Core\Database;
 class ConsultationFournisseur
 {
     public const STATUTS = [
+        'a_envoyer' => 'À envoyer',
         'envoyee' => 'Envoyée',
         'relance' => 'Relancée',
         'reponse_recue' => 'Réponse reçue',
         'sans_reponse' => 'Sans réponse',
     ];
+
+    /** Canaux d'envoi possibles (choisis par l'utilisateur, jamais devinés). */
+    public const CANAUX = [
+        'whatsapp' => 'WhatsApp',
+        'email' => 'E-mail',
+        'autre' => 'Autre (téléphone, Alibaba, plateforme…)',
+    ];
+
+    /** La colonne canal_envoi existe-t-elle (migrate_v30 passée) ? */
+    public static function colonneCanal(): bool
+    {
+        static $ok = null;
+        if ($ok === null) {
+            try {
+                Database::connection()->query('SELECT canal_envoi FROM consultations_fournisseur LIMIT 1');
+                $ok = true;
+            } catch (\Throwable $e) {
+                $ok = false;
+            }
+        }
+        return $ok;
+    }
+
+    /**
+     * L'envoi a réellement eu lieu : la consultation passe de « À envoyer » à
+     * « Envoyée », avec la date du jour et le canal choisi. Une consultation
+     * déjà relancée ou répondue n'est pas ramenée en arrière.
+     */
+    public static function marquerEnvoyee(int $id, string $canal): void
+    {
+        $canal = array_key_exists($canal, self::CANAUX) ? $canal : 'autre';
+        $pdo = Database::connection();
+        $now = date('Y-m-d H:i:s');
+        $pdo->prepare("UPDATE consultations_fournisseur SET statut = 'envoyee', date_envoi = ?, updated_at = ? WHERE id = ? AND statut = 'a_envoyer'")
+            ->execute([date('Y-m-d'), $now, $id]);
+        if (self::colonneCanal()) {
+            $pdo->prepare('UPDATE consultations_fournisseur SET canal_envoi = ?, updated_at = ? WHERE id = ?')->execute([$canal, $now, $id]);
+        }
+    }
 
     /** La colonne articles_ids existe-t-elle (migrate_v29 passée) ? */
     public static function colonneArticles(): bool
@@ -146,8 +186,8 @@ class ConsultationFournisseur
             $data['fournisseur_id'],
             $reference,
             trim($data['articles_demandes'] ?? ''),
-            'envoyee',
-            $data['date_envoi'] ?? date('Y-m-d'),
+            'a_envoyer',
+            null,
             null,
             trim($data['notes'] ?? ''),
             $userId,
@@ -163,10 +203,18 @@ class ConsultationFournisseur
         return $id;
     }
 
-    public static function updateStatut(int $id, string $statut, ?string $dateRelance = null): void
+    public static function updateStatut(int $id, string $statut, ?string $dateRelance = null, ?string $canal = null): void
     {
         if (!array_key_exists($statut, self::STATUTS)) {
             throw new \InvalidArgumentException('Statut de consultation invalide.');
+        }
+        if ($statut === 'envoyee') {
+            // Passage manuel à « Envoyée » : on date l'envoi et on retient le canal indiqué.
+            $pdo = Database::connection();
+            $pdo->prepare('UPDATE consultations_fournisseur SET date_envoi = ? WHERE id = ? AND date_envoi IS NULL')->execute([date('Y-m-d'), $id]);
+            if ($canal !== null && $canal !== '' && array_key_exists($canal, self::CANAUX) && self::colonneCanal()) {
+                $pdo->prepare('UPDATE consultations_fournisseur SET canal_envoi = ? WHERE id = ?')->execute([$canal, $id]);
+            }
         }
         $stmt = Database::connection()->prepare(
             'UPDATE consultations_fournisseur SET statut = ?, date_relance = ?, updated_at = ? WHERE id = ?'

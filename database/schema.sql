@@ -418,14 +418,15 @@ CREATE TABLE IF NOT EXISTS consultations_fournisseur (
     fournisseur_id INT NOT NULL,
     reference VARCHAR(30) NOT NULL,
     articles_demandes TEXT,
-    statut VARCHAR(20) NOT NULL DEFAULT 'envoyee',
+    statut VARCHAR(20) NOT NULL DEFAULT 'a_envoyer',
     date_envoi DATE,
     date_relance DATE,
     notes TEXT,
     created_by INT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
-    articles_ids TEXT NULL -- migrate_v29.php : ids des articles de la demande envoyés (NULL = tous)
+    articles_ids TEXT NULL, -- migrate_v29.php : ids des articles de la demande envoyés (NULL = tous)
+    canal_envoi VARCHAR(20) NULL -- migrate_v30.php : whatsapp / email / autre (statut a_envoyer tant que non envoyée)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS offres (

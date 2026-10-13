@@ -45,7 +45,7 @@ use App\Models\ConsultationPartage;
               <?php endif; ?>
             </td>
             <td><?= $nbPiecesPartage > 0 ? $nbPiecesPartage . ' fichier' . ($nbPiecesPartage > 1 ? 's' : '') : '—' ?></td>
-            <td><span class="badge <?= $c['statut'] === 'reponse_recue' ? 'badge-green' : ($c['statut'] === 'sans_reponse' ? 'badge-red' : ($c['statut'] === 'relance' ? 'badge-orange' : 'badge-blue')) ?>"><?= ConsultationFournisseur::STATUTS[$c['statut']] ?? $c['statut'] ?></span></td>
+            <td><span class="badge <?= $c['statut'] === 'reponse_recue' ? 'badge-green' : ($c['statut'] === 'sans_reponse' ? 'badge-red' : ($c['statut'] === 'relance' || $c['statut'] === 'a_envoyer' ? 'badge-orange' : 'badge-blue')) ?>"><?= ConsultationFournisseur::STATUTS[$c['statut']] ?? $c['statut'] ?></span></td>
             <td><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Voir</a></td>
           </tr>
         <?php endforeach; ?>

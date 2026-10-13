@@ -122,7 +122,7 @@ class ConsultationController
         }
 
         $n = count($fournisseurIds);
-        View::flash('succes', $n > 1 ? $n . ' consultations enregistrées.' : 'Consultation enregistrée.');
+        View::flash('succes', ($n > 1 ? $n . ' consultations enregistrées' : 'Consultation enregistrée') . ' — pas encore envoyée : préparez le récapitulatif et choisissez le canal d\'envoi.');
         header('Location: /index.php?r=dossiers/' . $dossier['id']);
         exit;
     }
@@ -163,7 +163,8 @@ class ConsultationController
         ConsultationFournisseur::updateStatut(
             (int) $consultation['id'],
             $_POST['statut'] ?? '',
-            $_POST['date_relance'] ?? null
+            $_POST['date_relance'] ?? null,
+            $_POST['canal_envoi'] ?? null
         );
         View::flash('succes', 'Statut de la consultation mis à jour.');
         header('Location: /index.php?r=consultations/' . $consultation['id']);
@@ -352,6 +353,7 @@ class ConsultationController
             exit;
         }
         ConsultationPartage::marquerEnvoye((int) $partage['id']);
+        ConsultationFournisseur::marquerEnvoyee((int) $consultation['id'], 'email');
         AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'partage_envoye_email', 'consultation_fournisseur', (int) $consultation['id'], $destinataire);
         View::flash('succes', 'E-mail envoyé à ' . $destinataire . '. Les réponses arriveront sur votre adresse.');
         header('Location: ' . $retour);
@@ -374,9 +376,15 @@ class ConsultationController
         }
         $partage = ConsultationPartage::find((int) $params['partageId']);
         if ($partage && (int) $partage['consultation_id'] === (int) $consultation['id']) {
-            ConsultationPartage::marquerEnvoye((int) $partage['id']);
-            AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'partage_marque_envoye', 'consultation_fournisseur', (int) $consultation['id']);
-            View::flash('succes', 'Marqué comme envoyé.');
+            $canal = (string) ($_POST['canal_envoi'] ?? '');
+            if (!array_key_exists($canal, ConsultationFournisseur::CANAUX)) {
+                View::flash('erreur', "Choisissez d'abord le canal utilisé (WhatsApp, e-mail ou autre).");
+            } else {
+                ConsultationPartage::marquerEnvoye((int) $partage['id']);
+                ConsultationFournisseur::marquerEnvoyee((int) $consultation['id'], $canal);
+                AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'partage_marque_envoye', 'consultation_fournisseur', (int) $consultation['id'], $canal);
+                View::flash('succes', 'Consultation marquée comme envoyée (' . ConsultationFournisseur::CANAUX[$canal] . ').');
+            }
         }
         header('Location: /index.php?r=consultations/' . $consultation['id'] . '/partages/' . $params['partageId']);
         exit;
