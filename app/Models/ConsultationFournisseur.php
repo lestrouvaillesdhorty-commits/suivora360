@@ -13,6 +13,44 @@ class ConsultationFournisseur
         'sans_reponse' => 'Sans réponse',
     ];
 
+    /** La colonne articles_ids existe-t-elle (migrate_v29 passée) ? */
+    public static function colonneArticles(): bool
+    {
+        static $ok = null;
+        if ($ok === null) {
+            try {
+                Database::connection()->query('SELECT articles_ids FROM consultations_fournisseur LIMIT 1');
+                $ok = true;
+            } catch (\Throwable $e) {
+                $ok = false;
+            }
+        }
+        return $ok;
+    }
+
+    /**
+     * Articles de la demande concernés par cette consultation : null = tous, sinon la liste des ids.
+     * @return int[]|null
+     */
+    public static function articlesIds(array $consultation): ?array
+    {
+        $brut = trim((string) ($consultation['articles_ids'] ?? ''));
+        if ($brut === '') {
+            return null;
+        }
+        return array_values(array_filter(array_map('intval', explode(',', $brut))));
+    }
+
+    /** Filtre une liste d'articles de demande selon le choix fait pour cette consultation. */
+    public static function filtrerArticles(array $consultation, array $articles): array
+    {
+        $ids = self::articlesIds($consultation);
+        if ($ids === null) {
+            return $articles;
+        }
+        return array_values(array_filter($articles, static fn($a) => in_array((int) $a['id'], $ids, true)));
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM consultations_fournisseur WHERE id = ?');
@@ -116,7 +154,13 @@ class ConsultationFournisseur
             $now,
             $now,
         ]);
-        return (int) $pdo->lastInsertId();
+        $id = (int) $pdo->lastInsertId();
+        // [13/10] Articles choisis pour ce fournisseur (absent = tous les articles de la demande).
+        if (!empty($data['articles_ids']) && self::colonneArticles()) {
+            $ids = implode(',', array_map('intval', (array) $data['articles_ids']));
+            $pdo->prepare('UPDATE consultations_fournisseur SET articles_ids = ? WHERE id = ?')->execute([$ids, $id]);
+        }
+        return $id;
     }
 
     public static function updateStatut(int $id, string $statut, ?string $dateRelance = null): void

@@ -66,16 +66,27 @@ $presel = (int) ($fournisseurPreselection ?? 0); ?>
     </div>
     <?php if (!empty($apercuArticles) || !empty($apercuDetails)): ?>
     <details class="card" style="background:#f8f9fb;box-shadow:none;border:1px solid #e3e6ec;padding:10px 14px" open>
-      <summary style="cursor:pointer;font-weight:600">Transmis automatiquement au fournisseur (depuis la demande)</summary>
+      <summary style="cursor:pointer;font-weight:600">Ce qui est transmis au fournisseur (depuis la demande)</summary>
       <div style="font-size:13px;margin-top:8px">
         <?php if (!empty($apercuArticles)): ?>
-          <div style="margin-bottom:6px"><strong>Articles (<?= count($apercuArticles) ?>)</strong></div>
-          <ul style="margin:0 0 8px 18px;padding:0">
+          <?php $choixPossible = \App\Models\ConsultationFournisseur::colonneArticles(); ?>
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <strong>Articles à envoyer à ce fournisseur (<?= count($apercuArticles) ?> dans la demande)</strong>
+            <?php if ($choixPossible && count($apercuArticles) > 1): ?>
+              <span style="font-size:12px"><a href="#" data-cocher="1">Tout cocher</a> · <a href="#" data-cocher="0">Tout décocher</a></span>
+            <?php endif; ?>
+          </div>
+          <?php if ($choixPossible): ?><input type="hidden" name="articles_choix" value="1"><?php endif; ?>
+          <div style="margin:0 0 8px">
             <?php foreach ($apercuArticles as $a): ?>
-              <li><?= View::e(trim(($a['quantite'] !== null && $a['quantite'] !== '' ? rtrim(rtrim(number_format((float) $a['quantite'], 2, ',', ''), '0'), ',') . ' ' : '') . ($a['unite'] ?? '') . ' ' . $a['designation'])) ?>
-                <?php $pre = array_filter([$a['conditionnement'] ?? '', $a['reference'] ? 'réf. ' . $a['reference'] : '', $a['marque'] ?? '', $a['caracteristiques'] ?? '']); if ($pre): ?><span style="color:#777">— <?= View::e(implode(' · ', $pre)) ?></span><?php endif; ?></li>
+              <label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;padding:3px 0">
+                <?php if ($choixPossible): ?><input type="checkbox" name="articles[]" value="<?= (int) $a['id'] ?>" checked style="width:auto;margin-top:3px"><?php endif; ?>
+                <span><?= View::e(trim(($a['quantite'] !== null && $a['quantite'] !== '' ? rtrim(rtrim(number_format((float) $a['quantite'], 2, ',', ''), '0'), ',') . ' ' : '') . ($a['unite'] ?? '') . ' ' . $a['designation'])) ?>
+                <?php $pre = array_filter([$a['conditionnement'] ?? '', $a['reference'] ? 'réf. ' . $a['reference'] : '', $a['marque'] ?? '', $a['caracteristiques'] ?? '']); if ($pre): ?><span style="color:#777">— <?= View::e(implode(' · ', $pre)) ?></span><?php endif; ?></span>
+              </label>
             <?php endforeach; ?>
-          </ul>
+          </div>
+          <?php if ($choixPossible): ?><div style="font-size:12px;color:#888;margin-bottom:8px">Décochez les articles que ce fournisseur ne fournit pas : il ne verra que ceux qui sont cochés. Pour consulter plusieurs fournisseurs sur des articles différents, créez une consultation par fournisseur.</div><?php endif; ?>
         <?php endif; ?>
         <?php if (!empty($apercuDetails)): ?>
           <div style="margin-bottom:4px"><strong>Détails</strong></div>
@@ -140,4 +151,13 @@ $presel = (int) ($fournisseurPreselection ?? 0); ?>
   }
   document.getElementById('nfEnregistrer').addEventListener('click', function () { envoyer(false); });
 })();
+</script>
+<script>
+Array.prototype.forEach.call(document.querySelectorAll('[data-cocher]'), function (a) {
+  a.addEventListener('click', function (e) {
+    e.preventDefault();
+    var etat = a.getAttribute('data-cocher') === '1';
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="articles[]"]'), function (c) { c.checked = etat; });
+  });
+});
 </script>

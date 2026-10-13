@@ -52,6 +52,17 @@ $badges = [
     </div>
 
     <div class="card">
+      <?php
+        $ligneDossier = \App\Models\Dossier::find((int) $consultation['dossier_id']);
+        $artsDemande = !empty($ligneDossier['demande_id']) ? \App\Models\DemandeArticle::forDemande((int) $ligneDossier['demande_id']) : [];
+        $artsConcernes = ConsultationFournisseur::filtrerArticles($consultation, $artsDemande);
+      ?>
+      <?php if ($artsDemande): ?>
+        <h2>Articles concernés (<?= count($artsConcernes) ?> sur <?= count($artsDemande) ?>)</h2>
+        <ul style="margin:0 0 14px 18px;padding:0;font-size:14px">
+          <?php foreach ($artsConcernes as $a): ?><li><?= View::e(trim(rtrim(rtrim(number_format((float) $a['quantite'], 2, ',', ''), '0'), ',') . ' ' . ($a['unite'] ?? '') . ' ' . $a['designation'])) ?></li><?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
       <h2>Besoins communiqués</h2>
       <div style="white-space:pre-wrap;font-size:14px"><?= View::e($consultation['articles_demandes']) ?: '—' ?></div>
     </div>

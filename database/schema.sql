@@ -424,7 +424,8 @@ CREATE TABLE IF NOT EXISTS consultations_fournisseur (
     notes TEXT,
     created_by INT,
     created_at DATETIME NOT NULL,
-    updated_at DATETIME NOT NULL
+    updated_at DATETIME NOT NULL,
+    articles_ids TEXT NULL -- migrate_v29.php : ids des articles de la demande envoyés (NULL = tous)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS offres (

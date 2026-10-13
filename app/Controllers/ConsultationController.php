@@ -86,6 +86,20 @@ class ConsultationController
             header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/consultations/nouvelle');
             exit;
         }
+        // [13/10] Articles de la demande choisis pour ces fournisseurs ; tous cochés (ou aucune case) = tous.
+        $articlesIds = null;
+        if (ConsultationFournisseur::colonneArticles() && !empty($dossier['demande_id']) && isset($_POST['articles_choix'])) {
+            $tous = array_map(static fn($a) => (int) $a['id'], \App\Models\DemandeArticle::forDemande((int) $dossier['demande_id']));
+            $choisis = array_values(array_intersect($tous, array_map('intval', (array) ($_POST['articles'] ?? []))));
+            if ($tous && !$choisis) {
+                View::flash('erreur', 'Cochez au moins un article à envoyer au fournisseur.');
+                header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/consultations/nouvelle');
+                exit;
+            }
+            if ($choisis && count($choisis) < count($tous)) {
+                $articlesIds = $choisis;
+            }
+        }
         foreach ($noms as $nom) {
             $fid = Fournisseur::create([
                 'filiale_id' => $filialeId,
@@ -98,6 +112,7 @@ class ConsultationController
         }
 
         $donnees = $_POST;
+        $donnees['articles_ids'] = $articlesIds;
         $donnees['notes'] = trim(($noteSource !== '' ? $noteSource . "\n" : '') . trim($_POST['notes'] ?? ''));
         $dernier = 0;
         foreach ($fournisseurIds as $fid) {

@@ -31,7 +31,7 @@ class PartagePublicController
         $consultation = ConsultationFournisseur::findWithDetails((int) $partage['consultation_id']);
         $dossier = Dossier::find((int) $consultation['dossier_id']);
         $demande = $dossier ? Demande::find((int) $dossier['demande_id']) : null;
-        $articles = $demande ? DemandeArticle::forDemande((int) $demande['id']) : [];
+        $articles = $demande ? ConsultationFournisseur::filtrerArticles($consultation, DemandeArticle::forDemande((int) $demande['id'])) : [];
 
         $piecesAutorisees = ConsultationPartage::piecesIds($partage);
         $pieces = [];
