@@ -42,7 +42,11 @@
       <?php endif; ?>
     </div>
 
-    <button type="submit" class="btn">Générer le lien et le message WhatsApp</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="submit" class="btn btn-secondary" formaction="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/apercu" formtarget="_blank">Voir le récapitulatif avant envoi</button>
+      <button type="submit" class="btn">Générer le lien et le message WhatsApp</button>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">L'aperçu s'ouvre dans un nouvel onglet et montre exactement ce que le fournisseur verra, avec vos choix ci-dessus. Rien n'est créé ni envoyé.</div>
   </form>
 </div>
 
@@ -67,7 +71,8 @@
             <span class="badge badge-gray">Expiré</span>
           <?php endif; ?>
         </td>
-        <td><a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $p['id'] ?>" class="btn btn-sm btn-secondary">Voir le lien</a></td>
+        <td><a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $p['id'] ?>" class="btn btn-sm btn-secondary">Voir le lien</a>
+          <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $p['id'] ?>/apercu" target="_blank" class="btn btn-sm btn-secondary">Voir le récap</a></td>
       </tr>
     <?php endforeach; ?>
     </tbody>

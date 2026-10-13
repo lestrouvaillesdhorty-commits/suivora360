@@ -24,6 +24,11 @@
 </style>
 </head>
 <body>
+<?php if (!empty($apercu)): ?>
+<div class="no-print" style="max-width:720px;margin:0 auto 16px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;padding:12px 16px;border-radius:8px;font-size:13px">
+  <strong>Aperçu interne</strong> — voici exactement ce que le fournisseur voit. Rien n'a été envoyé et aucun lien n'a été créé par cet aperçu.
+</div>
+<?php endif; ?>
 <button class="print-btn no-print" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
 
 <div class="sheet">
@@ -79,7 +84,7 @@
   <?php if (!empty($pieces)): ?>
   <h2>Pièces jointes</h2>
   <?php foreach ($pieces as $p): ?>
-    <a class="piece-link" href="/index.php?r=partage-public/<?= View::e($partage['token']) ?>/pieces/<?= $p['id'] ?>" target="_blank"><?= View::e($p['nom_original']) ?></a>
+    <a class="piece-link" href="<?= !empty($apercu) ? '/index.php?r=dossiers/' . (int) $p['dossier_id'] . '/pieces/' . (int) $p['id'] . '/telecharger' : '/index.php?r=partage-public/' . View::e($partage['token']) . '/pieces/' . (int) $p['id'] ?>" target="_blank"><?= View::e($p['nom_original']) ?></a>
   <?php endforeach; ?>
   <?php endif; ?>
 

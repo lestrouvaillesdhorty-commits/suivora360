@@ -513,6 +513,14 @@ $router->get('/consultations/{id}/partages/nouvelle', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->preparerPartage($params);
 });
+$router->post('/consultations/{id}/partages/apercu', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->apercuAvantCreation($params);
+});
+$router->get('/consultations/{id}/partages/{partageId}/apercu', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->apercuPartage($params);
+});
 $router->post('/consultations/{id}/partages', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->creerPartage($params);

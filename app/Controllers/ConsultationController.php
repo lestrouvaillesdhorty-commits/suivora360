@@ -196,6 +196,49 @@ class ConsultationController
         ]);
     }
 
+    /** Aperçu du récapitulatif AVANT génération du lien (aucun enregistrement). */
+    public function apercuAvantCreation(array $params): void
+    {
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=consultations/' . (int) $params['id'] . '/partages/nouvelle');
+            exit;
+        }
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $echeance = trim((string) ($_POST['echeance_reponse'] ?? ''));
+        $partage = [
+            'token' => '',
+            'masquer_client' => !empty($_POST['masquer_client']) ? 1 : 0,
+            'echeance_reponse' => $echeance !== '' ? $echeance : null,
+            'pieces_ids' => json_encode(array_values(array_filter(array_map('intval', $_POST['pieces_ids'] ?? [])))),
+        ];
+        View::renderPlain('partages/public', PartagePublicController::donneesRecap($partage, $consultation, true));
+    }
+
+    /** Aperçu du récapitulatif d'un lien déjà généré (ne compte pas comme une consultation). */
+    public function apercuPartage(array $params): void
+    {
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $partage = ConsultationPartage::find((int) $params['partageId']);
+        if (!$partage || (int) $partage['consultation_id'] !== (int) $consultation['id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        View::renderPlain('partages/public', PartagePublicController::donneesRecap($partage, $consultation, true));
+    }
+
     public function creerPartage(array $params): void
     {
         Auth::requireWrite();

@@ -18,6 +18,11 @@
     <input type="text" readonly value="<?= View::e($lienPublic) ?>" onclick="this.select()" style="font-size:13px">
   </div>
 
+  <div style="margin-bottom:14px">
+    <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/apercu" target="_blank" class="btn btn-secondary">Voir ce que le fournisseur reçoit (récapitulatif)</a>
+    <div style="font-size:12px;color:#888;margin-top:4px">Ouvre le même récapitulatif que le lien, sans compter comme une consultation du fournisseur.</div>
+  </div>
+
   <?php $lienActif = empty($partage['revoque_le']) && ConsultationPartage::estValide($partage); ?>
   <?php if ($lienActif): ?>
   <div class="card" style="box-shadow:none;border:1px solid #e3e6ec;margin:0 0 14px">

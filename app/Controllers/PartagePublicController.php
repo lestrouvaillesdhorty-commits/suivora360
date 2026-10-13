@@ -29,6 +29,16 @@ class PartagePublicController
         }
 
         $consultation = ConsultationFournisseur::findWithDetails((int) $partage['consultation_id']);
+        ConsultationPartage::enregistrerAcces((int) $partage['id']);
+        View::renderPlain('partages/public', self::donneesRecap($partage, $consultation, false));
+    }
+
+    /**
+     * Données du récapitulatif tel que le fournisseur le voit. Partagé avec
+     * l'aperçu interne (qui n'incrémente pas le compteur d'accès).
+     */
+    public static function donneesRecap(array $partage, array $consultation, bool $apercu): array
+    {
         $dossier = Dossier::find((int) $consultation['dossier_id']);
         $demande = $dossier ? Demande::find((int) $dossier['demande_id']) : null;
         $articles = $demande ? ConsultationFournisseur::filtrerArticles($consultation, DemandeArticle::forDemande((int) $demande['id'])) : [];
@@ -43,9 +53,7 @@ class PartagePublicController
             }
         }
 
-        ConsultationPartage::enregistrerAcces((int) $partage['id']);
-
-        View::renderPlain('partages/public', [
+        return [
             'partage' => $partage,
             'consultation' => $consultation,
             'dossier' => $dossier,
@@ -54,7 +62,8 @@ class PartagePublicController
             'detailsDemande' => $demande ? \App\Models\Demande::detailsTransmissibles($demande, (int) $partage['masquer_client'] === 1) : [],
             'pieces' => $pieces,
             'masquerClient' => (int) $partage['masquer_client'] === 1,
-        ]);
+            'apercu' => $apercu,
+        ];
     }
 
     public function telechargerPiece(array $params): void
