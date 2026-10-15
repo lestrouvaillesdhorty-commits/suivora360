@@ -148,7 +148,7 @@ ob_start(); ?>
     <div style="font-size:12px;color:#888;margin-top:6px">WhatsApp s'ouvre (application ou WhatsApp Web) avec le message complet prêt (texte brut) : vous choisissez ou confirmez le contact, puis vous envoyez. Ensuite, confirmez l'envoi plus bas. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout dans la conversation. Si vous ajoutez le lien sécurisé, le fournisseur peut aussi y télécharger le PDF.</div>
     <div class="form-group" style="margin-top:10px">
       <label>Message prérempli</label>
-      <textarea id="waMsg" rows="10" style="font-size:13px"><?= View::e($messagePrepare) ?></textarea>
+      <textarea id="waMsg" rows="14" style="font-size:13px"><?= View::e($messagePrepare) ?></textarea>
     </div>
 <?php $panneaux['whatsapp'] = ob_get_clean();
 

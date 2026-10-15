@@ -32,13 +32,21 @@
 
     <div class="form-group">
       <label>Précisions complémentaires pour le fournisseur</label>
-      <textarea name="articles_demandes" rows="4"><?= View::e($consultation['articles_demandes']) ?></textarea>
+      <textarea name="articles_demandes" rows="12" style="min-height:240px;resize:vertical;line-height:1.5" class="autogrow"><?= View::e($consultation['articles_demandes']) ?></textarea>
     </div>
     <div class="form-group">
       <label>Notes internes</label>
-      <textarea name="notes" rows="3"><?= View::e($consultation['notes']) ?></textarea>
+      <textarea name="notes" rows="5" style="resize:vertical" class="autogrow"><?= View::e($consultation['notes']) ?></textarea>
     </div>
     <button type="submit" class="btn">Enregistrer les modifications</button>
     <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>" class="btn btn-secondary">Annuler</a>
   </form>
 </div>
+<script>
+// Les grands champs de texte s'agrandissent automatiquement pour afficher tout le message.
+document.querySelectorAll('textarea.autogrow').forEach(function (t) {
+  var min = t.offsetHeight;
+  function g() { t.style.height = 'auto'; t.style.height = Math.max(min, t.scrollHeight + 4) + 'px'; }
+  t.addEventListener('input', g); g();
+});
+</script>
