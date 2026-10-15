@@ -28,8 +28,35 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
 
   <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
     <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/apercu" target="_blank" class="btn btn-secondary">Voir ce que le fournisseur reçoit (récapitulatif)</a>
-    <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/pdf" class="btn btn-secondary">Télécharger le PDF</a>
+    <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/pdf" class="btn btn-secondary" id="lienPdf">Télécharger le PDF</a>
+    <button type="button" class="btn btn-secondary" id="btnPartagerPdf" style="display:none">Partager le PDF (WhatsApp, e-mail…)</button>
   </div>
+  <div id="msgPartagePdf" style="display:none;font-size:13px;color:#92400e;margin:-6px 0 12px"></div>
+  <script>
+  // Menu « Partager » du téléphone (ou de l'ordinateur compatible) : envoie le PDF en pièce jointe vers WhatsApp, Gmail, Outlook…
+  // Nécessite une connexion sécurisée (HTTPS) et un navigateur compatible : sinon le bouton reste masqué.
+  (function () {
+    var btn = document.getElementById('btnPartagerPdf'), msg = document.getElementById('msgPartagePdf');
+    if (!btn || !window.isSecureContext || !navigator.share || !navigator.canShare || !window.File) return;
+    btn.style.display = '';
+    var texte = <?= json_encode($messagePrepare) ?>, titre = <?= json_encode($sujetEmail) ?>, nom = <?= json_encode(\App\Services\RecapPdf::nomFichier($consultation)) ?>;
+    btn.addEventListener('click', function () {
+      msg.style.display = 'none';
+      fetch(document.getElementById('lienPdf').href, {credentials: 'same-origin'})
+        .then(function (r) { return r.blob(); })
+        .then(function (blob) {
+          var f = new File([blob], nom, {type: 'application/pdf'});
+          if (!navigator.canShare({files: [f]})) { throw new Error('non-supporte'); }
+          return navigator.share({files: [f], title: titre, text: texte});
+        })
+        .catch(function (e) {
+          if (e && e.name === 'AbortError') return;
+          msg.textContent = "Le partage du PDF n'est pas possible sur cet appareil : utilisez « Télécharger le PDF » puis joignez-le vous-même.";
+          msg.style.display = 'block';
+        });
+    });
+  })();
+  </script>
 
 <?php
 // Un panneau par canal ; celui choisi s'affiche en premier, les autres sont repliés.
@@ -63,7 +90,7 @@ ob_start(); ?>
         <?php endforeach; ?>
       </div>
       <div style="font-size:12px;color:#888;margin-top:8px">
-        Votre messagerie s'ouvre avec le destinataire, l'objet et le message prêts : vous relisez et vous cliquez sur « Envoyer » vous-même, depuis votre adresse. Téléchargez le PDF ci-dessus si vous voulez le joindre (le lien sécurisé est déjà dans le message). Ensuite, confirmez l'envoi plus bas.
+        Votre messagerie s'ouvre avec le destinataire, l'objet et le message prêts : vous relisez et vous cliquez sur « Envoyer » vous-même, depuis votre adresse. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout manuel. Le lien sécurisé, lui, est déjà dans le message : le fournisseur peut y télécharger le PDF. Ensuite, confirmez l'envoi plus bas.
         <?php if ($mailServeurPret): ?>« Envoyer directement depuis Suivora » expédie l'e-mail sans passer par votre messagerie, avec le PDF joint.<?php else: ?>L'envoi direct depuis Suivora n'est pas activé sur cette installation (<code>MAIL_FROM_ADDRESS</code> dans le .env).<?php endif; ?>
       </div>
     </form>
@@ -102,7 +129,7 @@ ob_start(); ?>
         <a href="<?= View::e($lienWhatsappLibre) ?>" target="_blank" id="btnWhatsapp" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp et choisir le contact</a>
       <?php endif; ?>
     </div>
-    <div style="font-size:12px;color:#888;margin-top:6px">WhatsApp s'ouvre (application ou WhatsApp Web) avec le message prêt, lien sécurisé inclus : vous choisissez ou confirmez le contact, puis vous envoyez. Ensuite, confirmez l'envoi plus bas. Pour joindre le PDF, téléchargez-le ci-dessus et ajoutez-le dans la conversation.</div>
+    <div style="font-size:12px;color:#888;margin-top:6px">WhatsApp s'ouvre (application ou WhatsApp Web) avec le message prêt, lien sécurisé inclus : vous choisissez ou confirmez le contact, puis vous envoyez. Ensuite, confirmez l'envoi plus bas. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout dans la conversation. Le lien dans le message permet aussi au fournisseur de le télécharger.</div>
     <div class="form-group" style="margin-top:10px">
       <label>Message prérempli</label>
       <textarea readonly rows="3" style="font-size:13px"><?= View::e($messagePrepare) ?></textarea>
