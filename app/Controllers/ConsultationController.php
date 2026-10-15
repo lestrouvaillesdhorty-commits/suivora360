@@ -176,6 +176,37 @@ class ConsultationController
      * récapitulatif (masquage client, pièces à partager, échéance, durée
      * du lien) avant de générer le lien sécurisé + le message WhatsApp.
      */
+    /** Contacts joignables du fournisseur : contact principal de la fiche + contacts supplémentaires actifs. */
+    private function contactsFournisseur(array $fournisseur): array
+    {
+        $liste = [];
+        $nomPrincipal = trim(($fournisseur['contact_prenom'] ?? '') . ' ' . ($fournisseur['contact_nom'] ?? ''));
+        if ($nomPrincipal !== '' || !empty($fournisseur['email']) || !empty($fournisseur['telephone'])) {
+            $liste[] = [
+                'cle' => 'p',
+                'prenom' => trim((string) ($fournisseur['contact_prenom'] ?? '')),
+                'nom' => $nomPrincipal !== '' ? $nomPrincipal : 'Contact principal',
+                'fonction' => trim((string) ($fournisseur['fonction_contact'] ?? '')),
+                'email' => trim((string) ($fournisseur['email'] ?? '')),
+                'telephone' => trim((string) ($fournisseur['telephone'] ?? '')),
+            ];
+        }
+        foreach (Fournisseur::contacts((int) $fournisseur['id']) as $c) {
+            if ((int) ($c['actif'] ?? 1) !== 1) {
+                continue;
+            }
+            $liste[] = [
+                'cle' => 'c' . (int) $c['id'],
+                'prenom' => trim((string) $c['prenom']),
+                'nom' => trim($c['prenom'] . ' ' . $c['nom']) ?: 'Contact',
+                'fonction' => trim((string) $c['fonction']),
+                'email' => trim((string) $c['email']),
+                'telephone' => trim((string) $c['telephone']),
+            ];
+        }
+        return $liste;
+    }
+
     public function preparerPartage(array $params): void
     {
         $user = Auth::user();
@@ -189,11 +220,14 @@ class ConsultationController
         $dossier = Dossier::find((int) $consultation['dossier_id']);
         $pieces = DossierPieceJointe::forDossier((int) $dossier['id']);
         $partages = ConsultationPartage::forConsultation((int) $consultation['id']);
+        $fournisseur = Fournisseur::find((int) $consultation['fournisseur_id']) ?: ['id' => (int) $consultation['fournisseur_id']];
 
         View::render('consultations/partage_preparer', [
             'consultation' => $consultation,
             'pieces' => $pieces,
             'partages' => $partages,
+            'fournisseur' => $fournisseur,
+            'contacts' => $this->contactsFournisseur($fournisseur),
         ]);
     }
 
@@ -312,8 +346,54 @@ class ConsultationController
             return;
         }
 
+        // Destinataire (contact du fournisseur ou saisie libre) et canal : choisis ici, jamais devinés.
+        $retourForm = '/index.php?r=consultations/' . (int) $consultation['id'] . '/partages/nouvelle';
+        $fournisseur = Fournisseur::find((int) $consultation['fournisseur_id']) ?: ['id' => (int) $consultation['fournisseur_id']];
+        $canal = (string) ($_POST['canal'] ?? '');
+        if (!array_key_exists($canal, ConsultationFournisseur::CANAUX)) {
+            View::flash('erreur', "Choisissez le canal d'envoi (e-mail, WhatsApp ou autre).");
+            header('Location: ' . $retourForm);
+            exit;
+        }
+        $choix = (string) ($_POST['contact'] ?? '');
+        $dest = null;
+        if ($choix === 'autre') {
+            $dest = [
+                'prenom' => '',
+                'nom' => trim((string) ($_POST['dest_nom'] ?? '')),
+                'email' => trim((string) ($_POST['dest_email'] ?? '')),
+                'telephone' => trim((string) ($_POST['dest_telephone'] ?? '')),
+            ];
+            if (!empty($_POST['enregistrer_contact']) && ($dest['email'] !== '' || $dest['telephone'] !== '') && Fournisseur::schemaPret()) {
+                Fournisseur::enregistrerContact((int) $fournisseur['id'], null, ['prenom' => '', 'nom' => $dest['nom'], 'fonction' => '', 'email' => $dest['email'], 'telephone' => $dest['telephone']]);
+            }
+        } else {
+            foreach ($this->contactsFournisseur($fournisseur) as $c) {
+                if ($c['cle'] === $choix) {
+                    $dest = $c;
+                    break;
+                }
+            }
+        }
+        if ($dest === null) {
+            View::flash('erreur', "Choisissez le destinataire chez le fournisseur.");
+            header('Location: ' . $retourForm);
+            exit;
+        }
+        if ($canal === 'email' && !filter_var($dest['email'], FILTER_VALIDATE_EMAIL)) {
+            View::flash('erreur', "Ce destinataire n'a pas d'adresse e-mail valide : ajoutez-la (saisie libre) ou choisissez un autre canal.");
+            header('Location: ' . $retourForm);
+            exit;
+        }
+        if ($canal === 'whatsapp' && preg_replace('/[^0-9]/', '', (string) $dest['telephone']) === '') {
+            View::flash('erreur', "Ce destinataire n'a pas de numéro de téléphone : ajoutez-le (saisie libre) ou choisissez un autre canal.");
+            header('Location: ' . $retourForm);
+            exit;
+        }
+
         $partage = ConsultationPartage::create((int) $consultation['id'], $_POST, (int) $user['id']);
-        AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'creation_partage_consultation', 'consultation_fournisseur', (int) $consultation['id']);
+        $_SESSION['envoi_partage'][(int) $partage['id']] = ['canal' => $canal, 'dest' => $dest];
+        AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'creation_partage_consultation', 'consultation_fournisseur', (int) $consultation['id'], $canal);
 
         header('Location: /index.php?r=consultations/' . $consultation['id'] . '/partages/' . $partage['id']);
         exit;
@@ -340,16 +420,21 @@ class ConsultationController
         }
 
         $lienPublic = self::urlPublique($partage['token']);
-        $fournisseur = Fournisseur::find((int) $consultation['fournisseur_id']);
-        $telephone = preg_replace('/[^0-9]/', '', $fournisseur['telephone'] ?? '');
-        $message = "Bonjour {$consultation['fournisseur_nom']}, merci de bien vouloir nous transmettre votre meilleure offre pour la demande {$consultation['dossier_reference']}"
-            . (!empty($partage['echeance_reponse']) ? ' (échéance de réponse : ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '')
-            . ". Vous trouverez le récapitulatif ici : {$lienPublic}";
+        $fournisseur = Fournisseur::find((int) $consultation['fournisseur_id']) ?: [];
 
-        // [13/10] Envoi par e-mail : texte plus complet que le message WhatsApp, signé par l'utilisateur.
-        $emailFournisseur = trim((string) ($fournisseur['email'] ?? ''));
+        // Destinataire + canal choisis à l'étape précédente (sinon : contact principal de la fiche).
+        $envoi = $_SESSION['envoi_partage'][(int) $partage['id']] ?? null;
+        $contacts = $fournisseur ? $this->contactsFournisseur($fournisseur) : [];
+        $dest = $envoi['dest'] ?? ($contacts[0] ?? ['prenom' => '', 'nom' => '', 'email' => trim((string) ($fournisseur['email'] ?? '')), 'telephone' => trim((string) ($fournisseur['telephone'] ?? ''))]);
+        $canalChoisi = $envoi['canal'] ?? (($dest['email'] ?? '') !== '' ? 'email' : ((($dest['telephone'] ?? '') !== '') ? 'whatsapp' : 'autre'));
+        $telephone = preg_replace('/[^0-9]/', '', (string) ($dest['telephone'] ?? ''));
+        $salut = trim((string) ($dest['prenom'] ?? '')) !== '' ? 'Bonjour ' . $dest['prenom'] : (trim((string) ($dest['nom'] ?? '')) !== '' && ($dest['nom'] !== 'Contact principal') ? 'Bonjour ' . $dest['nom'] : 'Bonjour');
+        $echeanceTxt = !empty($partage['echeance_reponse']) ? ' (échéance de réponse : ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '';
+        $message = "{$salut}, merci de bien vouloir nous transmettre votre meilleure offre pour la demande {$consultation['dossier_reference']}{$echeanceTxt}. Vous trouverez le récapitulatif ici : {$lienPublic}";
+
+        $emailFournisseur = trim((string) ($dest['email'] ?? ''));
         $sujetEmail = 'Demande d\'offre — ' . $consultation['dossier_reference'];
-        $corpsEmail = "Bonjour,\n\nNous vous remercions de bien vouloir nous transmettre votre meilleure offre pour notre demande " . $consultation['dossier_reference']
+        $corpsEmail = "{$salut},\n\nNous vous remercions de bien vouloir nous transmettre votre meilleure offre pour notre demande " . $consultation['dossier_reference']
             . (!empty($partage['echeance_reponse']) ? ' (merci de répondre avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '')
             . ".\n\nVous trouverez le récapitulatif et les pièces à consulter à cette adresse :\n{$lienPublic}\n\nCordialement,\n" . ($user['nom'] ?? '');
 
@@ -357,6 +442,8 @@ class ConsultationController
             'consultation' => $consultation,
             'partage' => $partage,
             'lienPublic' => $lienPublic,
+            'dest' => $dest,
+            'canalChoisi' => $canalChoisi,
             'emailFournisseur' => $emailFournisseur,
             'sujetEmail' => $sujetEmail,
             'corpsEmail' => $corpsEmail,
