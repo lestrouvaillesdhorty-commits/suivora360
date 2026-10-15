@@ -35,7 +35,7 @@ body { display:flex; align-items:center; justify-content:center; min-height:100v
       <label>Mot de passe</label>
       <input type="password" name="password" required>
     </div>
-    <button type="submit" class="btn" style="width:100%">Se connecter</button>
+    <button type="submit" class="btn" style="width:100%;justify-content:center;text-align:center">Se connecter</button>
   </form>
 </div>
 </body>
