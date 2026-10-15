@@ -48,7 +48,9 @@ ob_start(); ?>
       <div class="form-group"><label for="emDest">Destinataire</label><input type="email" id="emDest" name="destinataire" value="<?= View::e($destEmail) ?>" placeholder="contact@fournisseur.com"></div>
       <div class="form-group"><label for="emSujet">Objet</label><input type="text" id="emSujet" name="sujet" value="<?= View::e($sujetEmail) ?>"></div>
       <div class="form-group"><label for="emCorps">Message (le lien doit rester dans le texte)</label><textarea id="emCorps" name="corps" rows="9" style="font-size:13px"><?= View::e($corpsEmail) ?></textarea></div>
+      <?php if ($mailServeurPret): ?>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" name="joindre_pdf" value="1" checked style="width:auto"> Joindre le récapitulatif en PDF (envoi depuis Suivora uniquement)</label>
+      <?php endif; ?>
       <?php $libMess = ['gmail' => 'Gmail', 'outlook' => 'Outlook', 'mailto' => 'ma messagerie']; ?>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button type="button" class="btn" id="btnMessagerie" data-type="<?= View::e($messagerie) ?>">Ouvrir dans <?= View::e($libMess[$messagerie] ?? 'ma messagerie') ?></button>
