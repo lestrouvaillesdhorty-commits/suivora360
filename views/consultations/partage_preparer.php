@@ -69,12 +69,33 @@
       </div>
     </div>
 
+    <?php
+      $photos = array_filter($pieces, fn($x) => str_starts_with((string) ($x['type_mime'] ?? ''), 'image/'));
+      $documents = array_filter($pieces, fn($x) => !str_starts_with((string) ($x['type_mime'] ?? ''), 'image/'));
+    ?>
     <div class="form-group">
-      <label>Pièces jointes du dossier à partager (optionnel)</label>
-      <?php if (empty($pieces)): ?>
-        <div class="empty-state">Aucune pièce jointe sur ce dossier.</div>
+      <label>Photos du dossier à montrer au fournisseur (optionnel)</label>
+      <?php if (empty($photos)): ?>
+        <div class="empty-state">Aucune photo sur ce dossier.</div>
       <?php else: ?>
-        <?php foreach ($pieces as $p): ?>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <?php foreach ($photos as $p): ?>
+          <label style="display:block;width:96px;text-align:center;font-size:11px;color:#666;cursor:pointer">
+            <img src="/index.php?r=dossiers/<?= (int) $consultation['dossier_id'] ?>/pieces/<?= (int) $p['id'] ?>/telecharger&amp;apercu=1" alt="" style="width:96px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #e3e6ec;display:block">
+            <input type="checkbox" name="pieces_ids[]" value="<?= $p['id'] ?>" style="width:auto"> <?= View::e(mb_strimwidth($p['nom_original'], 0, 14, '…')) ?>
+          </label>
+        <?php endforeach; ?>
+        </div>
+        <div style="font-size:12px;color:#888;margin-top:4px">Les photos cochées s'affichent sur le récapitulatif ; vous pouvez aussi les joindre avec le bouton « Partager » (téléphone).</div>
+      <?php endif; ?>
+    </div>
+
+    <div class="form-group">
+      <label>Documents du dossier à partager (optionnel)</label>
+      <?php if (empty($documents)): ?>
+        <div class="empty-state">Aucun document sur ce dossier.</div>
+      <?php else: ?>
+        <?php foreach ($documents as $p): ?>
           <label style="display:flex;align-items:center;gap:8px;padding:4px 0">
             <input type="checkbox" name="pieces_ids[]" value="<?= $p['id'] ?>" style="width:auto">
             <?= View::e($p['nom_original']) ?> <span style="color:#888;font-size:12px">(<?= number_format($p['taille'] / 1024, 0) ?> Ko)</span>

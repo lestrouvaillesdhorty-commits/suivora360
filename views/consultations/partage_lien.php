@@ -29,7 +29,7 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
   <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
     <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/apercu" target="_blank" class="btn btn-secondary">Voir ce que le fournisseur reçoit (récapitulatif)</a>
     <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/pdf" class="btn btn-secondary" id="lienPdf">Télécharger le PDF</a>
-    <button type="button" class="btn btn-secondary" id="btnPartagerPdf" style="display:none">Partager le PDF (WhatsApp, e-mail…)</button>
+    <button type="button" class="btn btn-secondary" id="btnPartagerPdf" style="display:none">Partager le PDF<?= !empty($piecesPartage) ? ' + ' . count($piecesPartage) . ' photo' . (count($piecesPartage) > 1 ? 's' : '') . ' / document' . (count($piecesPartage) > 1 ? 's' : '') : '' ?> (WhatsApp, e-mail…)</button>
   </div>
   <div id="msgPartagePdf" style="display:none;font-size:13px;color:#92400e;margin:-6px 0 12px"></div>
   <script>
@@ -40,14 +40,19 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
     if (!btn || !window.isSecureContext || !navigator.share || !navigator.canShare || !window.File) return;
     btn.style.display = '';
     var texte = <?= json_encode($messagePrepare) ?>, titre = <?= json_encode($sujetEmail) ?>, nom = <?= json_encode(\App\Services\RecapPdf::nomFichier($consultation)) ?>;
+    var pieces = <?= json_encode($piecesPartage ?? []) ?>;
+    function charger(url, nomFichier, type) {
+      return fetch(url, {credentials: 'same-origin'}).then(function (r) { return r.blob(); })
+        .then(function (blob) { return new File([blob], nomFichier, {type: type}); });
+    }
     btn.addEventListener('click', function () {
       msg.style.display = 'none';
-      fetch(document.getElementById('lienPdf').href, {credentials: 'same-origin'})
-        .then(function (r) { return r.blob(); })
-        .then(function (blob) {
-          var f = new File([blob], nom, {type: 'application/pdf'});
-          if (!navigator.canShare({files: [f]})) { throw new Error('non-supporte'); }
-          return navigator.share({files: [f], title: titre, text: texte});
+      // Le PDF du récapitulatif + les photos / documents cochés à l'étape précédente.
+      Promise.all([charger(document.getElementById('lienPdf').href, nom, 'application/pdf')].concat(
+        pieces.map(function (p) { return charger(p.url, p.nom, p.type); })))
+        .then(function (fichiers) {
+          if (!navigator.canShare({files: fichiers})) { throw new Error('non-supporte'); }
+          return navigator.share({files: fichiers, title: titre, text: texte});
         })
         .catch(function (e) {
           if (e && e.name === 'AbortError') return;

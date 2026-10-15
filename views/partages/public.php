@@ -89,10 +89,26 @@
     Échéance de réponse souhaitée : <?= !empty($partage['echeance_reponse']) ? date('d/m/Y', strtotime($partage['echeance_reponse'])) : 'Non précisée' ?>
   </div>
 
-  <?php if (!empty($pieces)): ?>
-  <h2>Pièces jointes</h2>
-  <?php foreach ($pieces as $p): ?>
-    <a class="piece-link" href="<?= !empty($apercu) ? '/index.php?r=dossiers/' . (int) $p['dossier_id'] . '/pieces/' . (int) $p['id'] . '/telecharger' : '/index.php?r=partage-public/' . View::e($partage['token']) . '/pieces/' . (int) $p['id'] ?>" target="_blank"><?= View::e($p['nom_original']) ?></a>
+  <?php
+    $urlPiece = fn($x) => !empty($apercu)
+        ? '/index.php?r=dossiers/' . (int) $x['dossier_id'] . '/pieces/' . (int) $x['id'] . '/telecharger&apercu=1'
+        : '/index.php?r=partage-public/' . View::e($partage['token']) . '/pieces/' . (int) $x['id'];
+    $photosR = array_filter($pieces ?? [], fn($x) => str_starts_with((string) ($x['type_mime'] ?? ''), 'image/'));
+    $docsR = array_filter($pieces ?? [], fn($x) => !str_starts_with((string) ($x['type_mime'] ?? ''), 'image/'));
+  ?>
+  <?php if (!empty($photosR)): ?>
+  <h2>Photos</h2>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <?php foreach ($photosR as $p): ?>
+      <a href="<?= $urlPiece($p) ?>" target="_blank"><img src="<?= $urlPiece($p) ?>" alt="<?= View::e($p['nom_original']) ?>" style="width:150px;height:112px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb"></a>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+
+  <?php if (!empty($docsR)): ?>
+  <h2>Documents</h2>
+  <?php foreach ($docsR as $p): ?>
+    <a class="piece-link" href="<?= $urlPiece($p) ?>" target="_blank"><?= View::e($p['nom_original']) ?></a>
   <?php endforeach; ?>
   <?php endif; ?>
 

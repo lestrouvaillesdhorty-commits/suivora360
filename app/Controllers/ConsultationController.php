@@ -441,7 +441,23 @@ class ConsultationController
             . (!empty($partage['echeance_reponse']) ? ' (merci de répondre avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '')
             . ".\n\nVous trouverez le récapitulatif et les pièces à consulter à cette adresse :\n{$lienPublic}\n\nCordialement,\n" . ($user['nom'] ?? '');
 
+        // Pièces cochées (photos, documents) : proposées en pièces jointes au bouton « Partager » du téléphone.
+        $piecesPartage = [];
+        $idsPieces = ConsultationPartage::piecesIds($partage);
+        if ($idsPieces) {
+            foreach (DossierPieceJointe::forDossier((int) $consultation['dossier_id']) as $pj) {
+                if (in_array((int) $pj['id'], $idsPieces, true)) {
+                    $piecesPartage[] = [
+                        'url' => '/index.php?r=dossiers/' . (int) $consultation['dossier_id'] . '/pieces/' . (int) $pj['id'] . '/telecharger',
+                        'nom' => $pj['nom_original'],
+                        'type' => $pj['type_mime'] ?: 'application/octet-stream',
+                    ];
+                }
+            }
+        }
+
         View::render('consultations/partage_lien', [
+            'piecesPartage' => $piecesPartage,
             'consultation' => $consultation,
             'partage' => $partage,
             'lienPublic' => $lienPublic,
