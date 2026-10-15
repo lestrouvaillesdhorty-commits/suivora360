@@ -25,7 +25,7 @@ use App\Models\ConsultationPartage;
   <div class="card" style="padding:0;overflow:hidden">
     <div class="table-scroll">
     <table class="dtable">
-      <thead><tr><th>Fournisseur</th><th>Besoin envoyé</th><th>Date d'envoi</th><th>Canal</th><th>Échéance de réponse</th><th>Pièces jointes</th><th>État</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Fournisseur</th><th>Besoin</th><th>Envoyée le</th><th>Canal</th><th>Réponse avant</th><th>Pièces</th><th>État</th><th>Actions</th></tr></thead>
       <tbody>
         <?php foreach ($consultations as $c): ?>
           <?php
@@ -33,8 +33,8 @@ use App\Models\ConsultationPartage;
             $nbPiecesPartage = count(ConsultationPartage::piecesIds(['pieces_ids' => $c['dernier_partage_pieces_ids'] ?? '[]']));
           ?>
           <tr>
-            <td class="row-title"><?= View::e($c['fournisseur_nom']) ?></td>
-            <td><a href="/index.php?r=dossiers/<?= $dossier['id'] ?>&onglet=besoin" style="color:var(--primary);text-decoration:none">Voir le Besoin (<?= View::e($dossier['reference']) ?>)</a></td>
+            <td class="row-title" style="min-width:140px"><?= View::e($c['fournisseur_nom']) ?></td>
+            <td><a href="/index.php?r=dossiers/<?= $dossier['id'] ?>&onglet=besoin" style="color:var(--primary);text-decoration:none">Voir le besoin</a></td>
             <td><?= !empty($c['date_envoi']) ? date('d/m/Y', strtotime($c['date_envoi'])) : '—' ?></td>
             <td><?= !empty($c['canal_envoi']) ? View::e(ConsultationFournisseur::CANAUX[$c['canal_envoi']] ?? $c['canal_envoi']) : '—' ?></td>
             <td>
@@ -45,9 +45,9 @@ use App\Models\ConsultationPartage;
                 <span style="color:#9ca3af;font-style:italic">—</span>
               <?php endif; ?>
             </td>
-            <td><?= $nbPiecesPartage > 0 ? $nbPiecesPartage . ' fichier' . ($nbPiecesPartage > 1 ? 's' : '') : '—' ?></td>
-            <td><span class="badge <?= $c['statut'] === 'reponse_recue' ? 'badge-green' : ($c['statut'] === 'sans_reponse' ? 'badge-red' : ($c['statut'] === 'relance' || $c['statut'] === 'a_envoyer' ? 'badge-orange' : 'badge-blue')) ?>"><?= ConsultationFournisseur::STATUTS[$c['statut']] ?? $c['statut'] ?></span></td>
-            <td><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Voir</a>
+            <td style="white-space:nowrap"><?= $nbPiecesPartage > 0 ? $nbPiecesPartage . ' fichier' . ($nbPiecesPartage > 1 ? 's' : '') : '—' ?></td>
+            <td style="white-space:nowrap"><span class="badge <?= $c['statut'] === 'reponse_recue' ? 'badge-green' : ($c['statut'] === 'sans_reponse' ? 'badge-red' : ($c['statut'] === 'relance' || $c['statut'] === 'a_envoyer' ? 'badge-orange' : 'badge-blue')) ?>"><?= ConsultationFournisseur::STATUTS[$c['statut']] ?? $c['statut'] ?></span></td>
+            <td style="white-space:nowrap"><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Voir</a>
               <?php if ($c['statut'] === 'a_envoyer' && \App\Core\Auth::canWrite()): ?>
                 <a href="/index.php?r=consultations/<?= $c['id'] ?>/partages/nouvelle" class="btn btn-sm">Envoyer</a>
                 <a href="/index.php?r=consultations/<?= $c['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a>
