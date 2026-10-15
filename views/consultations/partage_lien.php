@@ -39,7 +39,7 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
     var btn = document.getElementById('btnPartagerPdf'), msg = document.getElementById('msgPartagePdf');
     if (!btn || !window.isSecureContext || !navigator.share || !navigator.canShare || !window.File) return;
     btn.style.display = '';
-    var texte = <?= json_encode($messagePrepare) ?>, titre = <?= json_encode($sujetEmail) ?>, nom = <?= json_encode(\App\Services\RecapPdf::nomFichier($consultation)) ?>;
+    var nom = <?= json_encode(\App\Services\RecapPdf::nomFichier($consultation)) ?>;
     var pieces = <?= json_encode($piecesPartage ?? []) ?>;
     function charger(url, nomFichier, type) {
       return fetch(url, {credentials: 'same-origin'}).then(function (r) { return r.blob(); })
@@ -52,7 +52,7 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
         pieces.map(function (p) { return charger(p.url, p.nom, p.type); })))
         .then(function (fichiers) {
           if (!navigator.canShare({files: fichiers})) { throw new Error('non-supporte'); }
-          return navigator.share({files: fichiers, title: titre, text: texte});
+          return navigator.share({files: fichiers, title: (window.msgPartage || {}).sujet || '', text: (window.msgPartage || {}).corps || ''});
         })
         .catch(function (e) {
           if (e && e.name === 'AbortError') return;
@@ -62,6 +62,17 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
     });
   })();
   </script>
+
+<div style="background:#f8f9fb;border:1px solid #e3e6ec;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px">
+  <strong>Message (texte brut, identique pour e-mail, WhatsApp et autre canal)</strong>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:8px">
+    <label style="display:flex;align-items:center;gap:6px;margin:0">Langue :
+      <select id="msgLangue" style="width:auto"><option value="fr">Français</option><option value="en">English</option></select>
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="msgLien" style="width:auto" <?= !empty($avecLienInit) ? 'checked' : '' ?>> Ajouter le lien sécurisé (récapitulatif, photos, PDF)</label>
+  </div>
+  <div style="font-size:12px;color:#888;margin-top:6px">Le message contient déjà les articles, quantités, détails et conditions demandées : le lien en ligne est facultatif. Vous pouvez modifier le texte dans chaque canal.</div>
+</div>
 
 <?php
 // Un panneau par canal ; celui choisi s'affiche en premier, les autres sont repliés.
@@ -79,7 +90,7 @@ ob_start(); ?>
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
       <div class="form-group"><label for="emDest">Destinataire</label><input type="email" id="emDest" name="destinataire" value="<?= View::e($destEmail) ?>" placeholder="contact@fournisseur.com"></div>
       <div class="form-group"><label for="emSujet">Objet</label><input type="text" id="emSujet" name="sujet" value="<?= View::e($sujetEmail) ?>"></div>
-      <div class="form-group"><label for="emCorps">Message (le lien doit rester dans le texte)</label><textarea id="emCorps" name="corps" rows="9" style="font-size:13px"><?= View::e($corpsEmail) ?></textarea></div>
+      <div class="form-group"><label for="emCorps">Message</label><textarea id="emCorps" name="corps" rows="9" style="font-size:13px"><?= View::e($corpsEmail) ?></textarea></div>
       <?php if ($mailServeurPret): ?>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" name="joindre_pdf" value="1" checked style="width:auto"> Joindre le récapitulatif en PDF (envoi depuis Suivora uniquement)</label>
       <?php endif; ?>
@@ -95,7 +106,7 @@ ob_start(); ?>
         <?php endforeach; ?>
       </div>
       <div style="font-size:12px;color:#888;margin-top:8px">
-        Votre messagerie s'ouvre avec le destinataire, l'objet et le message prêts : vous relisez et vous cliquez sur « Envoyer » vous-même, depuis votre adresse. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout manuel. Le lien sécurisé, lui, est déjà dans le message : le fournisseur peut y télécharger le PDF. Ensuite, confirmez l'envoi plus bas.
+        Votre messagerie s'ouvre avec le destinataire, l'objet et le message prêts : vous relisez et vous cliquez sur « Envoyer » vous-même, depuis votre adresse. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout manuel. Ajoutez le lien sécurisé (case ci-dessus) pour que le fournisseur puisse télécharger le PDF et les photos. Ensuite, confirmez l'envoi plus bas.
         <?php if ($mailServeurPret): ?>« Envoyer directement depuis Suivora » expédie l'e-mail sans passer par votre messagerie, avec le PDF joint.<?php else: ?>L'envoi direct depuis Suivora n'est pas activé sur cette installation (<code>MAIL_FROM_ADDRESS</code> dans le .env).<?php endif; ?>
       </div>
     </form>
@@ -129,15 +140,15 @@ ob_start(); ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <?php if ($lienWhatsapp): ?>
         <a href="<?= View::e($lienWhatsapp) ?>" target="_blank" id="btnWhatsapp" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp avec <?= View::e($destNom !== '' ? $destNom : 'ce contact') ?></a>
-        <a href="<?= View::e($lienWhatsappLibre) ?>" target="_blank" class="btn btn-secondary">Choisir un autre contact dans WhatsApp</a>
+        <a href="<?= View::e($lienWhatsappLibre) ?>" target="_blank" id="btnWaLibre" class="btn btn-secondary">Choisir un autre contact dans WhatsApp</a>
       <?php else: ?>
         <a href="<?= View::e($lienWhatsappLibre) ?>" target="_blank" id="btnWhatsapp" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp et choisir le contact</a>
       <?php endif; ?>
     </div>
-    <div style="font-size:12px;color:#888;margin-top:6px">WhatsApp s'ouvre (application ou WhatsApp Web) avec le message prêt, lien sécurisé inclus : vous choisissez ou confirmez le contact, puis vous envoyez. Ensuite, confirmez l'envoi plus bas. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout dans la conversation. Le lien dans le message permet aussi au fournisseur de le télécharger.</div>
+    <div style="font-size:12px;color:#888;margin-top:6px">WhatsApp s'ouvre (application ou WhatsApp Web) avec le message complet prêt (texte brut) : vous choisissez ou confirmez le contact, puis vous envoyez. Ensuite, confirmez l'envoi plus bas. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout dans la conversation. Si vous ajoutez le lien sécurisé, le fournisseur peut aussi y télécharger le PDF.</div>
     <div class="form-group" style="margin-top:10px">
       <label>Message prérempli</label>
-      <textarea readonly rows="3" style="font-size:13px"><?= View::e($messagePrepare) ?></textarea>
+      <textarea id="waMsg" rows="10" style="font-size:13px"><?= View::e($messagePrepare) ?></textarea>
     </div>
 <?php $panneaux['whatsapp'] = ob_get_clean();
 
@@ -149,7 +160,7 @@ ob_start(); ?>
     </div>
     <div class="form-group">
       <label>Message à copier</label>
-      <textarea readonly rows="3" style="font-size:13px" onclick="this.select()"><?= View::e($messagePrepare) ?></textarea>
+      <textarea id="autreMsg" rows="10" style="font-size:13px" onclick="this.select()"><?= View::e($messagePrepare) ?></textarea>
     </div>
 <?php $panneaux['autre'] = ob_get_clean();
 
@@ -197,6 +208,31 @@ foreach ($ordre as $i => $code):
   <?php endif; ?>
 </div>
 
+<script>
+// Messages en texte brut : langue + lien facultatif, appliqués à l'e-mail, à WhatsApp et à l'autre canal.
+(function () {
+  var V = <?= json_encode($variantes, JSON_UNESCAPED_UNICODE) ?>, tel = <?= json_encode($telWa) ?>;
+  var lg = document.getElementById('msgLangue'), lk = document.getElementById('msgLien');
+  function maj() {
+    var v = V[lg.value + '_' + (lk.checked ? 'avec' : 'sans')];
+    window.msgPartage = v;
+    var e = encodeURIComponent, set = function (id, val) { var el = document.getElementById(id); if (el) el.value = val; };
+    set('emSujet', v.sujet); set('emCorps', v.corps); set('waMsg', v.corps); set('autreMsg', v.corps);
+    var b = document.getElementById('btnWhatsapp'), l = document.getElementById('btnWaLibre');
+    if (b) b.href = 'https://wa.me/' + tel + '?text=' + e(v.corps);
+    if (l) l.href = 'https://wa.me/?text=' + e(v.corps);
+  }
+  // Un texte modifié à la main dans WhatsApp est repris au clic.
+  var wa = document.getElementById('waMsg');
+  if (wa) wa.addEventListener('input', function () {
+    var b = document.getElementById('btnWhatsapp'), l = document.getElementById('btnWaLibre');
+    if (b) b.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(wa.value);
+    if (l) l.href = 'https://wa.me/?text=' + encodeURIComponent(wa.value);
+  });
+  lg.addEventListener('change', maj); lk.addEventListener('change', maj);
+  maj();
+})();
+</script>
 <?php if (!empty($autoOuvrir) && $lienActif): ?>
 <script>
 // Ouverture automatique, une seule fois, du canal choisi à l'étape précédente.

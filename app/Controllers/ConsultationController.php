@@ -545,14 +545,24 @@ class ConsultationController
         }
         $telephone = preg_replace('/[^0-9]/', '', (string) ($dest['telephone'] ?? ''));
         $salut = trim((string) ($dest['prenom'] ?? '')) !== '' ? 'Bonjour ' . $dest['prenom'] : (trim((string) ($dest['nom'] ?? '')) !== '' && ($dest['nom'] !== 'Contact principal') ? 'Bonjour ' . $dest['nom'] : 'Bonjour');
-        $echeanceTxt = !empty($partage['echeance_reponse']) ? ' (échéance de réponse : ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '';
-        $message = "{$salut}, merci de bien vouloir nous transmettre votre meilleure offre pour la demande {$consultation['dossier_reference']}{$echeanceTxt}. Vous trouverez le récapitulatif ici : {$lienPublic}";
+        $prenomOuNom = trim((string) ($dest['prenom'] ?? '')) !== '' ? $dest['prenom'] : ((trim((string) ($dest['nom'] ?? '')) !== '' && $dest['nom'] !== 'Contact principal') ? $dest['nom'] : '');
+        $saluts = ['fr' => $prenomOuNom !== '' ? 'Bonjour ' . $prenomOuNom : 'Bonjour', 'en' => $prenomOuNom !== '' ? 'Hello ' . $prenomOuNom : 'Hello'];
 
+        // Messages en texte brut (français / anglais, avec ou sans lien en ligne) — utilisés pour l'e-mail, WhatsApp et « Autre canal ».
+        $recap = PartagePublicController::donneesRecap($partage, $consultation, true);
+        $variantes = [];
+        foreach (['fr', 'en'] as $lg) {
+            foreach (['sans', 'avec'] as $lk) {
+                $variantes[$lg . '_' . $lk] = \App\Services\MessageConsultation::construire($recap, $lg, $lk === 'avec' ? $lienPublic : null, $saluts[$lg], (string) ($user['nom'] ?? ''));
+            }
+        }
+        $avecLien = !empty(ConsultationPartage::piecesIds($partage));
+        $langue = 'fr';
+        $vInit = $variantes[$langue . '_' . ($avecLien ? 'avec' : 'sans')];
+        $message = $vInit['corps'];
         $emailFournisseur = trim((string) ($dest['email'] ?? ''));
-        $sujetEmail = 'Demande d\'offre — ' . $consultation['dossier_reference'];
-        $corpsEmail = "{$salut},\n\nNous vous remercions de bien vouloir nous transmettre votre meilleure offre pour notre demande " . $consultation['dossier_reference']
-            . (!empty($partage['echeance_reponse']) ? ' (merci de répondre avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '')
-            . ".\n\nVous trouverez le récapitulatif et les pièces à consulter à cette adresse :\n{$lienPublic}\n\nCordialement,\n" . ($user['nom'] ?? '');
+        $sujetEmail = $vInit['sujet'];
+        $corpsEmail = $vInit['corps'];
 
         // Pièces cochées (photos, documents) : proposées en pièces jointes au bouton « Partager » du téléphone.
         $piecesPartage = [];
@@ -585,6 +595,9 @@ class ConsultationController
             'messagerie' => $messagerie,
             'autoOuvrir' => $autoOuvrir,
             'messagePrepare' => $message,
+            'variantes' => $variantes,
+            'avecLienInit' => $avecLien,
+            'telWa' => $telephone,
         ]);
     }
 
@@ -619,9 +632,8 @@ class ConsultationController
         $lien = self::urlPublique($partage['token']);
         $sujet = mb_substr(trim($_POST['sujet'] ?? ''), 0, 200);
         $corps = trim($_POST['corps'] ?? '');
-        // Le lien doit rester dans le message, quoi qu'ait modifié l'utilisateur.
-        if ($sujet === '' || $corps === '' || strpos($corps, $lien) === false) {
-            View::flash('erreur', "Le message doit contenir le sujet et le lien sécurisé.");
+        if ($sujet === '' || $corps === '') {
+            View::flash('erreur', "L'objet et le message ne peuvent pas être vides.");
             header('Location: ' . $retour);
             exit;
         }
