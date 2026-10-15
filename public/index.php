@@ -503,6 +503,10 @@ $router->get('/consultations/{id}', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->show($params);
 });
+$router->post('/consultations/{id}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->supprimer($params);
+});
 $router->post('/consultations/{id}/statut', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->updateStatut($params);

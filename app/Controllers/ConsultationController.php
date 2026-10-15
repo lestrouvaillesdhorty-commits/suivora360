@@ -127,6 +127,34 @@ class ConsultationController
         exit;
     }
 
+    /** Suppression d'une consultation sans offre reçue (erreur de saisie, essai…). */
+    public function supprimer(array $params): void
+    {
+        Auth::requireWrite();
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $retourFiche = '/index.php?r=consultations/' . (int) $consultation['id'];
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: ' . $retourFiche);
+            exit;
+        }
+        if (!ConsultationFournisseur::supprimer((int) $consultation['id'])) {
+            View::flash('erreur', "Cette consultation a donné lieu à des offres : elle fait partie de l'historique du dossier et ne peut pas être supprimée. Passez-la en « Sans réponse » si elle n'est plus d'actualité.");
+            header('Location: ' . $retourFiche);
+            exit;
+        }
+        AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'suppression_consultation', 'consultation_fournisseur', (int) $consultation['id'], $consultation['reference'] . ' — ' . $consultation['fournisseur_nom']);
+        View::flash('succes', 'Consultation ' . $consultation['reference'] . ' supprimée.');
+        header('Location: /index.php?r=dossiers/' . (int) $consultation['dossier_id'] . '&onglet=achats&sous=consultations');
+        exit;
+    }
+
     public function show(array $params): void
     {
         $user = Auth::user();

@@ -222,6 +222,30 @@ class ConsultationFournisseur
         $stmt->execute([$statut, $dateRelance ?: null, date('Y-m-d H:i:s'), $id]);
     }
 
+    /** Nombre d'offres enregistrées pour cette consultation (toutes versions). */
+    public static function nbOffres(int $id): int
+    {
+        $stmt = Database::connection()->prepare('SELECT COUNT(*) FROM offres WHERE consultation_id = ?');
+        $stmt->execute([$id]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Suppression définitive d'une consultation SANS offre reçue (une consultation
+     * qui a donné lieu à des offres fait partie de l'historique du dossier : elle
+     * se garde, en « Sans réponse » si besoin). Les liens de partage associés sont supprimés avec elle.
+     */
+    public static function supprimer(int $id): bool
+    {
+        if (self::nbOffres($id) > 0) {
+            return false;
+        }
+        $pdo = Database::connection();
+        $pdo->prepare('DELETE FROM consultation_partages WHERE consultation_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM consultations_fournisseur WHERE id = ?')->execute([$id]);
+        return true;
+    }
+
     public static function userCanAccess(array $user, array $consultation): bool
     {
         return Filiale::userCanAccess($user, (int) $consultation['filiale_id']);

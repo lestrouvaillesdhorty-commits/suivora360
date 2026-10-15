@@ -109,6 +109,22 @@ $badges = [
       </form>
     </div>
 
+    <?php if (\App\Core\Auth::canWrite()): ?>
+    <div class="card">
+      <h2>Supprimer cette consultation</h2>
+      <?php $nbO = ConsultationFournisseur::nbOffres((int) $consultation['id']); ?>
+      <?php if ($nbO > 0): ?>
+        <div style="font-size:13px;color:#6b7280">Cette consultation a <?= $nbO ?> offre<?= $nbO > 1 ? 's' : '' ?> enregistrée<?= $nbO > 1 ? 's' : '' ?> : elle fait partie de l'historique du dossier et ne peut pas être supprimée. Si elle n'est plus d'actualité, passez-la en « Sans réponse ».</div>
+      <?php else: ?>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:10px">Aucune offre n'est liée à cette consultation : vous pouvez la supprimer (erreur de saisie, essai…). Ses liens de partage sont supprimés avec elle. Action définitive.</div>
+        <form method="post" action="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/supprimer" onsubmit="return confirm('Supprimer définitivement la consultation <?= View::e($consultation['reference']) ?> ?');">
+          <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+          <button type="submit" class="btn btn-sm" style="background:#b91c1c">Supprimer la consultation</button>
+        </form>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <div class="card">
       <h2>Notes internes</h2>
       <div style="white-space:pre-wrap;font-size:14px"><?= View::e($consultation['notes']) ?: '—' ?></div>
