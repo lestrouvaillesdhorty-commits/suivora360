@@ -29,7 +29,7 @@ $presel = (int) ($fournisseurPreselection ?? 0); ?>
           <select id="nfType"><option value="">—</option>
             <?php foreach (\App\Models\Fournisseur::TYPES as $code => $lib): ?><option value="<?= $code ?>"><?= View::e($lib) ?></option><?php endforeach; ?>
           </select></div>
-        <div class="form-group"><label for="nfPays">Pays</label><input type="text" id="nfPays" maxlength="80"></div>
+        <div class="form-group"><label for="nfPays">Pays</label><select id="nfPays"><?= \App\Core\Telephone::optionsPays('') ?></select></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label for="nfEmail">E-mail</label><input type="email" id="nfEmail"></div>

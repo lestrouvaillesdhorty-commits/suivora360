@@ -503,6 +503,14 @@ $router->get('/consultations/{id}', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->show($params);
 });
+$router->get('/consultations/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->edit($params);
+});
+$router->post('/consultations/{id}/modifier', function ($params) {
+    Auth::requireLogin();
+    (new ConsultationController())->update($params);
+});
 $router->post('/consultations/{id}/supprimer', function ($params) {
     Auth::requireLogin();
     (new ConsultationController())->supprimer($params);

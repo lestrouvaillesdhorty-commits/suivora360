@@ -217,6 +217,25 @@ class Telephone
         return array_merge($courants, $autres);
     }
 
+    /**
+     * Options HTML d'une vraie liste déroulante de pays (utile surtout sur téléphone, où une simple
+     * suggestion de saisie ne s'affiche pas comme une liste). Une valeur déjà enregistrée mais absente
+     * de la liste est conservée en tête, pour ne rien perdre en modifiant une fiche.
+     */
+    public static function optionsPays(?string $valeur): string
+    {
+        $valeur = trim((string) $valeur);
+        $liste = self::pays();
+        $h = '<option value="">— Choisir le pays —</option>';
+        if ($valeur !== '' && !in_array($valeur, $liste, true)) {
+            $h .= '<option value="' . htmlspecialchars($valeur, ENT_QUOTES, 'UTF-8') . '" selected>' . htmlspecialchars($valeur, ENT_QUOTES, 'UTF-8') . '</option>';
+        }
+        foreach ($liste as $p) {
+            $h .= '<option value="' . htmlspecialchars($p, ENT_QUOTES, 'UTF-8') . '"' . ($p === $valeur ? ' selected' : '') . '>' . htmlspecialchars($p, ENT_QUOTES, 'UTF-8') . '</option>';
+        }
+        return $h;
+    }
+
     /** Indicatifs distincts, du plus long au plus court (pour le découpage). */
     private static function indicatifsTries(): array
     {

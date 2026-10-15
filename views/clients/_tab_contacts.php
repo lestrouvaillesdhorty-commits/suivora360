@@ -43,7 +43,7 @@ $formAdresse = function (?array $a) use ($base, $csrfToken, $paysListe, $client)
         <div class="form-group"><label>Code postal</label><input type="text" name="code_postal" value="<?= View::e($a['code_postal'] ?? '') ?>"></div>
         <div class="form-group"><label>Ville</label><input type="text" name="ville" value="<?= View::e($a['ville'] ?? '') ?>"></div>
       </div>
-      <div class="form-group"><label>Pays</label><input type="text" name="pays" list="listePaysAdr" value="<?= View::e($a['pays'] ?? ($client['pays'] ?? '')) ?>"></div>
+      <div class="form-group"><label>Pays</label><select name="pays"><?= \App\Core\Telephone::optionsPays($a['pays'] ?? ($client['pays'] ?? '')) ?></select></div>
       <button type="submit" class="btn btn-sm"><?= $a ? 'Enregistrer' : 'Ajouter l’adresse' ?></button>
     </form>
     <?php
@@ -53,7 +53,6 @@ $postAction = function (string $url, string $lib, string $classe = 'btn btn-sm b
 };
 $adressePrincipale = trim(implode(', ', array_filter([$client['adresse'] ?? '', trim(($client['code_postal'] ?? '') . ' ' . ($client['ville'] ?? '')), $client['pays'] ?? ''])));
 ?>
-<datalist id="listePaysAdr"><?php foreach ($paysListe as $p): ?><option value="<?= View::e($p) ?>"><?php endforeach; ?></datalist>
 <?php if (!$schemaPret): ?>
   <div class="alert" style="background:#fef3c7;color:#92400e">Contacts multiples et adresses supplémentaires : disponibles après la mise à jour de la base (migration V21).</div>
 <?php endif; ?>

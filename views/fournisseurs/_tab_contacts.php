@@ -42,7 +42,7 @@ $formAdresse = function (?array $a) use ($base, $csrfToken, $fournisseur) {
         <div class="form-group"><label>Code postal</label><input type="text" name="code_postal" value="<?= View::e($a['code_postal'] ?? '') ?>"></div>
         <div class="form-group"><label>Ville</label><input type="text" name="ville" value="<?= View::e($a['ville'] ?? '') ?>"></div>
       </div>
-      <div class="form-group"><label>Pays</label><input type="text" name="pays" list="listePaysAdr" value="<?= View::e($a['pays'] ?? ($fournisseur['pays'] ?? '')) ?>"></div>
+      <div class="form-group"><label>Pays</label><select name="pays"><?= \App\Core\Telephone::optionsPays($a['pays'] ?? ($fournisseur['pays'] ?? '')) ?></select></div>
       <button type="submit" class="btn btn-sm"><?= $a ? 'Enregistrer' : 'Ajouter l’adresse' ?></button>
     </form>
     <?php
@@ -52,7 +52,6 @@ $postAction = function (string $url, string $lib) use ($csrfToken) {
 };
 $adressePrincipale = trim(implode(', ', array_filter([$fournisseur['adresse'] ?? '', trim(($fournisseur['code_postal'] ?? '') . ' ' . ($fournisseur['ville'] ?? '')), $fournisseur['pays'] ?? ''])));
 ?>
-<datalist id="listePaysAdr"><?php foreach ($paysListe as $p): ?><option value="<?= View::e($p) ?>"><?php endforeach; ?></datalist>
 <div class="detail-grid">
   <div class="card">
     <h2>Contacts</h2>

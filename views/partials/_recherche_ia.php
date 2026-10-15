@@ -69,7 +69,7 @@ use App\Core\View;
         if (d.erreur) { msg.style.color = '#991b1b'; msg.textContent = d.erreur; return; }
         var c = d.champs, n = 0;
         // Le pays est prérempli par défaut (pays de la filiale) : l'IA peut le remplacer tant que vous ne l'avez pas saisi.
-        if (c.pays && !modifies.pays) { var ep = form.querySelector('[name="pays"]'); if (ep && ep.value !== c.pays) { ep.value = c.pays; jaune(ep); n++; } }
+        if (c.pays && !modifies.pays) { var ep = form.querySelector('[name="pays"]'); if (ep && ep.value !== c.pays) { if (ep.tagName === 'SELECT' && !Array.prototype.some.call(ep.options, function (o) { return o.value === c.pays; })) { var op = document.createElement('option'); op.value = op.textContent = c.pays; ep.appendChild(op); } ep.value = c.pays; jaune(ep); n++; } }
         <?= json_encode(array_merge(['nom'], $rechTexte)) ?>.forEach(function (k) { n += texte(k, c[k]); });
         if (c.tel_numero) {
           var num = form.querySelector('[name="tel_numero"]');

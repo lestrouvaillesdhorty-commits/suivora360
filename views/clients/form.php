@@ -85,8 +85,7 @@ $ouvrirCommercial = $estModif && ($client['secteur'] || $client['adresse_livrais
         <div class="form-row">
           <div class="form-group">
             <label for="pays">Pays</label>
-            <input type="text" id="pays" name="pays" list="listePays" value="<?= View::e($pays) ?>" autocomplete="off">
-            <datalist id="listePays"><?php foreach (Telephone::pays() as $p): ?><option value="<?= View::e($p) ?>"><?php endforeach; ?></datalist>
+            <select id="pays" name="pays"><?= Telephone::optionsPays($pays) ?></select>
           </div>
           <div class="form-group"><label for="ville">Ville</label><input type="text" id="ville" name="ville" value="<?= View::e($val('ville')) ?>"></div>
         </div>
@@ -242,7 +241,7 @@ $ouvrirCommercial = $estModif && ($client['secteur'] || $client['adresse_livrais
     document.getElementById('labelTva').textContent = l[1] + ' (facultatif)';
     if (!touche && indicatifs[pays.value.trim()]) { ind.value = indicatifs[pays.value.trim()]; }
   }
-  pays.addEventListener('input', maj);
+  pays.addEventListener('input', maj); pays.addEventListener('change', maj);
   pays.addEventListener('change', maj);
   maj();
 })();

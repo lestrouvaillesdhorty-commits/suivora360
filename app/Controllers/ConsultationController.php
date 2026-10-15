@@ -123,7 +123,86 @@ class ConsultationController
 
         $n = count($fournisseurIds);
         View::flash('succes', ($n > 1 ? $n . ' consultations enregistrées' : 'Consultation enregistrée') . ' — pas encore envoyée : préparez le récapitulatif et choisissez le canal d\'envoi.');
-        header('Location: /index.php?r=dossiers/' . $dossier['id']);
+        // On reste sur la consultation créée (ou, pour plusieurs vendeurs, sur la liste des consultations du dossier) :
+        // elle ne « disparaît » plus, et on peut la modifier ou l'envoyer tout de suite.
+        if ($n === 1 && $dernier > 0) {
+            header('Location: /index.php?r=consultations/' . $dernier);
+        } else {
+            header('Location: /index.php?r=dossiers/' . $dossier['id'] . '&onglet=achats&sous=consultations');
+        }
+        exit;
+    }
+
+    private function consultationModifiable(array $params): ?array
+    {
+        Auth::requireWrite();
+        $user = Auth::user();
+        $consultation = ConsultationFournisseur::findWithDetails((int) $params['id']);
+        if (!$consultation || !ConsultationFournisseur::userCanAccess($user, $consultation)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return null;
+        }
+        if ($consultation['statut'] !== 'a_envoyer') {
+            View::flash('erreur', "Cette consultation a déjà été envoyée : elle ne peut plus être modifiée (le fournisseur a déjà reçu son contenu).");
+            header('Location: /index.php?r=consultations/' . (int) $consultation['id']);
+            exit;
+        }
+        return $consultation;
+    }
+
+    public function edit(array $params): void
+    {
+        $consultation = $this->consultationModifiable($params);
+        if ($consultation === null) {
+            return;
+        }
+        $dossier = Dossier::find((int) $consultation['dossier_id']);
+        $demande = !empty($dossier['demande_id']) ? \App\Models\Demande::find((int) $dossier['demande_id']) : null;
+        View::render('consultations/edit', [
+            'consultation' => $consultation,
+            'dossier' => $dossier,
+            'fournisseurs' => Fournisseur::allForFiliale((int) $dossier['filiale_id']),
+            'articlesDemande' => $demande ? \App\Models\DemandeArticle::forDemande((int) $demande['id']) : [],
+            'articlesIds' => ConsultationFournisseur::articlesIds($consultation),
+        ]);
+    }
+
+    public function update(array $params): void
+    {
+        $consultation = $this->consultationModifiable($params);
+        if ($consultation === null) {
+            return;
+        }
+        $retour = '/index.php?r=consultations/' . (int) $consultation['id'];
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: ' . $retour . '/modifier');
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $consultation['dossier_id']);
+        $fid = (int) $consultation['fournisseur_id'];
+        if (\App\Core\Tenant::fournisseurDeFiliale($_POST['fournisseur_id'] ?? 0, (int) $dossier['filiale_id'])) {
+            $fid = (int) $_POST['fournisseur_id'];
+        }
+        $articlesIds = null;
+        if (!empty($dossier['demande_id']) && isset($_POST['articles_choix'])) {
+            $tous = array_map(static fn($a) => (int) $a['id'], \App\Models\DemandeArticle::forDemande((int) $dossier['demande_id']));
+            $choisis = array_values(array_intersect($tous, array_map('intval', (array) ($_POST['articles'] ?? []))));
+            if ($tous && !$choisis) {
+                View::flash('erreur', 'Cochez au moins un article à envoyer au fournisseur.');
+                header('Location: ' . $retour . '/modifier');
+                exit;
+            }
+            if ($choisis && count($choisis) < count($tous)) {
+                $articlesIds = $choisis;
+            }
+        }
+        ConsultationFournisseur::modifier((int) $consultation['id'], $fid, (string) ($_POST['articles_demandes'] ?? ''), (string) ($_POST['notes'] ?? ''), $articlesIds);
+        AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'modification_consultation', 'consultation_fournisseur', (int) $consultation['id']);
+        View::flash('succes', 'Consultation modifiée. Elle reste « À envoyer ».');
+        header('Location: ' . $retour);
         exit;
     }
 

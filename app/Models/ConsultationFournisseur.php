@@ -222,6 +222,22 @@ class ConsultationFournisseur
         $stmt->execute([$statut, $dateRelance ?: null, date('Y-m-d H:i:s'), $id]);
     }
 
+    /**
+     * Modifie une consultation PAS ENCORE ENVOYÉE (ce que le fournisseur verra ne change plus une fois envoyée).
+     * @param int[]|null $articlesIds null = tous les articles de la demande
+     */
+    public static function modifier(int $id, int $fournisseurId, string $precisions, string $notes, ?array $articlesIds): bool
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare("UPDATE consultations_fournisseur SET fournisseur_id = ?, articles_demandes = ?, notes = ?, updated_at = ? WHERE id = ? AND statut = 'a_envoyer'");
+        $stmt->execute([$fournisseurId, trim($precisions), trim($notes), date('Y-m-d H:i:s'), $id]);
+        if (self::colonneArticles()) {
+            $val = $articlesIds ? implode(',', array_map('intval', $articlesIds)) : null;
+            $pdo->prepare("UPDATE consultations_fournisseur SET articles_ids = ? WHERE id = ? AND statut = 'a_envoyer'")->execute([$val, $id]);
+        }
+        return true;
+    }
+
     /** Nombre d'offres enregistrées pour cette consultation (toutes versions). */
     public static function nbOffres(int $id): int
     {
