@@ -38,7 +38,7 @@ $panneaux = [];
 ob_start(); ?>
     <h2 style="font-size:15px;margin-bottom:8px">Envoyer par e-mail</h2>
     <?php if ($destEmail === ''): ?>
-      <div style="font-size:13px;color:#92400e;margin-bottom:8px">Aucune adresse e-mail pour ce destinataire : saisissez-la ci-dessous (elle ne sera pas ajoutée à la fiche).</div>
+      <div style="font-size:13px;color:#92400e;margin-bottom:8px">Aucune adresse e-mail pour ce destinataire : saisissez-la ci-dessous, ou choisissez-la directement dans votre messagerie.</div>
     <?php endif; ?>
     <?php if (!$lienActif): ?>
       <div style="font-size:13px;color:#92400e">Le lien n'est plus actif : générez-en un nouveau.</div>
@@ -49,34 +49,58 @@ ob_start(); ?>
       <div class="form-group"><label for="emSujet">Objet</label><input type="text" id="emSujet" name="sujet" value="<?= View::e($sujetEmail) ?>"></div>
       <div class="form-group"><label for="emCorps">Message (le lien doit rester dans le texte)</label><textarea id="emCorps" name="corps" rows="9" style="font-size:13px"><?= View::e($corpsEmail) ?></textarea></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" name="joindre_pdf" value="1" checked style="width:auto"> Joindre le récapitulatif en PDF (envoi depuis Suivora uniquement)</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <?php if ($mailServeurPret): ?><button type="submit" class="btn">Envoyer l'e-mail depuis Suivora</button><?php endif; ?>
-        <a href="#" class="btn <?= $mailServeurPret ? 'btn-secondary' : '' ?>" id="emMailto">Ouvrir dans ma messagerie</a>
+      <?php $libMess = ['gmail' => 'Gmail', 'outlook' => 'Outlook', 'mailto' => 'ma messagerie']; ?>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="btn" id="btnMessagerie" data-type="<?= View::e($messagerie) ?>">Ouvrir dans <?= View::e($libMess[$messagerie] ?? 'ma messagerie') ?></button>
+        <?php if ($mailServeurPret): ?><button type="submit" class="btn btn-secondary">Envoyer directement depuis Suivora</button><?php endif; ?>
       </div>
-      <div style="font-size:12px;color:#888;margin-top:6px">
-        <?php if ($mailServeurPret): ?>« Envoyer l'e-mail depuis Suivora » l'expédie directement avec le PDF ; les réponses arrivent sur votre adresse e-mail et la consultation passe en « Envoyée ».<?php else: ?>L'envoi direct depuis Suivora n'est pas activé sur cette installation (il faut renseigner <code>MAIL_FROM_ADDRESS</code> dans le fichier .env).<?php endif; ?>
-        « Ouvrir dans ma messagerie » prépare le message dans Gmail, Outlook… : vous l'envoyez vous-même (téléchargez le PDF ci-dessus pour le joindre), puis vous confirmez l'envoi plus bas.
+      <div style="font-size:13px;color:#4b5563;margin-top:10px">
+        Une autre messagerie ?
+        <?php foreach (['gmail' => 'Gmail', 'outlook' => 'Outlook.com / Hotmail', 'office' => 'Outlook (Microsoft 365)', 'mailto' => 'Application installée (Mail, Outlook de bureau…)'] as $t => $lib): ?>
+          <?php if ($t !== $messagerie): ?><a href="#" class="lienMess" data-type="<?= $t ?>" style="margin-right:10px"><?= View::e($lib) ?></a><?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+      <div style="font-size:12px;color:#888;margin-top:8px">
+        Votre messagerie s'ouvre avec le destinataire, l'objet et le message prêts : vous relisez et vous cliquez sur « Envoyer » vous-même, depuis votre adresse. Téléchargez le PDF ci-dessus si vous voulez le joindre (le lien sécurisé est déjà dans le message). Ensuite, confirmez l'envoi plus bas.
+        <?php if ($mailServeurPret): ?>« Envoyer directement depuis Suivora » expédie l'e-mail sans passer par votre messagerie, avec le PDF joint.<?php else: ?>L'envoi direct depuis Suivora n'est pas activé sur cette installation (<code>MAIL_FROM_ADDRESS</code> dans le .env).<?php endif; ?>
       </div>
     </form>
     <script>
-    document.getElementById('emMailto').addEventListener('click', function (e) {
-      e.preventDefault();
+    (function () {
       var f = document.getElementById('formEmailPartage');
-      window.location.href = 'mailto:' + encodeURIComponent(f.destinataire.value.trim()) +
-        '?subject=' + encodeURIComponent(f.sujet.value) + '&body=' + encodeURIComponent(f.corps.value);
-    });
+      function url(type) {
+        var to = f.destinataire.value.trim(), su = f.sujet.value, bo = f.corps.value;
+        var e = encodeURIComponent;
+        if (type === 'gmail') return 'https://mail.google.com/mail/?view=cm&fs=1&to=' + e(to) + '&su=' + e(su) + '&body=' + e(bo);
+        if (type === 'outlook') return 'https://outlook.live.com/mail/0/deeplink/compose?to=' + e(to) + '&subject=' + e(su) + '&body=' + e(bo);
+        if (type === 'office') return 'https://outlook.office.com/mail/deeplink/compose?to=' + e(to) + '&subject=' + e(su) + '&body=' + e(bo);
+        return 'mailto:' + e(to) + '?subject=' + e(su) + '&body=' + e(bo);
+      }
+      function ouvrir(type) {
+        if (type === 'mailto') { window.location.href = url(type); return true; }
+        return !!window.open(url(type), '_blank');
+      }
+      window.ouvrirMessagerie = function () { return ouvrir(document.getElementById('btnMessagerie').dataset.type); };
+      document.getElementById('btnMessagerie').addEventListener('click', function () { ouvrir(this.dataset.type); });
+      document.querySelectorAll('.lienMess').forEach(function (a) {
+        a.addEventListener('click', function (ev) { ev.preventDefault(); ouvrir(a.dataset.type); });
+      });
+    })();
     </script>
     <?php endif; ?>
 <?php $panneaux['email'] = ob_get_clean();
 
 ob_start(); ?>
     <h2 style="font-size:15px;margin-bottom:8px">Envoyer par WhatsApp</h2>
-    <?php if ($lienWhatsapp): ?>
-      <a href="<?= View::e($lienWhatsapp) ?>" target="_blank" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp avec le message prérempli</a>
-      <div style="font-size:12px;color:#888;margin-top:6px">Ouvre seulement WhatsApp : la consultation n'est pas marquée envoyée tant que vous ne confirmez pas plus bas.</div>
-    <?php else: ?>
-      <div class="alert alert-erreur">Aucun numéro de téléphone pour ce destinataire — ajoutez-en un sur la fiche du fournisseur ou changez de destinataire.</div>
-    <?php endif; ?>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <?php if ($lienWhatsapp): ?>
+        <a href="<?= View::e($lienWhatsapp) ?>" target="_blank" id="btnWhatsapp" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp avec <?= View::e($destNom !== '' ? $destNom : 'ce contact') ?></a>
+        <a href="<?= View::e($lienWhatsappLibre) ?>" target="_blank" class="btn btn-secondary">Choisir un autre contact dans WhatsApp</a>
+      <?php else: ?>
+        <a href="<?= View::e($lienWhatsappLibre) ?>" target="_blank" id="btnWhatsapp" class="btn" style="background:#2E7D5B">Ouvrir WhatsApp et choisir le contact</a>
+      <?php endif; ?>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">WhatsApp s'ouvre (application ou WhatsApp Web) avec le message prêt, lien sécurisé inclus : vous choisissez ou confirmez le contact, puis vous envoyez. Ensuite, confirmez l'envoi plus bas. Pour joindre le PDF, téléchargez-le ci-dessus et ajoutez-le dans la conversation.</div>
     <div class="form-group" style="margin-top:10px">
       <label>Message prérempli</label>
       <textarea readonly rows="3" style="font-size:13px"><?= View::e($messagePrepare) ?></textarea>
@@ -138,3 +162,20 @@ foreach ($ordre as $i => $code):
     </form>
   <?php endif; ?>
 </div>
+
+<?php if (!empty($autoOuvrir) && $lienActif): ?>
+<script>
+// Ouverture automatique, une seule fois, du canal choisi à l'étape précédente.
+(function () {
+  var canal = <?= json_encode($canalChoisi) ?>;
+  setTimeout(function () {
+    if (canal === 'email' && typeof window.ouvrirMessagerie === 'function') {
+      window.ouvrirMessagerie();
+    } else if (canal === 'whatsapp') {
+      var b = document.getElementById('btnWhatsapp');
+      if (b) { window.open(b.href, '_blank'); }
+    }
+  }, 400);
+})();
+</script>
+<?php endif; ?>

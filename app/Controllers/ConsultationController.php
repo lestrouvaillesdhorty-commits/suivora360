@@ -380,19 +380,8 @@ class ConsultationController
             header('Location: ' . $retourForm);
             exit;
         }
-        if ($canal === 'email' && !filter_var($dest['email'], FILTER_VALIDATE_EMAIL)) {
-            View::flash('erreur', "Ce destinataire n'a pas d'adresse e-mail valide : ajoutez-la (saisie libre) ou choisissez un autre canal.");
-            header('Location: ' . $retourForm);
-            exit;
-        }
-        if ($canal === 'whatsapp' && preg_replace('/[^0-9]/', '', (string) $dest['telephone']) === '') {
-            View::flash('erreur', "Ce destinataire n'a pas de numéro de téléphone : ajoutez-le (saisie libre) ou choisissez un autre canal.");
-            header('Location: ' . $retourForm);
-            exit;
-        }
-
         $partage = ConsultationPartage::create((int) $consultation['id'], $_POST, (int) $user['id']);
-        $_SESSION['envoi_partage'][(int) $partage['id']] = ['canal' => $canal, 'dest' => $dest];
+        $_SESSION['envoi_partage'][(int) $partage['id']] = ['canal' => $canal, 'dest' => $dest, 'auto' => true];
         AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'creation_partage_consultation', 'consultation_fournisseur', (int) $consultation['id'], $canal);
 
         header('Location: /index.php?r=consultations/' . $consultation['id'] . '/partages/' . $partage['id']);
@@ -427,6 +416,20 @@ class ConsultationController
         $contacts = $fournisseur ? $this->contactsFournisseur($fournisseur) : [];
         $dest = $envoi['dest'] ?? ($contacts[0] ?? ['prenom' => '', 'nom' => '', 'email' => trim((string) ($fournisseur['email'] ?? '')), 'telephone' => trim((string) ($fournisseur['telephone'] ?? ''))]);
         $canalChoisi = $envoi['canal'] ?? (($dest['email'] ?? '') !== '' ? 'email' : ((($dest['telephone'] ?? '') !== '') ? 'whatsapp' : 'autre'));
+        $autoOuvrir = !empty($envoi['auto']) && ($canalChoisi === 'email' || $canalChoisi === 'whatsapp');
+        if ($envoi) {
+            unset($_SESSION['envoi_partage'][(int) $partage['id']]['auto']); // ouverture automatique une seule fois
+        }
+        // Messagerie principale déduite de l'adresse de l'utilisateur (Gmail, Outlook…), sinon application par défaut.
+        $domaineUser = strtolower(substr(strrchr((string) ($user['email'] ?? ''), '@') ?: '', 1));
+        $messagerie = 'mailto';
+        if (in_array($domaineUser, ['gmail.com', 'googlemail.com'], true)) {
+            $messagerie = 'gmail';
+        } elseif (in_array($domaineUser, ['outlook.com', 'outlook.fr', 'hotmail.com', 'hotmail.fr', 'live.com', 'live.fr', 'msn.com'], true)) {
+            $messagerie = 'outlook';
+        } elseif (preg_match('/^yahoo\./', $domaineUser)) {
+            $messagerie = 'yahoo';
+        }
         $telephone = preg_replace('/[^0-9]/', '', (string) ($dest['telephone'] ?? ''));
         $salut = trim((string) ($dest['prenom'] ?? '')) !== '' ? 'Bonjour ' . $dest['prenom'] : (trim((string) ($dest['nom'] ?? '')) !== '' && ($dest['nom'] !== 'Contact principal') ? 'Bonjour ' . $dest['nom'] : 'Bonjour');
         $echeanceTxt = !empty($partage['echeance_reponse']) ? ' (échéance de réponse : ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) . ')' : '';
@@ -449,6 +452,9 @@ class ConsultationController
             'corpsEmail' => $corpsEmail,
             'mailServeurPret' => (string) \App\Core\Env::get('MAIL_FROM_ADDRESS', '') !== '',
             'lienWhatsapp' => $telephone !== '' ? ('https://wa.me/' . $telephone . '?text=' . rawurlencode($message)) : null,
+            'lienWhatsappLibre' => 'https://wa.me/?text=' . rawurlencode($message),
+            'messagerie' => $messagerie,
+            'autoOuvrir' => $autoOuvrir,
             'messagePrepare' => $message,
         ]);
     }

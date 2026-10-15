@@ -24,7 +24,7 @@
     <?php endforeach; ?>
     <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid #e3e6ec;border-radius:8px;margin-bottom:6px;cursor:pointer">
       <input type="radio" name="contact" value="autre" <?= empty($contacts) ? 'checked' : '' ?> style="width:auto;margin-top:3px" data-email="" data-tel="">
-      <span><strong>Autre destinataire</strong> <span style="color:#6b7280;font-size:13px">(saisir ci-dessous)</span></span>
+      <span><strong>Autre destinataire / je le choisis moi-même</strong> <span style="color:#6b7280;font-size:13px">(saisie facultative : vous pouvez le choisir directement dans votre messagerie ou WhatsApp)</span></span>
     </label>
     <div id="blocAutre" style="display:none;margin:8px 0 4px;padding:10px 12px;background:#f8f9fb;border-radius:8px">
       <div class="form-row">
@@ -85,9 +85,9 @@
 
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button type="submit" class="btn btn-secondary" formaction="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/apercu" formtarget="_blank">Voir le récapitulatif avant envoi</button>
-      <button type="submit" class="btn">Continuer : préparer le message</button>
+      <button type="submit" class="btn">Continuer : ouvrir ma messagerie / WhatsApp</button>
     </div>
-    <div style="font-size:12px;color:#888;margin-top:6px">L'aperçu s'ouvre dans un nouvel onglet et montre exactement ce que le fournisseur verra. Rien n'est envoyé à cette étape : vous vérifiez et envoyez à l'écran suivant.</div>
+    <div style="font-size:12px;color:#888;margin-top:6px">L'aperçu s'ouvre dans un nouvel onglet et montre exactement ce que le fournisseur verra. À l'étape suivante, votre messagerie (Gmail, Outlook…) ou WhatsApp s'ouvre avec le message prêt : vous vérifiez et vous envoyez vous-même.</div>
   </form>
 </div>
 <script>
@@ -102,8 +102,8 @@
     bloc.style.display = (c && c.value === 'autre') ? 'block' : 'none';
     var msg = '';
     if (c && c.value !== 'autre' && canal) {
-      if (canal.value === 'email' && !c.dataset.email) msg = "Ce contact n'a pas d'e-mail : choisissez un autre canal ou « Autre destinataire ».";
-      if (canal.value === 'whatsapp' && !c.dataset.tel) msg = "Ce contact n'a pas de téléphone : choisissez un autre canal ou « Autre destinataire ».";
+      if (canal.value === 'email' && !c.dataset.email) msg = "Ce contact n'a pas d'e-mail : votre messagerie s'ouvrira sans destinataire, vous le saisirez.";
+      if (canal.value === 'whatsapp' && !c.dataset.tel) msg = "Ce contact n'a pas de téléphone : WhatsApp s'ouvrira et vous choisirez le contact dedans.";
     }
     alerte.textContent = msg;
   }
