@@ -144,6 +144,12 @@ class ConsultationController
             header('Location: ' . $retourFiche);
             exit;
         }
+        // Tant qu'elle n'est pas envoyée, toute personne autorisée à écrire peut la supprimer ; une fois envoyée, seul un administrateur.
+        if ($consultation['statut'] !== 'a_envoyer' && !Auth::isAdmin()) {
+            View::flash('erreur', "Cette consultation a déjà été envoyée : seul un administrateur peut la supprimer.");
+            header('Location: ' . $retourFiche);
+            exit;
+        }
         if (!ConsultationFournisseur::supprimer((int) $consultation['id'])) {
             View::flash('erreur', "Cette consultation a donné lieu à des offres : elle fait partie de l'historique du dossier et ne peut pas être supprimée. Passez-la en « Sans réponse » si elle n'est plus d'actualité.");
             header('Location: ' . $retourFiche);

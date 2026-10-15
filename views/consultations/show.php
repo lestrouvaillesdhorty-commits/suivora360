@@ -112,11 +112,20 @@ $badges = [
     <?php if (\App\Core\Auth::canWrite()): ?>
     <div class="card">
       <h2>Supprimer cette consultation</h2>
-      <?php $nbO = ConsultationFournisseur::nbOffres((int) $consultation['id']); ?>
+      <?php
+        $nbO = ConsultationFournisseur::nbOffres((int) $consultation['id']);
+        $nonEnvoyee = $consultation['statut'] === 'a_envoyer';
+        $peutSupprimer = $nonEnvoyee || \App\Core\Auth::isAdmin();
+      ?>
       <?php if ($nbO > 0): ?>
         <div style="font-size:13px;color:#6b7280">Cette consultation a <?= $nbO ?> offre<?= $nbO > 1 ? 's' : '' ?> enregistrée<?= $nbO > 1 ? 's' : '' ?> : elle fait partie de l'historique du dossier et ne peut pas être supprimée. Si elle n'est plus d'actualité, passez-la en « Sans réponse ».</div>
+      <?php elseif (!$peutSupprimer): ?>
+        <div style="font-size:13px;color:#6b7280">Cette consultation a déjà été envoyée : seul un administrateur peut la supprimer.</div>
       <?php else: ?>
-        <div style="font-size:13px;color:#6b7280;margin-bottom:10px">Aucune offre n'est liée à cette consultation : vous pouvez la supprimer (erreur de saisie, essai…). Ses liens de partage sont supprimés avec elle. Action définitive.</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:10px">
+          <?= $nonEnvoyee ? "Cette consultation n'a pas encore été envoyée : vous pouvez la supprimer." : "Cette consultation a déjà été envoyée au fournisseur : en tant qu'administrateur, vous pouvez la supprimer (aucune offre n'y est liée)." ?>
+          Ses liens de partage sont supprimés avec elle. Action définitive.
+        </div>
         <form method="post" action="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/supprimer" onsubmit="return confirm('Supprimer définitivement la consultation <?= View::e($consultation['reference']) ?> ?');">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
           <button type="submit" class="btn btn-sm" style="background:#b91c1c">Supprimer la consultation</button>
