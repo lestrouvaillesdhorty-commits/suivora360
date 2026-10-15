@@ -631,6 +631,14 @@ $router->post('/dossiers/{id}/comparateur/retenir', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->retenir($params);
 });
+$router->post('/dossiers/{id}/comparateur/ecarter', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->ecarter($params);
+});
+$router->post('/dossiers/{id}/comparateur/reexaminer', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->reexaminer($params);
+});
 $router->post('/dossiers/{id}/comparateur/revenir', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->revenir($params);

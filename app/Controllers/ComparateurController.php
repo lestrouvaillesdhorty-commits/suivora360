@@ -33,7 +33,17 @@ class ComparateurController
         // devise puisqu'on ne convertit pas encore entre devises (Phase 4).
         $meilleurCoutRenduParDevise = [];
         $meilleurPrixParDevise = [];
+        $uneRetenue = false;
         foreach ($offres as $offre) {
+            if ($offre['statut'] === 'retenue') {
+                $uneRetenue = true;
+            }
+        }
+        foreach ($offres as $offre) {
+            // Une offre écartée individuellement ne compte plus pour le « meilleur » tant qu'aucune offre n'est retenue.
+            if ($offre['statut'] === 'rejetee' && !$uneRetenue) {
+                continue;
+            }
             $devise = $offre['devise'] ?: '—';
             $coutRendu = Offre::coutRendu($offre);
             if (!isset($meilleurCoutRenduParDevise[$devise]) || $coutRendu < $meilleurCoutRenduParDevise[$devise]) {
@@ -47,7 +57,8 @@ class ComparateurController
 
         $decisionExistante = false;
         foreach ($offres as $offre) {
-            if (in_array($offre['statut'], ['retenue', 'rejetee'], true)) {
+            // Une décision n'existe que lorsqu'une offre est retenue ; écarter une offre isolée ne tranche pas.
+            if ($offre['statut'] === 'retenue') {
                 $decisionExistante = true;
                 break;
             }
@@ -147,6 +158,66 @@ class ComparateurController
         View::flash('succes', 'La décision précédente a été annulée, toutes les offres sont de nouveau comparables.');
 
         header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/comparateur');
+        exit;
+    }
+
+    /** Écarter une seule offre (motif obligatoire) ou la remettre en comparaison. */
+    public function ecarter(array $params): void
+    {
+        $this->actionOffre($params, 'ecarter');
+    }
+
+    public function reexaminer(array $params): void
+    {
+        $this->actionOffre($params, 'reexaminer');
+    }
+
+    private function actionOffre(array $params, string $action): void
+    {
+        $retour = '/index.php?r=dossiers/' . (int) $params['id'] . '/comparateur';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        Dossier::refuserSiAnnule($dossier);
+        if (!Auth::canValiderOffres()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
+        $offreId = (int) \App\Core\Tenant::offreDuDossier($_POST['offre_id'] ?? 0, (int) $dossier['id']);
+        if ($offreId <= 0) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        if ($action === 'ecarter') {
+            $motif = trim($_POST['motif_ecart'] ?? '');
+            if ($motif === '') {
+                View::flash('erreur', "Merci d'indiquer un motif avant d'écarter une offre.");
+            } elseif (Offre::ecarter((int) $dossier['id'], $offreId, $motif)) {
+                AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offre_ecartee', 'offre', $offreId, $motif);
+                View::flash('succes', 'Offre écartée : elle reste consultable mais sort de la comparaison active.');
+            }
+        } else {
+            // Réexaminer : impossible tant qu'une offre est retenue (il faut d'abord annuler la décision).
+            if (Offre::retenueForDossier((int) $dossier['id'])) {
+                View::flash('erreur', "Une offre est déjà retenue : annulez d'abord la décision pour remettre une offre en comparaison.");
+                header('Location: ' . $retour);
+                exit;
+            }
+            if (Offre::reexaminer((int) $dossier['id'], $offreId)) {
+                AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offre_reexaminee', 'offre', $offreId);
+                View::flash('succes', 'Offre remise en comparaison.');
+            }
+        }
+        header('Location: ' . $retour);
         exit;
     }
 }

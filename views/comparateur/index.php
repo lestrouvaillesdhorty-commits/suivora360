@@ -268,24 +268,58 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
         <th style="position:sticky;left:0;background:#fff">Décision</th>
         <?php foreach ($offres as $o): ?>
           <td>
-            <?php if ($o['statut'] !== 'retenue' && !$decisionExistante && $peutValider): ?>
-            <details>
-              <summary style="cursor:pointer" class="btn btn-sm">Retenir…</summary>
-              <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir" style="margin-top:8px;min-width:200px">
-                <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-                <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
-                <label style="font-size:12px">Motif de la décision (obligatoire)</label>
-                <textarea name="motif_decision" rows="2" required placeholder="ex: meilleur coût rendu, délai compatible"></textarea>
-                <button type="submit" class="btn btn-sm" style="margin-top:6px">Confirmer — retenir cette offre</button>
-              </form>
-            </details>
-            <?php elseif ($o['statut'] === 'retenue'): ?>
+            <?php if ($o['statut'] === 'retenue'): ?>
               <span style="font-size:12px;color:#065f46;font-weight:600">✓ Retenue</span>
               <?php if (!empty($o['motif_decision'])): ?>
                 <div style="font-size:11px;color:#666;margin-top:4px"><?= View::e($o['motif_decision']) ?></div>
               <?php endif; ?>
             <?php else: ?>
-              <span style="color:#9ca3af;font-style:italic">—</span>
+              <?php if ($o['statut'] === 'rejetee'): ?>
+                <span class="badge badge-gray">Écartée</span>
+                <?php if (!empty($o['motif_decision'])): ?>
+                  <div style="font-size:11px;color:#666;margin:4px 0"><?= View::e($o['motif_decision']) ?></div>
+                <?php endif; ?>
+              <?php endif; ?>
+
+              <?php if (!$decisionExistante && $peutValider): ?>
+              <details style="margin-bottom:6px">
+                <summary style="cursor:pointer" class="btn btn-sm">Retenir…</summary>
+                <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir" style="margin-top:8px;min-width:200px">
+                  <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                  <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
+                  <label style="font-size:12px">Motif de la décision (obligatoire)</label>
+                  <textarea name="motif_decision" rows="2" required placeholder="ex: meilleur coût rendu, délai compatible"></textarea>
+                  <button type="submit" class="btn btn-sm" style="margin-top:6px">Confirmer — retenir cette offre</button>
+                </form>
+              </details>
+              <?php if ($o['statut'] === 'recue'): ?>
+              <details style="margin-bottom:6px">
+                <summary style="cursor:pointer" class="btn btn-sm btn-secondary">Écarter…</summary>
+                <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/ecarter" style="margin-top:8px;min-width:200px">
+                  <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                  <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
+                  <label style="font-size:12px">Motif (obligatoire)</label>
+                  <textarea name="motif_ecart" rows="2" required placeholder="ex: prix trop élevé, délai trop long"></textarea>
+                  <button type="submit" class="btn btn-sm btn-secondary" style="margin-top:6px">Confirmer — écarter cette offre</button>
+                </form>
+              </details>
+              <?php else: ?>
+              <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/reexaminer" style="margin-bottom:6px">
+                <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
+                <button type="submit" class="btn btn-sm btn-secondary">Remettre en comparaison</button>
+              </form>
+              <?php endif; ?>
+              <?php elseif ($o['statut'] === 'recue'): ?>
+                <span style="color:#9ca3af;font-style:italic">—</span>
+              <?php endif; ?>
+
+              <?php if (\App\Core\Auth::canWrite()): ?>
+              <div style="font-size:12px;display:flex;gap:10px;flex-wrap:wrap">
+                <a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier">Modifier</a>
+                <?php if (!empty($o['consultation_id'])): ?><a href="/index.php?r=consultations/<?= (int) $o['consultation_id'] ?>/offres/nouvelle&version_de=<?= (int) $o['id'] ?>">+ Nouvelle version</a><?php endif; ?>
+              </div>
+              <?php endif; ?>
             <?php endif; ?>
           </td>
         <?php endforeach; ?>

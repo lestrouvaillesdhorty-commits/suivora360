@@ -410,6 +410,26 @@ class Offre
      * dirigeants côté contrôleur ; le motif est tracé dans l'audit, pas sur
      * l'offre (puisque plusieurs offres sont concernées à la fois).
      */
+    /** Écarte UNE offre (motif obligatoire) sans trancher entre les autres : statut « écartée », motif conservé. */
+    public static function ecarter(int $dossierId, int $offreId, string $motif): bool
+    {
+        $stmt = Database::connection()->prepare(
+            "UPDATE offres SET statut = 'rejetee', motif_decision = ?, updated_at = ? WHERE id = ? AND dossier_id = ? AND statut = 'recue'"
+        );
+        $stmt->execute([$motif, date('Y-m-d H:i:s'), $offreId, $dossierId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /** Remet UNE offre écartée en comparaison (« reçue »). */
+    public static function reexaminer(int $dossierId, int $offreId): bool
+    {
+        $stmt = Database::connection()->prepare(
+            "UPDATE offres SET statut = 'recue', motif_decision = NULL, updated_at = ? WHERE id = ? AND dossier_id = ? AND statut = 'rejetee'"
+        );
+        $stmt->execute([date('Y-m-d H:i:s'), $offreId, $dossierId]);
+        return $stmt->rowCount() > 0;
+    }
+
     public static function revenirSurDecision(int $dossierId): void
     {
         $stmt = Database::connection()->prepare(
