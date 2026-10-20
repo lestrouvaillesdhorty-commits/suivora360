@@ -51,6 +51,11 @@ class ConsultationFournisseur
         if (self::colonneCanal()) {
             $pdo->prepare('UPDATE consultations_fournisseur SET canal_envoi = ?, updated_at = ? WHERE id = ?')->execute([$canal, $now, $id]);
         }
+        // Parcours guidé : la première consultation envoyée fait passer le dossier en « Sourcing ».
+        $c = self::find($id);
+        if ($c && ($c['statut'] ?? '') === 'envoyee') {
+            Dossier::avancerA((int) $c['dossier_id'], 'sourcing');
+        }
     }
 
     /** La colonne articles_ids existe-t-elle (migrate_v29 passée) ? */

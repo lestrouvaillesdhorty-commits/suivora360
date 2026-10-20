@@ -119,3 +119,5 @@ $etapesStatut = Dossier::etapesAvecStatut($dossier['etape']);
     </div>
   <?php endforeach; ?>
 </div>
+<?php require __DIR__ . '/_prochaine_action.php'; ?>
+

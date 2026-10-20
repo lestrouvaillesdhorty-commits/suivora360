@@ -114,6 +114,7 @@ class ComparateurController
         }
 
         Offre::retenir((int) $dossier['id'], $offreId, $motif);
+        \App\Models\Dossier::avancerA((int) $dossier['id'], 'cotation', (int) $user['id']); // parcours guidé : offre retenue → étape Cotation
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offre_retenue', 'offre', $offreId, $motif);
         View::flash('succes', 'Offre retenue pour ce dossier.');
 

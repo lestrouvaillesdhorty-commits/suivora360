@@ -181,6 +181,9 @@ class CotationController
         }
 
         Cotation::updateStatut((int) $cotation['id'], $nouveauStatut);
+        if ($nouveauStatut === 'acceptee') {
+            Dossier::avancerA((int) $cotation['dossier_id'], 'commande'); // parcours guidé : cotation acceptée → étape Commande
+        }
         AuditLog::log((int) $cotation['filiale_id'], (int) $user['id'], 'changement_statut_cotation', 'cotation', $cotation['id'], $_POST['statut'] ?? '');
         View::flash('succes', 'Statut de la cotation mis à jour.');
         // [ajouté 06/10, étape 3] Les boutons de l'onglet Cotations client

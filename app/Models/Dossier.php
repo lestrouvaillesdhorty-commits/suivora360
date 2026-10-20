@@ -403,6 +403,27 @@ class Dossier
     }
 
     /**
+     * Fait avancer le dossier à l'étape donnée, jamais en arrière (et jamais s'il est annulé ou clôturé).
+     * Utilisé par les actions du parcours (consultation envoyée, offre retenue, cotation acceptée).
+     * Renvoie true si l'étape a changé.
+     */
+    public static function avancerA(int $id, string $etape, ?int $userId = null): bool
+    {
+        $d = self::find($id);
+        if (!$d || self::estAnnule($d) || $d['statut'] !== 'actif') {
+            return false;
+        }
+        $actuel = array_search($d['etape'], self::ETAPES, true);
+        $cible = array_search($etape, self::ETAPES, true);
+        if ($cible === false || ($actuel !== false && $cible <= $actuel)) {
+            return false;
+        }
+        self::updateEtape($id, $etape);
+        \App\Models\AuditLog::log((int) $d['filiale_id'], (int) ($userId ?? (\App\Core\Auth::user()['id'] ?? 0)), 'etape_auto_dossier', 'dossier', $id, $etape);
+        return true;
+    }
+
+    /**
      * Pourcentage d'avancement dans le pipeline du dossier (qualifié → ...
      * → clôturé), basé sur la position de l'étape courante dans ETAPES.
      * qualifié = 0 %, clôturé = 100 %, les étapes intermédiaires réparties
