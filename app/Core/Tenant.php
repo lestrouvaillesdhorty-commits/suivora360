@@ -22,6 +22,45 @@ namespace App\Core;
  */
 class Tenant
 {
+    /** Domaine de base du service (ex. suivora360.com) : BASE_DOMAIN du .env, sinon déduit de APP_URL. */
+    public static function domaineDeBase(): string
+    {
+        $d = strtolower(trim((string) Env::get('BASE_DOMAIN', '')));
+        if ($d === '') {
+            $d = strtolower((string) parse_url((string) Env::get('APP_URL', ''), PHP_URL_HOST));
+        }
+        return preg_replace('/^www\./', '', $d);
+    }
+
+    public static function schemaEtPort(): string
+    {
+        return (string) (parse_url((string) Env::get('APP_URL', ''), PHP_URL_SCHEME) ?: 'https');
+    }
+
+    public static function portSuffixe(): string
+    {
+        $port = parse_url((string) Env::get('APP_URL', ''), PHP_URL_PORT);
+        return $port ? ':' . $port : '';
+    }
+
+    /**
+     * Sous-domaine de la requête courante : null sur l'adresse générale (suivora360.com, www, app…),
+     * sinon le premier libellé (ex. « ltdh » pour ltdh.suivora360.com).
+     */
+    public static function sousDomaineCourant(): ?string
+    {
+        $host = strtolower(preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+        $base = self::domaineDeBase();
+        if ($host === '' || $base === '' || $host === $base || !str_ends_with($host, '.' . $base)) {
+            return null;
+        }
+        $prefixe = substr($host, 0, -strlen('.' . $base));
+        if ($prefixe === '' || str_contains($prefixe, '.') || in_array($prefixe, ['www', 'app'], true)) {
+            return null;
+        }
+        return $prefixe;
+    }
+
     /** Client appartenant à la filiale donnée. */
     public static function clientDeFiliale($id, int $filialeId): ?int
     {

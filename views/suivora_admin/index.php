@@ -29,11 +29,22 @@ $aRelancer = array_filter($organisations, fn($o) => !empty($o['abonnement_echean
     <div class="empty-state">Aucune entreprise.</div>
   <?php else: ?>
   <table class="responsive-cards">
-    <thead><tr><th>Entreprise</th><th class="num">Filiales</th><th class="num">Utilisateurs actifs</th><th class="num">Demandes</th><th class="num">Dossiers</th><th>Dernière activité</th><th>Accès</th><th></th></tr></thead>
+    <thead><tr><th>Entreprise</th><th>Adresse (sous-domaine)</th><th class="num">Filiales</th><th class="num">Utilisateurs actifs</th><th class="num">Demandes</th><th class="num">Dossiers</th><th>Dernière activité</th><th>Accès</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($organisations as $o): $active = !isset($o['actif']) || (int) $o['actif'] === 1; ?>
       <tr>
         <td data-label="Entreprise"><strong><?= View::e($o['nom']) ?></strong><br><span style="font-size:12px;color:#888">créée le <?= date('d/m/Y', strtotime($o['created_at'])) ?></span></td>
+        <td data-label="Adresse">
+          <?php $sd = $o['sous_domaine'] ?? ''; ?>
+          <?= $sd !== '' ? '<code style="font-size:12px">' . View::e($sd . '.' . \App\Core\Tenant::domaineDeBase()) . '</code>' : '<span style="color:#9ca3af">adresse générale</span>' ?>
+          <details style="margin-top:4px"><summary style="cursor:pointer;font-size:12px;color:var(--primary)"><?= $sd !== '' ? 'Modifier' : 'Définir' ?></summary>
+            <form method="post" action="/index.php?r=admin-suivora/<?= (int) $o['id'] ?>/sous-domaine" style="margin-top:6px;display:flex;gap:6px;align-items:center">
+              <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+              <input type="text" name="sous_domaine" value="<?= View::e($sd) ?>" placeholder="ltdh" maxlength="30" style="width:110px" pattern="[a-z0-9][a-z0-9-]{1,28}[a-z0-9]" required>
+              <button type="submit" class="btn btn-sm">OK</button>
+            </form>
+          </details>
+        </td>
         <td data-label="Filiales" class="num"><?= (int) $o['nb_filiales'] ?></td>
         <td data-label="Utilisateurs actifs" class="num"><?= (int) $o['nb_utilisateurs'] ?></td>
         <td data-label="Demandes" class="num"><?= (int) $o['nb_demandes'] ?></td>
@@ -109,6 +120,7 @@ $aRelancer = array_filter($organisations, fn($o) => !empty($o['abonnement_echean
       <div class="form-group"><label>Nom du Propriétaire *</label><input type="text" name="nom_proprietaire" required></div>
       <div class="form-group"><label>E-mail du Propriétaire *</label><input type="email" name="email_proprietaire" required></div>
     </div>
+    <div class="form-group" style="max-width:420px"><label>Sous-domaine de l'entreprise * (ex. ltdh → ltdh.<?= View::e(\App\Core\Tenant::domaineDeBase()) ?>)</label><input type="text" name="sous_domaine" required maxlength="30" pattern="[a-z0-9][a-z0-9-]{1,28}[a-z0-9]" placeholder="ltdh" style="text-transform:lowercase"></div>
     <div class="form-group" style="max-width:420px"><label>Mot de passe provisoire * (8 caractères minimum)</label><input type="password" name="mot_de_passe" minlength="8" required autocomplete="new-password"></div>
     <button type="submit" class="btn">Créer l'entreprise</button>
   </form>

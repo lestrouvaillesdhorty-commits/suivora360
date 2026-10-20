@@ -737,6 +737,9 @@ $router->post('/admin-suivora/{id}/basculer', function ($params) {
     Auth::requireLogin();
     (new SuivoraAdminController())->basculer($params);
 });
+$router->post('/admin-suivora/{id}/sous-domaine', function ($params) {
+    (new SuivoraAdminController())->sousDomaine($params);
+});
 $router->post('/admin-suivora/{id}/abonnement', function ($params) {
     Auth::requireLogin();
     (new SuivoraAdminController())->abonnement($params);

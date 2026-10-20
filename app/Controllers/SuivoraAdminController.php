@@ -51,6 +51,7 @@ class SuivoraAdminController
         $nomProprio = trim($_POST['nom_proprietaire'] ?? '');
         $email = strtolower(trim($_POST['email_proprietaire'] ?? ''));
         $mdp = (string) ($_POST['mot_de_passe'] ?? '');
+        $sousDomaine = Organisation::normaliserSousDomaine((string) ($_POST['sous_domaine'] ?? ''));
 
         $erreur = null;
         if ($nomOrg === '' || $nomFiliale === '' || $nomProprio === '') {
@@ -61,6 +62,8 @@ class SuivoraAdminController
             $erreur = 'Le mot de passe provisoire doit contenir au moins 8 caractères.';
         } elseif (Utilisateur::findByEmail($email)) {
             $erreur = 'Cette adresse e-mail est déjà utilisée par un autre compte.';
+        } elseif (($e = Organisation::erreurSousDomaine($sousDomaine)) !== null) {
+            $erreur = $e;
         }
         if ($erreur) {
             View::flash('erreur', $erreur);
@@ -69,7 +72,7 @@ class SuivoraAdminController
         }
 
         try {
-            $ids = Organisation::creerAvecProprietaire($nomOrg, $nomFiliale, $nomProprio, $email, $mdp);
+            $ids = Organisation::creerAvecProprietaire($nomOrg, $nomFiliale, $nomProprio, $email, $mdp, $sousDomaine);
         } catch (\Throwable $e) {
             View::flash('erreur', "La création a échoué : l'entreprise n'a pas été créée.");
             header('Location: /index.php?r=admin-suivora');
@@ -79,7 +82,51 @@ class SuivoraAdminController
         $acteur = Auth::user();
         // Tracé dans le journal de la nouvelle entreprise : son Propriétaire voit qui a créé son espace.
         AuditLog::log($ids['filiale_id'], (int) $acteur['id'], 'creation_organisation', 'organisation', $ids['organisation_id'], $nomOrg);
-        View::flash('succes', "Entreprise « $nomOrg » créée. Transmettez au Propriétaire son adresse e-mail et son mot de passe provisoire par un canal sûr. Il devra le changer dès sa première connexion.");
+        View::flash('succes', "Entreprise « $nomOrg » créée — adresse : " . Organisation::urlBase($ids['organisation_id']) . ". Transmettez au Propriétaire son adresse e-mail et son mot de passe provisoire par un canal sûr. Il devra le changer dès sa première connexion.");
+        header('Location: /index.php?r=admin-suivora');
+        exit;
+    }
+
+    /** Définit ou modifie le sous-domaine d'une entreprise existante. */
+    public function sousDomaine(array $params): void
+    {
+        Auth::requireSuperAdmin();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=admin-suivora');
+            exit;
+        }
+        $org = Organisation::find((int) $params['id']);
+        if (!$org) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $sd = Organisation::normaliserSousDomaine((string) ($_POST['sous_domaine'] ?? ''));
+        $erreur = Organisation::erreurSousDomaine($sd, (int) $org['id']);
+        if ($erreur) {
+            View::flash('erreur', $erreur);
+            header('Location: /index.php?r=admin-suivora');
+            exit;
+        }
+        $acteur = Auth::user();
+        // Garde-fou : changer le sous-domaine de sa propre entreprise déconnecterait l'administrateur.
+        if ((int) $org['id'] === (int) $acteur['organisation_id'] && !empty($acteur['is_super_admin'])) {
+            View::flash('erreur', "Votre propre compte d'administrateur reste sur l'adresse générale : ne définissez pas de sous-domaine pour son entreprise.");
+            header('Location: /index.php?r=admin-suivora');
+            exit;
+        }
+        try {
+            Organisation::definirSousDomaine((int) $org['id'], $sd);
+        } catch (\Throwable $e) {
+            View::flash('erreur', "Enregistrement impossible : la migration v31 n'a pas encore été lancée sur ce site.");
+            header('Location: /index.php?r=admin-suivora');
+            exit;
+        }
+        $filiales = Filiale::allForOrganisation((int) $org['id']);
+        if (!empty($filiales)) {
+            AuditLog::log((int) $filiales[0]['id'], (int) $acteur['id'], 'modification_sous_domaine', 'organisation', (int) $org['id'], $sd);
+        }
+        View::flash('succes', "Adresse de « {$org['nom']} » : " . Organisation::urlBase((int) $org['id']) . '. Pensez à créer ce sous-domaine chez IONOS (pointé vers le même dossier public).');
         header('Location: /index.php?r=admin-suivora');
         exit;
     }

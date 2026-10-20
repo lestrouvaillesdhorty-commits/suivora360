@@ -13,7 +13,17 @@ class AuthController
             header('Location: /index.php');
             exit;
         }
-        View::renderPlain('auth/login', ['csrfToken' => Auth::csrfToken()]);
+        $sub = \App\Core\Tenant::sousDomaineCourant();
+        $org = null;
+        if ($sub !== null) {
+            $org = \App\Models\Organisation::findBySousDomaine($sub);
+            if (!$org) {
+                http_response_code(404);
+                View::renderPlain('errors/adresse_inconnue', []);
+                return;
+            }
+        }
+        View::renderPlain('auth/login', ['csrfToken' => Auth::csrfToken(), 'organisation' => $org]);
     }
 
     public function login(): void
@@ -34,6 +44,10 @@ class AuthController
 
         if (Auth::$dernierRefus === 'organisation_suspendue') {
             $msg = "L'accès de votre entreprise est suspendu. Contactez l'administrateur Suivora.";
+        } elseif (Auth::$dernierRefus === 'utiliser_sous_domaine') {
+            $msg = 'Votre entreprise a sa propre adresse : connectez-vous sur ' . Auth::$adresseEntreprise . '.';
+        } elseif (Auth::$dernierRefus === 'mauvaise_adresse') {
+            $msg = 'Email ou mot de passe incorrect.'; // pas de précision : ne révèle rien sur les comptes des autres entreprises
         } elseif (Auth::$dernierRefus === 'trop_de_tentatives') {
             $msg = 'Trop de tentatives de connexion. Réessayez dans ' . \App\Core\LimiteConnexion::FENETRE_MINUTES . ' minutes.';
         } else {

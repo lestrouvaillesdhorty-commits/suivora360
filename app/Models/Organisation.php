@@ -14,6 +14,58 @@ class Organisation
         return $row ?: null;
     }
 
+    /** Sous-domaines réservés (jamais attribués à une entreprise). */
+    public const SOUS_DOMAINES_RESERVES = ['www', 'app', 'admin', 'api', 'mail', 'smtp', 'ftp', 'test', 'demo', 'suivora', 'support', 'aide', 'portail', 'static', 'cdn'];
+
+    public static function normaliserSousDomaine(string $s): string
+    {
+        return strtolower(trim($s));
+    }
+
+    /** Message d'erreur si le sous-domaine est inutilisable, null s'il est valide et libre. */
+    public static function erreurSousDomaine(string $s, ?int $exceptOrgId = null): ?string
+    {
+        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/', $s)) {
+            return 'Le sous-domaine doit faire 3 à 30 caractères : lettres minuscules, chiffres et tirets (pas au début ni à la fin).';
+        }
+        if (in_array($s, self::SOUS_DOMAINES_RESERVES, true)) {
+            return "Ce sous-domaine est réservé : choisissez-en un autre.";
+        }
+        $autre = self::findBySousDomaine($s);
+        if ($autre && (int) $autre['id'] !== (int) $exceptOrgId) {
+            return 'Ce sous-domaine est déjà utilisé par une autre entreprise.';
+        }
+        return null;
+    }
+
+    public static function findBySousDomaine(string $s): ?array
+    {
+        try {
+            $stmt = Database::connection()->prepare('SELECT * FROM organisations WHERE sous_domaine = ?');
+            $stmt->execute([$s]);
+            $row = $stmt->fetch();
+            return $row ?: null;
+        } catch (\Throwable $e) {
+            return null; // colonne absente (migration v31 pas encore lancée)
+        }
+    }
+
+    public static function definirSousDomaine(int $id, ?string $s): void
+    {
+        Database::connection()->prepare('UPDATE organisations SET sous_domaine = ? WHERE id = ?')->execute([$s !== '' ? $s : null, $id]);
+    }
+
+    /** Adresse de base de l'espace d'une entreprise : son sous-domaine si elle en a un, sinon l'adresse générale (APP_URL). */
+    public static function urlBase(int $orgId): string
+    {
+        $org = self::find($orgId);
+        $sub = $org['sous_domaine'] ?? null;
+        if ($sub) {
+            return \App\Core\Tenant::schemaEtPort() . '://' . $sub . '.' . \App\Core\Tenant::domaineDeBase() . \App\Core\Tenant::portSuffixe();
+        }
+        return rtrim((string) \App\Core\Env::get('APP_URL', ''), '/');
+    }
+
     public static function all(): array
     {
         return Database::connection()->query('SELECT * FROM organisations ORDER BY nom')->fetchAll();
@@ -50,7 +102,7 @@ class Organisation
      */
     public static function toutesAvecStatistiques(): array
     {
-        $sql = "SELECT o.id, o.nom, o.created_at, o.actif,
+        $sql = "SELECT o.id, o.nom, o.created_at, o.actif, {SD}
                   o.abonnement_offre, o.abonnement_prix, o.abonnement_devise, o.abonnement_echeance, o.abonnement_notes,
                   (SELECT COUNT(*) FROM filiales f WHERE f.organisation_id = o.id) AS nb_filiales,
                   (SELECT COUNT(*) FROM utilisateurs u WHERE u.organisation_id = o.id AND u.actif = 1) AS nb_utilisateurs,
@@ -58,11 +110,16 @@ class Organisation
                   (SELECT COUNT(*) FROM dossiers d INNER JOIN filiales f ON f.id = d.filiale_id WHERE f.organisation_id = o.id) AS nb_dossiers,
                   (SELECT MAX(a.created_at) FROM audit_logs a INNER JOIN filiales f ON f.id = a.filiale_id WHERE f.organisation_id = o.id) AS derniere_activite
                 FROM organisations o ORDER BY o.nom";
-        return Database::connection()->query($sql)->fetchAll();
+        try {
+            return Database::connection()->query(str_replace('{SD}', 'o.sous_domaine,', $sql))->fetchAll();
+        } catch (\Throwable $e) {
+            // migration v31 pas encore lancée : liste sans la colonne sous-domaine
+            return Database::connection()->query(str_replace('{SD}', '', $sql))->fetchAll();
+        }
     }
 
     /** Crée l'entreprise, sa première filiale et son premier compte Propriétaire, en une seule transaction. */
-    public static function creerAvecProprietaire(string $nomOrganisation, string $nomFiliale, string $nomProprietaire, string $emailProprietaire, string $motDePasse): array
+    public static function creerAvecProprietaire(string $nomOrganisation, string $nomFiliale, string $nomProprietaire, string $emailProprietaire, string $motDePasse, ?string $sousDomaine = null): array
     {
         $pdo = Database::connection();
         $pdo->beginTransaction();
@@ -70,6 +127,9 @@ class Organisation
             $now = date('Y-m-d H:i:s');
             $pdo->prepare('INSERT INTO organisations (nom, created_at) VALUES (?, ?)')->execute([$nomOrganisation, $now]);
             $orgId = (int) $pdo->lastInsertId();
+            if ($sousDomaine) {
+                self::definirSousDomaine($orgId, $sousDomaine);
+            }
             $filialeId = Filiale::create($orgId, $nomFiliale);
             $userId = Utilisateur::create([
                 'organisation_id' => $orgId,

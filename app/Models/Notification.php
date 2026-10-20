@@ -66,6 +66,9 @@ class Notification
 
         try {
             $appUrl = rtrim((string) \App\Core\Env::get('APP_URL', ''), '/');
+            if (!empty($utilisateur['organisation_id'])) {
+                $appUrl = rtrim(\App\Models\Organisation::urlBase((int) $utilisateur['organisation_id']), '/') ?: $appUrl;
+            }
             $lienComplet = $lien && $appUrl !== '' ? $appUrl . $lien : $lien;
             $corps = $message . ($lienComplet ? "\n\n" . $lienComplet : '');
             Mailer::envoyer((string) ($utilisateur['email'] ?? ''), $titre, $corps);

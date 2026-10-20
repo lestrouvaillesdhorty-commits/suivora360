@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS organisations (
     abonnement_devise VARCHAR(3) NULL,
     abonnement_echeance DATE NULL,
     abonnement_notes VARCHAR(255) NULL,
+    sous_domaine VARCHAR(40) NULL UNIQUE,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

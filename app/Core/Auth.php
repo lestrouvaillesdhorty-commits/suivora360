@@ -47,6 +47,12 @@ class Auth
             return false;
         }
         LimiteConnexion::reussite($email);
+        // Sous-domaine : une entreprise ne se connecte que depuis son adresse (ltdh.suivora360.com).
+        $refusSub = self::refusSousDomaine($user);
+        if ($refusSub !== null) {
+            self::$dernierRefus = $refusSub;
+            return false;
+        }
         // Entreprise suspendue par l'administrateur Suivora : accès fermé (sauf pour l'administrateur Suivora lui-même).
         if (empty($user['is_super_admin']) && !\App\Models\Organisation::estActive((int) $user['organisation_id'])) {
             self::$dernierRefus = 'organisation_suspendue';
@@ -58,6 +64,33 @@ class Auth
         // La filiale active est relue en base (dernière filiale utilisée).
         unset($_SESSION['filiale_active']);
         return true;
+    }
+
+    /** Adresse (sous-domaine) de l'entreprise de l'utilisateur, utilisée dans le message de refus. */
+    public static string $adresseEntreprise = '';
+
+    /**
+     * Cohérence compte ↔ adresse. Renvoie un code de refus, ou null si l'accès est permis.
+     *  - sur un sous-domaine : uniquement les comptes de cette entreprise ;
+     *  - sur l'adresse générale : l'administrateur Suivora et les entreprises sans sous-domaine.
+     */
+    public static function refusSousDomaine(array $user): ?string
+    {
+        $sub = Tenant::sousDomaineCourant();
+        $org = \App\Models\Organisation::find((int) $user['organisation_id']);
+        $subOrg = $org['sous_domaine'] ?? null;
+        if ($sub !== null) {
+            $orgSub = \App\Models\Organisation::findBySousDomaine($sub);
+            if (!$orgSub || !empty($user['is_super_admin']) || (int) $orgSub['id'] !== (int) $user['organisation_id']) {
+                return 'mauvaise_adresse';
+            }
+            return null;
+        }
+        if (empty($user['is_super_admin']) && $subOrg) {
+            self::$adresseEntreprise = Tenant::schemaEtPort() . '://' . $subOrg . '.' . Tenant::domaineDeBase() . Tenant::portSuffixe();
+            return 'utiliser_sous_domaine';
+        }
+        return null;
     }
 
     public static function logout(): void
@@ -95,6 +128,10 @@ class Auth
             $cached = ($u && !empty($u['actif'])) ? $u : null;
             // Entreprise suspendue en cours de session : accès fermé immédiatement.
             if ($cached && empty($cached['is_super_admin']) && !\App\Models\Organisation::estActive((int) $cached['organisation_id'])) {
+                $cached = null;
+            }
+            // Défense en profondeur : une session ouverte sur une adresse ne sert jamais sur celle d'une autre entreprise.
+            if ($cached && self::refusSousDomaine($cached) !== null) {
                 $cached = null;
             }
             $chargeePour = $uid;

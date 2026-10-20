@@ -22,6 +22,9 @@ body { display:flex; align-items:center; justify-content:center; min-height:100v
 <body>
 <div class="login-card">
   <img src="/assets/img/logo-full.png" alt="Suivora360 — La maîtrise de vos opérations." class="login-logo">
+  <?php if (!empty($organisation)): ?>
+    <div style="text-align:center;margin:-10px 0 18px;font-size:15px;color:#4b5563">Espace de <strong style="color:#111827"><?= htmlspecialchars($organisation['nom']) ?></strong></div>
+  <?php endif; ?>
   <?php if ($flash): ?>
     <div class="alert alert-<?= $flash['type'] === 'erreur' ? 'erreur' : 'succes' ?>"><?= htmlspecialchars($flash['message']) ?></div>
   <?php endif; ?>
