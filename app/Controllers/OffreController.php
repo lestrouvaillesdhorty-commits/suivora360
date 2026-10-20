@@ -11,6 +11,28 @@ use App\Models\OffreItem;
 
 class OffreController
 {
+
+    /**
+     * Lignes d'articles préremplies depuis la demande du dossier (désignation, quantité, unité),
+     * limitées aux articles envoyés au fournisseur si une consultation existe. Prix à saisir.
+     */
+    private function lignesDepuisDemande(array $dossier, ?array $consultation = null): array
+    {
+        $demande = !empty($dossier['demande_id']) ? \App\Models\Demande::find((int) $dossier['demande_id']) : null;
+        if (!$demande) {
+            return [];
+        }
+        $articles = \App\Models\DemandeArticle::forDemande((int) $demande['id']);
+        if ($consultation && !empty($consultation['id'])) {
+            $articles = ConsultationFournisseur::filtrerArticles($consultation, $articles);
+        }
+        $lignes = [];
+        foreach ($articles as $a) {
+            $lignes[] = ['designation' => $a['designation'], 'quantite' => $a['quantite'], 'unite' => (string) ($a['unite'] ?? ''), 'prix_unitaire' => null];
+        }
+        return $lignes;
+    }
+
     public function create(array $params): void
     {
         $user = Auth::user();
@@ -37,6 +59,9 @@ class OffreController
             }
         }
 
+        if (!$offrePrecedente) {
+            $itemsPrecedents = $this->lignesDepuisDemande(\App\Models\Dossier::find((int) $consultation['dossier_id']) ?: [], $consultation);
+        }
         View::render('offres/create', [
             'consultation' => $consultation,
             'offrePrecedente' => $offrePrecedente,
@@ -143,7 +168,7 @@ class OffreController
                 'fournisseur_nom' => '', 'dossier_reference' => $dossier['reference'], 'dossier_id' => $dossier['id'],
             ],
             'offrePrecedente' => null,
-            'itemsPrecedents' => [],
+            'itemsPrecedents' => $this->lignesDepuisDemande($dossier),
         ]);
     }
 

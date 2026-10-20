@@ -48,7 +48,25 @@ class CotationController
             }
         }
 
+        // Nouvelle cotation : articles repris de l'offre retenue (prix d'achat unitaires en repère),
+        // sinon des articles de la demande.
+        $depuisOffre = false;
+        if (!$cotationPrecedente) {
+            if ($offreRetenue) {
+                foreach (\App\Models\OffreItem::forOffre((int) $offreRetenue['id']) as $oi) {
+                    $itemsPrecedents[] = ['designation' => $oi['designation'], 'quantite' => $oi['quantite'], 'unite' => (string) ($oi['unite'] ?? ''), 'prix_unitaire' => $oi['prix_unitaire'], 'cout' => $oi['prix_unitaire']];
+                }
+                $depuisOffre = !empty($itemsPrecedents);
+            }
+            if (empty($itemsPrecedents) && $demande) {
+                foreach (\App\Models\DemandeArticle::forDemande((int) $demande['id']) as $da) {
+                    $itemsPrecedents[] = ['designation' => $da['designation'], 'quantite' => $da['quantite'], 'unite' => (string) ($da['unite'] ?? ''), 'prix_unitaire' => null];
+                }
+            }
+        }
+
         View::render('cotations/create', [
+            'depuisOffre' => $depuisOffre,
             'dossier' => $dossier,
             'demande' => $demande,
             'clients' => $clients,

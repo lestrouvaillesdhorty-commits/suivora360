@@ -72,7 +72,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       <input type="hidden" name="montant_achat" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>">
     <?php endif; ?>
     <div class="form-row">
-      <div class="form-group"><label>Montant total facturé au client</label><input type="number" step="0.01" name="montant_total" required value="<?= $vNum('montant_total') ?>"></div>
+      <div class="form-group"><label>Montant total facturé au client</label><input type="number" step="0.01" name="montant_total" required value="<?= $cotationPrecedente ? $vNum('montant_total') : (isset($offreRetenue['montant_total']) ? View::e(rtrim(rtrim(number_format((float) $offreRetenue['montant_total'], 2, '.', ''), '0'), '.')) : '') ?>"></div>
       <div class="form-group">
         <label>Devise</label>
         <select name="devise">
@@ -109,6 +109,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
         <label style="margin:0">Détail des articles (optionnel)</label>
         <button type="button" class="btn btn-sm btn-secondary" id="add-item">+ Ligne</button>
       </div>
+      <div style="font-size:12px;color:#666;margin-top:4px"><?php if (!$cotationPrecedente && !empty($itemsPrecedents)): ?><?= !empty($depuisOffre) ? "Articles et prix repris de l'offre retenue. " : 'Articles repris de la demande. ' ?><?php endif; ?>Saisissez la marge : les prix unitaires et le total au client se calculent tout seuls (vous pouvez les corriger).</div>
       <table style="margin-top:10px" id="items-table">
         <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Prix unitaire</th><th></th></tr></thead>
         <tbody id="items-body">
@@ -125,7 +126,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
                 <?php endforeach; ?>
               </select>
             </td>
-            <td><input type="number" step="0.01" name="item_prix_unitaire[]" style="width:110px" value="<?= $it['prix_unitaire'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['prix_unitaire'], 2, '.', ''), '0'), '.')) : '' ?>"></td>
+            <td><input type="number" step="0.01" name="item_prix_unitaire[]" style="width:110px" <?= ($it['cout'] ?? null) !== null && $it['cout'] !== '' ? 'data-cout="' . View::e((string) $it['cout']) . '"' : '' ?> value="<?= $it['prix_unitaire'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['prix_unitaire'], 2, '.', ''), '0'), '.')) : '' ?>"></td>
             <td><button type="button" class="btn btn-sm btn-secondary remove-item">&times;</button></td>
           </tr>
         <?php endforeach; ?>
@@ -168,4 +169,39 @@ document.getElementById('items-body').addEventListener('click', function (e) {
     e.target.closest('tr').remove();
   }
 });
+</script>
+<script>
+// Prix client = coût d'achat × (1 + marge %) ; total recalculé à partir des lignes ou du montant d'achat.
+(function () {
+  var tot = document.querySelector('form [name="montant_total"]'), f = tot.closest('form'), marge = f.querySelector('[name="marge_pourcentage"]'),
+      achat = f.querySelector('[name="montant_achat"]'), body = document.getElementById('items-body');
+  var auto = !<?= $cotationPrecedente ? 'true' : 'false' ?>;
+  tot.addEventListener('input', function () { auto = false; });
+  function arrondi(x) { return (Math.round(x * 100) / 100).toFixed(2); }
+  function somme() {
+    var s = 0, n = 0;
+    body.querySelectorAll('tr').forEach(function (tr) {
+      var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value);
+      if (!isNaN(q) && !isNaN(p)) { s += q * p; n++; }
+    });
+    return n ? s : null;
+  }
+  function depuisMarge() {
+    var m = parseFloat(marge.value);
+    if (isNaN(m)) return;
+    var lignesCout = body.querySelectorAll('[data-cout]');
+    lignesCout.forEach(function (inp) { inp.value = arrondi(parseFloat(inp.dataset.cout) * (1 + m / 100)); });
+    var s = somme();
+    if (auto) {
+      // Le total client part du montant d'achat de l'offre (qui peut inclure des frais hors lignes) ; sinon des lignes.
+      if (achat && achat.value) tot.value = arrondi(parseFloat(achat.value) * (1 + m / 100));
+      else if (s !== null) tot.value = arrondi(s);
+    }
+  }
+  if (marge) { marge.addEventListener('input', depuisMarge); }
+  body.addEventListener('input', function (e) {
+    if (e.target.name === 'item_prix_unitaire[]' && e.target.dataset.cout) { e.target.removeAttribute('data-cout'); }
+    var s = somme(); if (auto && s !== null && !(achat && achat.value)) tot.value = arrondi(s);
+  });
+})();
 </script>
