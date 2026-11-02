@@ -61,6 +61,13 @@ svg.icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
 .sidebar nav a:hover { background: var(--sidebar-bg-hover); text-decoration: none; color: #fff; }
 .sidebar nav a.active { background: var(--primary); color: #fff; font-weight: 600; }
 .sidebar nav a.active svg { opacity: 1; }
+.sidebar nav details.nav-group { margin: 2px 0; }
+.sidebar nav details.nav-group > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 8px; color: #aab0c6; font-size: 14px; }
+.sidebar nav details.nav-group > summary::-webkit-details-marker { display: none; }
+.sidebar nav details.nav-group > summary::after { content: '▸'; margin-left: auto; font-size: 11px; opacity: .7; }
+.sidebar nav details.nav-group[open] > summary::after { content: '▾'; }
+.sidebar nav details.nav-group > summary:hover { background: var(--sidebar-bg-hover); color: #fff; }
+.sidebar nav details.nav-group a { padding-left: 34px; }
 .sidebar .section-label { padding: 16px 12px 6px; font-size: 10.5px; text-transform: uppercase; color: #565d7a; letter-spacing: .06em; font-weight: 700; }
 .sidebar .user-box { margin-top: auto; padding: 14px 16px 4px; border-top: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px; }
 .sidebar .user-box .ub-avatar { width: 34px; height: 34px; border-radius: 999px; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
