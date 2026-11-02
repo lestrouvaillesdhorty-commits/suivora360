@@ -6,7 +6,7 @@ But : donner à la personne qui audite une vue honnête de ce qui existe, de ce 
 ## 1. Vue d'ensemble
 - Application web **PHP sans framework** (architecture MVC maison), routage par `index.php?r=…` (`public/index.php`, ~190 routes), vues PHP.
 - Base **MySQL/MariaDB** en production (SQLite pour les tests locaux). Accès par PDO, requêtes préparées.
-- Dossiers : `app/Core` (Auth, Permissions, Tenant, Router, Storage, Env…), `app/Controllers` (23), `app/Models` (26), `app/Services` (PDF, messages, IA, e-mail, parcours), `views/`, `database/schema.sql`, `public/migrate_vNN.php` (migrations additives idempotentes), `storage/` (fichiers téléversés, hors racine web).
+- Dossiers : `app/Core` (Auth, Permissions, Tenant, Router, Storage, Env…), `app/Controllers` (24), `app/Models` (30), `app/Services` (PDF, messages, IA, e-mail, parcours), `views/`, `database/schema.sql`, `public/migrate_vNN.php` (migrations additives idempotentes), `storage/` (fichiers téléversés, hors racine web).
 - Aucune dépendance externe (pas de Composer) : PDF généré par `PdfSimple`, e-mail par `mail()`, IA par appel HTTP direct à l'API Anthropic (facultatif).
 - Hébergement actuel : IONOS mutualisé, HTTPS actif depuis le 02/11/2026. Cible : serveur dédié, un sous-domaine par entreprise (voir `INSTALLATION-SERVEUR.md`).
 
@@ -67,7 +67,7 @@ Accès externes sans compte : lien fournisseur (`/partage-public/{jeton}`), espa
 11. **Données** : adresse e-mail d'utilisateur unique à l'échelle globale (pas par entreprise) ; trous possibles dans la numérotation entre filiales d'une même entreprise ; référentiels (incoterms, modes de paiement, statuts) communs à toutes les entreprises, écrits dans le code.
 12. **Sauvegardes, supervision, journaux d'erreurs** : rien n'est prévu dans l'application (à mettre en place côté serveur).
 13. **Sessions** : stockage PHP par défaut ; sur plusieurs serveurs, prévoir un stockage partagé.
-14. **Dette technique** : contrôleurs volumineux (plusieurs milliers de lignes), vues mêlant PHP, HTML et JavaScript, noms de colonnes en français, quelques fonctions dupliquées entre clients et fournisseurs.
+14. **Dette technique** : contrôleurs volumineux (jusqu'à près de 1 500 lignes), vues mêlant PHP, HTML et JavaScript, noms de colonnes en français, quelques fonctions dupliquées entre clients et fournisseurs.
 
 ## 8. Ce qui reste à construire (hors audit)
 Rangement des modules Offres / Comparateur / Cotations dans le dossier, qualification guidée en un clic, lecture des PDF d'offres sans IA, SMTP par entreprise, facturation et abonnements automatisés (aujourd'hui suivi manuel), onboarding autonome.
