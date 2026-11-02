@@ -665,6 +665,22 @@ $router->get('/cotations/{id}', function ($params) {
     Auth::requireLogin();
     (new CotationController())->show($params);
 });
+$router->get('/cotations/{id}/apercu', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->apercu($params);
+});
+$router->get('/cotations/{id}/pdf', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->pdf($params);
+});
+$router->get('/cotations/{id}/envoyer', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->envoyer($params);
+});
+$router->post('/cotations/{id}/envoyee', function ($params) {
+    Auth::requireLogin();
+    (new CotationController())->marquerEnvoyee($params);
+});
 $router->post('/cotations/{id}/statut', function ($params) {
     Auth::requireLogin();
     (new CotationController())->updateStatut($params);

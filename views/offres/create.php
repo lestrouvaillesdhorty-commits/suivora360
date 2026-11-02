@@ -164,28 +164,9 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
         <button type="button" class="btn btn-sm btn-secondary" id="add-item">+ Ligne</button>
       </div>
       <div style="font-size:12px;color:#666;margin-top:4px"><?php if (!$offrePrecedente && !empty($itemsPrecedents)): ?>Articles repris de la demande : saisissez seulement les prix unitaires. <?php endif; ?>Le montant total de l'offre se calcule tout seul (quantité × prix) ; vous pouvez le corriger à la main.</div>
-      <table style="margin-top:10px" id="items-table">
-        <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Prix unitaire</th><th></th></tr></thead>
-        <tbody id="items-body">
-          <?php foreach ($itemsPrecedents ?? [] as $item): ?>
-          <tr>
-            <td><input type="text" name="item_designation[]" value="<?= View::e($item['designation']) ?>"></td>
-            <td><input type="number" step="0.01" name="item_quantite[]" style="width:90px" value="<?= ($item['quantite'] ?? '') !== '' && $item['quantite'] !== null ? View::e(rtrim(rtrim(number_format((float) $item['quantite'], 2, '.', ''), '0'), '.')) : '' ?>"></td>
-            <td>
-              <select name="item_unite[]">
-                <option value="">Choisir…</option>
-                <?php $unitesL = \App\Models\Demande::UNITES; if (($item['unite'] ?? '') !== '' && !in_array($item['unite'], $unitesL, true)) { $unitesL[] = $item['unite']; } ?>
-                <?php foreach ($unitesL as $u): ?>
-                  <option <?= ($item['unite'] ?? '') === $u ? 'selected' : '' ?>><?= View::e($u) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </td>
-            <td><input type="number" step="0.01" name="item_prix_unitaire[]" style="width:110px" value="<?= View::e((string) ($item['prix_unitaire'] ?? '')) ?>"></td>
-            <td><button type="button" class="btn btn-sm btn-secondary remove-item">&times;</button></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+      <table style="margin-top:10px" id="items-table"><tbody id="items-body">
+        <?php foreach ($itemsPrecedents ?? [] as $item) { include __DIR__ . '/../partials/_ligne_article.php'; } ?>
+      </tbody></table>
     </div>
 
     <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e((string) $v('notes')) ?></textarea></div>
@@ -195,22 +176,7 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
   </form>
 </div>
 
-<template id="item-row-template">
-  <tr>
-    <td><input type="text" name="item_designation[]"></td>
-    <td><input type="number" step="0.01" name="item_quantite[]" style="width:90px"></td>
-    <td>
-      <select name="item_unite[]">
-        <option value="">Choisir…</option>
-        <?php foreach (\App\Models\Demande::UNITES as $u): ?>
-          <option><?= $u ?></option>
-        <?php endforeach; ?>
-      </select>
-    </td>
-    <td><input type="number" step="0.01" name="item_prix_unitaire[]" style="width:110px"></td>
-    <td><button type="button" class="btn btn-sm btn-secondary remove-item">&times;</button></td>
-  </tr>
-</template>
+<template id="item-row-template"><?php $item = []; include __DIR__ . '/../partials/_ligne_article.php'; ?></template>
 
 <script>
 // Montant total calculé automatiquement à partir des lignes (tant que vous ne l'avez pas saisi vous-même).
@@ -222,13 +188,13 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
     var s = 0, n = 0;
     body.querySelectorAll('tr').forEach(function (tr) {
       var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value);
-      if (!isNaN(q) && !isNaN(p)) { s += q * p; n++; }
+      var mm = tr.querySelector('.art-montant'); if (!isNaN(q) && !isNaN(p)) { s += q * p; n++; if (mm) mm.value = (Math.round(q * p * 100) / 100).toFixed(2); } else if (mm) mm.value = '';
     });
     if (n && auto) { tot.value = (Math.round(s * 100) / 100).toFixed(2); }
   }
   body.addEventListener('input', calc);
   body.addEventListener('click', function () { setTimeout(calc, 0); });
-  window.calcTotalOffre = calc;
+  window.calcTotalOffre = calc; calc();
 })();
 document.getElementById('add-item').addEventListener('click', function () {
   var tpl = document.getElementById('item-row-template');

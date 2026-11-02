@@ -15,6 +15,9 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
     <h1><?= View::e($cotation['reference']) ?></h1>
     <div class="subtitle">Cotation pour <?= View::e($cotation['client_nom']) ?></div>
   </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <a href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>/apercu" target="_blank" class="btn btn-secondary">Voir le devis</a>
+    <?php if ($cotation['statut'] !== 'remplacee'): ?><a href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>/envoyer" class="btn"><?= $cotation['statut'] === 'brouillon' ? 'Envoyer au client' : 'Renvoyer au client' ?></a><?php endif; ?>
   <?php if ($cotation['statut'] === 'acceptee' && !$commandeExistante): ?>
     <form method="post" action="/index.php?r=dossiers/<?= $cotation['dossier_id'] ?>/commande">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
@@ -24,6 +27,7 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
   <?php elseif ($commandeExistante): ?>
     <a href="/index.php?r=dossiers/<?= $cotation['dossier_id'] ?>/commande" class="btn btn-secondary">Voir la commande</a>
   <?php endif; ?>
+  </div>
 </div>
 
 <div class="detail-grid">
@@ -38,7 +42,7 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
           <tbody>
           <?php foreach ($items as $item): ?>
             <tr>
-              <td><?= View::e($item['designation']) ?></td>
+              <td><?= View::e($item['designation']) ?><?php $det = \App\Services\DevisPdf::details($item); ?><?= $det !== '' ? '<div style="font-size:12px;color:#667">' . View::e($det) . '</div>' : '' ?></td>
               <td><?= View::e((string) $item['quantite']) ?></td>
               <td><?= View::e($item['unite']) ?></td>
               <td><?= $item['prix_unitaire'] !== null ? number_format((float) $item['prix_unitaire'], 2, ',', ' ') : '—' ?></td>
@@ -63,7 +67,13 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
       <div class="info-row"><span class="label">Montant d'achat</span><span><?= $cotation['montant_achat'] !== null ? number_format((float) $cotation['montant_achat'], 2, ',', ' ') . ' ' . View::e($cotation['devise']) : '—' ?></span></div>
       <div class="info-row"><span class="label">Marge</span><span><?= $cotation['marge_montant'] !== null ? number_format((float) $cotation['marge_montant'], 2, ',', ' ') . ' ' . View::e($cotation['devise']) : '—' ?><?= $cotation['marge_pourcentage'] !== null ? ' (' . rtrim(rtrim(number_format((float) $cotation['marge_pourcentage'], 2), '0'), '.') . '%)' : '' ?></span></div>
       <?php endif; ?>
-      <div class="info-row"><span class="label">Montant total client</span><span><strong><?= number_format((float) $cotation['montant_total'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></strong></span></div>
+      <?php $tt = \App\Services\DevisPdf::totaux($cotation); ?>
+      <div class="info-row"><span class="label">Montant HT</span><span><?= number_format($tt['ht'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></span></div>
+      <div class="info-row"><span class="label">TVA<?= $tt['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($tt['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '' ?></span><span><?= number_format($tt['tva'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></span></div>
+      <div class="info-row"><span class="label">Total TTC facturé au client</span><span><strong><?= number_format((float) $cotation['montant_total'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></strong></span></div>
+      <?php if (!empty($cotation['taux_change']) && (float) $cotation['taux_change'] != 1.0): ?>
+      <div class="info-row"><span class="label">Taux de change</span><span>1 <?= View::e((string) ($cotation['devise_achat'] ?? '')) ?> = <?= rtrim(rtrim(number_format((float) $cotation['taux_change'], 6, ',', ' '), '0'), ',') ?> <?= View::e($cotation['devise']) ?></span></div>
+      <?php endif; ?>
       <div class="info-row"><span class="label">Mode de paiement négocié</span><span><?= View::e(Demande::MODES_PAIEMENT[$cotation['mode_paiement_negocie']] ?? $cotation['mode_paiement_negocie']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Incoterm client</span><span><?= View::e(Demande::INCOTERMS[$cotation['incoterm_client']] ?? $cotation['incoterm_client']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Validité</span><span><?= $cotation['validite_devis'] ? date('d/m/Y', strtotime($cotation['validite_devis'])) : '—' ?></span></div>

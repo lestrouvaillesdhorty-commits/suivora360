@@ -50,17 +50,42 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       </select>
     </div>
 
+    <?php
+    $deviseOffre = $cotationPrecedente ? ($cotationPrecedente['devise_achat'] ?? $cotationPrecedente['devise'] ?? 'EUR') : ($offreRetenue['devise'] ?? ($deviseClientDefaut ?: 'EUR'));
+    $deviseDevis = $cotationPrecedente['devise'] ?? ($deviseClientDefaut ?: $deviseOffre);
+    $tauxPrec = $cotationPrecedente ? (float) ($cotationPrecedente['taux_change'] ?? 1) : 0;
+    $achatOrigine = $cotationPrecedente
+        ? ($cotationPrecedente['montant_achat'] !== null ? rtrim(rtrim(number_format((float) $cotationPrecedente['montant_achat'] / ($tauxPrec > 0 ? $tauxPrec : 1), 2, '.', ''), '0'), '.') : '')
+        : (isset($offreRetenue['montant_total']) ? rtrim(rtrim(number_format((float) $offreRetenue['montant_total'], 2, '.', ''), '0'), '.') : '');
+    $devisesListe = ['EUR', 'USD', 'XOF', 'XAF', 'GBP', 'CNY'];
+    $tvaSel = $cotationPrecedente && $cotationPrecedente['tva_taux'] !== null ? (float) $cotationPrecedente['tva_taux'] : (float) $tvaDefaut;
+    $tvaOptions = \App\Models\Parametres::TVA_OPTIONS; if (!in_array($tvaSel, $tvaOptions, true)) { $tvaOptions[] = $tvaSel; }
+    ?>
+    <input type="hidden" name="devise_achat" id="devise_achat" value="<?= View::e($deviseOffre) ?>">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Devise du devis (celle du client)</label>
+        <select name="devise" id="devise_devis">
+          <?php foreach ($devisesListe as $d): ?><option <?= $deviseDevis === $d ? 'selected' : '' ?>><?= $d ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group" id="bloc-taux" style="display:none">
+        <label>Taux de change : 1 <span id="lib-offre"><?= View::e($deviseOffre) ?></span> = ? <span id="lib-devis"><?= View::e($deviseDevis) ?></span></label>
+        <input type="number" step="0.000001" name="taux_change" id="taux_change" value="<?= $tauxPrec > 0 ? View::e((string) $tauxPrec) : '' ?>">
+        <div class="hint" style="font-size:11px;color:#888;margin-top:2px">Proposé d'après les paramètres de l'entreprise (EUR ↔ FCFA) ; modifiable.</div>
+      </div>
+    </div>
     <?php if (Auth::canModifierMarge((int) $dossier['filiale_id'])): ?>
     <div class="form-row">
-      <div class="form-group"><label>Montant d'achat (coût fournisseur)</label><input type="number" step="0.01" name="montant_achat" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>"></div>
+      <div class="form-group"><label>Montant d'achat (coût fournisseur, en <?= View::e($deviseOffre) ?>)</label><input type="number" step="0.01" name="achat_origine" id="achat_origine" value="<?= View::e($achatOrigine) ?>"></div>
       <div class="form-group"><label>Marge (%)</label><input type="number" step="0.01" name="marge_pourcentage" placeholder="ex: 15" value="<?= $vNum('marge_pourcentage') ?>"></div>
     </div>
     <?php elseif (Auth::canSeeMarges()): ?>
     <div class="form-row">
       <div class="form-group">
-        <label>Montant d'achat (coût fournisseur)</label>
-        <input type="number" step="0.01" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>" disabled>
-        <input type="hidden" name="montant_achat" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>">
+        <label>Montant d'achat (coût fournisseur, en <?= View::e($deviseOffre) ?>)</label>
+        <input type="number" step="0.01" value="<?= View::e($achatOrigine) ?>" disabled>
+        <input type="hidden" name="achat_origine" id="achat_origine" value="<?= View::e($achatOrigine) ?>">
       </div>
       <div class="form-group">
         <label>Marge (%)</label>
@@ -69,18 +94,19 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       </div>
     </div>
     <?php else: ?>
-      <input type="hidden" name="montant_achat" value="<?= $cotationPrecedente ? $vNum('montant_achat') : ($offreRetenue['montant_total'] ?? '') ?>">
+      <input type="hidden" name="achat_origine" id="achat_origine" value="<?= View::e($achatOrigine) ?>">
     <?php endif; ?>
-    <div class="form-row">
-      <div class="form-group"><label>Montant total facturé au client</label><input type="number" step="0.01" name="montant_total" required value="<?= $cotationPrecedente ? $vNum('montant_total') : (isset($offreRetenue['montant_total']) ? View::e(rtrim(rtrim(number_format((float) $offreRetenue['montant_total'], 2, '.', ''), '0'), '.')) : '') ?>"></div>
-      <div class="form-group">
-        <label>Devise</label>
-        <select name="devise">
-          <?php foreach (['EUR', 'USD', 'XOF', 'XAF', 'GBP', 'CNY'] as $d): ?>
-            <option <?= (($cotationPrecedente['devise'] ?? ($offreRetenue['devise'] ?? ($deviseClientDefaut ?? ''))) === $d) ? 'selected' : '' ?>><?= $d ?></option>
-          <?php endforeach; ?>
-        </select>
+
+    <div class="tot-bloc">
+      <div class="form-row">
+        <div class="form-group"><label>Montant HT (hors taxe)</label><input type="number" step="0.01" name="montant_ht" id="montant_ht" value="<?= $cotationPrecedente ? $vNum('montant_ht') : '' ?>"></div>
+        <div class="form-group"><label>TVA (%)</label>
+          <select name="tva_taux" id="tva_taux"><?php foreach ($tvaOptions as $t): ?><option value="<?= View::e((string) $t) ?>" <?= (float) $t === $tvaSel ? 'selected' : '' ?>><?= View::e(rtrim(rtrim(number_format((float) $t, 2, ',', ''), '0'), ',')) ?> %</option><?php endforeach; ?></select>
+        </div>
       </div>
+      <div class="tot-ligne"><span>Montant de la TVA</span><span><strong id="aff-tva">—</strong></span></div>
+      <div class="form-group" style="margin:8px 0 0"><label>Montant total facturé au client (TTC)</label><input type="number" step="0.01" name="montant_total" id="montant_total" required value="<?= $cotationPrecedente ? $vNum('montant_total') : '' ?>"></div>
+      <div class="hint" style="font-size:11px;color:#667;margin-top:4px">Tout se calcule tout seul (achat × taux × marge, puis TVA). Vous pouvez corriger le HT ou le TTC à la main.</div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -109,29 +135,10 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
         <label style="margin:0">Détail des articles (optionnel)</label>
         <button type="button" class="btn btn-sm btn-secondary" id="add-item">+ Ligne</button>
       </div>
-      <div style="font-size:12px;color:#666;margin-top:4px"><?php if (!$cotationPrecedente && !empty($itemsPrecedents)): ?><?= !empty($depuisOffre) ? "Articles et prix repris de l'offre retenue. " : 'Articles repris de la demande. ' ?><?php endif; ?>Saisissez la marge : les prix unitaires et le total au client se calculent tout seuls (vous pouvez les corriger).</div>
-      <table style="margin-top:10px" id="items-table">
-        <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Prix unitaire</th><th></th></tr></thead>
-        <tbody id="items-body">
-        <?php foreach ($itemsPrecedents ?? [] as $it): ?>
-          <tr>
-            <td><input type="text" name="item_designation[]" value="<?= View::e($it['designation']) ?>"></td>
-            <td><input type="number" step="0.01" name="item_quantite[]" style="width:90px" value="<?= $it['quantite'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['quantite'], 2, '.', ''), '0'), '.')) : '' ?>"></td>
-            <td>
-              <select name="item_unite[]">
-                <option value="">—</option>
-                <?php $unites = \App\Models\Demande::UNITES; if ($it['unite'] !== '' && !in_array($it['unite'], $unites, true)) { $unites[] = $it['unite']; } ?>
-                <?php foreach ($unites as $u): ?>
-                  <option <?= $it['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </td>
-            <td><input type="number" step="0.01" name="item_prix_unitaire[]" style="width:110px" <?= ($it['cout'] ?? null) !== null && $it['cout'] !== '' ? 'data-cout="' . View::e((string) $it['cout']) . '"' : '' ?> value="<?= $it['prix_unitaire'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['prix_unitaire'], 2, '.', ''), '0'), '.')) : '' ?>"></td>
-            <td><button type="button" class="btn btn-sm btn-secondary remove-item">&times;</button></td>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
+      <div style="font-size:12px;color:#666;margin-top:4px"><?php if (!$cotationPrecedente && !empty($itemsPrecedents)): ?><?= !empty($depuisOffre) ? "Articles et prix repris de l'offre retenue. " : 'Articles repris de la demande. ' ?><?php endif; ?>Les prix unitaires (HT) se calculent depuis le coût, le taux et la marge ; vous pouvez les corriger.</div>
+      <table style="margin-top:10px" id="items-table"><tbody id="items-body">
+        <?php foreach ($itemsPrecedents ?? [] as $item) { include __DIR__ . '/../partials/_ligne_article.php'; } ?>
+      </tbody></table>
     </div>
 
     <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e($v('notes')) ?></textarea></div>
@@ -141,22 +148,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
   </form>
 </div>
 
-<template id="item-row-template">
-  <tr>
-    <td><input type="text" name="item_designation[]"></td>
-    <td><input type="number" step="0.01" name="item_quantite[]" style="width:90px"></td>
-    <td>
-      <select name="item_unite[]">
-        <option value="">—</option>
-        <?php foreach (\App\Models\Demande::UNITES as $u): ?>
-          <option><?= $u ?></option>
-        <?php endforeach; ?>
-      </select>
-    </td>
-    <td><input type="number" step="0.01" name="item_prix_unitaire[]" style="width:110px"></td>
-    <td><button type="button" class="btn btn-sm btn-secondary remove-item">&times;</button></td>
-  </tr>
-</template>
+<template id="item-row-template"><?php $item = []; include __DIR__ . '/../partials/_ligne_article.php'; ?></template>
 
 <script>
 document.getElementById('add-item').addEventListener('click', function () {
@@ -171,37 +163,56 @@ document.getElementById('items-body').addEventListener('click', function (e) {
 });
 </script>
 <script>
-// Prix client = coût d'achat × (1 + marge %) ; total recalculé à partir des lignes ou du montant d'achat.
+// Cotation : coût d'achat (devise de l'offre) × taux de change × (1 + marge) = HT ; + TVA = TTC.
 (function () {
-  var tot = document.querySelector('form [name="montant_total"]'), f = tot.closest('form'), marge = f.querySelector('[name="marge_pourcentage"]'),
-      achat = f.querySelector('[name="montant_achat"]'), body = document.getElementById('items-body');
-  var auto = !<?= $cotationPrecedente ? 'true' : 'false' ?>;
-  tot.addEventListener('input', function () { auto = false; });
-  function arrondi(x) { return (Math.round(x * 100) / 100).toFixed(2); }
-  function somme() {
+  var f = document.getElementById('montant_total').closest('form'), body = document.getElementById('items-body');
+  var $ = function (id) { return document.getElementById(id); };
+  var ht = $('montant_ht'), ttc = $('montant_total'), tva = $('tva_taux'), achat = $('achat_origine'), marge = f.querySelector('[name="marge_pourcentage"]'),
+      dv = $('devise_devis'), dOffre = $('devise_achat'), taux = $('taux_change'), bloc = $('bloc-taux');
+  var T = <?= json_encode(['EUR' => ['XAF' => $tauxEurFcfa, 'XOF' => $tauxEurFcfa], 'XAF' => ['EUR' => 1 / max($tauxEurFcfa, 0.0001), 'XOF' => 1], 'XOF' => ['EUR' => 1 / max($tauxEurFcfa, 0.0001), 'XAF' => 1]]) ?>;
+  var auto = !<?= $cotationPrecedente ? 'true' : 'false' ?>, tauxManuel = <?= $tauxPrec > 0 ? 'true' : 'false' ?>;
+  var r2 = function (x) { return (Math.round(x * 100) / 100).toFixed(2); };
+  var num = function (el) { var v = el ? parseFloat(el.value) : NaN; return v; };
+  function memeDevise() { return dv.value === dOffre.value; }
+  function majTaux() {
+    $('lib-offre').textContent = dOffre.value; $('lib-devis').textContent = dv.value;
+    bloc.style.display = memeDevise() ? 'none' : '';
+    if (!memeDevise() && !tauxManuel) { var t = (T[dOffre.value] || {})[dv.value]; taux.value = t ? String(Math.round(t * 1000000) / 1000000) : ''; }
+  }
+  function tauxEff() { return memeDevise() ? 1 : num(taux); }
+  function sommeLignes() {
     var s = 0, n = 0;
     body.querySelectorAll('tr').forEach(function (tr) {
-      var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value);
-      if (!isNaN(q) && !isNaN(p)) { s += q * p; n++; }
+      var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value), m = tr.querySelector('.art-montant');
+      if (!isNaN(q) && !isNaN(p)) { s += q * p; n++; if (m) m.value = r2(q * p); } else if (m) m.value = '';
     });
     return n ? s : null;
   }
-  function depuisMarge() {
-    var m = parseFloat(marge.value);
-    if (isNaN(m)) return;
-    var lignesCout = body.querySelectorAll('[data-cout]');
-    lignesCout.forEach(function (inp) { inp.value = arrondi(parseFloat(inp.dataset.cout) * (1 + m / 100)); });
-    var s = somme();
+  function affTva() { var h = num(ht), t = num(ttc); $('aff-tva').textContent = (!isNaN(h) && !isNaN(t)) ? r2(t - h) + ' ' + dv.value : '—'; }
+  function depuisHt() { var h = num(ht), t = num(tva); if (!isNaN(h)) ttc.value = r2(h * (1 + (isNaN(t) ? 0 : t) / 100)); affTva(); }
+  function recalc() {
+    var tx = tauxEff(), m = marge ? (parseFloat(marge.value) || 0) : 0, a = num(achat);
+    if (!isNaN(tx) && tx > 0) {
+      body.querySelectorAll('[data-cout]').forEach(function (inp) { inp.value = r2(parseFloat(inp.dataset.cout) * tx * (1 + m / 100)); });
+    }
+    var s = sommeLignes();
     if (auto) {
-      // Le total client part du montant d'achat de l'offre (qui peut inclure des frais hors lignes) ; sinon des lignes.
-      if (achat && achat.value) tot.value = arrondi(parseFloat(achat.value) * (1 + m / 100));
-      else if (s !== null) tot.value = arrondi(s);
+      if (!isNaN(a) && !isNaN(tx) && tx > 0) ht.value = r2(a * tx * (1 + m / 100));
+      else if (s !== null) ht.value = r2(s);
+      depuisHt();
     }
   }
-  if (marge) { marge.addEventListener('input', depuisMarge); }
+  ht.addEventListener('input', function () { auto = false; depuisHt(); });
+  ttc.addEventListener('input', function () { auto = false; var t = num(tva), v = num(ttc); if (!isNaN(v)) ht.value = r2(v / (1 + (isNaN(t) ? 0 : t) / 100)); affTva(); });
+  tva.addEventListener('change', depuisHt);
+  [achat, marge].forEach(function (el) { if (el) el.addEventListener('input', function () { auto = true; recalc(); }); });
+  taux.addEventListener('input', function () { tauxManuel = true; auto = true; recalc(); });
+  dv.addEventListener('change', function () { tauxManuel = false; majTaux(); auto = true; recalc(); });
   body.addEventListener('input', function (e) {
     if (e.target.name === 'item_prix_unitaire[]' && e.target.dataset.cout) { e.target.removeAttribute('data-cout'); }
-    var s = somme(); if (auto && s !== null && !(achat && achat.value)) tot.value = arrondi(s);
+    var s = sommeLignes(); if (auto && s !== null && isNaN(num(achat))) { ht.value = r2(s); depuisHt(); }
   });
+  body.addEventListener('click', function () { setTimeout(sommeLignes, 0); });
+  majTaux(); recalc(); affTva();
 })();
 </script>

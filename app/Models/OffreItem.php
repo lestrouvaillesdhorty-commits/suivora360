@@ -13,25 +13,25 @@ class OffreItem
         return $stmt->fetchAll();
     }
 
-    public static function create(int $offreId, array $data): int
+    public static function create(int $parentId, array $data): int
     {
-        $stmt = Database::connection()->prepare(
-            'INSERT INTO offre_items (offre_id, designation, quantite, unite, prix_unitaire, montant, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
-        );
         $quantite = $data['quantite'] !== '' && $data['quantite'] !== null ? (float) $data['quantite'] : null;
         $prixUnitaire = $data['prix_unitaire'] !== '' && $data['prix_unitaire'] !== null ? (float) $data['prix_unitaire'] : null;
         $montant = ($quantite !== null && $prixUnitaire !== null) ? round($quantite * $prixUnitaire, 2) : null;
 
-        $stmt->execute([
-            $offreId,
-            $data['designation'],
-            $quantite,
-            trim($data['unite'] ?? ''),
-            $prixUnitaire,
-            $montant,
-            date('Y-m-d H:i:s'),
+        return \App\Core\Schema::insert('offre_items', [
+            'offre_id' => $parentId,
+            'designation' => $data['designation'],
+            'quantite' => $quantite,
+            'unite' => trim($data['unite'] ?? ''),
+            'prix_unitaire' => $prixUnitaire,
+            'montant' => $montant,
+            'created_at' => date('Y-m-d H:i:s'),
+        ], [
+            'conditionnement' => trim((string) ($data['conditionnement'] ?? '')),
+            'reference' => trim((string) ($data['reference'] ?? '')),
+            'marque' => trim((string) ($data['marque'] ?? '')),
+            'caracteristiques' => trim((string) ($data['caracteristiques'] ?? '')),
         ]);
-        return (int) Database::connection()->lastInsertId();
     }
 }

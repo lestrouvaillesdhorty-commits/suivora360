@@ -125,7 +125,15 @@ class Cotation
         $montantAchat = ($data['montant_achat'] ?? '') !== '' ? (float) $data['montant_achat'] : null;
         $margePourcentage = ($data['marge_pourcentage'] ?? '') !== '' ? (float) $data['marge_pourcentage'] : null;
         $montantTotal = (float) ($data['montant_total'] ?? 0);
-        $margeMontant = ($montantAchat !== null) ? round($montantTotal - $montantAchat, 2) : null;
+        // HT / TVA / TTC : montant_total reste le TTC facturé. Sans HT saisi (anciens formulaires) on garde l'ancien calcul.
+        $tvaTaux = ($data['tva_taux'] ?? '') !== '' ? (float) $data['tva_taux'] : null;
+        $montantHt = ($data['montant_ht'] ?? '') !== '' ? (float) $data['montant_ht'] : null;
+        if ($montantHt === null && $tvaTaux !== null && $montantTotal > 0) {
+            $montantHt = round($montantTotal / (1 + $tvaTaux / 100), 2);
+        }
+        $montantTva = $montantHt !== null ? round($montantTotal - $montantHt, 2) : null;
+        $tauxChange = ($data['taux_change'] ?? '') !== '' && (float) $data['taux_change'] > 0 ? (float) $data['taux_change'] : null;
+        $margeMontant = ($montantAchat !== null) ? round(($montantHt ?? $montantTotal) - $montantAchat, 2) : null;
 
         // [ajouté 06/10, étape 3] Nouvelle version : même référence que la
         // version remplacée, numéro de version incrémenté, ancienne ligne
@@ -137,33 +145,33 @@ class Cotation
 
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare(
-                'INSERT INTO cotations
-                 (dossier_id, filiale_id, offre_id, client_id, reference, montant_achat, marge_pourcentage, marge_montant, montant_total, devise, mode_paiement_negocie, incoterm_client, validite_devis, statut, notes, version, cotation_precedente_id, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-            );
-            $stmt->execute([
-                $dossierId,
-                $filialeId,
-                ($data['offre_id'] ?? '') ?: null,
-                $data['client_id'] ?? null,
-                $reference,
-                $montantAchat,
-                $margePourcentage,
-                $margeMontant,
-                $montantTotal,
-                trim($data['devise'] ?? ''),
-                trim($data['mode_paiement_negocie'] ?? ''),
-                trim($data['incoterm_client'] ?? ''),
-                ($data['validite_devis'] ?? '') ?: null,
-                'brouillon',
-                trim($data['notes'] ?? ''),
-                $version,
-                $precedente ? (int) $precedente['id'] : null,
-                $now,
-                $now,
+            $cotationId = \App\Core\Schema::insert('cotations', [
+                'dossier_id' => $dossierId,
+                'filiale_id' => $filialeId,
+                'offre_id' => ($data['offre_id'] ?? '') ?: null,
+                'client_id' => $data['client_id'] ?? null,
+                'reference' => $reference,
+                'montant_achat' => $montantAchat,
+                'marge_pourcentage' => $margePourcentage,
+                'marge_montant' => $margeMontant,
+                'montant_total' => $montantTotal,
+                'devise' => trim($data['devise'] ?? ''),
+                'mode_paiement_negocie' => trim($data['mode_paiement_negocie'] ?? ''),
+                'incoterm_client' => trim($data['incoterm_client'] ?? ''),
+                'validite_devis' => ($data['validite_devis'] ?? '') ?: null,
+                'statut' => 'brouillon',
+                'notes' => trim($data['notes'] ?? ''),
+                'version' => $version,
+                'cotation_precedente_id' => $precedente ? (int) $precedente['id'] : null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], [
+                'taux_change' => $tauxChange,
+                'montant_ht' => $montantHt,
+                'tva_taux' => $tvaTaux,
+                'montant_tva' => $montantTva,
+                'devise_achat' => ($data['devise_achat'] ?? '') !== '' ? trim($data['devise_achat']) : null,
             ]);
-            $cotationId = (int) $pdo->lastInsertId();
 
             if ($precedente) {
                 $pdo->prepare("UPDATE cotations SET statut = 'remplacee', updated_at = ? WHERE id = ?")

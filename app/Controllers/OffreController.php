@@ -28,7 +28,8 @@ class OffreController
         }
         $lignes = [];
         foreach ($articles as $a) {
-            $lignes[] = ['designation' => $a['designation'], 'quantite' => $a['quantite'], 'unite' => (string) ($a['unite'] ?? ''), 'prix_unitaire' => null];
+            $lignes[] = ['designation' => $a['designation'], 'quantite' => $a['quantite'], 'unite' => (string) ($a['unite'] ?? ''), 'prix_unitaire' => null,
+                'conditionnement' => (string) ($a['conditionnement'] ?? ''), 'reference' => (string) ($a['reference'] ?? ''), 'marque' => (string) ($a['marque'] ?? ''), 'caracteristiques' => (string) ($a['caracteristiques'] ?? '')];
         }
         return $lignes;
     }
@@ -106,6 +107,10 @@ class OffreController
                 'quantite' => $_POST['item_quantite'][$i] ?? null,
                 'unite' => $_POST['item_unite'][$i] ?? '',
                 'prix_unitaire' => $_POST['item_prix_unitaire'][$i] ?? null,
+                'conditionnement' => $_POST['item_conditionnement'][$i] ?? '',
+                'reference' => $_POST['item_reference'][$i] ?? '',
+                'marque' => $_POST['item_marque'][$i] ?? '',
+                'caracteristiques' => $_POST['item_caracteristiques'][$i] ?? '',
             ];
         }
 
@@ -220,6 +225,10 @@ class OffreController
                 'quantite' => $_POST['item_quantite'][$i] ?? null,
                 'unite' => $_POST['item_unite'][$i] ?? '',
                 'prix_unitaire' => $_POST['item_prix_unitaire'][$i] ?? null,
+                'conditionnement' => $_POST['item_conditionnement'][$i] ?? '',
+                'reference' => $_POST['item_reference'][$i] ?? '',
+                'marque' => $_POST['item_marque'][$i] ?? '',
+                'caracteristiques' => $_POST['item_caracteristiques'][$i] ?? '',
             ];
         }
 
@@ -343,6 +352,10 @@ class OffreController
                 'quantite' => $_POST['item_quantite'][$i] ?? null,
                 'unite' => $_POST['item_unite'][$i] ?? '',
                 'prix_unitaire' => $_POST['item_prix_unitaire'][$i] ?? null,
+                'conditionnement' => $_POST['item_conditionnement'][$i] ?? '',
+                'reference' => $_POST['item_reference'][$i] ?? '',
+                'marque' => $_POST['item_marque'][$i] ?? '',
+                'caracteristiques' => $_POST['item_caracteristiques'][$i] ?? '',
             ];
         }
         $data = $_POST;

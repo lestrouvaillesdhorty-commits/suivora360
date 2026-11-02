@@ -887,3 +887,23 @@ textarea { resize: vertical; }
 .gal-cell{display:flex;flex-direction:column;gap:6px}
 .gal-act{display:flex;gap:6px;flex-wrap:wrap}
 .gal-act .btn{flex:1;text-align:center;padding:4px 6px;font-size:12px}
+
+/* Lignes d'articles harmonisées (offre + cotation) — v57 */
+#items-table { display:block; width:100%; border:0 }
+#items-table tbody { display:block }
+#items-table tr.art-ligne { display:block; border:1px solid #e3e6ec; border-radius:8px; padding:10px; margin-bottom:10px; background:#fafbfd }
+#items-table tr.art-ligne > td { display:block; width:100% }
+.art-grid { display:grid; grid-template-columns:repeat(12,1fr); gap:8px 10px; position:relative }
+.art-grid label { display:block; font-size:11px; color:#667; margin-bottom:2px }
+.art-grid input, .art-grid select { width:100% !important; box-sizing:border-box }
+.art-des { grid-column:1 / 13 } .art-q { grid-column:span 3 } .art-u { grid-column:span 3 } .art-p { grid-column:span 3 } .art-m { grid-column:span 3 }
+.art-c { grid-column:span 4 } .art-r { grid-column:span 4 } .art-k { grid-column:span 4 } .art-x { grid-column:1 / 13 }
+.art-del { position:absolute; top:-4px; right:-4px }
+.art-des { padding-right:34px }
+.art-montant { background:#eef0f4 }
+@media (max-width:640px) {
+  .art-q, .art-u { grid-column:span 6 } .art-p, .art-m { grid-column:span 6 } .art-c, .art-r, .art-k { grid-column:1 / 13 }
+}
+.tot-bloc { background:#f4f6ff; border:1px solid #d9defa; border-radius:8px; padding:12px; margin:12px 0 }
+.tot-bloc .tot-ligne { display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:14px }
+.tot-bloc .tot-ttc { font-size:17px; font-weight:700; border-top:1px solid #d9defa; margin-top:6px; padding-top:8px }

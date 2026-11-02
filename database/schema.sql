@@ -481,6 +481,10 @@ CREATE TABLE IF NOT EXISTS offre_items (
     unite VARCHAR(20),
     prix_unitaire DECIMAL(14,2),
     montant DECIMAL(14,2),
+    conditionnement VARCHAR(100) NULL, -- migrate_v32.php
+    reference VARCHAR(100) NULL,
+    marque VARCHAR(100) NULL,
+    caracteristiques VARCHAR(255) NULL,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -494,7 +498,13 @@ CREATE TABLE IF NOT EXISTS cotations (
     montant_achat DECIMAL(14,2),
     marge_pourcentage DECIMAL(6,2),
     marge_montant DECIMAL(14,2),
-    montant_total DECIMAL(14,2) NOT NULL DEFAULT 0,
+    montant_total DECIMAL(14,2) NOT NULL DEFAULT 0, -- TTC facturé au client
+    -- migrate_v32.php : taux de change achat→devise client, HT, TVA
+    taux_change DECIMAL(14,6) NULL,
+    montant_ht DECIMAL(14,2) NULL,
+    tva_taux DECIMAL(5,2) NULL,
+    montant_tva DECIMAL(14,2) NULL,
+    devise_achat VARCHAR(10) NULL,
     devise VARCHAR(10),
     mode_paiement_negocie VARCHAR(30),
     incoterm_client VARCHAR(10),
@@ -515,6 +525,10 @@ CREATE TABLE IF NOT EXISTS cotation_items (
     unite VARCHAR(20),
     prix_unitaire DECIMAL(14,2),
     montant DECIMAL(14,2),
+    conditionnement VARCHAR(100) NULL, -- migrate_v32.php
+    reference VARCHAR(100) NULL,
+    marque VARCHAR(100) NULL,
+    caracteristiques VARCHAR(255) NULL,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
