@@ -17,6 +17,23 @@ class NotificationController
         ]);
     }
 
+    /** JSON pour l'alerte sonore / à l'écran : notifications non lues plus récentes que ?depuis=<id>. */
+    public function nouvelles(): void
+    {
+        $user = Auth::user();
+        $depuis = (int) ($_GET['depuis'] ?? 0);
+        $out = [];
+        foreach (Notification::recentesFor((int) $user['id'], 10) as $n) {
+            if ((int) $n['lu'] === 0 && (int) $n['id'] > $depuis) {
+                $out[] = ['id' => (int) $n['id'], 'titre' => (string) $n['titre'], 'message' => (string) $n['message'], 'lien' => (string) ($n['lien'] ?? '')];
+            }
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(['non_lues' => Notification::nonLuesCountFor((int) $user['id']), 'nouvelles' => array_reverse($out)]);
+        exit;
+    }
+
     public function marquerLue(array $params): void
     {
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {

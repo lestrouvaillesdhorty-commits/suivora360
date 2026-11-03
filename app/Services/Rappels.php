@@ -13,13 +13,15 @@ use App\Models\Notification;
  */
 class Rappels
 {
-    public static function pourUtilisateur(array $user): void
+    public static function pourUtilisateur(array $user, bool $force = false): void
     {
         try {
-            if (($_SESSION['rappels_ts'] ?? 0) > time() - 3600) {
-                return;
+            if (!$force) {
+                if (($_SESSION['rappels_ts'] ?? 0) > time() - 3600) {
+                    return;
+                }
+                $_SESSION['rappels_ts'] = time();
             }
-            $_SESSION['rappels_ts'] = time();
 
             $pdo = Database::connection();
             $stmt = $pdo->prepare(
@@ -50,5 +52,24 @@ class Rappels
         } catch (\Throwable $e) {
             // best-effort
         }
+    }
+
+    /**
+     * Tâche planifiée (cron) : génère les rappels (cloche + e-mail) pour tous les utilisateurs actifs,
+     * même quand personne n'ouvre l'application. Retourne le nombre d'utilisateurs traités.
+     */
+    public static function pourTous(): int
+    {
+        $n = 0;
+        try {
+            $users = Database::connection()->query('SELECT id, nom, email, organisation_id FROM utilisateurs WHERE actif = 1')->fetchAll();
+            foreach ($users as $u) {
+                self::pourUtilisateur($u, true);
+                $n++;
+            }
+        } catch (\Throwable $e) {
+            // best-effort
+        }
+        return $n;
     }
 }

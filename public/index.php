@@ -852,6 +852,10 @@ $router->get('/notifications', function () {
     Auth::requireLogin();
     (new NotificationController())->index();
 });
+$router->get('/notifications/nouvelles', function () {
+    Auth::requireLogin();
+    (new NotificationController())->nouvelles();
+});
 $router->post('/notifications/{id}/lue', function ($params) {
     Auth::requireLogin();
     (new NotificationController())->marquerLue($params);

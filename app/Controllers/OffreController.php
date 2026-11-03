@@ -203,6 +203,18 @@ class OffreController
             $fournisseurId = 0;
         }
         if ($fournisseurId === 0) {
+            // Nom tapé identique (casse ignorée) à un fournisseur existant : on le réutilise au lieu de créer un doublon.
+            $saisi = mb_strtolower(trim($_POST['nouveau_vendeur'] ?? ''));
+            if ($saisi !== '') {
+                foreach (\App\Models\Fournisseur::allForFiliale($filialeId) as $fe) {
+                    if (mb_strtolower(trim((string) $fe['nom'])) === $saisi) {
+                        $fournisseurId = (int) $fe['id'];
+                        break;
+                    }
+                }
+            }
+        }
+        if ($fournisseurId === 0) {
             $nom = trim($_POST['nouveau_vendeur'] ?? '');
             if ($nom === '') {
                 View::flash('erreur', 'Choisissez un fournisseur existant ou indiquez le nom du vendeur.');

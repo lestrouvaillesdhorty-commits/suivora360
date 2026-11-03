@@ -51,16 +51,54 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       <div class="form-group"><label>Lien de la page (si site web)</label><input type="url" name="source_url" placeholder="https://…" maxlength="500"></div>
     </div>
     <div class="form-group" style="max-width:260px"><label>Prix consulté le *</label><input type="date" name="source_date" value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>" required></div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Vendeur — fournisseur existant</label>
-        <select name="fournisseur_id">
-          <option value="">— Aucun (nouveau vendeur ci-contre) —</option>
-          <?php foreach ($fournisseurs as $f): ?><option value="<?= (int) $f['id'] ?>"><?= View::e($f['nom']) ?></option><?php endforeach; ?>
-        </select>
-      </div>
-      <div class="form-group"><label>…ou nouveau vendeur</label><input type="text" name="nouveau_vendeur" placeholder="Ex : Alibaba — Shenzhen Tech Co"></div>
+    <div class="form-group">
+      <label>Vendeur *</label>
+      <input type="text" name="nouveau_vendeur" id="vendeur" list="liste-vendeurs" autocomplete="off" required placeholder="Tapez le nom : vos fournisseurs existants sont proposés (ex : Alibaba, Amazon…)">
+      <input type="hidden" name="fournisseur_id" id="fournisseur_id" value="">
+      <div id="vendeurEtat" style="font-size:12px;margin-top:3px;color:#667"></div>
+      <datalist id="liste-vendeurs">
+        <?php foreach ($fournisseurs as $f): ?><option value="<?= View::e($f['nom']) ?>"></option><?php endforeach; ?>
+        <?php foreach (['Alibaba', 'AliExpress', '1688', 'Made-in-China', 'Global Sources', 'Amazon', 'Temu', 'eBay'] as $mk): ?><option value="<?= $mk ?>"></option><?php endforeach; ?>
+      </datalist>
     </div>
+    <datalist id="liste-sites">
+      <?php foreach (['https://www.alibaba.com', 'https://www.aliexpress.com', 'https://www.1688.com', 'https://www.made-in-china.com', 'https://www.globalsources.com', 'https://www.amazon.fr', 'https://www.temu.com', 'https://www.ebay.fr'] as $u): ?><option value="<?= $u ?>"></option><?php endforeach; ?>
+    </datalist>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var F = <?= json_encode(array_map(fn($x) => ['id' => (int) $x['id'], 'nom' => (string) $x['nom'], 'site' => (string) ($x['site_web'] ?? ''), 'pays' => (string) ($x['pays'] ?? ''), 'devise' => (string) ($x['devise'] ?? '')], $fournisseurs), JSON_UNESCAPED_UNICODE) ?>;
+      var MK = {alibaba: 'https://www.alibaba.com', aliexpress: 'https://www.aliexpress.com', '1688': 'https://www.1688.com', 'made-in-china': 'https://www.made-in-china.com', 'global sources': 'https://www.globalsources.com', amazon: 'https://www.amazon.fr', temu: 'https://www.temu.com', ebay: 'https://www.ebay.fr'};
+      var $ = function (i) { return document.getElementById(i); }, f = $('vendeur').form;
+      var url = f.querySelector('[name="source_url"]'), src = f.querySelector('[name="source_type"]');
+      url.setAttribute('list', 'liste-sites');
+      function vide(el) { return el && !el.value.trim(); }
+      function maj() {
+        var v = $('vendeur').value.trim(), l = v.toLowerCase(), t = null;
+        F.forEach(function (x) { if (x.nom.toLowerCase() === l) t = x; });
+        $('fournisseur_id').value = t ? t.id : '';
+        if (!v) { $('vendeurEtat').textContent = ''; return; }
+        if (t) {
+          $('vendeurEtat').textContent = '✓ Fournisseur existant — ses informations sont reprises.';
+          if (t.site && vide(url)) { url.value = t.site; src.value = 'web'; }
+          var p = f.querySelector('[name="pays_origine"]'); if (t.pays && p && !p.value) { p.value = t.pays; p.dispatchEvent(new Event('change')); }
+          var d = f.querySelector('[name="devise"]'); if (t.devise && d && !d.dataset.touche) { d.value = t.devise; }
+        } else {
+          $('vendeurEtat').textContent = 'Nouveau vendeur : sera créé comme fournisseur « à qualifier ».';
+          Object.keys(MK).forEach(function (k) { if (l.indexOf(k) >= 0 && vide(url)) { url.value = MK[k]; src.value = 'web'; } });
+        }
+      }
+      $('vendeur').addEventListener('input', maj); $('vendeur').addEventListener('change', maj);
+      url.addEventListener('input', function () { if (url.value.trim()) src.value = 'web'; });
+      var dv = f.querySelector('[name="devise"]'); dv.addEventListener('change', function () { dv.dataset.touche = '1'; });
+      // Devise proposée selon le pays d'origine (modifiable).
+      var DV = {EUR: ['France', 'Allemagne', 'Espagne', 'Italie', 'Belgique', 'Pays-Bas', 'Portugal', 'Irlande', 'Autriche', 'Grèce', 'Finlande', 'Luxembourg'], CNY: ['Chine'], USD: ['États-Unis', 'Etats-Unis', 'États-Unis d\'Amérique'], GBP: ['Royaume-Uni'], XAF: ['Cameroun', 'Gabon', 'Congo', 'Tchad', 'République centrafricaine', 'Guinée équatoriale'], XOF: ['Sénégal', 'Côte d\'Ivoire', 'Mali', 'Burkina Faso', 'Bénin', 'Togo', 'Niger', 'Guinée-Bissau']};
+      var po = f.querySelector('[name="pays_origine"]');
+      if (po) po.addEventListener('change', function () {
+        if (dv.dataset.touche) return;
+        Object.keys(DV).forEach(function (k) { if (DV[k].indexOf(po.value) >= 0) { for (var i = 0; i < dv.options.length; i++) if (dv.options[i].text === k) dv.selectedIndex = i; } });
+      });
+    });
+    </script>
     <div class="info-note" style="margin-bottom:12px">Un nouveau vendeur est créé comme fournisseur « à qualifier ». Ne saisissez que ce que la source indique : laissez vide tout ce qui n'est pas précisé.</div>
     <?php endif; ?>
     <?php if ($edition): ?>
@@ -106,11 +144,11 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       <div class="form-group"><label>Périmètre de mission proposé</label><textarea name="perimetre_mission" rows="2" placeholder="ex: Représentation commerciale, zone, durée..."><?= View::e((string) $v('perimetre_mission')) ?></textarea></div>
     <?php endif; ?>
 
-    <details open style="margin:16px 0">
-      <summary style="cursor:pointer;font-weight:600;color:#374151">Comparaison détaillée (optionnel, mais utile pour le Comparateur)</summary>
+    <details <?= ($manuel ? '' : 'open') ?> style="margin:16px 0">
+      <summary style="cursor:pointer;font-weight:600;color:#374151">Comparaison détaillée : pays, MOQ, poids, frais… (optionnel, utile pour le Comparateur)</summary>
       <div style="margin-top:12px">
         <div class="form-row">
-          <div class="form-group"><label>Pays d'origine</label><input type="text" name="pays_origine" value="<?= View::e((string) $v('pays_origine')) ?>"></div>
+          <div class="form-group"><label>Pays d'origine</label><select name="pays_origine"><?= \App\Core\Telephone::optionsPays((string) $v('pays_origine')) ?></select></div>
           <div class="form-group"><label>Lieu de départ</label><input type="text" name="lieu_depart" value="<?= View::e((string) $v('lieu_depart')) ?>" placeholder="ex: Guangzhou"></div>
         </div>
         <div class="form-row">
