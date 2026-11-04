@@ -834,6 +834,14 @@ $router->get('/parametres/listes', function () {
     Auth::requireLogin();
     (new ParametresController())->listes();
 });
+$router->get('/parametres/ia', function () {
+    Auth::requireLogin();
+    (new ParametresController())->ia();
+});
+$router->post('/parametres/ia', function () {
+    Auth::requireLogin();
+    (new ParametresController())->iaUpdate();
+});
 $router->post('/parametres/listes', function () {
     Auth::requireLogin();
     (new ParametresController())->listesUpdate();

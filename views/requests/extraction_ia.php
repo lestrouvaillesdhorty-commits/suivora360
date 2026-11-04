@@ -4,6 +4,7 @@
 <h1 style="margin-top:8px">Articles suggérés par l'IA</h1>
 <div class="subtitle">Vérifiez et corrigez avant d'enregistrer — décochez ce qui ne correspond pas. Les informations non précisées par le client n'ont pas été inventées : complétez-les vous-même si vous les connaissez.</div>
 
+<?php if (!empty($infoIa)): ?><div class="alert" style="background:#eef0f4;color:#333;font-size:13px"><?= View::e($infoIa) ?></div><?php endif; ?>
 <div class="card">
 <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/extraction-ia/confirmer">
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">

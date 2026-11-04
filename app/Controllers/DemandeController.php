@@ -1378,7 +1378,16 @@ class DemandeController
         }
 
         try {
-            $suggestions = AiExtracteur::extraireArticles($demande['message'] ?? '', $fichiers);
+            // Plafond mensuel par filiale + mémoire : le même contenu relu ne coûte ni appel ni décompte.
+            $exec = \App\Services\IaQuota::executer(
+                $user,
+                (int) $demande['filiale_id'],
+                'articles',
+                (string) ($demande['message'] ?? '') . '|' . md5(serialize($fichiers)),
+                fn() => AiExtracteur::extraireArticles($demande['message'] ?? '', $fichiers)
+            );
+            $suggestions = $exec['resultat'];
+            $infoIa = \App\Services\IaQuota::message($exec['statut']) . ($exec['memo'] ? ' Résultat déjà obtenu : aucune nouvelle lecture comptée.' : '');
         } catch (\Throwable $e) {
             View::flash('erreur', $e->getMessage());
             header('Location: /index.php?r=demandes/' . $demande['id']);
@@ -1405,6 +1414,7 @@ class DemandeController
         }
         View::render('requests/extraction_ia', [
             'demande' => $demande,
+            'infoIa' => $infoIa ?? '',
             'suggestions' => $suggestions,
         ]);
     }

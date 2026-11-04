@@ -17,6 +17,13 @@ class AiExtracteur
     private const API_URL = 'https://api.anthropic.com/v1/messages';
     private const MODEL = 'claude-sonnet-4-5-20250929';
 
+    /** Modèle réglable dans .env (ANTHROPIC_MODEL_EXTRACTION) pour choisir un modèle moins coûteux sans toucher au code. */
+    private static function modele(): string
+    {
+        $m = trim((string) Env::get('ANTHROPIC_MODEL_EXTRACTION', ''));
+        return $m !== '' ? $m : self::MODEL;
+    }
+
     /**
      * [ajouté 05/10, report de la maquette] Vérification légère, sans appel
      * réseau, pour afficher un état de repli discret (bouton "Extraire avec
@@ -92,7 +99,7 @@ PROMPT;
         $contenu[] = ['type' => 'text', 'text' => $prompt];
 
         $payload = json_encode([
-            'model' => self::MODEL,
+            'model' => self::modele(),
             'max_tokens' => 4096,
             'messages' => [
                 ['role' => 'user', 'content' => $contenu],
@@ -215,7 +222,7 @@ PROMPT;
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 90,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . $apiKey, 'anthropic-version: 2023-06-01'],
-            CURLOPT_POSTFIELDS => json_encode(['model' => self::MODEL, 'max_tokens' => 4096, 'messages' => [['role' => 'user', 'content' => $contenu]]]),
+            CURLOPT_POSTFIELDS => json_encode(['model' => self::modele(), 'max_tokens' => 4096, 'messages' => [['role' => 'user', 'content' => $contenu]]]),
         ]);
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

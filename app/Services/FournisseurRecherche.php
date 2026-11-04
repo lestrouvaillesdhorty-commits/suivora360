@@ -20,6 +20,13 @@ class FournisseurRecherche
 {
     private const API_URL = 'https://api.anthropic.com/v1/messages';
     private const MODEL = 'claude-sonnet-4-5-20250929';
+
+    /** Modèle réglable dans .env (ANTHROPIC_MODEL_EXTRACTION) pour choisir un modèle moins coûteux sans toucher au code. */
+    private static function modele(): string
+    {
+        $m = trim((string) Env::get('ANTHROPIC_MODEL_EXTRACTION', ''));
+        return $m !== '' ? $m : self::MODEL;
+    }
     private const MAX_TEXTE_PAGE = 9000;
 
     /**
@@ -51,10 +58,10 @@ class FournisseurRecherche
                 $texte .= "\n\n=== Page : $url ===\n" . $contenu;
             }
             $contenuMsg = [['type' => 'text', 'text' => "Contenu des pages publiques du site du fournisseur :" . $texte . "\n\n" . $consigne]];
-            $payload = ['model' => self::MODEL, 'max_tokens' => 2048, 'messages' => [['role' => 'user', 'content' => $contenuMsg]]];
+            $payload = ['model' => self::modele(), 'max_tokens' => 2048, 'messages' => [['role' => 'user', 'content' => $contenuMsg]]];
         } else {
             $payload = [
-                'model' => self::MODEL,
+                'model' => self::modele(),
                 'max_tokens' => 4096,
                 'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 4]],
                 'messages' => [['role' => 'user', 'content' => $consigne]],

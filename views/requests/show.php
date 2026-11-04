@@ -232,6 +232,9 @@ $unitesArticle = \App\Models\Demande::UNITES;
             <div style="font-size:12px;color:#888;margin:6px 0 10px">Formats lus : PDF, images (JPG, PNG), Excel (.xlsx), Word (.docx), texte. Les fichiers cochés sont envoyés au service IA ; vous relisez tout avant enregistrement.</div>
           <?php endif; ?>
           <button type="submit" class="btn btn-sm btn-secondary">Extraire les articles avec l'IA</button>
+          <?php if (\App\Services\IaQuota::disponible()): $stIa = \App\Services\IaQuota::statut((int) $demande['filiale_id']); ?>
+            <span style="font-size:12px;margin-left:8px;color:<?= $stIa['atteint'] ? '#b42318' : ($stIa['alerte'] ? '#b45309' : '#888') ?>"><?= View::e(\App\Services\IaQuota::message($stIa)) ?></span>
+          <?php endif; ?>
         </form>
         <?php else: ?>
         <div style="display:flex;align-items:center;gap:10px;color:#888;font-size:12.5px;background:#f7f8fa;border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-top:12px">

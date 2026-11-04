@@ -750,3 +750,21 @@ CREATE TABLE IF NOT EXISTS categories_fournisseur ( -- migrate_v37.php : catégo
     actif TINYINT NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS ia_usages ( -- migrate_v39.php : compteur d'usage de l'IA et mémoire des résultats
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filiale_id INT NOT NULL,
+    utilisateur_id INT,
+    type VARCHAR(30) NOT NULL,
+    empreinte VARCHAR(64) NOT NULL,
+    resultat TEXT,
+    created_at DATETIME NOT NULL,
+    INDEX idx_ia_usages_filiale (filiale_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS ia_reglages ( -- migrate_v39.php : plafond mensuel par filiale
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filiale_id INT NOT NULL UNIQUE,
+    plafond_mensuel INT NOT NULL DEFAULT 100,
+    updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

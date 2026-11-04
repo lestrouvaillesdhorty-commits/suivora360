@@ -153,4 +153,44 @@ class ParametresController
         header('Location: ' . $retour);
         exit;
     }
+
+    /** Page « IA » : lectures du mois et plafond par filiale. */
+    public function ia(): void
+    {
+        Auth::requireParametres();
+        $user = Auth::user();
+        $filiales = Filiale::visibleFor($user);
+        $lignes = [];
+        foreach ($filiales as $f) {
+            $lignes[] = ['filiale' => $f] + \App\Services\IaQuota::statut((int) $f['id']);
+        }
+        View::render('parametres/ia', [
+            'lignes' => $lignes,
+            'disponible' => \App\Services\IaQuota::disponible(),
+            'cleIa' => \App\Services\AiExtracteur::estDisponible(),
+            'modele' => trim((string) \App\Core\Env::get('ANTHROPIC_MODEL_EXTRACTION', '')),
+        ]);
+    }
+
+    public function iaUpdate(): void
+    {
+        Auth::requireParametres();
+        $user = Auth::user();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: /index.php?r=parametres/ia');
+            exit;
+        }
+        $filialeId = (int) ($_POST['filiale_id'] ?? 0);
+        if (!$filialeId || !Filiale::userCanAccess($user, $filialeId) || !\App\Services\IaQuota::disponible()) {
+            View::flash('erreur', "Modification impossible (accès à la filiale ou migrate_v39.php manquant).");
+            header('Location: /index.php?r=parametres/ia');
+            exit;
+        }
+        \App\Services\IaQuota::definirPlafond($filialeId, (int) ($_POST['plafond'] ?? 0));
+        AuditLog::log($filialeId, (int) $user['id'], 'plafond_ia', 'parametres', $filialeId, (string) (int) ($_POST['plafond'] ?? 0));
+        View::flash('succes', 'Plafond mis à jour.');
+        header('Location: /index.php?r=parametres/ia');
+        exit;
+    }
 }

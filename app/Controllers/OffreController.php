@@ -289,14 +289,21 @@ class OffreController
         }
         try {
             $fichier = \App\Services\AiExtracteur::preparerFichier($f['tmp_name'], (string) $f['name']);
-            $champs = \App\Services\AiExtracteur::extraireOffre([$fichier]);
+            $exec = \App\Services\IaQuota::executer(
+                Auth::user(),
+                \App\Services\IaQuota::filialePour(Auth::user()),
+                'offre',
+                md5(serialize($fichier)),
+                fn() => \App\Services\AiExtracteur::extraireOffre([$fichier])
+            );
+            $champs = $exec['resultat'];
         } catch (\Throwable $e) {
             $sortie(['erreur' => $e->getMessage()], 422);
         }
         if (!$champs || (count($champs) === 1 && empty($champs['articles']))) {
             $sortie(['erreur' => "L'IA n'a reconnu aucune information d'offre dans ce fichier."], 422);
         }
-        $sortie(['champs' => $champs]);
+        $sortie(['champs' => $champs, 'info_ia' => \App\Services\IaQuota::message($exec['statut'])]);
     }
 
     /** [10/10] Charge l'offre à corriger et vérifie droits et statut ; renvoie null (réponse déjà envoyée) sinon. */

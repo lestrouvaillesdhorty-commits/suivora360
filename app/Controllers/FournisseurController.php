@@ -795,12 +795,18 @@ class FournisseurController
             return;
         }
         try {
-            $r = \App\Services\FournisseurRecherche::rechercher(
-                mb_substr(trim($_POST['nom'] ?? ''), 0, 200),
-                mb_substr(trim($_POST['site_web'] ?? ''), 0, 200),
-                mb_substr(trim($_POST['pays'] ?? ''), 0, 80),
-                $cible
+            $nomR = mb_substr(trim($_POST['nom'] ?? ''), 0, 200);
+            $siteR = mb_substr(trim($_POST['site_web'] ?? ''), 0, 200);
+            $paysR = mb_substr(trim($_POST['pays'] ?? ''), 0, 80);
+            $exec = \App\Services\IaQuota::executer(
+                Auth::user(),
+                \App\Services\IaQuota::filialePour(Auth::user()),
+                'recherche_' . $cible,
+                mb_strtolower($nomR . '|' . $siteR . '|' . $paysR),
+                fn() => \App\Services\FournisseurRecherche::rechercher($nomR, $siteR, $paysR, $cible)
             );
+            $r = $exec['resultat'];
+            $r['info_ia'] = \App\Services\IaQuota::message($exec['statut']);
         } catch (\Throwable $e) {
             http_response_code(422);
             echo json_encode(['erreur' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
