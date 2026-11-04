@@ -1173,3 +1173,12 @@ td .btn-sm[title="Consulter"] svg, td .btn-sm[title="Voir"] svg, td .btn-sm[titl
 td .btn-sm[title="Modifier"] svg { color:#4A2C00; stroke:#4A2C00; }
 td .btn-sm[title="Supprimer"] svg, td .btn-sm[title="Archiver"] svg { color:#C2321A; stroke:#C2321A; }
 td .btn-sm[title="Supprimer"]:hover svg, td .btn-sm[title="Archiver"]:hover svg { color:#fff; stroke:#fff; }
+/* Pastilles pleines (priorité, statut…) : plus lisibles d'un coup d'œil */
+.badge { box-shadow: 0 1px 2px rgba(16,24,40,.12); }
+.badge-blue   { background:#0B9AAE; color:#fff; }
+.badge-green  { background:#1FA463; color:#fff; }
+.badge-yellow { background:#FFC83D; color:#4A2C00; }
+.badge-orange { background:#F57C2B; color:#fff; }
+.badge-red    { background:#E5484D; color:#fff; }
+.badge-purple { background:#7C5CE0; color:#fff; }
+.badge-gray   { background:#E3E8EE; color:#3E4A5A; box-shadow:none; }
