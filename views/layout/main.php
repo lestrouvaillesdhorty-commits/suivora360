@@ -18,15 +18,15 @@ function navActive(string $path, string $prefix): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suivora360</title>
-<link rel="icon" href="/favicon.ico">
-<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico?v=59">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=59">
 <link rel="stylesheet" href="/assets/css/app.css?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/css/app.css') ?>">
 </head>
 <body<?= $currentUser ? ' data-uid="' . (int) $currentUser['id'] . '"' : '' ?>>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <img src="/assets/img/logo-sidebar.png" alt="Suivora360" class="brand-logo">
+      <img src="/assets/img/logo-sidebar.png?v=59" alt="Suivora360" class="brand-logo">
       <button type="button" id="sidebarClose" class="brand-close" aria-label="Fermer le menu">✕</button>
     </div>
     <div class="brand-tagline">Pilotage opérationnel</div>

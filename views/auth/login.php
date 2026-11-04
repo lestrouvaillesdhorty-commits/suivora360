@@ -8,8 +8,8 @@ if ($flash) unset($_SESSION['flash']);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connexion — Suivora360</title>
-<link rel="icon" href="/favicon.ico">
-<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico?v=59">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=59">
 <link rel="stylesheet" href="/assets/css/app.css">
 <style>
 * { box-sizing:border-box; }
@@ -21,7 +21,7 @@ body { display:flex; align-items:center; justify-content:center; min-height:100v
 </head>
 <body>
 <div class="login-card">
-  <img src="/assets/img/logo-full.png" alt="Suivora360 — La maîtrise de vos opérations." class="login-logo">
+  <img src="/assets/img/logo-full.png?v=59" alt="Suivora360 — La maîtrise de vos opérations." class="login-logo">
   <?php if (!empty($organisation)): ?>
     <div style="text-align:center;margin:-10px 0 18px;font-size:15px;color:#4b5563">Espace de <strong style="color:#111827"><?= htmlspecialchars($organisation['nom']) ?></strong></div>
   <?php endif; ?>
