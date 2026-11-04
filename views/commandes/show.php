@@ -68,6 +68,26 @@
       </form>
     </div>
 
+    <?php if ($typeDossier !== 'prestation_entreprise' && \App\Core\Schema::colonne('commandes', 'port_depart')): ?>
+    <div class="card">
+      <h2>Trajet de la marchandise</h2>
+      <p class="hint" style="margin-top:0">Alimente le bloc « Vos flux en cours » du tableau de bord.</p>
+      <form method="post" action="/index.php?r=commandes/<?= $commande['id'] ?>/logistique">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <div class="form-group"><label>Mode de transport</label>
+          <select name="mode_transport"><option value="">— Selon l'offre retenue —</option>
+          <?php foreach (Commande::MODES_TRAJET as $k => $l): ?><option value="<?= $k ?>" <?= ($commande['mode_transport'] ?? '') === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
+          </select></div>
+        <div class="form-row">
+          <div class="form-group"><label>Départ (port, aéroport, ville)</label><input type="text" name="port_depart" placeholder="ex : Le Havre" value="<?= View::e($commande['port_depart'] ?? '') ?>"></div>
+          <div class="form-group"><label>Arrivée</label><input type="text" name="port_arrivee" placeholder="ex : Douala" value="<?= View::e($commande['port_arrivee'] ?? '') ?>"></div>
+        </div>
+        <div class="form-group"><label>Arrivée prévue</label><input type="date" name="date_arrivee_prevue" value="<?= View::e($commande['date_arrivee_prevue'] ?? '') ?>"></div>
+        <button type="submit" class="btn btn-sm btn-secondary">Enregistrer le trajet</button>
+      </form>
+    </div>
+    <?php endif; ?>
+
     <?php if ($typeDossier === 'transport_logistique'): ?>
     <div class="card">
       <h2>Transport</h2>

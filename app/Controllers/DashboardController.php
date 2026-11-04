@@ -74,6 +74,13 @@ class DashboardController
             $dossiersEnCours = [];
         }
 
+        $fluxEnCours = [];
+        try {
+            $fluxEnCours = Commande::fluxEnCours($user, 4, $filialeIds, $activite ?: null);
+        } catch (\Throwable $e) {
+            $fluxEnCours = [];
+        }
+
         $actionsPrioritaires = $this->construireActionsPrioritaires($user, $filialeIds, $activite ?: null);
         $actionsEnRetardCount = count($actionsPrioritaires['retard']);
 
@@ -92,6 +99,7 @@ class DashboardController
             'dernieresDemandes' => $dernieresDemandes,
             'echeancesAVenir' => $echeancesAVenir,
             'dossiersEnCours' => $dossiersEnCours,
+            'fluxEnCours' => $fluxEnCours,
             'actionsPrioritaires' => $actionsPrioritaires,
             'actionsEnRetardCount' => $actionsEnRetardCount,
             'suivi' => [

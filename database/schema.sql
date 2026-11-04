@@ -546,6 +546,10 @@ CREATE TABLE IF NOT EXISTS commandes (
     tracking_numero VARCHAR(100),
     date_transit_debut DATE,
     date_transit_fin DATE,
+    mode_transport VARCHAR(30), -- migrate_v33.php : trajet pour « flux en cours »
+    port_depart VARCHAR(150),
+    port_arrivee VARCHAR(150),
+    date_arrivee_prevue DATE,
     livrables TEXT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL

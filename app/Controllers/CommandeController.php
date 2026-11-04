@@ -172,12 +172,23 @@ class CommandeController
             return;
         }
 
-        Commande::updateLogistique(
-            (int) $commande['id'],
-            $_POST['tracking_numero'] ?? null,
-            $_POST['date_transit_debut'] ?? null,
-            $_POST['date_transit_fin'] ?? null
-        );
+        if (array_key_exists('tracking_numero', $_POST)) {
+            Commande::updateLogistique(
+                (int) $commande['id'],
+                $_POST['tracking_numero'] ?? null,
+                $_POST['date_transit_debut'] ?? null,
+                $_POST['date_transit_fin'] ?? null
+            );
+        }
+        if (array_key_exists('mode_transport', $_POST)) {
+            Commande::updateTrajet(
+                (int) $commande['id'],
+                $_POST['mode_transport'] ?? null,
+                $_POST['port_depart'] ?? null,
+                $_POST['port_arrivee'] ?? null,
+                $_POST['date_arrivee_prevue'] ?? null
+            );
+        }
         AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_suivi_commande', 'commande', $commande['id']);
         View::flash('succes', 'Suivi logistique mis à jour.');
         header('Location: /index.php?r=dossiers/' . $commande['dossier_id'] . '/commande');

@@ -355,4 +355,77 @@ class Commande
         unset($row);
         return $rows;
     }
+
+    public const MODES_TRAJET = ['maritime' => 'Maritime', 'aerien' => 'Aérien', 'routier' => 'Routier'];
+
+    /** Enregistre le trajet (tolère l'absence des colonnes de migrate_v33). */
+    public static function updateTrajet(int $commandeId, ?string $mode, ?string $depart, ?string $arrivee, ?string $dateArrivee): void
+    {
+        if (!\App\Core\Schema::colonne('commandes', 'port_depart')) {
+            return;
+        }
+        $mode = array_key_exists((string) $mode, self::MODES_TRAJET) ? $mode : null;
+        $stmt = Database::connection()->prepare(
+            'UPDATE commandes SET mode_transport = ?, port_depart = ?, port_arrivee = ?, date_arrivee_prevue = ?, updated_at = ? WHERE id = ?'
+        );
+        $stmt->execute([$mode, trim((string) $depart) ?: null, trim((string) $arrivee) ?: null, $dateArrivee ?: null, date('Y-m-d H:i:s'), $commandeId]);
+    }
+
+    /**
+     * Flux en cours (tableau de bord) : commandes expédiées / en douane / en livraison.
+     * Origine, destination et mode viennent de la commande, à défaut de l'offre retenue et de la demande.
+     */
+    public static function fluxEnCours(array $user, int $limite = 4, ?array $filialeIds = null, ?string $activite = null): array
+    {
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $ph = implode(',', array_fill(0, count($filialeIds), '?'));
+        $sql = "SELECT c.*, d.reference AS dossier_reference, d.objet AS dossier_objet, dm.destination_pays, dm.lieu_livraison,
+                       cs.date_prevue AS livraison_prevue
+                FROM commandes c
+                INNER JOIN dossiers d ON d.id = c.dossier_id
+                INNER JOIN demandes dm ON dm.id = d.demande_id
+                LEFT JOIN commande_steps cs ON cs.commande_id = c.id AND cs.libelle = 'livraison'
+                WHERE c.statut = 'en_cours' AND c.etape IN ('expedition','douane','livraison') AND c.filiale_id IN ($ph)";
+        $params = $filialeIds;
+        if ($activite) {
+            $sql .= ' AND dm.activite = ?';
+            $params[] = $activite;
+        }
+        $sql .= ' ORDER BY c.updated_at DESC LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
+        $flux = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $offre = Offre::retenueForDossier((int) $r['dossier_id']) ?: [];
+            $mode = strtolower((string) ($r['mode_transport'] ?? ''));
+            if (!isset(self::MODES_TRAJET[$mode])) {
+                $o = strtolower((string) ($offre['mode_transport'] ?? ''));
+                $mode = str_contains($o, 'aér') || str_contains($o, 'aer') || str_contains($o, 'air') ? 'aerien'
+                    : (str_contains($o, 'rout') || str_contains($o, 'camion') ? 'routier' : 'maritime');
+            }
+            $depart = trim((string) ($r['port_depart'] ?? '')) ?: trim((string) ($offre['lieu_depart'] ?? '')) ?: trim((string) ($offre['pays_origine'] ?? ''));
+            $arrivee = trim((string) ($r['port_arrivee'] ?? '')) ?: trim((string) ($r['lieu_livraison'] ?? '')) ?: trim((string) ($r['destination_pays'] ?? ''));
+            $arrivPrevue = $r['date_arrivee_prevue'] ?? null ?: ($r['date_transit_fin'] ?? null ?: ($r['livraison_prevue'] ?? null));
+            $debut = $r['date_transit_debut'] ?? null;
+            $pct = 15;
+            if ($r['etape'] === 'douane') {
+                $pct = 85;
+            } elseif ($r['etape'] === 'livraison') {
+                $pct = 95;
+            } elseif ($debut && $arrivPrevue && strtotime($arrivPrevue) > strtotime($debut)) {
+                $pct = (int) max(8, min(80, round((time() - strtotime($debut)) / (strtotime($arrivPrevue) - strtotime($debut)) * 80)));
+            }
+            $statut = ['expedition' => $mode === 'aerien' ? 'En vol' : ($mode === 'routier' ? 'En route' : 'En mer'), 'douane' => 'En douane', 'livraison' => 'En livraison'][$r['etape']];
+            $retard = $arrivPrevue && strtotime($arrivPrevue) < strtotime(date('Y-m-d'));
+            $flux[] = [
+                'dossier_id' => (int) $r['dossier_id'], 'reference' => $r['dossier_reference'], 'objet' => $r['dossier_objet'],
+                'mode' => $mode, 'depart' => $depart, 'arrivee' => $arrivee, 'arrivee_prevue' => $arrivPrevue,
+                'pct' => $pct, 'statut' => $statut, 'retard' => $retard, 'tracking' => $r['tracking_numero'] ?? null,
+            ];
+        }
+        return $flux;
+    }
 }

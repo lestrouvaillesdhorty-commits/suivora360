@@ -966,3 +966,18 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .bar-soft i { display: block; height: 100%; border-radius: 99px; background: #2E9A5F; }
 .bar-soft.late i { background: #FF9A7A; }
 .dash-kpi { border-radius: 16px; }
+
+/* v61 : flux en cours */
+.flux-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:6px 22px 18px}
+.flux-item{display:block;border:1px solid #DCE9EC;border-radius:14px;padding:14px 16px;text-decoration:none;color:#1B2B3A;background:#fff}
+.flux-item:hover{border-color:#0B7C8A;background:#F6FBFB}
+.flux-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.flux-mode{font-size:12px;font-weight:700;border-radius:99px;padding:3px 10px;background:#DDF1F3;color:#0A6773}
+.flux-aerien{background:#E6EEF6;color:#2F5C80}.flux-routier{background:#FFEFCF;color:#7A4700}
+.flux-ref{font-size:12px;color:#5B6B78}
+.flux-route{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.flux-lieu{flex:0 1 auto;max-width:36%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flux-line{flex:1;position:relative;height:0;border-top:2px dashed #9CC9CF;min-width:30px}
+.flux-line i{position:absolute;top:-7px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#0B7C8A;border:2px solid #fff;box-shadow:0 0 0 1px #0B7C8A}
+.flux-statut{margin-top:10px;font-size:13px;color:#4F7A96}
+.flux-statut.late{color:#8F3217}

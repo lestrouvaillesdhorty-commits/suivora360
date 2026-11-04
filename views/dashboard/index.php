@@ -304,6 +304,25 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
   </div>
 </div>
 
+<?php if (!empty($fluxEnCours)): ?>
+<div class="card flux-card" style="margin-top:20px">
+  <h2 style="display:flex;justify-content:space-between;align-items:center"><span>Vos flux en cours</span></h2>
+  <div class="flux-grid">
+  <?php foreach ($fluxEnCours as $f): $mlib = Commande::MODES_TRAJET[$f['mode']] ?? 'Maritime'; ?>
+    <a class="flux-item" href="/index.php?r=dossiers/<?= (int) $f['dossier_id'] ?>/commande">
+      <div class="flux-top"><span class="flux-mode flux-<?= View::e($f['mode']) ?>"><?= View::e($mlib) ?></span><span class="flux-ref"><?= View::e($f['reference']) ?></span></div>
+      <div class="flux-route">
+        <span class="flux-lieu"><?= View::e($f['depart'] ?: '—') ?></span>
+        <span class="flux-line"><i style="left:<?= (int) $f['pct'] ?>%"></i></span>
+        <span class="flux-lieu"><?= View::e($f['arrivee'] ?: '—') ?></span>
+      </div>
+      <div class="flux-statut <?= $f['retard'] ? 'late' : '' ?>"><?= View::e($f['statut']) ?><?php if ($f['arrivee_prevue']): ?> · arrivée <?= $f['retard'] ? 'prévue le ' : 'prévue le ' ?><?= date('d/m/Y', strtotime($f['arrivee_prevue'])) ?><?= $f['retard'] ? ' (dépassée)' : '' ?><?php endif; ?></div>
+    </a>
+  <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php if (!empty($dossiersEnCours)): ?>
 <div class="card dos-encours" style="margin-top:20px">
   <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('folder', 'icon', 17) ?> Dossiers en cours</span><a href="/index.php?r=dossiers" style="font-size:13px;font-weight:600">Tous les dossiers</a></h2>
