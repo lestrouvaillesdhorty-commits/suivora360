@@ -28,6 +28,7 @@
     if (titres.length < 2) { return; }
     var ia = form.querySelector('#blocRechercheIa'); // l'aide IA accompagne la première étape
     var courant = 0;
+    var onglets = document.getElementById('formTabs'); if (onglets) { onglets.style.display = 'none'; }
 
     var barre = document.createElement('ol');
     barre.className = 'etapes-barre';
@@ -59,7 +60,7 @@
     }
     function afficher(i) {
       courant = i;
-      blocs.forEach(function (b) { b.style.display = (b.getAttribute('data-etape') === titres[i]) ? '' : 'none'; });
+      blocs.forEach(function (b) { b.classList.toggle('etape-off', b.getAttribute('data-etape') !== titres[i]); });
       if (ia) { ia.style.display = (i === 0) ? '' : 'none'; }
       var derniere = i === titres.length - 1;
       fin.style.display = derniere ? '' : 'none';

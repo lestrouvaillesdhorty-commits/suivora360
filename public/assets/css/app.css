@@ -1140,3 +1140,5 @@ tbody tr:last-child td { border-bottom: 0; }
 .etapes-barre li.fait .etapes-num{background:#2E9A5F;color:#fff}
 .etapes-nav{display:flex;gap:10px;align-items:center;margin:4px 0 14px}
 @media (max-width:768px){.etapes-barre li{padding-right:10px}.etapes-barre .etapes-titre{display:none}.etapes-barre li.actif .etapes-titre{display:inline}.etapes-nav .btn{min-height:46px}}
+
+.etape-off{display:none !important}

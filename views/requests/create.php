@@ -33,13 +33,13 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
   <button type="button" class="ft-btn" data-target="documents">Documents &amp; affectation</button>
 </div>
 
-<form method="post" action="<?= $actionUrl ?>" enctype="multipart/form-data" id="demandeForm"<?= $estModification ? '' : ' data-brouillon="demande" data-brouillon-ajout="btnAjouterLigne"' ?>>
+<form method="post" action="<?= $actionUrl ?>" enctype="multipart/form-data" id="demandeForm"<?= $estModification ? '' : ' data-etapes data-brouillon="demande" data-brouillon-ajout="btnAjouterLigne"' ?>>
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
 
   <div class="detail-grid form-tabs-wrap" id="formTabsWrap">
   <div class="ft-panel" data-panel="formulaire">
 
-    <div class="card">
+    <div class="card" data-etape="Besoin">
       <h2>Besoin</h2>
       <div class="form-group">
         <label>Activité *</label>
@@ -94,7 +94,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-etape="Client">
       <h2>Client et contact</h2>
       <div class="form-group">
         <label for="clientFiltre">Rechercher un client existant</label>
@@ -156,7 +156,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
 
 
     <?php if (!$estModification): ?>
-    <div class="card" data-activite-bloc="transport" style="display:none">
+    <div class="card" data-activite-bloc="transport" data-etape="Détails" style="display:none">
       <h2>Détails du transport</h2>
       <div class="form-row">
         <div class="form-group"><label>Lieu d'enlèvement</label><input type="text" name="lieu_enlevement" placeholder="Adresse ou ville d'enlèvement"></div>
@@ -173,7 +173,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
       <div style="font-size:12px;color:#888">Toute donnée inconnue reste « À préciser » — ne rien inventer.</div>
     </div>
 
-    <div class="card" data-activite-bloc="prestation" style="display:none">
+    <div class="card" data-activite-bloc="prestation" data-etape="Détails" style="display:none">
       <h2>Détails de la prestation</h2>
       <div class="form-group"><label>Nature du service demandé</label><input type="text" name="nature_service" placeholder="Ex : entretien de climatisation, traitement phytosanitaire…"></div>
       <div class="form-row">
@@ -186,7 +186,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
     </div>
     <?php endif; ?>
 
-    <div class="card" data-activite-bloc="articles">
+    <div class="card" data-activite-bloc="articles" data-etape="Détails">
       <h2>Articles / besoins</h2>
       <?php if (!$estModification): ?>
         <div style="font-size:12px;color:#888;margin-bottom:10px">Facultatif à ce stade — une demande de service encore peu détaillée peut être enregistrée sans aucune ligne.</div>
@@ -223,7 +223,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
 
   <div class="ft-panel" data-panel="documents" style="display:none">
 
-    <div class="card">
+    <div class="card" data-etape="Affectation">
       <h2>Affectation</h2>
       <?php if (count($filiales) > 1 && !$estModification): ?>
       <div class="form-group">
@@ -272,7 +272,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-etape="Affectation">
       <h2>Documents</h2>
       <?php if ($estModification && !empty($piecesJointes)): ?>
         <table>
@@ -303,7 +303,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
   </div>
   </div>
 
-  <div style="margin-top:24px">
+  <div style="margin-top:24px"<?= $estModification ? '' : ' data-etapes-fin' ?>>
     <button type="submit" class="btn"><?= $estModification ? 'Enregistrer les modifications' : 'Enregistrer à qualifier' ?></button>
     <a href="<?= $retour ?>" class="btn btn-secondary" style="margin-left:8px">Annuler</a>
   </div>
