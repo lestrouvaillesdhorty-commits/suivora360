@@ -1142,3 +1142,34 @@ tbody tr:last-child td { border-bottom: 0; }
 @media (max-width:768px){.etapes-barre li{padding-right:10px}.etapes-barre .etapes-titre{display:none}.etapes-barre li.actif .etapes-titre{display:inline}.etapes-nav .btn{min-height:46px}}
 
 .etape-off{display:none !important}
+
+/* v88 — couleurs plus vivantes (listes, badges, filtres) */
+th, .dtable thead th { background: #E6F4F6; color: #0A5F6B; border-bottom: 2px solid #BFE0E5; }
+tbody tr:hover td { background: #F3FAFB; }
+td > a:first-child, td a.ref-link { color: var(--primary-dark); font-weight: 700; }
+.badge { padding: 4px 11px 4px 9px; font-weight: 700; }
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.badge-blue   { background: #C9ECF1; color: #075A66; }
+.badge-green  { background: #C6EFD6; color: #0F6B3A; }
+.badge-yellow { background: #FFE49A; color: #7A4300; }
+.badge-orange { background: #FFD2B8; color: #9A3A0E; }
+.badge-red    { background: #FFC9C0; color: #A02A12; }
+.badge-gray   { background: #E3E8EE; color: #3E4A5A; }
+.badge-purple { background: #E1D8FF; color: #4B2FA8; }
+.filter-bar { background: linear-gradient(180deg, #F2FAFB, #fff); border-color: #CFE7EB; }
+.filter-bar .f-group label { color: var(--primary-dark); }
+.filter-bar .f-group select, .filter-bar .f-group input { border-color: #BFE0E5; }
+.btn-icon, .row-actions a, .row-actions button { color: var(--primary); }
+.card > table, .card > .table-scroll { border-top: 3px solid var(--primary); }
+/* Boutons d'action des listes : une couleur par geste */
+td .btn-sm[title="Consulter"], td .btn-sm[title="Voir"], td .btn-sm[title="Ouvrir"] { background:#0B7C8A; border-color:#0B7C8A; color:#fff; }
+td .btn-sm[title="Modifier"] { background:#FFB020; border-color:#FFB020; color:#4A2C00; }
+td .btn-sm[title="Supprimer"], td .btn-sm[title="Archiver"] { background:#FFE3DE; border-color:#F2A99A; color:#C2321A; }
+td .btn-sm[title="Consulter"]:hover, td .btn-sm[title="Voir"]:hover, td .btn-sm[title="Ouvrir"]:hover { background:#096A76; }
+td .btn-sm[title="Modifier"]:hover { background:#F29B00; }
+td .btn-sm[title="Supprimer"]:hover, td .btn-sm[title="Archiver"]:hover { background:#E5484D; border-color:#E5484D; color:#fff; }
+td .btn-sm[title] svg { stroke: currentColor; }
+td .btn-sm[title="Consulter"] svg, td .btn-sm[title="Voir"] svg, td .btn-sm[title="Ouvrir"] svg { color:#fff; stroke:#fff; }
+td .btn-sm[title="Modifier"] svg { color:#4A2C00; stroke:#4A2C00; }
+td .btn-sm[title="Supprimer"] svg, td .btn-sm[title="Archiver"] svg { color:#C2321A; stroke:#C2321A; }
+td .btn-sm[title="Supprimer"]:hover svg, td .btn-sm[title="Archiver"]:hover svg { color:#fff; stroke:#fff; }
