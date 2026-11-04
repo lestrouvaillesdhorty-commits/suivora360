@@ -174,8 +174,8 @@ $nbInactifs = $indicateurs['total'] - $indicateurs['actifs'];
         <span class="badge <?= $actif ? 'badge-green' : 'badge-gray' ?>"><?= $actif ? 'Actif' : 'Inactif' ?></span>
       </td>
       <td data-label="Actions" onclick="event.stopPropagation()" style="white-space:nowrap">
-        <a href="/index.php?r=clients/<?= (int) $c['id'] ?>" class="btn btn-sm btn-secondary">Voir</a>
-        <?php if (Auth::canWrite()): ?><a href="/index.php?r=clients/<?= (int) $c['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a><?php endif; ?>
+        <a href="/index.php?r=clients/<?= (int) $c['id'] ?>" class="btn btn-sm btn-secondary" title="Voir">Voir</a>
+        <?php if (Auth::canWrite()): ?><a href="/index.php?r=clients/<?= (int) $c['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier">Modifier</a><?php endif; ?>
       </td>
     </tr>
   <?php endforeach; ?>

@@ -88,7 +88,7 @@ $peutEcrire = Auth::canWrite();
             </details>
             <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/pieces/<?= $p['id'] ?>/supprimer" style="display:inline">
               <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-              <button type="submit" class="btn btn-sm btn-secondary">Supprimer</button>
+              <button type="submit" class="btn btn-sm btn-secondary" title="Supprimer">Supprimer</button>
             </form>
             <?php endif; ?>
           </td>

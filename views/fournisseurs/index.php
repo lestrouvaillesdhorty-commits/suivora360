@@ -218,8 +218,8 @@ $entete = function (string $cle, string $libelle) use ($filtres, $lien) {
       <td data-label="Qualification"><span class="badge <?= Fournisseur::QUALIFICATION_BADGES[$qual] ?>"><?= View::e(Fournisseur::QUALIFICATIONS[$qual]) ?></span></td>
       <td data-label="Statut"><span class="badge <?= $actif ? 'badge-green' : 'badge-gray' ?>"><?= $actif ? 'Actif' : 'Inactif' ?></span></td>
       <td data-label="Actions" onclick="event.stopPropagation()" style="white-space:nowrap">
-        <a href="/index.php?r=fournisseurs/<?= (int) $f['id'] ?>" class="btn btn-sm btn-secondary">Voir</a>
-        <?php if (Auth::canWrite()): ?><a href="/index.php?r=fournisseurs/<?= (int) $f['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a><?php endif; ?>
+        <a href="/index.php?r=fournisseurs/<?= (int) $f['id'] ?>" class="btn btn-sm btn-secondary" title="Voir">Voir</a>
+        <?php if (Auth::canWrite()): ?><a href="/index.php?r=fournisseurs/<?= (int) $f['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier">Modifier</a><?php endif; ?>
       </td>
     </tr>
   <?php endforeach; ?>

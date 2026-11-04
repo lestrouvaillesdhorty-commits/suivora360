@@ -47,10 +47,10 @@ use App\Models\ConsultationPartage;
             </td>
             <td style="white-space:nowrap"><?= $nbPiecesPartage > 0 ? $nbPiecesPartage . ' fichier' . ($nbPiecesPartage > 1 ? 's' : '') : '—' ?></td>
             <td style="white-space:nowrap"><span class="badge <?= $c['statut'] === 'reponse_recue' ? 'badge-green' : ($c['statut'] === 'sans_reponse' ? 'badge-red' : ($c['statut'] === 'relance' || $c['statut'] === 'a_envoyer' ? 'badge-orange' : 'badge-blue')) ?>"><?= ConsultationFournisseur::STATUTS[$c['statut']] ?? $c['statut'] ?></span></td>
-            <td style="white-space:nowrap"><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Voir</a>
+            <td style="white-space:nowrap"><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary" title="Voir">Voir</a>
               <?php if ($c['statut'] === 'a_envoyer' && \App\Core\Auth::canWrite()): ?>
                 <a href="/index.php?r=consultations/<?= $c['id'] ?>/partages/nouvelle" class="btn btn-sm">Envoyer</a>
-                <a href="/index.php?r=consultations/<?= $c['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a>
+                <a href="/index.php?r=consultations/<?= $c['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier">Modifier</a>
               <?php endif; ?>
               <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap" target="_blank" class="btn btn-sm btn-secondary">Récap</a>
               <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap/pdf" class="btn btn-sm btn-secondary">PDF</a></td>

@@ -62,7 +62,7 @@ $piecesParOffre = \App\Models\DossierPieceJointe::parOffre($piecesJointes ?? [])
               <?php endforeach; endif; ?>
             </td>
             <td>
-              <?php if (\App\Core\Auth::canWrite() && $o['statut'] !== 'retenue'): ?><a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier" class="btn btn-sm btn-secondary">Modifier</a><?php endif; ?>
+              <?php if (\App\Core\Auth::canWrite() && $o['statut'] !== 'retenue'): ?><a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier">Modifier</a><?php endif; ?>
               <a href="/index.php?r=consultations/<?= $o['consultation_id'] ?>/offres/nouvelle&version_de=<?= $o['id'] ?>" class="btn btn-sm btn-secondary">+ Nouvelle version</a>
               <?php if ($o['statut'] === 'retenue' && \App\Core\Auth::canVoirFinancesFournisseur() && \App\Models\BonCommandeFournisseur::schemaPret()):
                 $bonOffre = \App\Models\BonCommandeFournisseur::actifPourOffre((int) $o['id']); ?>

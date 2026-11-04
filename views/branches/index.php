@@ -37,7 +37,7 @@
       <td>
         <form method="post" action="/index.php?r=filiales/<?= $f['id'] ?>/supprimer" style="margin:0" onsubmit="return confirm('Supprimer la filiale « <?= View::e($f['nom']) ?> » ? Refusé si elle contient déjà des demandes, clients ou fournisseurs.');">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-          <button type="submit" class="btn btn-sm btn-secondary">Supprimer</button>
+          <button type="submit" class="btn btn-sm btn-secondary" title="Supprimer">Supprimer</button>
         </form>
       </td>
     </tr>

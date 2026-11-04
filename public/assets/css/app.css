@@ -1182,3 +1182,5 @@ td .btn-sm[title="Supprimer"]:hover svg, td .btn-sm[title="Archiver"]:hover svg 
 .badge-red    { background:#E5484D; color:#fff; }
 .badge-purple { background:#7C5CE0; color:#fff; }
 .badge-gray   { background:#E3E8EE; color:#3E4A5A; box-shadow:none; }
+td .btn-sm[title^="Ouvrir"], .dos-actions a { background:#0B7C8A !important; border-color:#0B7C8A !important; color:#fff !important; }
+.dos-actions a svg { color:#fff; stroke:#fff; }
