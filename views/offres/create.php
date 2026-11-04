@@ -26,9 +26,11 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
   <div class="info-note" style="margin-top:10px;margin-bottom:0">Le formulaire est prérempli avec les valeurs de la v<?= (int) $offrePrecedente['version'] ?> — l'ancienne version sera conservée dans l'historique et marquée « Remplacée ».</div>
 <?php endif; ?>
 
+<?php $guide = !$edition; ?>
 <div class="card" style="max-width:760px">
-  <form method="post" enctype="multipart/form-data" action="<?= $edition ? '/index.php?r=offres/' . (int) $offrePrecedente['id'] . '/modifier' : ($manuel ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '/offres/manuelle' : '/index.php?r=consultations/' . $consultation['id'] . '/offres') ?>">
+  <form<?= $guide ? ' data-etapes' : '' ?> method="post" enctype="multipart/form-data" action="<?= $edition ? '/index.php?r=offres/' . (int) $offrePrecedente['id'] . '/modifier' : ($manuel ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '/offres/manuelle' : '/index.php?r=consultations/' . $consultation['id'] . '/offres') ?>">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <div<?= $guide ? ' data-etape="Source"' : '' ?>>
     <?php if (!$offrePrecedente || $edition): ?>
     <div class="card" id="blocIa" style="background:#f6f8ff;box-shadow:none;border:1px solid #dbe3fb;padding:12px 14px;margin-bottom:14px">
       <strong>Fichier de l'offre (PDF, photo, Excel, Word)</strong>
@@ -115,6 +117,8 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       <input type="hidden" name="offre_precedente_id" value="<?= (int) $offrePrecedente['id'] ?>">
     <?php endif; ?>
 
+    </div>
+    <div<?= $guide ? ' data-etape="Prix"' : '' ?>>
     <div class="form-row">
       <div class="form-group"><label>Montant total de l'offre</label><input type="number" step="0.01" name="montant_total" value="<?= View::e((string) $v('montant_total')) ?>" required></div>
       <div class="form-group">
@@ -144,6 +148,8 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       <div class="form-group"><label>Périmètre de mission proposé</label><textarea name="perimetre_mission" rows="2" placeholder="ex: Représentation commerciale, zone, durée..."><?= View::e((string) $v('perimetre_mission')) ?></textarea></div>
     <?php endif; ?>
 
+    </div>
+    <div<?= $guide ? ' data-etape="Détails"' : '' ?>>
     <details <?= ($manuel ? '' : 'open') ?> style="margin:16px 0">
       <summary style="cursor:pointer;font-weight:600;color:#374151">Comparaison détaillée : pays, MOQ, poids, frais… (optionnel, utile pour le Comparateur)</summary>
       <div style="margin-top:12px">
@@ -209,8 +215,11 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
 
     <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e((string) $v('notes')) ?></textarea></div>
 
+    </div>
+    <div<?= $guide ? ' data-etapes-fin' : '' ?>>
     <button type="submit" class="btn"><?= $edition ? 'Enregistrer les modifications' : 'Enregistrer l\'offre' ?></button>
     <a href="<?= $edition ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '&onglet=achats&sous=offres' : ($manuel ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '&onglet=achats' : '/index.php?r=consultations/' . $consultation['id']) ?>" class="btn btn-secondary">Annuler</a>
+    </div>
   </form>
 </div>
 
