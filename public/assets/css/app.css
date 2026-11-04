@@ -1110,9 +1110,3 @@ tbody tr:last-child td { border-bottom: 0; }
 .ac-late{background:#FFE3DA;color:#8F3217}.ac-today{background:#DFF3E8;color:#14633C}.ac-next{background:#DDF1F3;color:#0A6773}
 @media (max-width:768px){.dash-filtres{padding:0;border:0;background:none}.ac-row{gap:10px}.ac-row .btn{width:100%}}
 
-/* v70 : un tableau de bord par activité (onglets) */
-.dash-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px}
-.dash-tabs a{padding:9px 16px;border-radius:999px;font-size:14px;font-weight:700;color:#4F6B7A;background:#fff;border:1.5px solid #DCE9EC;text-decoration:none}
-.dash-tabs a:hover{border-color:#0B7C8A;text-decoration:none}
-.dash-tabs a.active{background:#0B7C8A;border-color:#0B7C8A;color:#fff}
-@media (max-width:768px){.dash-tabs{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;margin-right:-14px;padding-right:14px}}

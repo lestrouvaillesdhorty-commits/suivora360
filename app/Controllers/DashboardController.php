@@ -37,8 +37,18 @@ class DashboardController
         $filialeIdDemande = isset($_GET['filiale_id']) ? (int) $_GET['filiale_id'] : null;
         $filialeIds = Filiale::resoudreFiltreIds($user, $filialeIdDemande);
         $filialeIdSelection = (count($filialeIds) === 1) ? $filialeIds[0] : null;
-        $activite = trim((string) ($_GET['activite'] ?? ''));
-        $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
+        // Dernière activité consultée : retenue dans un cookie (un an) et rouverte à la visite suivante.
+        // Un choix explicite (y compris « Toutes les activités », valeur vide) remplace le souvenir.
+        if (array_key_exists('activite', $_GET)) {
+            $activite = trim((string) $_GET['activite']);
+            $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
+            if (!headers_sent()) {
+                setcookie('suivora_activite', $activite, ['expires' => time() + 31536000, 'path' => '/', 'secure' => !empty($_SERVER['HTTPS']), 'httponly' => true, 'samesite' => 'Lax']);
+            }
+        } else {
+            $activite = trim((string) ($_COOKIE['suivora_activite'] ?? ''));
+            $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
+        }
 
         $demandeCounts = Demande::counts($user, $filialeIds, $activite ?: null);
         $dossierCounts = Dossier::counts($user, $filialeIds, $activite ?: null);

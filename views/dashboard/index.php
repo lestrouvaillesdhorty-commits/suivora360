@@ -58,17 +58,6 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 </div>
 
 <?php /* [ajouté 03/10, demande explicite de Marie Laure] Switcher filiale/activité — jusqu'ici impossible de filtrer le tableau de bord. */ ?>
-<?php
-$onglets = ['' => "Vue d'ensemble", 'Sourcing et approvisionnement' => 'Sourcing et approvisionnement', 'Transport et logistique' => 'Transport et logistique', 'Prestation de service' => 'Prestation de service'];
-?>
-<nav class="dash-tabs" aria-label="Activité">
-  <?php foreach ($onglets as $val => $lib):
-      $q = array_filter(['activite' => $val, 'filiale_id' => $filialeIdSelection ?: null]);
-      $href = '/index.php' . ($q ? '?' . http_build_query($q) : ''); ?>
-    <a href="<?= View::e($href) ?>" class="<?= (string) $activiteSelection === (string) $val ? 'active' : '' ?>"><?= View::e($lib) ?></a>
-  <?php endforeach; ?>
-</nav>
-<?php if (count($filiales) > 1): ?>
 <form method="get" action="/index.php" class="dash-filtres" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0">
   <?php /* Le tableau de bord est la route "/" (pas "r=dashboard") — pas de champ "r" ici, sinon le routeur renvoie un 404. */ ?>
   <?php if (count($filiales) > 1): ?>
@@ -82,12 +71,19 @@ $onglets = ['' => "Vue d'ensemble", 'Sourcing et approvisionnement' => 'Sourcing
     </select>
   </div>
   <?php endif; ?>
-  <input type="hidden" name="activite" value="<?= View::e((string) $activiteSelection) ?>">
+  <div class="form-group" style="margin-bottom:0;min-width:240px">
+    <label style="font-size:12px">Activité</label>
+    <select name="activite" onchange="this.form.submit()">
+      <option value="">Toutes les activités</option>
+      <?php foreach ($activites as $a): ?>
+        <option value="<?= View::e($a) ?>" <?= $activiteSelection === $a ? 'selected' : '' ?>><?= View::e($a) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
   <?php if ($filialeIdSelection || $activiteSelection): ?>
-    <a href="/index.php" style="margin-left:auto;font-size:13px;font-weight:600">Réinitialiser</a>
+    <a href="/index.php?activite=" style="margin-left:auto;font-size:13px;font-weight:600">Réinitialiser</a>
   <?php endif; ?>
 </form>
-<?php endif; ?>
 
 <?php if (!empty($estTransport)): ?>
 <div class="dash-kpi-row" style="margin-top:18px">
