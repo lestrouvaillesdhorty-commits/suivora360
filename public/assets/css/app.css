@@ -1221,3 +1221,22 @@ td .btn-sm[title] { margin-right:4px; }
 #items-table .remove-item { background:#FFE3DE; border-color:#F2A99A; color:#C2321A; }
 #items-table .remove-item:hover { background:#E5484D; color:#fff; }
 #add-item { background:#0B7C8A; color:#fff; border-color:#0B7C8A; }
+
+/* Fiche dossier / client / fournisseur : onglets, bandeau d'infos, avancement en couleur */
+.dos-tabs { gap: 6px; border-bottom: 0; padding: 6px; background: #E6F4F6; border-radius: 14px; margin: 18px 0 20px; }
+.dos-tab { border-bottom: 0; border-radius: 10px; color: #0A5F6B; padding: 9px 16px; }
+.dos-tab:hover { background: #CFEAEE; }
+.dos-tab.active { background: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(11,124,138,.35); }
+.fiche-header-meta { background: #fff; border: 1px solid #CFE7EB; border-left: 4px solid var(--primary); border-radius: 12px; padding: 12px 18px; }
+.fhm-item .fhm-label { color: var(--primary-dark); font-weight: 700; }
+.sub-tab { background: #E6F4F6; color: #0A5F6B; }
+.sub-tab:hover { background: #CFEAEE; }
+[role=progressbar] { background: #D3ECEF !important; height: 10px !important; }
+[role=progressbar] > div { background: linear-gradient(90deg, #0B9AAE, #1FA463) !important; }
+.phase-step .ps-dot { border-color: #9FD0D8; color: #0A5F6B; }
+.phase-step .ps-line { background: #BFE0E5; }
+.phase-step.current .ps-dot { box-shadow: 0 0 0 5px rgba(11,154,174,.2); }
+.phase-step .ps-label { color: #0A5F6B; font-weight: 600; }
+.phase-step.done .ps-dot { color: #fff; border-color: #1FA463; }
+td .btn-sm[title="Récapitulatif"] { background:#7C5CE0; border-color:#7C5CE0; color:#fff; }
+td .btn-sm[title="Récapitulatif"]:hover { background:#5F3FC4; }

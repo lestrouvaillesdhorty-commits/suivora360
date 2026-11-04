@@ -52,8 +52,8 @@ use App\Models\ConsultationPartage;
                 <a href="/index.php?r=consultations/<?= $c['id'] ?>/partages/nouvelle" class="btn btn-sm">Envoyer</a>
                 <a href="/index.php?r=consultations/<?= $c['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier">Modifier</a>
               <?php endif; ?>
-              <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap" target="_blank" class="btn btn-sm btn-secondary">Récap</a>
-              <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap/pdf" class="btn btn-sm btn-secondary">PDF</a></td>
+              <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap" target="_blank" class="btn btn-sm btn-secondary" title="Récapitulatif">Récap</a>
+              <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap/pdf" class="btn btn-sm btn-secondary" title="Télécharger le PDF">PDF</a></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
