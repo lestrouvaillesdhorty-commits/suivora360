@@ -14,7 +14,7 @@ $badges = ['recue' => 'blue', 'retenue' => 'green', 'rejetee' => 'gray', 'rempla
   <div class="card"><div class="empty-state">Aucune offre pour ces critères.</div></div>
 <?php else: ?>
 <table class="responsive-cards liste-cartes">
-  <thead><tr><th>Offre</th><th>Dossier</th><th>Fournisseur</th><th class="num">Montant</th><th>Incoterm</th><th>Délai</th><th>Validité</th><th>Statut</th></tr></thead>
+  <thead><tr><th>Offre</th><th>Dossier</th><th>Fournisseur</th><th class="num">Montant</th><th>Incoterm</th><th>Délai</th><th>Validité</th><th>Statut</th><th>Actions</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $o): $expiree = $o['statut'] === 'recue' && $o['validite_offre'] && $o['validite_offre'] < date('Y-m-d'); ?>
     <tr>
@@ -26,6 +26,7 @@ $badges = ['recue' => 'blue', 'retenue' => 'green', 'rejetee' => 'gray', 'rempla
       <td data-label="Délai"><?= View::e($o['delai_livraison'] ?: '—') ?></td>
       <td data-label="Validité"><?= $o['validite_offre'] ? date('d/m/Y', strtotime($o['validite_offre'])) : '—' ?><?php if ($expiree): ?> <span class="badge badge-red">Expirée</span><?php endif; ?></td>
       <td data-label="Statut"><span class="badge badge-<?= $badges[$o['statut']] ?? 'gray' ?>"><?= View::e(Offre::STATUTS[$o['statut']] ?? $o['statut']) ?></span></td>
+      <td data-label="Actions" style="white-space:nowrap"><a href="/index.php?r=consultations/<?= (int) $o['consultation_id'] ?>" class="btn btn-sm btn-secondary" title="Consulter"><?= \App\Core\Icon::svg('eye', 'icon', 14) ?></a><?php if (\App\Core\Auth::canWrite()): ?><a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier"><?= \App\Core\Icon::svg('edit-2', 'icon', 14) ?></a><?php endif; ?></td>
     </tr>
   <?php endforeach; ?>
   </tbody>

@@ -14,7 +14,7 @@ $badges = ['brouillon' => 'gray', 'envoyee' => 'blue', 'acceptee' => 'green', 'r
   <div class="card"><div class="empty-state">Aucune cotation pour ces critères.</div></div>
 <?php else: ?>
 <table class="responsive-cards liste-cartes">
-  <thead><tr><th>Cotation</th><th>Dossier</th><th>Client</th><th class="num">Prix de vente</th><?php if ($voirMarges): ?><th class="num">Marge</th><?php endif; ?><th>Validité du devis</th><th>Statut</th></tr></thead>
+  <thead><tr><th>Cotation</th><th>Dossier</th><th>Client</th><th class="num">Prix de vente</th><?php if ($voirMarges): ?><th class="num">Marge</th><?php endif; ?><th>Validité du devis</th><th>Statut</th><th>Actions</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $c): $expiree = $c['statut'] === 'envoyee' && $c['validite_devis'] && $c['validite_devis'] < date('Y-m-d'); ?>
     <tr>
@@ -25,6 +25,7 @@ $badges = ['brouillon' => 'gray', 'envoyee' => 'blue', 'acceptee' => 'green', 'r
       <?php if ($voirMarges): ?><td data-label="Marge" class="num"><?= $c['marge_pourcentage'] !== null ? number_format((float) $c['marge_pourcentage'], 1, ',', ' ') . ' %' : '—' ?></td><?php endif; ?>
       <td data-label="Validité du devis"><?= $c['validite_devis'] ? date('d/m/Y', strtotime($c['validite_devis'])) : '—' ?><?php if ($expiree): ?> <span class="badge badge-red">Expiré</span><?php endif; ?></td>
       <td data-label="Statut"><span class="badge badge-<?= $badges[$c['statut']] ?? 'gray' ?>"><?= View::e(Cotation::STATUTS[$c['statut']] ?? $c['statut']) ?></span></td>
+      <td data-label="Actions" style="white-space:nowrap"><a href="/index.php?r=cotations/<?= (int) $c['id'] ?>" class="btn btn-sm btn-secondary" title="Consulter"><?= \App\Core\Icon::svg('eye', 'icon', 14) ?></a><a href="/index.php?r=cotations/<?= (int) $c['id'] ?>/pdf" class="btn btn-sm btn-secondary" title="Télécharger le PDF"><?= \App\Core\Icon::svg('download', 'icon', 14) ?></a></td>
     </tr>
   <?php endforeach; ?>
   </tbody>

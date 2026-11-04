@@ -22,7 +22,7 @@ $badges = ['emise' => 'blue', 'payee' => 'green', 'annulee' => 'gray'];
   <div class="card"><div class="empty-state">Aucune facture pour ces critères.</div></div>
 <?php else: ?>
 <table class="responsive-cards liste-cartes">
-  <thead><tr><th>Facture</th><th>Dossier</th><th>Type</th><th class="num">Montant</th><th>Émission</th><th>Échéance</th><th>Statut</th></tr></thead>
+  <thead><tr><th>Facture</th><th>Dossier</th><th>Type</th><th class="num">Montant</th><th>Émission</th><th>Échéance</th><th>Statut</th><th>Actions</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $fa): $retard = $fa['statut'] === 'emise' && $fa['date_echeance'] && $fa['date_echeance'] < date('Y-m-d'); ?>
     <tr>
@@ -33,6 +33,7 @@ $badges = ['emise' => 'blue', 'payee' => 'green', 'annulee' => 'gray'];
       <td data-label="Émission"><?= $fa['date_emission'] ? date('d/m/Y', strtotime($fa['date_emission'])) : '—' ?></td>
       <td data-label="Échéance"><?= $fa['date_echeance'] ? date('d/m/Y', strtotime($fa['date_echeance'])) : '—' ?><?php if ($retard): ?> <span class="badge badge-red">En retard</span><?php endif; ?></td>
       <td data-label="Statut"><span class="badge badge-<?= $badges[$fa['statut']] ?? 'gray' ?>"><?= View::e(Facture::STATUTS[$fa['statut']] ?? $fa['statut']) ?></span></td>
+      <td data-label="Actions" style="white-space:nowrap"><a href="/index.php?r=dossiers/<?= (int) $fa['dossier_id'] ?>/commande" class="btn btn-sm btn-secondary" title="Consulter"><?= \App\Core\Icon::svg('eye', 'icon', 14) ?></a></td>
     </tr>
   <?php endforeach; ?>
   </tbody>

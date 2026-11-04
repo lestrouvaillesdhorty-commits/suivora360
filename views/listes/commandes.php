@@ -13,7 +13,7 @@ $placeholderRecherche = 'Référence, dossier, client...';
   <div class="card"><div class="empty-state">Aucune commande pour ces critères.</div></div>
 <?php else: ?>
 <table class="responsive-cards liste-cartes">
-  <thead><tr><th>Commande</th><th>Dossier</th><th>Client</th><th class="num">Montant</th><th>Étape</th><th>Prochaine action</th><th>Relance</th><th>Statut</th></tr></thead>
+  <thead><tr><th>Commande</th><th>Dossier</th><th>Client</th><th class="num">Montant</th><th>Étape</th><th>Prochaine action</th><th>Relance</th><th>Statut</th><th>Actions</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $m): $retard = Commande::estEnRetard($m); ?>
     <tr>
@@ -25,6 +25,7 @@ $placeholderRecherche = 'Référence, dossier, client...';
       <td data-label="Prochaine action"><?= View::e($m['prochaine_action'] ?: '—') ?></td>
       <td data-label="Relance"><?= $m['date_relance'] ? date('d/m/Y', strtotime($m['date_relance'])) : '—' ?><?php if ($retard): ?> <span class="badge badge-red">En retard</span><?php endif; ?></td>
       <td data-label="Statut"><span class="badge badge-<?= $m['statut'] === 'terminee' ? 'green' : 'blue' ?>"><?= $m['statut'] === 'terminee' ? 'Terminée' : 'En cours' ?></span></td>
+      <td data-label="Actions" style="white-space:nowrap"><a href="/index.php?r=dossiers/<?= (int) $m['dossier_id'] ?>/commande" class="btn btn-sm btn-secondary" title="Consulter"><?= \App\Core\Icon::svg('eye', 'icon', 14) ?></a></td>
     </tr>
   <?php endforeach; ?>
   </tbody>
