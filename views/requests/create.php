@@ -51,6 +51,20 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
         </select>
         <?php if (!$estModification): ?><div style="font-size:12px;color:#888;margin-top:4px">Le formulaire s'adapte à l'activité : articles pour un achat, détails du transport, détails de la prestation.</div><?php endif; ?>
       </div>
+      <?php $sousParFiliale = $sousActivitesParFiliale ?? []; $aSousActivites = array_filter($sousParFiliale, fn($x) => array_filter($x)); ?>
+      <?php if ($aSousActivites): ?>
+      <div class="form-group" id="blocSousActivite">
+        <label>Sous-activité</label>
+        <select name="sous_activite" id="sousActiviteSelect" data-valeur="<?= View::e($demande['sous_activite'] ?? '') ?>"><option value="">— Aucune —</option></select>
+      </div>
+      <div class="form-group" id="blocFamille" style="display:none">
+        <label>Famille de produit</label>
+        <select name="famille_produit">
+          <option value="">— Choisir —</option>
+          <?php foreach (($famillesProduit ?? []) as $fam): ?><option <?= ($demande['famille_produit'] ?? '') === $fam ? 'selected' : '' ?>><?= View::e($fam) ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <?php endif; ?>
       <div class="form-group">
         <label>Objet *</label>
         <input type="text" name="objet" required value="<?= View::e($demande['objet'] ?? '') ?>">
@@ -456,6 +470,30 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
         bloc.querySelectorAll('input, select, textarea, button').forEach(function (el) { el.disabled = !visible; });
       });
     }
+    // Sous-activité : liste dépendante de la filiale et de l'activité (réglée dans Paramètres).
+    var SOUS = <?= json_encode($sousActivitesParFiliale ?? [], JSON_UNESCAPED_UNICODE) ?>;
+    var sousSel = document.getElementById('sousActiviteSelect');
+    var blocFam = document.getElementById('blocFamille');
+    function filialeCourante() {
+      var f = document.querySelector('[name="filiale_id"]');
+      return f ? f.value : '';
+    }
+    function majSousActivites() {
+      if (blocFam) { blocFam.style.display = (!GROUPES[actSel.value]) && actSel.value ? '' : 'none'; }
+      if (!sousSel) { return; }
+      var garde = sousSel.value || sousSel.getAttribute('data-valeur') || '';
+      var noms = ((SOUS[filialeCourante()] || {})[actSel.value]) || [];
+      sousSel.innerHTML = '<option value="">— Aucune —</option>';
+      noms.forEach(function (n) {
+        var o = document.createElement('option'); o.textContent = n; if (n === garde) { o.selected = true; }
+        sousSel.appendChild(o);
+      });
+      sousSel.setAttribute('data-valeur', '');
+    }
+    actSel.addEventListener('change', majSousActivites);
+    var filSel = document.querySelector('select[name="filiale_id"]');
+    if (filSel) { filSel.addEventListener('change', majSousActivites); }
+    majSousActivites();
     actSel.addEventListener('change', adapterActivite);
     adapterActivite();
   }

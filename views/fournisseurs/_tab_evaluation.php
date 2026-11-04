@@ -77,7 +77,7 @@ $mediane = $p['delai_median']['valeur'];
       <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600;color:var(--primary)">+ Enregistrer une décision de qualification</summary>
         <form method="post" action="<?= $base ?>/qualification" style="margin-top:10px">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-          <div style="font-size:13px;margin-bottom:6px">Critères adaptés à : <?= $types ? View::e(implode(', ', array_map(fn($t) => Fournisseur::TYPES[$t], $types))) : 'tous types (aucun type renseigné)' ?></div>
+          <div style="font-size:13px;margin-bottom:6px">Critères adaptés à : <?= $types ? View::e(implode(', ', array_map(fn($t) => Fournisseur::libelle($t), $types))) : 'tous types (aucun type renseigné)' ?></div>
           <?php foreach ($criteresQualification as $code => $libelle): ?>
             <div class="form-row" style="align-items:center;margin-bottom:4px">
               <div style="flex:2;font-size:14px"><?= View::e($libelle) ?></div>

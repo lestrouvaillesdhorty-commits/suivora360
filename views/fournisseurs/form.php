@@ -87,12 +87,35 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
           <input type="text" value="<?= $estModif ? View::e($fournisseur['code'] ?? '') : 'Générée à l’enregistrement' ?>" disabled>
         </div>
         <div class="form-group">
-          <label>Type de partenaire (plusieurs choix possibles)</label>
-          <div style="display:flex;gap:6px 16px;flex-wrap:wrap">
-            <?php foreach (Fournisseur::TYPES as $code => $lib): ?>
-              <label style="font-weight:400;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" name="types[]" value="<?= $code ?>" <?= in_array($code, $typesCoches, true) ? 'checked' : '' ?>> <?= View::e($lib) ?></label>
-            <?php endforeach; ?>
-          </div>
+          <label>Catégorie du fournisseur (plusieurs choix possibles)</label>
+          <?php $cats = Fournisseur::TYPES + ($categoriesAjoutees ?? []); foreach ($typesCoches as $c) { if (!isset($cats[$c]) && isset(Fournisseur::libelles()[$c])) { $cats[$c] = Fournisseur::libelles()[$c]; } } ?>
+          <details id="catDropdown" style="position:relative">
+            <summary style="list-style:none;cursor:pointer;border:1px solid #ccc;border-radius:6px;padding:9px 12px;background:#fff;display:flex;justify-content:space-between;gap:8px"><span id="catResume" style="color:#555">Choisir…</span><span>▾</span></summary>
+            <div style="border:1px solid #ccc;border-radius:6px;margin-top:4px;background:#fff;padding:8px 12px;max-width:420px">
+              <?php foreach ($cats as $code => $lib): ?>
+                <label style="font-weight:400;display:flex;gap:8px;align-items:center;padding:5px 0"><input type="checkbox" name="types[]" value="<?= View::e($code) ?>" data-lib="<?= View::e($lib) ?>" <?= in_array($code, $typesCoches, true) ? 'checked' : '' ?>> <?= View::e($lib) ?></label>
+              <?php endforeach; ?>
+              <?php if (\App\Models\CategorieFournisseur::disponible()): ?>
+              <div style="border-top:1px solid #eee;margin-top:6px;padding-top:8px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">+ Ajouter une catégorie</div>
+                <input type="text" name="nouvelle_categorie" id="nouvelleCategorie" maxlength="120" placeholder="Ex. Emballagiste" value="<?= View::e($old['nouvelle_categorie'] ?? '') ?>">
+                <div style="font-size:12px;color:#666;margin-top:4px">Elle sera cochée pour ce fournisseur et proposée ensuite pour tous les fournisseurs de la filiale.</div>
+              </div>
+              <?php endif; ?>
+            </div>
+          </details>
+          <script>
+          (function () {
+            var d = document.getElementById('catDropdown'); if (!d) return;
+            var r = document.getElementById('catResume'), n = document.getElementById('nouvelleCategorie');
+            function maj() {
+              var noms = Array.prototype.map.call(d.querySelectorAll('input[type=checkbox]:checked'), function (c) { return c.getAttribute('data-lib'); });
+              if (n && n.value.trim()) noms.push(n.value.trim() + ' (nouvelle)');
+              r.textContent = noms.length ? noms.join(', ') : 'Choisir…';
+            }
+            d.addEventListener('change', maj); if (n) n.addEventListener('input', maj); maj();
+          })();
+          </script>
         </div>
         <div class="form-group">
           <label for="specialites">Spécialités (séparées par des virgules)</label>

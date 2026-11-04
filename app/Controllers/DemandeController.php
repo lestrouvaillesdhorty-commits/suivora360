@@ -380,6 +380,31 @@ class DemandeController
      * 2, section "6. Cohérence visuelle" — un seul formulaire partagé,
      * jamais deux versions à maintenir séparément).
      */
+    /** [filiale_id => [activité => [noms actifs]]] pour la liste déroulante dépendante du formulaire. */
+    private function sousActivitesParFiliale(array $filiales): array
+    {
+        $out = [];
+        foreach ($filiales as $f) {
+            $out[(int) $f['id']] = \App\Models\SousActivite::nomsActifs((int) $f['id']);
+        }
+        return $out;
+    }
+
+    /** Enregistre sous-activité et famille de produit (colonnes ajoutées par migrate_v37 ; ignoré avant). */
+    private function enregistrerSousActivite(int $demandeId, int $filialeId, string $activite): void
+    {
+        if (!\App\Models\SousActivite::colonnesDemandes()) {
+            return;
+        }
+        $sous = \App\Models\SousActivite::valider($filialeId, $activite, (string) ($_POST['sous_activite'] ?? ''));
+        $famille = \App\Models\SousActivite::familleValide((string) ($_POST['famille_produit'] ?? ''));
+        if (Dossier::deduireType($activite) !== 'achat_sourcing') {
+            $famille = '';
+        }
+        \App\Core\Database::connection()->prepare('UPDATE demandes SET sous_activite = ?, famille_produit = ? WHERE id = ?')
+            ->execute([$sous, $famille, $demandeId]);
+    }
+
     private function donneesFormulaire(array $user, ?array $demande = null): array
     {
         $filiales = Filiale::visibleFor($user);
@@ -391,6 +416,8 @@ class DemandeController
             'piecesJointes' => $demande ? DemandePieceJointe::forDemande((int) $demande['id']) : [],
             'dossierExistant' => $demande ? Dossier::findByDemande((int) $demande['id']) : null,
             'demande' => $demande,
+            'sousActivitesParFiliale' => $this->sousActivitesParFiliale($filiales),
+            'famillesProduit' => \App\Models\SousActivite::FAMILLES,
             'retourListeQuery' => $_SESSION['demandes_liste_query'] ?? 'r=demandes',
         ];
     }
@@ -511,6 +538,7 @@ class DemandeController
         }
 
         $demandeId = Demande::create($data);
+        $this->enregistrerSousActivite($demandeId, (int) $data['filiale_id'], (string) $data['activite']);
         AuditLog::log($data['filiale_id'], (int) $user['id'], 'creation', 'demande', $demandeId, 'Demande créée');
 
         // [08/10] Prévenir ceux qui qualifient les demandes (cloche), sauf l'auteur.
@@ -589,6 +617,7 @@ class DemandeController
         $data['filiale_id'] = (int) $demande['filiale_id'];
 
         Demande::update((int) $demande['id'], $data);
+        $this->enregistrerSousActivite((int) $demande['id'], (int) $data['filiale_id'], (string) $data['activite']);
         AuditLog::log($data['filiale_id'], (int) $user['id'], 'modification', 'demande', (int) $demande['id'], 'Demande modifiée');
 
         $erreursFichiers = $this->enregistrerPiecesJointes((int) $demande['id'], $data['filiale_id'], $user);

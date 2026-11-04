@@ -27,7 +27,7 @@ $presel = (int) ($fournisseurPreselection ?? 0); ?>
       <div class="form-row">
         <div class="form-group"><label for="nfType">Type de partenaire</label>
           <select id="nfType"><option value="">—</option>
-            <?php foreach (\App\Models\Fournisseur::TYPES as $code => $lib): ?><option value="<?= $code ?>"><?= View::e($lib) ?></option><?php endforeach; ?>
+            <?php foreach (\App\Models\Fournisseur::libelles() as $code => $lib): ?><option value="<?= $code ?>"><?= View::e($lib) ?></option><?php endforeach; ?>
           </select></div>
         <div class="form-group"><label for="nfPays">Pays</label><select id="nfPays"><?= \App\Core\Telephone::optionsPays('') ?></select></div>
       </div>

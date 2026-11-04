@@ -103,7 +103,7 @@ class FournisseurController
             fputcsv($out, Csv::row([
                 $f['code'],
                 $f['nom'],
-                implode(', ', array_map(fn($t) => Fournisseur::TYPES[$t], Fournisseur::typesDe($f))),
+                implode(', ', array_map(fn($t) => Fournisseur::libelle($t), Fournisseur::typesDe($f))),
                 implode(', ', Fournisseur::specialitesDe($f)),
                 $f['pays'],
                 $f['ville'],
@@ -138,6 +138,7 @@ class FournisseurController
             'clients' => Fournisseur::schemaPret() ? Fournisseur::clientsLiables($user) : [],
             'defauts' => Fournisseur::defautsOrganisation($user),
             'schemaPret' => Fournisseur::schemaPret(),
+            'categoriesAjoutees' => \App\Models\CategorieFournisseur::actives(array_map(fn($f) => (int) $f['id'], Filiale::visibleFor($user))),
             'retour' => '/index.php?' . ($_SESSION['fournisseurs_liste_query'] ?? 'r=fournisseurs'),
         ];
     }
@@ -164,10 +165,23 @@ class FournisseurController
             $clientId = ($c && \App\Models\Client::userCanAccess($user, $c)) ? $clientId : 0;
         }
         $specialites = implode(', ', array_filter(array_map('trim', explode(',', $p('specialites'))), fn($s) => $s !== ''));
+        // Catégorie qui n'existe pas encore : créée dans la filiale du fournisseur, puis cochée.
+        $typesChoisis = (array) ($_POST['types'] ?? []);
+        $nouvelle = $p('nouvelle_categorie');
+        if ($nouvelle !== '') {
+            $fid = (int) ($_POST['filiale_id'] ?? 0);
+            if (!$fid || !Filiale::userCanAccess($user, $fid)) {
+                $fid = (int) (Filiale::visibleFor($user)[0]['id'] ?? 0);
+            }
+            $code = \App\Models\CategorieFournisseur::creer($fid, $nouvelle);
+            if ($code !== '') {
+                $typesChoisis[] = $code;
+            }
+        }
         return [
             'nom' => $p('nom'),
             'nom_commercial' => $p('nom_commercial'),
-            'types_partenaire' => Fournisseur::typesStockes((array) ($_POST['types'] ?? [])),
+            'types_partenaire' => Fournisseur::typesStockes($typesChoisis),
             'specialites' => $specialites,
             'activites' => implode(',', $liste('activites', \App\Models\Demande::ACTIVITES)),
             'secteur' => $p('secteur'),

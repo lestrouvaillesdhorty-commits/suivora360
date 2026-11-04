@@ -118,7 +118,7 @@ $entete = function (string $cle, string $libelle) use ($filtres, $lien) {
       <label for="ftype">Type</label>
       <select id="ftype" name="type">
         <option value="">Tous</option>
-        <?php foreach (Fournisseur::TYPES as $code => $lib): ?><option value="<?= $code ?>" <?= $filtres['type'] === $code ? 'selected' : '' ?>><?= View::e($lib) ?></option><?php endforeach; ?>
+        <?php foreach (Fournisseur::libelles() as $code => $lib): ?><option value="<?= $code ?>" <?= $filtres['type'] === $code ? 'selected' : '' ?>><?= View::e($lib) ?></option><?php endforeach; ?>
       </select>
     </div>
     <?php endif; ?>
@@ -202,7 +202,7 @@ $entete = function (string $cle, string $libelle) use ($filtres, $lien) {
     <tr onclick="window.location='/index.php?r=fournisseurs/<?= (int) $f['id'] ?>'" style="cursor:pointer">
       <td data-label="Fournisseur"><strong><?= View::e($f['nom']) ?></strong><br><span style="font-size:12px;color:#888"><?= View::e($f['code'] ?? '') ?></span></td>
       <td data-label="Type">
-        <?php if ($types): foreach ($types as $t): ?><span class="badge <?= Fournisseur::TYPES_BADGES[$t] ?>"><?= View::e(Fournisseur::TYPES[$t]) ?></span> <?php endforeach; else: ?><span style="color:#999">—</span><?php endif; ?>
+        <?php if ($types): foreach ($types as $t): ?><span class="badge <?= Fournisseur::badgeType($t) ?>"><?= View::e(Fournisseur::libelle($t)) ?></span> <?php endforeach; else: ?><span style="color:#999">—</span><?php endif; ?>
       </td>
       <td data-label="Spécialités"><?= $specs ? View::e(implode(', ', array_slice($specs, 0, 3))) . (count($specs) > 3 ? ' …' : '') : '<span style="color:#999">—</span>' ?></td>
       <td data-label="Pays / ville"><?= View::e(trim(($f['pays'] ?? '') . ((!empty($f['pays']) && !empty($f['ville'])) ? ' · ' : '') . ($f['ville'] ?? ''))) ?: '—' ?></td>

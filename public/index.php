@@ -826,6 +826,14 @@ $router->post('/parametres/entreprise', function () {
     Auth::requireLogin();
     (new \App\Controllers\EntrepriseController())->update();
 });
+$router->get('/parametres/listes', function () {
+    Auth::requireLogin();
+    (new ParametresController())->listes();
+});
+$router->post('/parametres/listes', function () {
+    Auth::requireLogin();
+    (new ParametresController())->listesUpdate();
+});
 $router->post('/parametres', function () {
     Auth::requireLogin();
     (new ParametresController())->update();

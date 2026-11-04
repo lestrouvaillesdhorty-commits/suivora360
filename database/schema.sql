@@ -85,6 +85,9 @@ CREATE TABLE IF NOT EXISTS demandes (
     -- [ajouté v14] Notes internes d'affectation, utilisables dès la
     -- création/modification — distinctes de `qualification_notes`.
     notes_internes TEXT,
+    -- [ajouté v37] sous-activité (liste par filiale) et famille de produit
+    sous_activite VARCHAR(120),
+    famille_produit VARCHAR(120),
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -723,4 +726,22 @@ CREATE TABLE IF NOT EXISTS entreprise_infos ( -- migrate_v36.php : fiche « Mon 
     devis_validite_jours INT NOT NULL DEFAULT 30,
     devis_conditions TEXT,
     updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS sous_activites ( -- migrate_v37.php : sous-activités configurables par filiale
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filiale_id INT NOT NULL,
+    activite VARCHAR(100) NOT NULL,
+    nom VARCHAR(120) NOT NULL,
+    ordre INT NOT NULL DEFAULT 0,
+    actif TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS categories_fournisseur ( -- migrate_v37.php : catégories de fournisseur ajoutées
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filiale_id INT NOT NULL,
+    libelle VARCHAR(120) NOT NULL,
+    actif TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -263,16 +263,32 @@ class Fournisseur
     // Types, qualification, notes
     // ------------------------------------------------------------------
 
+    /** Six catégories d'origine + catégories ajoutées par les utilisateurs (migrate_v37). */
+    public static function libelles(): array
+    {
+        return self::TYPES + CategorieFournisseur::toutes();
+    }
+
+    public static function libelle(string $code): string
+    {
+        return self::libelles()[$code] ?? $code;
+    }
+
+    public static function badgeType(string $code): string
+    {
+        return self::TYPES_BADGES[$code] ?? 'badge-gray';
+    }
+
     /** Codes de types d'une fiche (stockés « ,fabricant,transporteur, »). */
     public static function typesDe(array $f): array
     {
         $codes = array_filter(array_map('trim', explode(',', (string) ($f['types_partenaire'] ?? ''))));
-        return array_values(array_filter($codes, fn($c) => isset(self::TYPES[$c])));
+        return array_values(array_filter($codes, fn($c) => isset(self::libelles()[$c])));
     }
 
     public static function typesStockes(array $codes): string
     {
-        $codes = array_values(array_unique(array_filter($codes, fn($c) => isset(self::TYPES[$c]))));
+        $codes = array_values(array_unique(array_filter($codes, fn($c) => isset(self::libelles()[$c]))));
         return $codes ? ',' . implode(',', $codes) . ',' : '';
     }
 
@@ -437,7 +453,7 @@ class Fournisseur
             'pays' => trim((string) ($src['pays'] ?? '')),
             'specialite' => trim((string) ($src['specialite'] ?? '')),
             'filiale_id' => (int) ($src['filiale_id'] ?? 0),
-            'type' => array_key_exists($src['type'] ?? '', self::TYPES) ? $src['type'] : '',
+            'type' => array_key_exists($src['type'] ?? '', self::libelles()) ? $src['type'] : '',
             'responsable_id' => (int) ($src['responsable_id'] ?? 0),
             'qualification' => array_key_exists($src['qualification'] ?? '', self::QUALIFICATIONS) ? $src['qualification'] : '',
             'onglet' => in_array($onglet, ['tous', 'actifs', 'inactifs'], true) ? $onglet : 'tous',

@@ -86,4 +86,71 @@ class ParametresController
         header('Location: /index.php?r=parametres&filiale_id=' . $filialeId);
         exit;
     }
+
+    /** Page « Sous-activités et catégories » : listes configurables par filiale. */
+    public function listes(): void
+    {
+        Auth::requireParametres();
+        $user = Auth::user();
+        $filiales = Filiale::visibleFor($user);
+        $filialeId = (int) ($_GET['filiale_id'] ?? ($filiales[0]['id'] ?? 0));
+        if (!$filialeId || !Filiale::userCanAccess($user, $filialeId)) {
+            $filialeId = (int) ($filiales[0]['id'] ?? 0);
+        }
+        View::render('parametres/listes', [
+            'filiales' => $filiales,
+            'filialeId' => $filialeId,
+            'sousActivites' => \App\Models\SousActivite::parActivite($filialeId),
+            'usages' => \App\Models\SousActivite::usages($filialeId),
+            'categories' => \App\Models\CategorieFournisseur::lignes($filialeId),
+            'disponible' => \App\Models\SousActivite::disponible(),
+        ]);
+    }
+
+    public function listesUpdate(): void
+    {
+        Auth::requireParametres();
+        $user = Auth::user();
+        $filialeId = (int) ($_POST['filiale_id'] ?? 0);
+        $retour = '/index.php?r=parametres/listes&filiale_id=' . $filialeId;
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        if (!$filialeId || !Filiale::userCanAccess($user, $filialeId)) {
+            View::flash('erreur', "Vous n'avez pas accès à cette filiale.");
+            header('Location: /index.php?r=parametres/listes');
+            exit;
+        }
+        $id = (int) ($_POST['id'] ?? 0);
+        $nom = (string) ($_POST['nom'] ?? '');
+        $ok = true;
+        switch ($_POST['action'] ?? '') {
+            case 'sa_ajouter':
+                $ok = \App\Models\SousActivite::ajouter($filialeId, (string) ($_POST['activite'] ?? ''), $nom);
+                break;
+            case 'sa_renommer':
+                $ok = \App\Models\SousActivite::renommer($filialeId, $id, $nom);
+                break;
+            case 'sa_basculer':
+                $ok = \App\Models\SousActivite::basculer($filialeId, $id);
+                break;
+            case 'cat_ajouter':
+                $ok = \App\Models\CategorieFournisseur::creer($filialeId, $nom) !== '';
+                break;
+            case 'cat_renommer':
+                \App\Models\CategorieFournisseur::renommer($filialeId, $id, $nom);
+                break;
+            case 'cat_basculer':
+                \App\Models\CategorieFournisseur::basculer($filialeId, $id);
+                break;
+            default:
+                $ok = false;
+        }
+        AuditLog::log($filialeId, (int) $user['id'], 'modification_listes', 'parametres', $filialeId, (string) ($_POST['action'] ?? ''));
+        View::flash($ok ? 'succes' : 'erreur', $ok ? 'Liste mise à jour.' : "Modification impossible : vérifiez le nom saisi (ou lancez migrate_v37.php).");
+        header('Location: ' . $retour);
+        exit;
+    }
 }

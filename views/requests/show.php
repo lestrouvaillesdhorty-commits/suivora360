@@ -99,7 +99,8 @@ $unitesArticle = \App\Models\Demande::UNITES;
      reste dans le sous-titre ci-dessus, Notes internes reste dans "Suivi"). -->
 <div class="info-strip">
   <div class="ii"><?= Icon::svg('user', '', 16) ?><div><div class="il">Responsable</div><div class="iv"><?= !empty($demande['responsable_id']) ? View::e(Utilisateur::nameOf($demande['responsable_id'])) : 'Non assigné' ?></div></div></div>
-  <div class="ii"><?= Icon::svg('briefcase', '', 16) ?><div><div class="il">Activité</div><div class="iv"><?= View::e($demande['activite']) ?: 'Non renseigné' ?></div></div></div>
+  <div class="ii"><?= Icon::svg('briefcase', '', 16) ?><div><div class="il">Activité</div><div class="iv"><?= View::e($demande['activite']) ?: 'Non renseigné' ?><?php if (!empty($demande['sous_activite'])): ?> · <?= View::e($demande['sous_activite']) ?><?php endif; ?></div></div></div>
+  <?php if (!empty($demande['famille_produit'])): ?><div class="ii"><?= Icon::svg('briefcase', '', 16) ?><div><div class="il">Famille de produit</div><div class="iv"><?= View::e($demande['famille_produit']) ?></div></div></div><?php endif; ?>
   <div class="ii"><?= Icon::svg('tag', '', 16) ?><div><div class="il">Priorité</div><div class="iv"><?= Demande::PRIORITES[$demande['priorite']] ?? ucfirst($demande['priorite']) ?></div></div></div>
   <div class="ii"><?= Icon::svg('calendar', '', 16) ?><div><div class="il">Échéance interne</div><div class="iv"><?= $demande['echeance'] ? date('d/m/Y', strtotime($demande['echeance'])) : 'Non renseigné' ?> <?php if ($echeanceEnRetard): ?><span class="badge badge-red">En retard</span><?php endif; ?></div></div></div>
   <div class="ii"><?= Icon::svg('clock', '', 16) ?><div><div class="il">Date souhaitée client</div><div class="iv"><?= !empty($demande['date_souhaitee_client']) ? date('d/m/Y', strtotime($demande['date_souhaitee_client'])) : 'Non renseignée' ?></div></div></div>

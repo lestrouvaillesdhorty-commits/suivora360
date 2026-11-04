@@ -30,7 +30,7 @@ $nbAlertes = count($alertesDocuments);
     <?php if (!empty($fournisseur['nom_commercial'])): ?><div style="color:#666;font-size:14px;margin-bottom:4px">Nom commercial : <?= View::e($fournisseur['nom_commercial']) ?></div><?php endif; ?>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <span style="color:#666;font-size:14px"><?= View::e($fournisseur['code'] ?? '') ?></span>
-      <?php foreach ($types as $t): ?><span class="badge <?= Fournisseur::TYPES_BADGES[$t] ?>"><?= View::e(Fournisseur::TYPES[$t]) ?></span><?php endforeach; ?>
+      <?php foreach ($types as $t): ?><span class="badge <?= Fournisseur::badgeType($t) ?>"><?= View::e(Fournisseur::libelle($t)) ?></span><?php endforeach; ?>
       <span class="badge <?= Fournisseur::QUALIFICATION_BADGES[$qual] ?>" title="Niveau de qualification"><?= View::e(Fournisseur::QUALIFICATIONS[$qual]) ?></span>
       <span class="badge <?= $actif ? 'badge-green' : 'badge-gray' ?>"><?= $actif ? 'Actif' : 'Inactif' ?></span>
     </div>
