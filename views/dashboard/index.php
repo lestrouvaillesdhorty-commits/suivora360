@@ -154,10 +154,10 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
           <span class="prio-type ac-ico" style="background:<?= $style['bg'] ?>;color:<?= $style['fg'] ?>"><?= Icon::svg($style['icon'], 'icon', 20) ?></span>
           <div class="ac-main">
             <div class="ac-title"><?= View::e($it['action']) ?></div>
-            <div class="ac-sub"><?= View::e($it['titre'] ?: $it['type_label']) ?> · <?= View::e($it['reference'] ?? '') ?></div>
+            <div class="ac-sub"><?= View::e(trim((string) ($it['reference'] ?? ''))) ?> · <?= View::e($it['titre'] ?: $it['type_label']) ?></div>
           </div>
           <span class="ac-chip <?= $cls ?>"><?= $txt ?></span>
-          <a href="<?= View::e($it['lien']) ?>" class="btn btn-sm btn-secondary">Ouvrir</a>
+          <a href="<?= View::e($it['lien']) ?>" class="btn btn-sm btn-secondary"><?= View::e($it['bouton'] ?? 'Ouvrir') ?></a>
         </li>
         <?php
     };

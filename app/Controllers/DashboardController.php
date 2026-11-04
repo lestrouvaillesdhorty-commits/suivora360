@@ -224,29 +224,41 @@ class DashboardController
                 'titre' => $co['dossier_objet'] ?? $co['client_nom'],
                 'echeance' => date('Y-m-d', strtotime($co['created_at'] . ' +7 days')),
                 'echeance_synthetique' => true,
-                'action' => 'Relancer le client pour la cotation',
+                'action' => 'Relancer le client pour le devis ' . ($co['reference'] ?? ''),
                 'bouton' => 'Relancer',
                 'lien' => "/index.php?r=cotations/{$co['id']}",
                 'responsable_id' => $co['responsable_id'] ?? null,
             ];
         }
 
+        $offresParDossier = [];
         foreach (Offre::aAnalyserFor($user, 200, $filialeIds, $activite) as $o) {
             $dossierId = (int) ($o['dossier_id_reel'] ?? $o['dossier_id']);
-            $items[] = [
-                'type' => 'offre',
-                'type_label' => 'Offre',
-                'id' => (int) $o['id'],
-                'dossier_id' => $dossierId,
-                'reference' => $o['dossier_reference'],
-                'titre' => $o['dossier_objet'],
-                'echeance' => date('Y-m-d', strtotime($o['created_at'] . ' +5 days')),
-                'echeance_synthetique' => true,
-                'action' => 'Analyser l\'offre reçue',
-                'bouton' => 'Analyser',
-                'lien' => "/index.php?r=dossiers/{$dossierId}/comparateur",
-                'responsable_id' => $o['responsable_id'] ?? null,
-            ];
+            $ech = date('Y-m-d', strtotime($o['created_at'] . ' +5 days'));
+            if (!isset($offresParDossier[$dossierId])) {
+                $offresParDossier[$dossierId] = [
+                    'type' => 'offre',
+                    'type_label' => 'Offre',
+                    'id' => (int) $o['id'],
+                    'dossier_id' => $dossierId,
+                    'reference' => $o['dossier_reference'],
+                    'titre' => $o['dossier_objet'],
+                    'echeance' => $ech,
+                    'echeance_synthetique' => true,
+                    'nb' => 0,
+                    'bouton' => 'Comparer',
+                    'lien' => "/index.php?r=dossiers/{$dossierId}/comparateur",
+                    'responsable_id' => $o['responsable_id'] ?? null,
+                ];
+            }
+            $offresParDossier[$dossierId]['nb']++;
+            if ($ech < $offresParDossier[$dossierId]['echeance']) {
+                $offresParDossier[$dossierId]['echeance'] = $ech;
+            }
+        }
+        foreach ($offresParDossier as $it) {
+            $it['action'] = $it['nb'] > 1 ? 'Analyser les ' . $it['nb'] . ' offres reçues' : "Analyser l'offre reçue";
+            $items[] = $it;
         }
 
         $buckets = ['retard' => [], 'aujourd_hui' => [], 'a_venir' => []];
