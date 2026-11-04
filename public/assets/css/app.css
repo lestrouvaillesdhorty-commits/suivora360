@@ -1124,3 +1124,9 @@ tbody tr:last-child td { border-bottom: 0; }
   form.dash-filtres select{display:block;width:100% !important;max-width:none !important;height:44px;text-overflow:ellipsis}
   form.dash-filtres > a{margin:0 !important;text-align:right}
 }
+
+/* Mobile : le menu est caché dès le chargement (sans attendre le script), il ne « clignote » plus à l'ouverture d'une page. */
+@media (max-width:768px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto;transform:translateX(-100%)}
+  .sidebar.sidebar-open{transform:none}
+}
