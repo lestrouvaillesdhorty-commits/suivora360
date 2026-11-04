@@ -66,10 +66,15 @@ class DashboardController
         // Dossiers en cours (bloc « avancement » du tableau de bord) : les plus récents, avec leur étape.
         $dossiersEnCours = [];
         try {
-            $dossiersEnCours = array_slice(Dossier::visibleFor($user, array_filter([
+            $dossiersEnCours = Dossier::visibleFor($user, array_filter([
                 'statut' => 'actif',
                 'filiale_id' => $filialeIdSelection,
-            ])), 0, 6);
+            ]));
+            if ($activite) {
+                $typeAttendu = Dossier::deduireType($activite);
+                $dossiersEnCours = array_values(array_filter($dossiersEnCours, fn($d) => ($d['type_dossier'] ?? 'autre') === $typeAttendu));
+            }
+            $dossiersEnCours = array_slice($dossiersEnCours, 0, 6);
         } catch (\Throwable $e) {
             $dossiersEnCours = [];
         }
