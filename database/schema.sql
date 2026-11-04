@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
     is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
     doit_changer_mdp TINYINT(1) NOT NULL DEFAULT 0,
     filiale_active_id INT NULL,
-    created_at DATETIME NOT NULL
+    created_at DATETIME NOT NULL,
+    derniere_activite VARCHAR(100) -- migrate_v35.php : dernière activité du tableau de bord
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS utilisateur_filiales (

@@ -37,16 +37,35 @@ class DashboardController
         $filialeIdDemande = isset($_GET['filiale_id']) ? (int) $_GET['filiale_id'] : null;
         $filialeIds = Filiale::resoudreFiltreIds($user, $filialeIdDemande);
         $filialeIdSelection = (count($filialeIds) === 1) ? $filialeIds[0] : null;
-        // Dernière activité consultée : retenue dans un cookie (un an) et rouverte à la visite suivante.
-        // Un choix explicite (y compris « Toutes les activités », valeur vide) remplace le souvenir.
+        // Dernière activité consultée : enregistrée sur le compte (migrate_v35) pour la retrouver sur tous
+        // les appareils, avec un cookie en secours si la colonne n'existe pas encore. Un choix explicite
+        // (y compris « Toutes les activités », valeur vide) remplace le souvenir.
+        $colonneActivite = \App\Core\Schema::colonne('utilisateurs', 'derniere_activite');
         if (array_key_exists('activite', $_GET)) {
             $activite = trim((string) $_GET['activite']);
             $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
+            if ($colonneActivite) {
+                try {
+                    \App\Core\Database::connection()->prepare('UPDATE utilisateurs SET derniere_activite = ? WHERE id = ?')->execute([$activite !== '' ? $activite : null, (int) $user['id']]);
+                } catch (\Throwable $e) {
+                }
+            }
             if (!headers_sent()) {
                 setcookie('suivora_activite', $activite, ['expires' => time() + 31536000, 'path' => '/', 'secure' => !empty($_SERVER['HTTPS']), 'httponly' => true, 'samesite' => 'Lax']);
             }
         } else {
-            $activite = trim((string) ($_COOKIE['suivora_activite'] ?? ''));
+            $activite = '';
+            if ($colonneActivite) {
+                try {
+                    $st = \App\Core\Database::connection()->prepare('SELECT derniere_activite FROM utilisateurs WHERE id = ?');
+                    $st->execute([(int) $user['id']]);
+                    $activite = trim((string) $st->fetchColumn());
+                } catch (\Throwable $e) {
+                    $activite = '';
+                }
+            } else {
+                $activite = trim((string) ($_COOKIE['suivora_activite'] ?? ''));
+            }
             $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
         }
 
