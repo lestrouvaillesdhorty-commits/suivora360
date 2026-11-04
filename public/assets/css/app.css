@@ -990,3 +990,25 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .nd-list li{display:flex;align-items:center;gap:12px}
 .nd-list .fl-body{flex:1;min-width:0}
 @media (max-width:900px){.dash2{grid-template-columns:1fr}}
+
+/* v64 : barre de navigation en bas (téléphone) */
+.tabbar{display:none}
+@media (max-width:768px){
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid #DCE9EC;padding:4px 6px calc(6px + env(safe-area-inset-bottom));align-items:stretch}
+  .tabbar a,.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;font:600 11.5px/1.1 inherit;font-family:inherit;color:#5B6B78;text-decoration:none;background:none;border:0;position:relative;cursor:pointer}
+  .tabbar a.on{color:#0B7C8A}
+  .tabbar svg{width:22px;height:22px}
+  .tabbar .tb-plus-btn{width:46px;height:46px;border-radius:50%;background:#0B7C8A;color:#fff;display:flex;align-items:center;justify-content:center;margin-top:-14px;box-shadow:0 4px 12px rgba(11,124,138,.35)}
+  .tabbar .tb-plus-btn svg{width:24px;height:24px}
+  .tabbar .tb-dot{position:absolute;top:8px;left:calc(50% + 6px);width:9px;height:9px;border-radius:50%;background:#FF9A7A;border:2px solid #fff}
+  .main{padding-bottom:78px}
+  .sidebar-fond{z-index:45}.sidebar{z-index:50}
+  .btn,button.btn,.prio-tab,select,input[type=text],input[type=date],input[type=number],input[type=search]{min-height:44px}
+  .pilotage-header .btn-pilotage{display:none}
+}
+@media (max-width:768px){
+  .pilotage-header .subtitle{display:none}
+  .dash-kpi{padding:12px 14px}
+  .dash-kpi .dk-link{display:none}
+  .dash-kpi-row{gap:10px}
+}

@@ -123,6 +123,21 @@ function navActive(string $path, string $prefix): string {
     </div>
   </div>
 </div>
+<?php if ($currentUser): ?>
+<nav class="tabbar" aria-label="Navigation rapide">
+  <a href="/index.php" class="<?= $path === '/' ? 'on' : '' ?>"><?= Icon::svg('home', 'icon', 22) ?><span>Accueil</span></a>
+  <a href="/index.php?r=dossiers" class="<?= navActive($path, '/dossiers') ? 'on' : '' ?>"><?= Icon::svg('folder', 'icon', 22) ?><span>Dossiers</span></a>
+  <a href="/index.php?r=demandes/nouvelle" class="tb-plus" aria-label="Nouvelle demande"><span class="tb-plus-btn"><?= Icon::svg('plus', 'icon', 24) ?></span></a>
+  <a href="/index.php?r=notifications" class="<?= navActive($path, '/notifications') ? 'on' : '' ?>"><?= Icon::svg('bell', 'icon', 22) ?><?php if (!empty($notifNonLues)): ?><i class="tb-dot"></i><?php endif; ?><span>Alertes</span></a>
+  <button type="button" id="tabbarMenu"><?= Icon::svg('menu', 'icon', 22) ?><span>Menu</span></button>
+</nav>
+<?php endif; ?>
+<script>
+(function () {
+  var b = document.getElementById('tabbarMenu'), o = document.getElementById('sidebarOpen');
+  if (b && o) { b.addEventListener('click', function (e) { e.stopPropagation(); o.click(); }); }
+})();
+</script>
 <script>
 (function () {
   var sidebar = document.getElementById('sidebar');
