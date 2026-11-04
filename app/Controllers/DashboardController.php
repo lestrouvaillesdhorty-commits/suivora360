@@ -79,9 +79,19 @@ class DashboardController
             $dossiersEnCours = [];
         }
 
+        $typeVue = $activite ? Dossier::deduireType($activite) : 'tout';
+        $estPrestation = $typeVue === 'prestation_entreprise';
+        $livrablesARemettre = [];
+        if ($estPrestation) {
+            try {
+                $livrablesARemettre = Commande::livrablesARemettreFor($user, 6, $filialeIds, $activite ?: null);
+            } catch (\Throwable $e) {
+                $livrablesARemettre = [];
+            }
+        }
         $fluxEnCours = [];
         try {
-            $fluxEnCours = Commande::fluxEnCours($user, 4, $filialeIds, $activite ?: null);
+            $fluxEnCours = $estPrestation ? [] : Commande::fluxEnCours($user, 4, $filialeIds, $activite ?: null);
         } catch (\Throwable $e) {
             $fluxEnCours = [];
         }
@@ -105,6 +115,8 @@ class DashboardController
             'echeancesAVenir' => $echeancesAVenir,
             'dossiersEnCours' => $dossiersEnCours,
             'fluxEnCours' => $fluxEnCours,
+            'estPrestation' => $estPrestation,
+            'livrablesARemettre' => $livrablesARemettre,
             'actionsPrioritaires' => $actionsPrioritaires,
             'actionsEnRetardCount' => $actionsEnRetardCount,
             'suivi' => [
@@ -266,6 +278,9 @@ class DashboardController
             $items[] = $it;
         }
 
+        if ($activite && Dossier::deduireType($activite) === 'prestation_entreprise') {
+            $items = array_values(array_filter($items, fn($it) => $it['type'] !== 'offre'));
+        }
         $buckets = ['retard' => [], 'aujourd_hui' => [], 'a_venir' => []];
         foreach ($items as $item) {
             if ($item['echeance'] < $aujourdhui) {

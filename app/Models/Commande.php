@@ -428,4 +428,29 @@ class Commande
         }
         return $flux;
     }
+
+    /** Prestations en cours dont aucun livrable n'a encore été remis (tableau de bord, activité « prestation »). */
+    public static function livrablesARemettreFor(array $user, int $limite = 6, ?array $filialeIds = null, ?string $activite = null): array
+    {
+        $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return [];
+        }
+        $ph = implode(',', array_fill(0, count($filialeIds), '?'));
+        $sql = "SELECT c.id, c.dossier_id, d.reference AS dossier_reference, d.objet AS dossier_objet, d.echeance AS dossier_echeance
+                FROM commandes c
+                INNER JOIN dossiers d ON d.id = c.dossier_id
+                INNER JOIN demandes dm ON dm.id = d.demande_id
+                WHERE c.statut = 'en_cours' AND d.type_dossier = 'prestation_entreprise'
+                  AND (c.livrables IS NULL OR c.livrables = '') AND c.filiale_id IN ($ph)";
+        $params = $filialeIds;
+        if ($activite) {
+            $sql .= ' AND dm.activite = ?';
+            $params[] = $activite;
+        }
+        $sql .= ' ORDER BY (d.echeance IS NULL), d.echeance ASC LIMIT ' . (int) $limite;
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
 }

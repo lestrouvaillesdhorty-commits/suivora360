@@ -87,6 +87,26 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 </form>
 <?php endif; ?>
 
+<?php if (!empty($estPrestation)): ?>
+<div class="dash-kpi-row" style="margin-top:18px">
+  <a href="/index.php?r=demandes&statut=a_qualifier" class="dash-kpi">
+    <div class="dk-icon" style="background:#DDF1F3;color:#0B7C8A"><?= Icon::svg('file-text', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= $demandeCounts['a_qualifier'] ?></div><div class="dk-label">Demandes à qualifier</div><div class="dk-link">Voir les demandes <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+  <a href="/index.php?r=cotations" class="dash-kpi">
+    <div class="dk-icon" style="background:#FFE3DA;color:#8F3217"><?= Icon::svg('tag', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= $cotationsARelancerCount ?></div><div class="dk-label">Devis à relancer</div><div class="dk-link">Voir les devis <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+  <a href="/index.php?r=dossiers&statut=actif" class="dash-kpi">
+    <div class="dk-icon" style="background:#DFF3E8;color:#14633C"><?= Icon::svg('folder', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= $dossierCounts['actifs'] ?></div><div class="dk-label">Prestations en cours</div><div class="dk-link">Voir les prestations <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+  <a href="#livrables" class="dash-kpi">
+    <div class="dk-icon" style="background:#FDE5DF;color:#C8402A"><?= Icon::svg('clock', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= count($livrablesARemettre) ?></div><div class="dk-label">Livrables à remettre</div><div class="dk-link">Voir la liste <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+</div>
+<?php else: ?>
 <div class="dash-kpi-row" style="margin-top:18px">
   <a href="/index.php?r=demandes&statut=a_qualifier" class="dash-kpi">
     <div class="dk-icon" style="background:#DDF1F3;color:#0B7C8A"><?= Icon::svg('file-text', 'icon', 21) ?></div>
@@ -111,6 +131,7 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
     <div><div class="dk-value" style="<?= $actionsEnRetardCount > 0 ? 'color:#A63A1F' : '' ?>"><?= $actionsEnRetardCount ?></div><div class="dk-label">Actions en retard</div><div class="dk-link">Voir les actions <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
 </div>
+<?php endif; ?>
 
 <?php
 $opsColors = [
@@ -196,6 +217,23 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
   </div>
 </div>
 <div class="dash2-right">
+  <?php if (!empty($estPrestation)): ?>
+  <div class="card flux-card dash2-flux" id="livrables">
+    <h2>Livrables à remettre</h2>
+    <?php if (empty($livrablesARemettre)): ?>
+      <div class="empty-state">Aucun livrable en attente.</div>
+    <?php else: ?>
+    <ul class="ac-list">
+      <?php foreach ($livrablesARemettre as $l): ?>
+      <li class="ac-row">
+        <div class="ac-main"><div class="ac-title"><?= View::e($l['dossier_objet']) ?></div><div class="ac-sub"><?= View::e($l['dossier_reference']) ?><?= !empty($l['dossier_echeance']) ? ' · échéance ' . date('d/m/Y', strtotime($l['dossier_echeance'])) : '' ?></div></div>
+        <a href="/index.php?r=dossiers/<?= (int) $l['dossier_id'] ?>/commande" class="btn btn-sm btn-secondary">Renseigner</a>
+      </li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+  </div>
+  <?php else: ?>
   <div class="card flux-card dash2-flux">
     <h2 style="display:flex;justify-content:space-between;align-items:center"><span>Vos flux en cours</span><a href="/index.php?r=dossiers&statut=actif" style="font-size:13px;font-weight:600">Tout voir</a></h2>
     <?php if (empty($fluxEnCours)): ?>
@@ -216,6 +254,7 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
     </div>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </div>
 </div>
 
