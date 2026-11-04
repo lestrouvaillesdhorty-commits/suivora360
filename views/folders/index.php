@@ -174,7 +174,7 @@ $tuiles = [
         <td data-label="Type"><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><?= Icon::svg($typeIcone[$d['type_dossier'] ?? 'autre'] ?? 'folder', 'icon', 15) ?> <?= View::e(Dossier::TYPES_LABELS[$d['type_dossier'] ?? 'autre'] ?? '—') ?></span></td>
         <td data-label="Étape" style="min-width:120px">
           <span class="badge badge-blue"><?= View::e(Dossier::ETAPES_LABELS[$d['etape']] ?? $d['etape']) ?></span>
-          <div style="background:#f1f2f5;border-radius:6px;height:4px;overflow:hidden;margin-top:6px;max-width:110px" title="Avancement <?= $prog ?> %"><div style="background:<?= $prog === 100 ? '#16a34a' : '#4f46e5' ?>;height:100%;width:<?= $prog ?>%"></div></div>
+          <div style="background:#f1f2f5;border-radius:6px;height:4px;overflow:hidden;margin-top:6px;max-width:110px" title="Avancement <?= $prog ?> %"><div style="background:<?= $prog === 100 ? '#16a34a' : '#0B7C8A' ?>;height:100%;width:<?= $prog ?>%"></div></div>
         </td>
         <td data-label="Responsable">
           <?php if ($resp !== '' && $resp !== '—'): ?>

@@ -179,7 +179,7 @@ $opsColors = [
   'offres'     => ['bg' => '#DFF3E8', 'fg' => '#14633C', 'icon' => 'file'],
   'cotations'  => ['bg' => '#FFE3DA', 'fg' => '#8F3217', 'icon' => 'tag'],
   'commandes'  => ['bg' => '#DFF3E8', 'fg' => '#14633C', 'icon' => 'shopping-cart'],
-  'livraisons' => ['bg' => '#ede9fe', 'fg' => '#7c3aed', 'icon' => 'truck'],
+  'livraisons' => ['bg' => '#DDF1F3', 'fg' => '#0B7C8A', 'icon' => 'truck'],
 ];
 $opsLabels = ['demandes' => 'Demandes', 'dossiers' => 'Dossiers', 'offres' => 'Offres', 'cotations' => 'Cotations', 'commandes' => 'Commandes', 'livraisons' => 'Livraisons'];
 $opsLinks = ['demandes' => 'demandes', 'dossiers' => 'dossiers&statut=actif', 'offres' => 'demandes', 'cotations' => 'dossiers', 'commandes' => 'dossiers', 'livraisons' => 'dossiers'];

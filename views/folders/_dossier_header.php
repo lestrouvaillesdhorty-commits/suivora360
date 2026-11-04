@@ -108,7 +108,7 @@ $etapesStatut = Dossier::etapesAvecStatut($dossier['etape']);
 ?>
 <div style="display:flex;align-items:center;gap:12px;margin:6px 0 12px">
   <strong style="font-size:13px;white-space:nowrap">Avancement du dossier : <?= (int) $progressionDossier ?> %</strong>
-  <div style="flex:1;background:#e5e7eb;border-radius:999px;height:8px;overflow:hidden" role="progressbar" aria-valuenow="<?= (int) $progressionDossier ?>" aria-valuemin="0" aria-valuemax="100"><div style="background:<?= $progressionDossier >= 100 ? '#16a34a' : '#4f46e5' ?>;height:100%;width:<?= (int) $progressionDossier ?>%"></div></div>
+  <div style="flex:1;background:#e5e7eb;border-radius:999px;height:8px;overflow:hidden" role="progressbar" aria-valuenow="<?= (int) $progressionDossier ?>" aria-valuemin="0" aria-valuemax="100"><div style="background:<?= $progressionDossier >= 100 ? '#16a34a' : '#0B7C8A' ?>;height:100%;width:<?= (int) $progressionDossier ?>%"></div></div>
 </div>
 <div class="phase-stepper">
   <?php foreach ($etapesStatut as $e): ?>

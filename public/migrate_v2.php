@@ -175,7 +175,7 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['action'] ?? '') === 'mig
 body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: #f4f5f7; margin: 0; padding: 40px 20px; }
 .card { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 h1 { font-size: 20px; margin-top: 0; }
-button { margin-top: 16px; padding: 12px 20px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+button { margin-top: 16px; padding: 12px 20px; background: #0B7C8A; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
 .note { font-size: 13px; color: #666; margin-top: 20px; line-height: 1.5; }
 ul { font-size: 13px; line-height: 1.6; padding-left: 20px; }
 li.err { color: #9b1c1c; }

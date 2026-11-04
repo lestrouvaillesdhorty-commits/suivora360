@@ -199,7 +199,7 @@ textarea { resize: vertical; }
   background: #fff; border: 1px solid var(--border); padding: 8px 14px; border-radius: 10px;
 }
 .topbar .topbar-org svg { color: var(--primary); }
-.topbar .topbar-filiale { display: flex; align-items: center; gap: 8px; margin: 0; background: #f1efff; border: 1px solid #d9d4ff; padding: 5px 6px 5px 12px; border-radius: 10px; }
+.topbar .topbar-filiale { display: flex; align-items: center; gap: 8px; margin: 0; background: #DDF1F3; border: 1px solid #BFE0E5; padding: 5px 6px 5px 12px; border-radius: 10px; }
 .topbar .topbar-filiale label { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--primary); }
 .topbar .topbar-filiale select { width: auto; max-width: 200px; padding: 6px 10px; font-size: 13px; font-weight: 600; border-radius: 8px; background: #fff; }
 .topbar .topbar-right { display: flex; align-items: center; gap: 12px; }
@@ -651,7 +651,7 @@ textarea { resize: vertical; }
 /* [ajouté 06/10, étape 3 du découpage Dossiers] Versions de cotation —
    copié à l'identique de la maquette (Cotations.dc.html). */
 .cot-version { border:1px solid var(--border, #e5e7eb); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
-.cot-version.current { border-color: var(--primary, #4f46e5); background: var(--primary-light, #eef2ff); }
+.cot-version.current { border-color: var(--primary, #0B7C8A); background: var(--primary-light, #EAF5F7); }
 .cot-version-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
 .cot-version-head .cv-title { font-weight:700; font-size:14px; color:var(--ink, #1f2937); }
 .hint { font-size: 12px; color: #888; margin-top: 4px; } /* [ajouté 06/10, étape 3] copié de la maquette (shared.css) */

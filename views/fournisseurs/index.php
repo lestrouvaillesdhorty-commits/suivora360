@@ -92,7 +92,7 @@ $entete = function (string $cle, string $libelle) use ($filtres, $lien) {
 </div>
 
 <?php if ($filtres['alerte'] !== ''): ?>
-  <div class="alert" style="background:#eef2ff;color:#1e3a8a;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+  <div class="alert" style="background:#EAF5F7;color:#085560;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
     <span>Liste limitée aux fournisseurs avec <?= $filtres['alerte'] === 'consultations' ? 'une consultation en cours' : 'un document à renouveler' ?>.</span>
     <a class="btn btn-sm btn-secondary" href="<?= View::e($lien(['alerte' => null, 'page' => null])) ?>">Retirer ce filtre</a>
   </div>

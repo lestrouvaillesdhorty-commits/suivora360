@@ -229,7 +229,7 @@ body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: #f4
 h1 { font-size: 20px; margin-top: 0; }
 label { display: block; font-size: 13px; font-weight: 600; margin: 18px 0 5px; }
 input[type=email] { width: 100%; padding: 8px 10px; border: 1px solid #d7dae0; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-button { margin-top: 18px; padding: 12px 20px; background: #2d18fa; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+button { margin-top: 18px; padding: 12px 20px; background: #0B7C8A; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
 .note { font-size: 13px; color: #666; margin-top: 20px; line-height: 1.5; }
 ul { font-size: 13px; line-height: 1.6; padding-left: 20px; }
 li.err { color: #9b1c1c; }

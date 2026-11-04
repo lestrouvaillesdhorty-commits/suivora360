@@ -96,7 +96,7 @@ class Icon
             if ($p !== '') { $initiales .= mb_strtoupper(mb_substr($p, 0, 1)); }
         }
         if ($initiales === '') { $initiales = '?'; }
-        $palette = ['#5B4FE5', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#14B8A6', '#8B5CF6', '#EF4444'];
+        $palette = ['#0B7C8A', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#14B8A6', '#8B5CF6', '#EF4444'];
         $idx = crc32($nom) % count($palette);
         $color = $palette[$idx];
         return '<span class="avatar-circle" style="width:' . $size . 'px;height:' . $size . 'px;background:' . $color

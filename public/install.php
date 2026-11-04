@@ -680,7 +680,7 @@ body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: #f4
 h1 { font-size: 20px; margin-top: 0; }
 label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 4px; color: #333; }
 input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-button { margin-top: 24px; width: 100%; padding: 12px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+button { margin-top: 24px; width: 100%; padding: 12px; background: #0B7C8A; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
 .alert { padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
 .alert-error { background: #fde8e8; color: #9b1c1c; }
 .alert-success { background: #def7ec; color: #03543f; }

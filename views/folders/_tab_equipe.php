@@ -53,7 +53,7 @@ $fournisseurRetenuId = !empty($offreRetenue['fournisseur_id']) ? (int) $offreRet
     <thead><tr><th>Collaborateur</th><th>Rôle dans le dossier</th><th>Affectation</th><th>Tâches / contributions</th></tr></thead>
     <tbody>
       <tr>
-        <td><span class="avatar-sm" style="background:#5B4FE5"><?= View::e($initiales($responsableNom)) ?></span><?= View::e($responsableNom ?: 'Non assigné') ?></td>
+        <td><span class="avatar-sm" style="background:#0B7C8A"><?= View::e($initiales($responsableNom)) ?></span><?= View::e($responsableNom ?: 'Non assigné') ?></td>
         <td>Responsable du dossier</td>
         <td><span class="badge badge-green">Active</span></td>
         <td>Pilotage du dossier</td>

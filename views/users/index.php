@@ -46,7 +46,7 @@
         <div><?= View::e($u['nom']) ?></div>
         <div style="font-size:12px;color:#666"><?= View::e($u['email']) ?></div>
         <details>
-          <summary style="cursor:pointer;font-size:12px;color:#4f46e5">Modifier</summary>
+          <summary style="cursor:pointer;font-size:12px;color:#0B7C8A">Modifier</summary>
           <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/modifier" style="margin-top:8px">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
             <div class="form-group"><label>Nom</label><input type="text" name="nom" value="<?= View::e($u['nom']) ?>" required></div>
@@ -55,7 +55,7 @@
           </form>
         </details>
         <details>
-          <summary style="cursor:pointer;font-size:12px;color:#4f46e5">Réinitialiser le mot de passe</summary>
+          <summary style="cursor:pointer;font-size:12px;color:#0B7C8A">Réinitialiser le mot de passe</summary>
           <form method="post" action="/index.php?r=utilisateurs/<?= $u['id'] ?>/mot-de-passe" style="margin-top:8px">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
             <div class="form-group"><label>Nouveau mot de passe</label><input type="password" name="mot_de_passe" required minlength="8"></div>

@@ -18,7 +18,7 @@
         <strong style="font-size:14px"><?= $progression ?>%</strong>
       </div>
       <div style="background:#f1f2f5;border-radius:6px;height:8px;overflow:hidden;margin-bottom:16px">
-        <div style="background:<?= $progression === 100 ? '#16a34a' : '#4f46e5' ?>;height:100%;width:<?= $progression ?>%"></div>
+        <div style="background:<?= $progression === 100 ? '#16a34a' : '#0B7C8A' ?>;height:100%;width:<?= $progression ?>%"></div>
       </div>
       <?php foreach ($steps as $step): ?>
         <div style="padding:14px 0;border-bottom:1px solid #f1f2f5">

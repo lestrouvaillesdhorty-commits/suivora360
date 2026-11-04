@@ -167,7 +167,7 @@ ob_start(); ?>
 $ordre = array_unique(array_merge([$canalChoisi], ['email', 'whatsapp', 'autre']));
 foreach ($ordre as $i => $code):
   if ($i === 0): ?>
-  <div class="card" style="box-shadow:none;border:2px solid #c7d2fe;margin:0 0 14px"><?= $panneaux[$code] ?></div>
+  <div class="card" style="box-shadow:none;border:2px solid #BFE0E5;margin:0 0 14px"><?= $panneaux[$code] ?></div>
 <?php else: ?>
   <details style="margin:0 0 10px"><summary style="cursor:pointer;font-size:14px;color:#4b5563">Utiliser plutôt : <?= View::e($code === 'autre' ? 'un autre canal (copier le lien)' : ConsultationFournisseur::CANAUX[$code]) ?></summary>
     <div class="card" style="box-shadow:none;border:1px solid #e3e6ec;margin:8px 0 0"><?= $panneaux[$code] ?></div>

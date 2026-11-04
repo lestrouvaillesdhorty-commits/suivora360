@@ -50,7 +50,7 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
   </div>
   <?php endif; ?>
 
-  <div class="card" style="background:#eff6ff;border:1px solid #bfdbfe;font-size:13px;color:#1e3a8a">
+  <div class="card" style="background:#eff6ff;border:1px solid #bfdbfe;font-size:13px;color:#085560">
     Le meilleur résultat (prix marchandises et coût rendu les plus bas) est surligné <strong>par devise</strong> — les montants dans des devises différentes ne sont pas encore convertis automatiquement (multi-devises prévu plus tard), donc comparez d'abord les offres dans la même devise.
   </div>
 
@@ -241,7 +241,7 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
           <td>
             <?php if (!empty($itemsByOffre[$o['id']])): ?>
               <details>
-                <summary style="cursor:pointer;font-size:12px;color:#4f46e5">Voir le détail (<?= count($itemsByOffre[$o['id']]) ?>)</summary>
+                <summary style="cursor:pointer;font-size:12px;color:#0B7C8A">Voir le détail (<?= count($itemsByOffre[$o['id']]) ?>)</summary>
                 <table style="margin-top:8px;box-shadow:none;font-size:11.5px">
                   <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Px unit.</th><th>Montant</th></tr></thead>
                   <tbody>

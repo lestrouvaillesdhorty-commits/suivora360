@@ -126,7 +126,7 @@
     if (saved && saved.v && signature(saved.v) !== initial && Date.now() - saved.t <= DUREE) {
       var bandeau = document.createElement('div');
       bandeau.className = 'alert';
-      bandeau.style.cssText = 'background:#eef2ff;border:1px solid #c7d2fe;color:#312e81;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px';
+      bandeau.style.cssText = 'background:#EAF5F7;border:1px solid #BFE0E5;color:#085560;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px';
       var txt = document.createElement('span');
       txt.textContent = 'Une saisie non enregistrée a été retrouvée (' + il_y_a(Date.now() - saved.t) + ', sur cet appareil).';
       var bR = document.createElement('button'); bR.type = 'button'; bR.className = 'btn btn-sm'; bR.textContent = 'Reprendre ma saisie';
