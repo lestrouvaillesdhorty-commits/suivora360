@@ -81,16 +81,14 @@ class Demande
     // par le Dossier via une jointure sur demande_id, voir Pilotage) — pas
     // un module séparé (décision confirmée avec Marie Laure, feuille de
     // route section 7).
+    // Trois catégories d'activité (décision de Marie Laure, 04/11). Les anciennes
+    // valeurs (Import, Export, Négoce international, Dédouanement et transit,
+    // Représentation commerciale, Autre) sont rattachées à ces trois catégories
+    // par migrate_v34.php ; Dossier::ACTIVITE_TO_TYPE les reconnaît encore.
     public const ACTIVITES = [
         'Sourcing et approvisionnement',
         'Transport et logistique',
-        'Import',
-        'Export',
-        'Dédouanement et transit',
-        'Négoce international',
-        'Représentation commerciale',
         'Prestation de service',
-        'Autre',
     ];
 
     public const TAKEOVER_STAGES = [

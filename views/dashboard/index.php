@@ -58,7 +58,17 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 </div>
 
 <?php /* [ajouté 03/10, demande explicite de Marie Laure] Switcher filiale/activité — jusqu'ici impossible de filtrer le tableau de bord. */ ?>
-<?php if (count($filiales) > 1 || !empty($activites)): ?>
+<?php
+$onglets = ['' => "Vue d'ensemble", 'Sourcing et approvisionnement' => 'Sourcing et approvisionnement', 'Transport et logistique' => 'Transport et logistique', 'Prestation de service' => 'Prestation de service'];
+?>
+<nav class="dash-tabs" aria-label="Activité">
+  <?php foreach ($onglets as $val => $lib):
+      $q = array_filter(['activite' => $val, 'filiale_id' => $filialeIdSelection ?: null]);
+      $href = '/index.php' . ($q ? '?' . http_build_query($q) : ''); ?>
+    <a href="<?= View::e($href) ?>" class="<?= (string) $activiteSelection === (string) $val ? 'active' : '' ?>"><?= View::e($lib) ?></a>
+  <?php endforeach; ?>
+</nav>
+<?php if (count($filiales) > 1): ?>
 <form method="get" action="/index.php" class="dash-filtres" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0">
   <?php /* Le tableau de bord est la route "/" (pas "r=dashboard") — pas de champ "r" ici, sinon le routeur renvoie un 404. */ ?>
   <?php if (count($filiales) > 1): ?>
@@ -72,22 +82,33 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
     </select>
   </div>
   <?php endif; ?>
-  <div class="form-group" style="margin-bottom:0;min-width:220px">
-    <label style="font-size:12px">Activité</label>
-    <select name="activite" onchange="this.form.submit()">
-      <option value="">Toutes les activités</option>
-      <?php foreach ($activites as $a): ?>
-        <option value="<?= View::e($a) ?>" <?= $activiteSelection === $a ? 'selected' : '' ?>><?= View::e($a) ?></option>
-      <?php endforeach; ?>
-    </select>
-  </div>
+  <input type="hidden" name="activite" value="<?= View::e((string) $activiteSelection) ?>">
   <?php if ($filialeIdSelection || $activiteSelection): ?>
     <a href="/index.php" style="margin-left:auto;font-size:13px;font-weight:600">Réinitialiser</a>
   <?php endif; ?>
 </form>
 <?php endif; ?>
 
-<?php if (!empty($estPrestation)): ?>
+<?php if (!empty($estTransport)): ?>
+<div class="dash-kpi-row" style="margin-top:18px">
+  <a href="/index.php?r=demandes&statut=a_qualifier" class="dash-kpi">
+    <div class="dk-icon" style="background:#DDF1F3;color:#0B7C8A"><?= Icon::svg('file-text', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= $demandeCounts['a_qualifier'] ?></div><div class="dk-label">Demandes à qualifier</div><div class="dk-link">Voir les demandes <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+  <a href="/index.php?r=cotations" class="dash-kpi">
+    <div class="dk-icon" style="background:#FFE3DA;color:#8F3217"><?= Icon::svg('tag', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= $cotationsARelancerCount ?></div><div class="dk-label">Devis à relancer</div><div class="dk-link">Voir les devis <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+  <a href="#flux" class="dash-kpi">
+    <div class="dk-icon" style="background:#DFF3E8;color:#14633C"><?= Icon::svg('truck', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= count($fluxEnCours) ?></div><div class="dk-label">Transports en cours</div><div class="dk-link">Voir les flux <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+  <a href="#livraisons" class="dash-kpi">
+    <div class="dk-icon" style="background:#FDE5DF;color:#C8402A"><?= Icon::svg('clock', 'icon', 21) ?></div>
+    <div><div class="dk-value"><?= (int) $livraisonsEnCoursCount ?></div><div class="dk-label">Livraisons à suivre</div><div class="dk-link">Voir la liste <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+  </a>
+</div>
+<?php elseif (!empty($estPrestation)): ?>
 <div class="dash-kpi-row" style="margin-top:18px">
   <a href="/index.php?r=demandes&statut=a_qualifier" class="dash-kpi">
     <div class="dk-icon" style="background:#DDF1F3;color:#0B7C8A"><?= Icon::svg('file-text', 'icon', 21) ?></div>
@@ -215,6 +236,24 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
       </ul>
     <?php endif; ?>
   </div>
+  <?php if (!empty($estTransport)): ?>
+  <div class="card" id="livraisons">
+    <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('truck', 'icon', 17) ?> Livraisons à suivre</h2>
+    <?php if (empty($livraisonsEnCours)): ?>
+      <div class="empty-state">Aucune livraison en cours.</div>
+    <?php else: ?>
+      <ul class="ac-list">
+      <?php foreach (array_slice($livraisonsEnCours, 0, 5) as $l): ?>
+        <li class="ac-row">
+          <div class="ac-main"><div class="ac-title"><?= View::e($l['reference']) ?> · <?= View::e($l['destination_pays'] ?: 'Destination à compléter') ?></div><div class="ac-sub"><?= View::e($l['fournisseur_nom'] ?: '—') ?></div></div>
+          <span class="ac-chip ac-next"><?= $l['livraison_prevue'] ? date('d/m/Y', strtotime($l['livraison_prevue'])) : 'Date à fixer' ?></span>
+          <a href="/index.php?r=dossiers/<?= (int) $l['dossier_id'] ?>/commande" class="btn btn-sm btn-secondary">Suivre</a>
+        </li>
+      <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
 </div>
 <div class="dash2-right">
   <?php if (!empty($estPrestation)): ?>
@@ -234,7 +273,7 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
     <?php endif; ?>
   </div>
   <?php else: ?>
-  <div class="card flux-card dash2-flux">
+  <div class="card flux-card dash2-flux" id="flux">
     <h2 style="display:flex;justify-content:space-between;align-items:center"><span>Vos flux en cours</span><a href="/index.php?r=dossiers&statut=actif" style="font-size:13px;font-weight:600">Tout voir</a></h2>
     <?php if (empty($fluxEnCours)): ?>
       <div class="empty-state">Aucun flux en cours. Renseignez le trajet dans la commande d'un dossier expédié.</div>

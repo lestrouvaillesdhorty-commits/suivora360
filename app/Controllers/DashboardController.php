@@ -81,6 +81,7 @@ class DashboardController
 
         $typeVue = $activite ? Dossier::deduireType($activite) : 'tout';
         $estPrestation = $typeVue === 'prestation_entreprise';
+        $estTransport = $typeVue === 'transport_logistique';
         $livrablesARemettre = [];
         if ($estPrestation) {
             try {
@@ -91,7 +92,7 @@ class DashboardController
         }
         $fluxEnCours = [];
         try {
-            $fluxEnCours = $estPrestation ? [] : Commande::fluxEnCours($user, 4, $filialeIds, $activite ?: null);
+            $fluxEnCours = $estPrestation ? [] : Commande::fluxEnCours($user, $estTransport ? 8 : 4, $filialeIds, $activite ?: null);
         } catch (\Throwable $e) {
             $fluxEnCours = [];
         }
@@ -116,6 +117,7 @@ class DashboardController
             'dossiersEnCours' => $dossiersEnCours,
             'fluxEnCours' => $fluxEnCours,
             'estPrestation' => $estPrestation,
+            'estTransport' => $estTransport,
             'livrablesARemettre' => $livrablesARemettre,
             'actionsPrioritaires' => $actionsPrioritaires,
             'actionsEnRetardCount' => $actionsEnRetardCount,
