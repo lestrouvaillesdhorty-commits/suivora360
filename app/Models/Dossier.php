@@ -538,7 +538,7 @@ class Dossier
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $join = $activite ? ' INNER JOIN demandes dm ON dm.id = d.demande_id' : '';
-        $clauseActivite = $activite ? ' AND dm.activite = ?' : '';
+        $clauseActivite = $activite ? ' AND dm.activite = ?' . Demande::sousFiltresSql('dm') : '';
 
         $sql = "SELECT COUNT(*) FROM dossiers d$join WHERE d.statut = 'actif' AND d.filiale_id IN ($placeholders)$clauseActivite";
         $params = $activite ? array_merge($filialeIds, [$activite]) : $filialeIds;
@@ -578,7 +578,7 @@ class Dossier
                 AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?";
         $params = array_merge($filialeIds, [date('Y-m-d'), date('Y-m-d', strtotime('+' . $jours . ' days'))]);
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY d.echeance ASC LIMIT ' . (int) $limite;

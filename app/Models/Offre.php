@@ -466,7 +466,7 @@ class Offre
             $sql = "SELECT COUNT(*) FROM offres o
                     INNER JOIN dossiers d ON d.id = o.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND dm.activite = ?";
+                    WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $stmt = Database::connection()->prepare($sql);
@@ -491,7 +491,7 @@ class Offre
         }
         $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)";
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY o.created_at ASC LIMIT ' . (int) $limite;
@@ -523,7 +523,7 @@ class Offre
         $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND o.created_at <= ?";
         $params = array_merge($filialeIds, [$seuilDate]);
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY o.created_at ASC LIMIT ' . (int) $limite;

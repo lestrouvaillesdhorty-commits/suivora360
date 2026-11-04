@@ -80,6 +80,28 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
       <?php endforeach; ?>
     </select>
   </div>
+  <?php if (!empty($sousOptions)): ?>
+  <div class="form-group" style="margin-bottom:0;min-width:200px">
+    <label style="font-size:12px">Sous-activité</label>
+    <select name="sous_activite" onchange="this.form.submit()">
+      <option value="">Toutes</option>
+      <?php foreach ($sousOptions as $n): ?>
+        <option value="<?= View::e($n) ?>" <?= $sousSelection === $n ? 'selected' : '' ?>><?= View::e($n) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <?php endif; ?>
+  <?php if (!empty($familleDispo) && !empty($sousOptions)): ?>
+  <div class="form-group" style="margin-bottom:0;min-width:200px">
+    <label style="font-size:12px">Famille de produit</label>
+    <select name="famille_produit" onchange="this.form.submit()">
+      <option value="">Toutes</option>
+      <?php foreach (\App\Models\SousActivite::FAMILLES as $fam): ?>
+        <option <?= $familleSelection === $fam ? 'selected' : '' ?>><?= View::e($fam) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <?php endif; ?>
   <?php if ($filialeIdSelection || $activiteSelection): ?>
     <a href="/index.php?activite=" style="margin-left:auto;font-size:13px;font-weight:600">Réinitialiser</a>
   <?php endif; ?>

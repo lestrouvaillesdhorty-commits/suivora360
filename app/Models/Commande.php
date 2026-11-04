@@ -231,7 +231,7 @@ class Commande
                   AND c.date_relance IS NOT NULL AND c.date_relance < ?";
         $params = array_merge($filialeIds, [date('Y-m-d')]);
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY c.date_relance ASC LIMIT ' . (int) $limite;
@@ -260,7 +260,7 @@ class Commande
             $sql = "SELECT COUNT(*) FROM commandes c
                     INNER JOIN dossiers d ON d.id = c.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders) AND dm.activite = ?";
+                    WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         } else {
             $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND filiale_id IN ($placeholders)";
@@ -286,7 +286,7 @@ class Commande
         }
         $sql .= " WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)";
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY (c.date_relance IS NULL), c.date_relance ASC LIMIT ' . (int) $limite;
@@ -315,7 +315,7 @@ class Commande
             $sql = "SELECT COUNT(*) FROM commandes c
                     INNER JOIN dossiers d ON d.id = c.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders) AND dm.activite = ?";
+                    WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         } else {
             $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND etape = 'livraison' AND filiale_id IN ($placeholders)";
@@ -341,7 +341,7 @@ class Commande
                 WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders)";
         $params = $filialeIds;
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY (cs.date_prevue IS NULL), cs.date_prevue ASC LIMIT ' . (int) $limite;
@@ -391,7 +391,7 @@ class Commande
                 WHERE c.statut = 'en_cours' AND c.etape IN ('expedition','douane','livraison') AND c.filiale_id IN ($ph)";
         $params = $filialeIds;
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY c.updated_at DESC LIMIT ' . (int) $limite;
@@ -445,7 +445,7 @@ class Commande
                   AND (c.livrables IS NULL OR c.livrables = '') AND c.filiale_id IN ($ph)";
         $params = $filialeIds;
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY (d.echeance IS NULL), d.echeance ASC LIMIT ' . (int) $limite;

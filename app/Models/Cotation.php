@@ -230,7 +230,7 @@ class Cotation
             $sql = "SELECT COUNT(*) FROM cotations co
                     INNER JOIN dossiers d ON d.id = co.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND dm.activite = ?";
+                    WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         } else {
             $sql = "SELECT COUNT(*) FROM cotations WHERE statut = 'envoyee' AND filiale_id IN ($placeholders)";
@@ -257,7 +257,7 @@ class Cotation
         }
         $sql .= " WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders)";
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY co.created_at ASC LIMIT ' . (int) $limite;
@@ -290,7 +290,7 @@ class Cotation
         $sql .= " WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND co.created_at <= ?";
         $params = array_merge($filialeIds, [$seuilDate]);
         if ($activite) {
-            $sql .= ' AND dm.activite = ?';
+            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY co.created_at ASC LIMIT ' . (int) $limite;

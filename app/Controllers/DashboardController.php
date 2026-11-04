@@ -69,6 +69,25 @@ class DashboardController
             $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
         }
 
+        // Filtres sous-activité et famille de produit (migrate_v37) : possibles seulement une fois l'activité choisie.
+        $sousOptions = [];
+        $sousSelection = '';
+        $familleSelection = '';
+        $familleDispo = false;
+        if ($activite !== '' && \App\Models\SousActivite::disponible() && \App\Models\SousActivite::colonnesDemandes()) {
+            foreach ($filialeIds as $fid) {
+                foreach ((\App\Models\SousActivite::nomsActifs((int) $fid)[$activite] ?? []) as $n) {
+                    $sousOptions[$n] = $n;
+                }
+            }
+            $sousOptions = array_values($sousOptions);
+            $sousSelection = trim((string) ($_GET['sous_activite'] ?? ''));
+            $sousSelection = in_array($sousSelection, $sousOptions, true) ? $sousSelection : '';
+            $familleDispo = \App\Models\Dossier::deduireType($activite) === 'achat_sourcing';
+            $familleSelection = $familleDispo ? \App\Models\SousActivite::familleValide(trim((string) ($_GET['famille_produit'] ?? ''))) : '';
+            Demande::$filtresExtra = ['sous_activite' => $sousSelection, 'famille_produit' => $familleSelection];
+        }
+
         $demandeCounts = Demande::counts($user, $filialeIds, $activite ?: null);
         $dossierCounts = Dossier::counts($user, $filialeIds, $activite ?: null);
 
@@ -135,6 +154,10 @@ class DashboardController
             'filiales' => $filiales,
             'filialeIdSelection' => $filialeIdSelection,
             'activiteSelection' => $activite,
+            'sousOptions' => $sousOptions,
+            'sousSelection' => $sousSelection,
+            'familleDispo' => $familleDispo,
+            'familleSelection' => $familleSelection,
             'activites' => Demande::ACTIVITES,
             'offresAAnalyserCount' => $offresAAnalyserCount,
             'cotationsARelancerCount' => $cotationsARelancerCount,

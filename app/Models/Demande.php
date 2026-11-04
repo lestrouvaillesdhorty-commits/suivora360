@@ -191,7 +191,7 @@ class Demande
         $params = $filialeIds;
 
         if (!empty($filters['activite'])) {
-            $sql .= ' AND d.activite = ?';
+            $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
             $params[] = $filters['activite'];
         }
 
@@ -778,12 +778,33 @@ class Demande
                 WHERE statut IN ('a_qualifier','en_attente_info','qualifiee') AND filiale_id IN ($placeholders)";
         $params = $filialeIds;
         if ($activite) {
-            $sql .= ' AND activite = ?';
+            $sql .= ' AND activite = ?' . Demande::sousFiltresSql('');
             $params[] = $activite;
         }
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Filtres du tableau de bord sur la sous-activité et la famille de produit (colonnes ajoutées par
+     * migrate_v37.php). Renseignés par DashboardController uniquement ; vides partout ailleurs.
+     */
+    public static array $filtresExtra = ['sous_activite' => '', 'famille_produit' => ''];
+
+    /** Fragment SQL « AND alias.sous_activite = '…' » (valeurs échappées par PDO), ou chaîne vide. */
+    public static function sousFiltresSql(string $alias = ''): string
+    {
+        $pre = $alias !== '' ? $alias . '.' : '';
+        $pdo = Database::connection();
+        $sql = '';
+        foreach (['sous_activite', 'famille_produit'] as $col) {
+            $v = trim((string) (self::$filtresExtra[$col] ?? ''));
+            if ($v !== '') {
+                $sql .= ' AND ' . $pre . $col . ' = ' . $pdo->quote($v);
+            }
+        }
+        return $sql;
     }
 
     public static function counts(array $user, ?array $filialeIds = null, ?string $activite = null): array
@@ -793,7 +814,7 @@ class Demande
             return ['a_qualifier' => 0, 'en_retard' => 0];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $clauseActivite = $activite ? ' AND activite = ?' : '';
+        $clauseActivite = $activite ? ' AND activite = ?' . Demande::sousFiltresSql('') : '';
 
         $sql = "SELECT COUNT(*) FROM demandes WHERE statut = 'a_qualifier' AND filiale_id IN ($placeholders)$clauseActivite";
         $params = $activite ? array_merge($filialeIds, [$activite]) : $filialeIds;
@@ -830,7 +851,7 @@ class Demande
                 WHERE d.filiale_id IN ($placeholders)";
         $params = $filialeIds;
         if ($activite) {
-            $sql .= ' AND d.activite = ?';
+            $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY d.created_at DESC LIMIT ' . (int) $limite;
@@ -859,7 +880,7 @@ class Demande
                 AND d.filiale_id IN ($placeholders)";
         $params = array_merge([date('Y-m-d')], $filialeIds);
         if ($activite) {
-            $sql .= ' AND d.activite = ?';
+            $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY d.echeance ASC LIMIT ' . (int) $limite;
@@ -886,7 +907,7 @@ class Demande
                 AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?";
         $params = array_merge($filialeIds, [date('Y-m-d'), date('Y-m-d', strtotime('+' . $jours . ' days'))]);
         if ($activite) {
-            $sql .= ' AND d.activite = ?';
+            $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
             $params[] = $activite;
         }
         $sql .= ' ORDER BY d.echeance ASC LIMIT ' . (int) $limite;
