@@ -53,7 +53,13 @@ class PartagePublicController
             }
         }
 
+        $filiale = \App\Models\Filiale::find((int) ($consultation['filiale_id'] ?? 0)) ?: [];
+        $info = \App\Models\EntrepriseInfo::forFiliale((int) ($consultation['filiale_id'] ?? 0));
+        $emetteur = ['nom' => trim((string) ($info['raison_sociale'] ?? '')) ?: (string) ($filiale['nom'] ?? '')] + $info;
+
         return [
+            'emetteur' => $emetteur,
+            'logoUri' => \App\Models\EntrepriseInfo::logoDataUri($emetteur),
             'partage' => $partage,
             'consultation' => $consultation,
             'dossier' => $dossier,
