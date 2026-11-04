@@ -134,29 +134,8 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
    indicateurs signalé sur ordinateur. "Suivi des opérations" est repliable
    sur téléphone et se réordonne après "Actions prioritaires" (cf. CSS),
    sans dupliquer son contenu. */ ?>
-<div class="dash-grid" style="margin-top:18px">
-
-  <?php /* [corrigé 04/10] Les liens de "Suivi des opérations" ne doivent pas
-     se trouver dans <summary> : un clic dessus déclenchait à la fois la
-     navigation ET le repli/dépli, ce qui ouvrait la mauvaise page au premier
-     clic sur mobile. Seul l'intitulé (non cliquable à part le repli) est
-     dans <summary> ; les liens restent dans un bloc frère normal. */ ?>
-  <details class="ops-row ops-collapse dg-ops" open>
-    <summary>
-      <h2><?= Icon::svg('trending-up', 'icon', 17) ?> Suivi des opérations</h2>
-      <span class="ops-chevron"><?= Icon::svg('chevron-right', 'icon', 16) ?></span>
-    </summary>
-    <div class="ops-items">
-      <?php foreach ($opsKeys as $i => $key): ?>
-        <?php if ($i > 0): ?><span class="ops-sep"><?= Icon::svg('chevron-right') ?></span><?php endif; ?>
-        <a href="/index.php?r=<?= $opsLinks[$key] ?>" class="ops-item">
-          <span class="oi-icon" style="background:<?= $opsColors[$key]['bg'] ?>;color:<?= $opsColors[$key]['fg'] ?>"><?= Icon::svg($opsColors[$key]['icon'], 'icon', 15) ?></span>
-          <span><span class="oi-n"><?= $suivi[$key] ?></span><br><span class="oi-label"><?= $opsLabels[$key] ?></span></span>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </details>
-
+<div class="dash2" style="margin-top:18px">
+<div class="dash2-left">
   <div class="card dg-actions" id="actions-prioritaires">
     <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('target', 'icon', 17) ?> À faire maintenant</h2>
     <div class="prio-tabs" role="tablist">
@@ -219,109 +198,50 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
     <?php endforeach; ?>
   </div>
 
-  <div class="card dg-echeances">
-    <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('calendar', 'icon', 17) ?> Échéances à venir</span> <span style="font-size:12px;font-weight:400;color:#888">(7 jours)</span></h2>
-    <?php if (empty($echeancesAVenir)): ?>
-      <div class="empty-state">Rien à venir dans les 7 prochains jours.</div>
-    <?php else: ?>
-      <ul class="timeline">
-      <?php foreach ($echeancesAVenir as $e): ?>
-      <li onclick="window.location='/index.php?r=<?= $e['type'] === 'demande' ? 'demandes' : 'dossiers' ?>/<?= $e['id'] ?>'">
-        <div class="tl-date"><div class="d"><?= date('d', strtotime($e['echeance'])) ?></div><div class="m"><?= strftime_fr($e['echeance']) ?></div></div>
-        <div class="tl-dot" style="background:<?= $e['type'] === 'demande' ? '#0B7C8A' : '#10b981' ?>"></div>
-        <div class="tl-body">
-          <div class="tl-title truncate"><?= View::e($e['objet']) ?></div>
-          <div class="tl-sub"><?= View::e($e['reference']) ?> <span class="badge badge-gray" style="text-transform:capitalize"><?= $e['type'] ?></span></div>
-        </div>
-        <?= Icon::rowArrow() ?>
-      </li>
-      <?php endforeach; ?>
-      </ul>
-    <?php endif; ?>
-  </div>
-
   <div class="card dg-demandes">
-    <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('inbox', 'icon', 17) ?> Dernières demandes</span> <span style="font-size:12px;font-weight:400"><a href="/index.php?r=demandes">Toutes <?= Icon::svg('arrow-right', 'icon', 12) ?></a></span></h2>
+    <?php $nbAQualifier = 0; foreach ($dernieresDemandes as $dd) { if (($dd['statut'] ?? '') === 'a_qualifier') { $nbAQualifier++; } } ?>
+    <h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('inbox', 'icon', 17) ?> Nouvelles demandes <?php if ($nbAQualifier > 0): ?><span class="badge badge-blue"><?= $nbAQualifier ?> à qualifier</span><?php endif; ?></span><a href="/index.php?r=demandes" style="font-size:13px;font-weight:600">Toutes les demandes</a></h2>
     <?php if (empty($dernieresDemandes)): ?>
       <div class="empty-state">Aucune demande pour le moment.</div>
     <?php else: ?>
-      <ul class="feed-list">
-      <?php foreach (array_slice($dernieresDemandes, 0, 3) as $d): ?>
+      <ul class="feed-list nd-list">
+      <?php foreach (array_slice($dernieresDemandes, 0, 4) as $d): $aQ = ($d['statut'] ?? '') === 'a_qualifier'; ?>
       <li onclick="window.location='/index.php?r=demandes/<?= $d['id'] ?>'">
-        <span class="fl-icon" style="background:#DDF1F3;color:#0B7C8A"><?= Icon::svg('file-text', 'icon', 16) ?></span>
         <div class="fl-body">
           <div class="fl-title"><?= View::e($d['objet']) ?></div>
-          <div class="fl-sub"><?= View::e($d['reference']) ?> ·
-            <span class="badge <?= $statutDemandeBadges[$d['statut']][1] ?? 'badge-gray' ?>"><?= $statutDemandeBadges[$d['statut']][0] ?? ucfirst($d['statut']) ?></span>
-          </div>
+          <div class="fl-sub"><?= View::e(trim((string) ($d['client_nom'] ?? '')) !== '' ? $d['client_nom'] . ' · ' : '') ?><?= View::e($d['filiale_nom'] ?? '') ?> · reçue <?= !empty($d['recue_le']) ? date('d/m/Y', strtotime($d['recue_le'])) : '—' ?></div>
         </div>
-        <div class="fl-meta">
-          <span class="badge <?= Demande::PRIORITE_BADGES[$d['priorite']] ?? 'badge-gray' ?>"><?= Demande::PRIORITES[$d['priorite']] ?? ucfirst($d['priorite']) ?></span><br>
-          <?= $d['recue_le'] ? date('d/m/Y', strtotime($d['recue_le'])) : '—' ?>
-        </div>
+        <span class="badge <?= $statutDemandeBadges[$d['statut']][1] ?? 'badge-gray' ?>"><?= $statutDemandeBadges[$d['statut']][0] ?? ucfirst($d['statut']) ?></span>
+        <a href="/index.php?r=demandes/<?= $d['id'] ?>" class="btn btn-sm btn-secondary" onclick="event.stopPropagation()"><?= $aQ ? 'Qualifier' : 'Ouvrir' ?></a>
       </li>
       <?php endforeach; ?>
       </ul>
-      <?php if (count($dernieresDemandes) > 3): ?>
-        <a href="/index.php?r=demandes" class="prio-more-toggle" style="margin-top:4px">Voir toutes les demandes <?= Icon::svg('arrow-right', 'icon', 13) ?></a>
-      <?php endif; ?>
     <?php endif; ?>
   </div>
-
-  <div class="card dg-livraisons">
-    <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('truck', 'icon', 17) ?> Livraisons à suivre</h2>
-    <?php if (empty($livraisonsEnCours)): ?>
-      <div class="empty-state">Aucune livraison en cours.</div>
+</div>
+<div class="dash2-right">
+  <div class="card flux-card dash2-flux">
+    <h2 style="display:flex;justify-content:space-between;align-items:center"><span>Vos flux en cours</span><a href="/index.php?r=dossiers&statut=actif" style="font-size:13px;font-weight:600">Tout voir</a></h2>
+    <?php if (empty($fluxEnCours)): ?>
+      <div class="empty-state">Aucun flux en cours. Renseignez le trajet dans la commande d'un dossier expédié.</div>
     <?php else: ?>
-      <ul class="feed-list">
-      <?php foreach (array_slice($livraisonsEnCours, 0, 3) as $l): ?>
-      <li onclick="window.location='/index.php?r=dossiers/<?= $l['dossier_id'] ?>/commande'">
-        <span class="fl-icon" style="background:#ede9fe;color:#7c3aed"><?= Icon::svg('truck', 'icon', 16) ?></span>
-        <div class="fl-body">
-          <div class="fl-title"><?= View::e($l['reference']) ?> <span class="badge badge-blue" style="margin-left:4px"><?= Commande::libelleStatutEtape('livraison', $l['livraison_statut'] ?? 'a_faire') ?></span></div>
-          <div class="fl-sub">
-            <?= View::e($l['fournisseur_nom'] ?: '—') ?> ·
-            <?php if ($l['destination_pays']): ?>
-              <?= View::e($l['destination_pays']) ?>
-            <?php else: ?>
-              Destination non renseignée
-              <?php /* [ajouté 04/10] Pas de parcours d'édition après qualification
-                 pour l'instant (destination_pays n'est saisissable qu'à la
-                 qualification de la demande) — lien provisoire vers la fiche
-                 dossier, à remplacer si un vrai champ éditable est construit. */ ?>
-              <a href="/index.php?r=dossiers/<?= $l['dossier_id'] ?>" onclick="event.stopPropagation()" style="color:var(--pilotage-violet);font-weight:600">Compléter</a>
-            <?php endif; ?>
-          </div>
+    <div class="flux-grid">
+    <?php foreach ($fluxEnCours as $f): $mlib = Commande::MODES_TRAJET[$f['mode']] ?? 'Maritime'; ?>
+      <a class="flux-item" href="/index.php?r=dossiers/<?= (int) $f['dossier_id'] ?>/commande">
+        <div class="flux-top"><span class="flux-mode flux-<?= View::e($f['mode']) ?>"><?= View::e($mlib) ?></span><span class="flux-ref"><?= View::e($f['reference']) ?></span></div>
+        <div class="flux-route">
+          <span class="flux-lieu"><?= View::e($f['depart'] ?: '—') ?></span>
+          <span class="flux-line"><i style="left:<?= (int) $f['pct'] ?>%"></i></span>
+          <span class="flux-lieu"><?= View::e($f['arrivee'] ?: '—') ?></span>
         </div>
-        <div class="fl-meta"><?= $l['livraison_prevue'] ? date('d/m/Y', strtotime($l['livraison_prevue'])) : 'Date non renseignée' ?></div>
-      </li>
-      <?php endforeach; ?>
-      </ul>
-      <?php if (count($livraisonsEnCours) > 3): ?>
-        <a href="/index.php?r=dossiers" class="prio-more-toggle" style="margin-top:4px">Voir toutes les livraisons <?= Icon::svg('arrow-right', 'icon', 13) ?></a>
-      <?php endif; ?>
+        <div class="flux-statut <?= $f['retard'] ? 'late' : '' ?>"><?= View::e($f['statut']) ?><?php if ($f['arrivee_prevue']): ?> · arrivée prévue le <?= date('d/m/Y', strtotime($f['arrivee_prevue'])) ?><?= $f['retard'] ? ' (dépassée)' : '' ?><?php endif; ?></div>
+      </a>
+    <?php endforeach; ?>
+    </div>
     <?php endif; ?>
   </div>
 </div>
-
-<?php if (!empty($fluxEnCours)): ?>
-<div class="card flux-card" style="margin-top:20px">
-  <h2 style="display:flex;justify-content:space-between;align-items:center"><span>Vos flux en cours</span></h2>
-  <div class="flux-grid">
-  <?php foreach ($fluxEnCours as $f): $mlib = Commande::MODES_TRAJET[$f['mode']] ?? 'Maritime'; ?>
-    <a class="flux-item" href="/index.php?r=dossiers/<?= (int) $f['dossier_id'] ?>/commande">
-      <div class="flux-top"><span class="flux-mode flux-<?= View::e($f['mode']) ?>"><?= View::e($mlib) ?></span><span class="flux-ref"><?= View::e($f['reference']) ?></span></div>
-      <div class="flux-route">
-        <span class="flux-lieu"><?= View::e($f['depart'] ?: '—') ?></span>
-        <span class="flux-line"><i style="left:<?= (int) $f['pct'] ?>%"></i></span>
-        <span class="flux-lieu"><?= View::e($f['arrivee'] ?: '—') ?></span>
-      </div>
-      <div class="flux-statut <?= $f['retard'] ? 'late' : '' ?>"><?= View::e($f['statut']) ?><?php if ($f['arrivee_prevue']): ?> · arrivée <?= $f['retard'] ? 'prévue le ' : 'prévue le ' ?><?= date('d/m/Y', strtotime($f['arrivee_prevue'])) ?><?= $f['retard'] ? ' (dépassée)' : '' ?><?php endif; ?></div>
-    </a>
-  <?php endforeach; ?>
-  </div>
 </div>
-<?php endif; ?>
 
 <?php if (!empty($dossiersEnCours)): ?>
 <div class="card dos-encours" style="margin-top:20px">

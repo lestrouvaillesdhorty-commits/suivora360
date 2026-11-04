@@ -813,7 +813,7 @@ class Demande
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $sql = "SELECT d.*, f.nom AS filiale_nom FROM demandes d
+        $sql = "SELECT d.*, f.nom AS filiale_nom, (SELECT c.nom FROM clients c WHERE c.id = d.client_id) AS client_nom FROM demandes d
                 INNER JOIN filiales f ON f.id = d.filiale_id
                 WHERE d.filiale_id IN ($placeholders)";
         $params = $filialeIds;

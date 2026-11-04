@@ -981,3 +981,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .flux-line i{position:absolute;top:-7px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#0B7C8A;border:2px solid #fff;box-shadow:0 0 0 1px #0B7C8A}
 .flux-statut{margin-top:10px;font-size:13px;color:#4F7A96}
 .flux-statut.late{color:#8F3217}
+
+/* v63 : tableau de bord synthétique */
+.dash2{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px;align-items:start}
+.dash2-left,.dash2-right{display:flex;flex-direction:column;gap:20px;min-width:0}
+.dash2 .card{margin-bottom:0}
+.dash2-flux .flux-grid{grid-template-columns:1fr;padding:6px 18px 16px}
+.nd-list li{display:flex;align-items:center;gap:12px}
+.nd-list .fl-body{flex:1;min-width:0}
+@media (max-width:900px){.dash2{grid-template-columns:1fr}}
