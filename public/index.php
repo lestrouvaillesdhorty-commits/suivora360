@@ -818,6 +818,14 @@ $router->get('/parametres', function () {
     Auth::requireLogin();
     (new ParametresController())->index();
 });
+$router->get('/parametres/entreprise', function () {
+    Auth::requireLogin();
+    (new \App\Controllers\EntrepriseController())->index();
+});
+$router->post('/parametres/entreprise', function () {
+    Auth::requireLogin();
+    (new \App\Controllers\EntrepriseController())->update();
+});
 $router->post('/parametres', function () {
     Auth::requireLogin();
     (new ParametresController())->update();

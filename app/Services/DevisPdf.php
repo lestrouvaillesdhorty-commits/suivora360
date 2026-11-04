@@ -37,14 +37,45 @@ class DevisPdf
         return ['ht' => $ht, 'tva_taux' => $tva, 'tva' => round($ttc - $ht, 2), 'ttc' => $ttc];
     }
 
+    /** Date de validité : celle de la cotation, sinon date du devis + durée par défaut de la fiche entreprise. */
+    public static function validite(array $c, array $emetteur = []): ?string
+    {
+        if (!empty($c['validite_devis'])) {
+            return (string) $c['validite_devis'];
+        }
+        $j = (int) ($emetteur['devis_validite_jours'] ?? 0);
+        return $j > 0 ? date('Y-m-d', strtotime((string) $c['created_at'] . ' +' . $j . ' days')) : null;
+    }
+
+    /** Coordonnées de l'entreprise sur une ligne (pied de page). */
+    public static function ligneEntreprise(array $e): string
+    {
+        $p = [];
+        foreach (['nom'] as $k) { if (!empty($e[$k])) { $p[] = $e[$k]; } }
+        if (!empty($e['adresse'])) { $p[] = trim(preg_replace('/\s*\R\s*/u', ', ', (string) $e['adresse'])); }
+        if (!empty($e['telephone'])) { $p[] = 'Tél. ' . $e['telephone']; }
+        if (!empty($e['email'])) { $p[] = $e['email']; }
+        if (!empty($e['site_web'])) { $p[] = $e['site_web']; }
+        if (!empty($e['identifiants'])) { $p[] = trim(preg_replace('/\s*\R\s*/u', ' - ', (string) $e['identifiants'])); }
+        return implode('  |  ', $p);
+    }
+
     public static function generer(array $c, array $items, array $emetteur, array $client): string
     {
         $dev = (string) ($c['devise'] ?? '');
         $t = self::totaux($c);
         $pdf = new PdfSimple(trim(($emetteur['nom'] ?? '') . ' - Devis ' . $c['reference'] . ((int) ($c['version'] ?? 1) > 1 ? ' v' . $c['version'] : '')));
+        $pdf->piedEntreprise(self::ligneEntreprise($emetteur));
         $pdf->sousTitre((string) ($emetteur['nom'] ?? ''));
+        $enteteInfos = trim(implode('   |   ', array_filter([
+            trim(preg_replace('/\s*\R\s*/u', ', ', (string) ($emetteur['adresse'] ?? ''))),
+            !empty($emetteur['telephone']) ? 'Tél. ' . $emetteur['telephone'] : '',
+            (string) ($emetteur['email'] ?? ''),
+        ])));
+        if ($enteteInfos !== '') { $pdf->paragraphe($enteteInfos, 8.5); }
+        $validite = self::validite($c, $emetteur);
         $pdf->titre('DEVIS ' . $c['reference'] . ((int) ($c['version'] ?? 1) > 1 ? ' (version ' . $c['version'] . ')' : ''));
-        $pdf->sousTitre('Date : ' . date('d/m/Y', strtotime((string) $c['created_at'])) . (!empty($c['validite_devis']) ? '   |   Valable jusqu\'au ' . date('d/m/Y', strtotime($c['validite_devis'])) : '') . '   |   Dossier : ' . ($c['dossier_reference'] ?? ''));
+        $pdf->sousTitre('Date : ' . date('d/m/Y', strtotime((string) $c['created_at'])) . ($validite ? '   |   Valable jusqu\'au ' . date('d/m/Y', strtotime($validite)) : '') . '   |   Dossier : ' . ($c['dossier_reference'] ?? ''));
 
         $pdf->section('Client');
         $adr = trim(implode(', ', array_filter([(string) ($client['adresse'] ?? ''), trim(($client['code_postal'] ?? '') . ' ' . ($client['ville'] ?? '')), (string) ($client['pays'] ?? '')])));
@@ -76,7 +107,7 @@ class DevisPdf
         $cond = [];
         if (!empty($c['incoterm_client'])) { $cond['Incoterm'] = Demande::INCOTERMS[$c['incoterm_client']] ?? $c['incoterm_client']; }
         if (!empty($c['mode_paiement_negocie'])) { $cond['Paiement'] = Demande::MODES_PAIEMENT[$c['mode_paiement_negocie']] ?? $c['mode_paiement_negocie']; }
-        if (!empty($c['validite_devis'])) { $cond['Validité du devis'] = date('d/m/Y', strtotime($c['validite_devis'])); }
+        if ($validite) { $cond['Validité du devis'] = date('d/m/Y', strtotime($validite)); }
         if ($cond) {
             $pdf->section('Conditions');
             $pdf->paires($cond);
@@ -85,6 +116,17 @@ class DevisPdf
             $pdf->section('Remarques');
             $pdf->paragraphe((string) $c['notes']);
         }
+        if (trim((string) ($emetteur['devis_conditions'] ?? '')) !== '') {
+            $pdf->section('Conditions générales');
+            $pdf->paragraphe((string) $emetteur['devis_conditions'], 9);
+        }
+        if (trim((string) ($emetteur['coordonnees_bancaires'] ?? '')) !== '') {
+            $pdf->section('Règlement par virement');
+            $pdf->paragraphe((string) $emetteur['coordonnees_bancaires'], 9);
+        }
+        $pdf->section('Bon pour accord');
+        $pdf->paragraphe("Date :                                   Nom et qualité :                                   Signature (précédée de la mention « Bon pour accord ») :", 9);
+        $pdf->paragraphe(' ', 24);
         $pdf->paragraphe('Devis établi par ' . ($emetteur['nom'] ?? '') . '. Merci de nous confirmer votre accord en réponse à ce message.', 8.5);
         return $pdf->rendre();
     }

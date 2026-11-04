@@ -15,7 +15,7 @@ $n = fn($x) => DevisPdf::fmt($x);
 .bar a.s{background:#fff;color:#0B7C8A;border:1px solid #BFE0E5}
 .page{max-width:820px;margin:12px auto 24px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;flex-direction:column;min-height:1000px}
 .ent{padding:26px 34px 16px;border-bottom:4px solid #0B7C8A;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.ent .nom{font-size:22px;font-weight:700}.ent .doc{text-align:right}.ent .doc b{font-size:20px;letter-spacing:.5px;display:block}
+.emet .logo{max-height:64px;max-width:220px;display:block;margin-bottom:8px}.emet .coord{font-size:12.5px;color:#556;margin-top:3px}.ent .nom{font-size:22px;font-weight:700}.ent .doc{text-align:right}.ent .doc b{font-size:20px;letter-spacing:.5px;display:block}
 .corps{padding:18px 34px;flex:1}
 .bloc{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px}.bloc>div{flex:1;min-width:230px;background:#F2F7F8;border-radius:8px;padding:10px 14px}
 .bloc h3{margin:0 0 4px;font-size:12px;color:#667;font-weight:600}
@@ -24,7 +24,7 @@ th{background:#0B7C8A;color:#fff;font-size:12px;text-align:left;padding:8px}td{p
 .d{font-size:12px;color:#667}.r{text-align:right;white-space:nowrap}
 .tot{margin:16px 0 0 auto;width:min(340px,100%)}.tot div{display:flex;justify-content:space-between;padding:5px 0}
 .tot .ttc{border-top:2px solid #0B7C8A;margin-top:4px;padding-top:9px;font-size:18px;font-weight:700}
-.cond{margin-top:18px;font-size:13px}.pied{padding:12px 34px;border-top:1px solid #e0e3ea;font-size:12px;color:#778;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cond{margin-top:18px;font-size:13px}.pied{padding:12px 34px;border-top:1px solid #e0e3ea;font-size:11.5px;color:#667;line-height:1.5}.pied .pr{text-align:right;color:#99a;margin-top:2px}.sign{display:flex;gap:18px;margin-top:26px;align-items:stretch}.sign>div:first-child{flex:1;font-size:13px}.sign .zone{flex:1;min-height:90px;border:1.5px dashed #BFE0E5;border-radius:10px}
 .tw{overflow-x:auto}
 @media print{body{background:#fff}.bar{display:none}.page{box-shadow:none;margin:0;max-width:none;min-height:0}}
 @media (max-width:600px){.ent,.corps,.pied{padding-left:16px;padding-right:16px}.ent .doc{text-align:left}}
@@ -37,11 +37,15 @@ th{background:#0B7C8A;color:#fff;font-size:12px;text-align:left;padding:8px}td{p
 </div>
 <div class="page">
   <div class="ent">
-    <div class="nom"><?= View::e($emetteur['nom']) ?></div>
+    <div class="emet">
+      <?php if (!empty($logoUri)): ?><img class="logo" src="<?= $logoUri ?>" alt="<?= View::e($emetteur['nom']) ?>"><?php endif; ?>
+      <div class="nom"><?= View::e($emetteur['nom']) ?></div>
+      <div class="coord"><?= !empty($emetteur['adresse']) ? nl2br(View::e($emetteur['adresse'])) . '<br>' : '' ?><?= !empty($emetteur['telephone']) ? 'Tél. ' . View::e($emetteur['telephone']) : '' ?><?= !empty($emetteur['telephone']) && !empty($emetteur['email']) ? ' · ' : '' ?><?= View::e((string) ($emetteur['email'] ?? '')) ?></div>
+    </div>
     <div class="doc"><b>DEVIS <?= View::e($cotation['reference']) ?></b>
       <?= (int) ($cotation['version'] ?? 1) > 1 ? 'Version ' . (int) $cotation['version'] . '<br>' : '' ?>
       Date : <?= date('d/m/Y', strtotime((string) $cotation['created_at'])) ?><br>
-      <?= !empty($cotation['validite_devis']) ? 'Valable jusqu\'au ' . date('d/m/Y', strtotime($cotation['validite_devis'])) : '' ?></div>
+      <?php $validite = DevisPdf::validite($cotation, $emetteur); ?><?= $validite ? 'Valable jusqu\'au ' . date('d/m/Y', strtotime($validite)) : '' ?></div>
   </div>
   <div class="corps">
     <div class="bloc">
@@ -68,7 +72,18 @@ th{background:#0B7C8A;color:#fff;font-size:12px;text-align:left;padding:8px}td{p
       <div class="ttc"><span>Total TTC</span><span><?= $n($totaux['ttc']) ?> <?= View::e($dev) ?></span></div>
     </div>
     <?php if (trim((string) $cotation['notes']) !== ''): ?><div class="cond"><strong>Remarques</strong><br><?= nl2br(View::e($cotation['notes'])) ?></div><?php endif; ?>
+    <?php if (trim((string) ($emetteur['devis_conditions'] ?? '')) !== ''): ?><div class="cond"><strong>Conditions générales</strong><br><?= nl2br(View::e($emetteur['devis_conditions'])) ?></div><?php endif; ?>
+    <?php if (trim((string) ($emetteur['coordonnees_bancaires'] ?? '')) !== ''): ?><div class="cond"><strong>Règlement par virement</strong><br><?= nl2br(View::e($emetteur['coordonnees_bancaires'])) ?></div><?php endif; ?>
+    <div class="sign">
+      <div><strong>Bon pour accord</strong><br><span class="d">Date, nom et qualité du signataire, signature précédée de la mention « Bon pour accord »</span></div>
+      <div class="zone"></div>
+    </div>
   </div>
-  <div class="pied"><span><?= View::e($emetteur['nom']) ?></span><span>Devis <?= View::e($cotation['reference']) ?> — <?= View::e($dev) ?></span></div>
+  <div class="pied">
+    <div class="pl"><strong><?= View::e($emetteur['nom']) ?></strong><?= !empty($emetteur['adresse']) ? ' — ' . View::e(trim(preg_replace('/\s*\R\s*/u', ', ', (string) $emetteur['adresse']))) : '' ?></div>
+    <div class="pl"><?= View::e(implode('  ·  ', array_filter([!empty($emetteur['telephone']) ? 'Tél. ' . $emetteur['telephone'] : '', $emetteur['email'] ?? '', $emetteur['site_web'] ?? '']))) ?></div>
+    <?php if (!empty($emetteur['identifiants'])): ?><div class="pl"><?= View::e(trim(preg_replace('/\s*\R\s*/u', '  ·  ', (string) $emetteur['identifiants']))) ?></div><?php endif; ?>
+    <div class="pl pr">Devis <?= View::e($cotation['reference']) ?> — <?= View::e($dev) ?></div>
+  </div>
 </div>
 </body></html>

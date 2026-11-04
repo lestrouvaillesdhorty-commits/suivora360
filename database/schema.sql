@@ -708,3 +708,19 @@ CREATE TABLE IF NOT EXISTS bon_commande_fournisseur_lignes (
     ordre INT NOT NULL DEFAULT 0,
     INDEX idx_bcfl_bon (bon_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS entreprise_infos ( -- migrate_v36.php : fiche « Mon entreprise » par filiale (en-tête des devis)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filiale_id INT NOT NULL UNIQUE,
+    raison_sociale VARCHAR(200),
+    adresse TEXT,
+    telephone VARCHAR(60),
+    email VARCHAR(190),
+    site_web VARCHAR(190),
+    identifiants TEXT,
+    coordonnees_bancaires TEXT,
+    logo VARCHAR(190),
+    devis_validite_jours INT NOT NULL DEFAULT 30,
+    devis_conditions TEXT,
+    updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

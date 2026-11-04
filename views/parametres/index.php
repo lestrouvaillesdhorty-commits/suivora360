@@ -1,6 +1,7 @@
 <?php use App\Core\View; use App\Models\Parametres; ?>
 <h1>Paramètres de calcul</h1>
 <div class="subtitle">Valeurs par défaut utilisées pour préremplir le Simulateur de prix</div>
+<p style="margin:10px 0 14px"><a class="btn btn-sm btn-secondary" href="/index.php?r=parametres/entreprise<?= !empty($filialeId) ? '&filiale_id=' . (int) $filialeId : '' ?>">Mon entreprise : logo, adresse et conditions des devis</a></p>
 
 <?php if (count($filiales) > 1): ?>
 <form method="get" action="/index.php" style="margin-bottom:16px">

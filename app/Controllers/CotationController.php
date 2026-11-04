@@ -229,7 +229,9 @@ class CotationController
     {
         $client = Client::find((int) $cotation['client_id']) ?: [];
         $filiale = \App\Models\Filiale::find((int) $cotation['filiale_id']) ?: [];
-        return [CotationItem::forCotation((int) $cotation['id']), $client, ['nom' => (string) ($filiale['nom'] ?? '')]];
+        $info = \App\Models\EntrepriseInfo::forFiliale((int) $cotation['filiale_id']);
+        $emetteur = ['nom' => trim((string) ($info['raison_sociale'] ?? '')) ?: (string) ($filiale['nom'] ?? '')] + $info;
+        return [CotationItem::forCotation((int) $cotation['id']), $client, $emetteur];
     }
 
     /** Document « devis » imprimable (même contenu que le PDF). */
@@ -243,6 +245,7 @@ class CotationController
         View::renderPlain('cotations/apercu', [
             'cotation' => $cotation, 'items' => $items, 'client' => $client, 'emetteur' => $emetteur,
             'totaux' => \App\Services\DevisPdf::totaux($cotation),
+            'logoUri' => \App\Models\EntrepriseInfo::logoDataUri($emetteur),
         ]);
     }
 

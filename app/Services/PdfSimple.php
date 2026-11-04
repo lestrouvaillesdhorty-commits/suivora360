@@ -29,6 +29,13 @@ class PdfSimple
     private float $y = 0;
     private int $numPage = 0;
     private string $pied;
+    private string $pied2 = '';
+
+    /** Ligne d'informations de l'entreprise, imprimée au-dessus du pied de page sur chaque page. */
+    public function piedEntreprise(string $ligne): void
+    {
+        $this->pied2 = $ligne;
+    }
 
     public function __construct(string $pied = '')
     {
@@ -171,14 +178,23 @@ class PdfSimple
             return;
         }
         $pied = trim($this->pied . '   Page ' . $this->numPage);
-        $this->texte(self::MARGE, 24, $pied, 8, false, [0.55, 0.55, 0.55]);
+        if ($this->pied2 !== '') {
+            $this->ligne(self::MARGE, 46, self::W - self::MARGE, [0.85, 0.86, 0.9]);
+            $reste = $this->pied2;
+            $yy = 36;
+            foreach (array_slice($this->couper($reste, 7.5, self::W - 2 * self::MARGE, false), 0, 2) as $l) {
+                $this->texte(self::MARGE, $yy, $l, 7.5, false, [0.4, 0.43, 0.5]);
+                $yy -= 9;
+            }
+        }
+        $this->texte(self::MARGE, 14, $pied, 8, false, [0.55, 0.55, 0.55]);
         $this->pages[] = $this->flux;
         $this->flux = '';
     }
 
     private function assurerPlace(float $hauteur): void
     {
-        if ($this->y - $hauteur < self::MARGE + 14) {
+        if ($this->y - $hauteur < self::MARGE + ($this->pied2 !== '' ? 36 : 14)) {
             $this->nouvellePage();
         }
     }
