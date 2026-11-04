@@ -1112,3 +1112,6 @@ tbody tr:last-child td { border-bottom: 0; }
 
 /* Les pastilles de statut restent sur une seule ligne (ex. « À qualifier »). */
 .badge { white-space: nowrap; }
+
+/* Mobile : le bouton « Menu » de la barre du bas ouvre déjà le menu — pas de second bouton en haut. */
+@media (max-width:768px){ #sidebarOpen{display:none !important} }
