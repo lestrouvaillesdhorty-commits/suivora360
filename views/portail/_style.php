@@ -1,5 +1,5 @@
 <style>
-:root{--p:#2d18fa;--bg:#f5f6fa;--b:#e6e8ef;--t:#161a2d;--m:#6b7285}
+:root{--p:#0B7C8A;--bg:#F2F7F8;--b:#e6e8ef;--t:#161a2d;--m:#6b7285}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--t);font-size:15px;line-height:1.45}
 header.pt{background:#fff;border-bottom:1px solid var(--b)}
 .w{max-width:980px;margin:0 auto;padding:0 20px}

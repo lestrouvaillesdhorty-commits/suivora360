@@ -6,7 +6,7 @@
 <title>Journal d'audit — Suivora360</title>
 <style>
   body { font-family: -apple-system, Arial, sans-serif; color: #1f2430; padding: 30px; }
-  h1 { font-size: 20px; margin: 0 0 4px; color: #2D18FA; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #0B7C8A; }
   .meta { font-size: 12px; color: #666; margin-bottom: 18px; line-height: 1.6; }
   table { width: 100%; border-collapse: collapse; }
   th, td { padding: 5px 8px; text-align: left; font-size: 11px; border-bottom: 1px solid #ddd; vertical-align: top; }

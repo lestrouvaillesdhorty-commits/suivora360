@@ -11,7 +11,7 @@ $titres = ['general' => 'Vue générale', 'activites' => 'Activités', 'collabor
 <title>Pilotage — <?= View::e($titres[$onglet] ?? $onglet) ?> — Suivora360</title>
 <style>
   body { font-family: -apple-system, Arial, sans-serif; color: #1f2430; padding: 30px; }
-  h1 { font-size: 20px; margin: 0 0 4px; color: #2D18FA; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #0B7C8A; }
   .meta { font-size: 12px; color: #666; margin-bottom: 18px; }
   .meta span { margin-right: 18px; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }

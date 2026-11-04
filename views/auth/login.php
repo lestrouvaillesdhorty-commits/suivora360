@@ -13,7 +13,7 @@ if ($flash) unset($_SESSION['flash']);
 <link rel="stylesheet" href="/assets/css/app.css">
 <style>
 * { box-sizing:border-box; }
-body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#1a1d29; padding:20px; }
+body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#0E3A4A; padding:20px; }
 .login-card { background:#fff; padding:36px; border-radius:12px; width:100%; max-width:440px; margin:0 auto; }
 @media (max-width:480px) { .login-card { padding:26px 20px; } }
 .login-logo { display:block; margin:0 auto 28px; max-width:360px; width:100%; height:auto; }

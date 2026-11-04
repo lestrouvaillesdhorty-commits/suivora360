@@ -32,7 +32,7 @@ if ($ongletActif === null || $ongletActif === '') { $ongletActif = 'tous'; }
 $filtresActifs = false;
 foreach (['recherche', 'etape', 'responsable_id', 'type_dossier', 'filiale_id', 'date_debut', 'date_fin'] as $k) { if (!empty($filters[$k])) { $filtresActifs = true; } }
 $typeIcone = ['achat_sourcing' => 'package', 'transport_logistique' => 'truck', 'prestation_entreprise' => 'briefcase', 'autre' => 'folder'];
-$couleursAvatar = ['#2d18fa', '#0f766e', '#b45309', '#9d174d', '#4338ca', '#047857'];
+$couleursAvatar = ['#0B7C8A', '#0f766e', '#b45309', '#9d174d', '#4338ca', '#047857'];
 $initiales = function (string $nom): string {
     $mots = preg_split('/\s+/', trim($nom)) ?: [];
     $i = '';
@@ -90,7 +90,7 @@ $tuiles = [
 </div>
 
 <?php if (!empty($filtreClient)): ?>
-  <div class="alert" style="background:#eef0ff;color:#2d18fa;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
+  <div class="alert" style="background:#DDF1F3;color:#0B7C8A;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
     <span>Dossiers de : <strong><?= View::e($filtreClient) ?></strong></span>
     <a href="/index.php?r=dossiers">Voir tous les dossiers</a>
   </div>

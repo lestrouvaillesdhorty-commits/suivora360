@@ -10,8 +10,8 @@ $qte = fn($q) => $q === null ? '' : rtrim(rtrim(number_format((float) $q, 2, ','
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   body { font-family: -apple-system, Arial, sans-serif; color: #1f2430; margin: 0; padding: 30px; max-width: 820px; margin: 0 auto; font-size: 13px; line-height: 1.5; }
-  h1 { font-size: 22px; margin: 0; color: #2D18FA; }
-  .entete { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid #2D18FA; padding-bottom: 12px; margin-bottom: 18px; }
+  h1 { font-size: 22px; margin: 0; color: #0B7C8A; }
+  .entete { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid #0B7C8A; padding-bottom: 12px; margin-bottom: 18px; }
   .bloc { display: flex; gap: 20px; margin-bottom: 18px; }
   .bloc > div { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
   .bloc h2 { font-size: 11px; margin: 0 0 6px; color: #666; text-transform: uppercase; letter-spacing: .04em; }

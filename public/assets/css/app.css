@@ -1,10 +1,10 @@
 * { box-sizing: border-box; }
 :root {
-  --primary: #2D18FA;
-  --primary-light: #EEEBFF;
-  --primary-dark: #2614D5;
-  --sidebar-bg: #12152b;
-  --sidebar-bg-hover: #1c2040;
+  --primary: #0B7C8A;
+  --primary-light: #DDF1F3;
+  --primary-dark: #096A76;
+  --sidebar-bg: #0E3A4A;
+  --sidebar-bg-hover: #15505F;
   --ink: #1f2430;
   --muted: #6b7280;
   --border: #e8e9f0;
@@ -12,7 +12,7 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #f6f7fb;
+  background: #F2F7F8;
   color: var(--ink);
 }
 a { color: var(--primary); text-decoration: none; }
@@ -436,7 +436,7 @@ textarea { resize: vertical; }
 .prio-tab { background: none; border: none; padding: 9px 14px 11px; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 7px; }
 .prio-tab.active { color: var(--pilotage-violet); border-bottom-color: var(--pilotage-violet); }
 .prio-tab .prio-tab-count { background: #f1f2f5; color: #666; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
-.prio-tab.active .prio-tab-count { background: #EEEBFF; color: var(--pilotage-violet); }
+.prio-tab.active .prio-tab-count { background: #DDF1F3; color: var(--pilotage-violet); }
 .prio-list { list-style: none; margin: 0; padding: 0; }
 .prio-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f1f2f5; cursor: pointer; }
 .prio-item:last-child { border-bottom: none; }

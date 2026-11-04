@@ -57,10 +57,10 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <?= Pilotage::svgBarChart(
         array_column($lignes, 'activite'),
         ['Ventes HT' => array_column($lignes, 'ventes_ht'), 'Marge' => array_column($lignes, 'marge')],
-        ['Ventes HT' => '#2D18FA', 'Marge' => '#14b8a6']
+        ['Ventes HT' => '#0B7C8A', 'Marge' => '#14b8a6']
       ) ?>
       <div class="linechart-legend" style="margin-top:14px">
-        <span class="leg-item"><span class="dot" style="background:#2D18FA"></span>Ventes HT</span>
+        <span class="leg-item"><span class="dot" style="background:#0B7C8A"></span>Ventes HT</span>
         <span class="leg-item"><span class="dot" style="background:#14b8a6"></span>Marge</span>
       </div>
       <div class="kpi-note">Détail et accès par activité dans le tableau "Résultats par activité" ci-dessous.</div>
