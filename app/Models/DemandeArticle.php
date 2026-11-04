@@ -69,4 +69,29 @@ class DemandeArticle
         $stmt = Database::connection()->prepare('DELETE FROM demande_articles WHERE id = ?');
         $stmt->execute([$id]);
     }
+
+    public static function colonnesDetails(): bool
+    {
+        try {
+            Database::connection()->query('SELECT dlc_min, certificats, echantillon, notes FROM demande_articles LIMIT 1');
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /** Détails facultatifs (migrate_v38.php) ; ignoré tant que la migration n'est pas lancée. */
+    public static function enregistrerDetails(int $id, array $data): void
+    {
+        if (!self::colonnesDetails()) {
+            return;
+        }
+        Database::connection()->prepare('UPDATE demande_articles SET dlc_min = ?, certificats = ?, echantillon = ?, notes = ? WHERE id = ?')->execute([
+            mb_substr(trim((string) ($data['dlc_min'] ?? '')), 0, 60),
+            mb_substr(trim((string) ($data['certificats'] ?? '')), 0, 255),
+            !empty($data['echantillon']) ? 1 : 0,
+            trim((string) ($data['notes'] ?? '')),
+            $id,
+        ]);
+    }
 }

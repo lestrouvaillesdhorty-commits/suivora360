@@ -335,6 +335,11 @@ CREATE TABLE IF NOT EXISTS demande_articles (
     -- "Caractéristiques" du tableau Articles de la maquette Dossiers
     -- (Besoin.dc.html), reportée fidèlement sur demande de Marie Laure.
     caracteristiques VARCHAR(255),
+    -- [ajouté v38] détails facultatifs
+    dlc_min VARCHAR(60),
+    certificats VARCHAR(255),
+    echantillon TINYINT NOT NULL DEFAULT 0,
+    notes TEXT,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

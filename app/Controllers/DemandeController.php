@@ -771,7 +771,7 @@ class DemandeController
             header('Location: /index.php?r=demandes/' . $demande['id']);
             exit;
         }
-        DemandeArticle::create((int) $demande['id'], [
+        $nouvelId = DemandeArticle::create((int) $demande['id'], [
             'designation' => $designation,
             'quantite' => $_POST['quantite'] ?? null,
             'unite' => trim($_POST['unite'] ?? ''),
@@ -779,6 +779,7 @@ class DemandeController
             'reference' => trim($_POST['reference'] ?? ''),
             'marque' => trim($_POST['marque'] ?? ''),
         ]);
+        DemandeArticle::enregistrerDetails($nouvelId, $_POST);
         AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'ajout_article', 'demande', (int) $demande['id'], $designation);
         View::flash('succes', 'Article ajouté.');
         header('Location: /index.php?r=demandes/' . $demande['id']);
@@ -818,6 +819,7 @@ class DemandeController
             'reference' => trim($_POST['reference'] ?? ''),
             'marque' => trim($_POST['marque'] ?? ''),
         ]);
+        DemandeArticle::enregistrerDetails((int) $article['id'], $_POST);
         AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'modification_article', 'demande', (int) $demande['id'], $designation);
         View::flash('succes', 'Article modifié.');
         header('Location: /index.php?r=demandes/' . $demande['id']);

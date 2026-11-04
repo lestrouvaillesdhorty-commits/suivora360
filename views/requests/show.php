@@ -1,4 +1,5 @@
 <?php use App\Core\Icon; use App\Core\View; use App\Core\Storage; use App\Models\Utilisateur; use App\Models\Demande; use App\Models\Dossier; ?>
+<?php $detailsArticle = \App\Models\DemandeArticle::colonnesDetails(); ?>
 <?php $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes'); ?>
 <a href="<?= $retour ?>" style="font-size:13px;color:#666">&larr; Retour aux demandes</a>
 
@@ -308,6 +309,19 @@ $unitesArticle = \App\Models\Demande::UNITES;
                 <button type="submit" form="art-form-<?= $a['id'] ?>" formaction="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= $a['id'] ?>/supprimer" class="btn btn-sm btn-secondary" title="Retirer" onclick="return confirm('Retirer cette ligne ?');"><?= Icon::svg('trash-2', 'icon', 14) ?></button>
               </td>
             </tr>
+            <?php if ($detailsArticle): ?>
+            <tr class="art-details-row"><td colspan="7" style="padding-top:0">
+              <details <?= (!empty($a['dlc_min']) || !empty($a['certificats']) || !empty($a['echantillon']) || !empty($a['notes'])) ? 'open' : '' ?>>
+                <summary style="cursor:pointer;font-size:13px;color:#0A6773">Détails : durée de vie, certificats, échantillon, notes</summary>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:8px 0">
+                  <div class="form-group" style="margin:0"><label style="font-size:12px">Durée de vie minimale restante</label><input type="text" name="dlc_min" value="<?= View::e($a['dlc_min'] ?? '') ?>" placeholder="Ex : 9 mois" form="art-form-<?= $a['id'] ?>" style="width:150px"></div>
+                  <div class="form-group" style="margin:0"><label style="font-size:12px">Certificats demandés</label><input type="text" name="certificats" value="<?= View::e($a['certificats'] ?? '') ?>" placeholder="Ex : Halal, ISO 22000" form="art-form-<?= $a['id'] ?>" style="width:220px"></div>
+                  <label style="font-weight:400;display:inline-flex;gap:6px;align-items:center;min-height:36px"><input type="checkbox" name="echantillon" value="1" <?= !empty($a['echantillon']) ? 'checked' : '' ?> form="art-form-<?= $a['id'] ?>"> Échantillon nécessaire</label>
+                  <div class="form-group" style="margin:0;flex:1;min-width:220px"><label style="font-size:12px">Notes</label><input type="text" name="notes" value="<?= View::e($a['notes'] ?? '') ?>" form="art-form-<?= $a['id'] ?>" style="width:100%"></div>
+                </div>
+              </details>
+            </td></tr>
+            <?php endif; ?>
           <?php endforeach; ?>
           </tbody>
         </table>
@@ -325,6 +339,16 @@ $unitesArticle = \App\Models\Demande::UNITES;
         <div class="form-group" style="margin:0"><label style="font-size:12px">Conditionnement</label><input type="text" name="conditionnement"></div>
         <div class="form-group" style="margin:0"><label style="font-size:12px">Référence</label><input type="text" name="reference" style="width:90px"></div>
         <div class="form-group" style="margin:0"><label style="font-size:12px">Marque</label><input type="text" name="marque" style="width:90px"></div>
+        <?php if ($detailsArticle): ?>
+        <details style="flex-basis:100%"><summary style="cursor:pointer;font-size:13px;color:#0A6773">Détails : durée de vie, certificats, échantillon, notes</summary>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:8px 0">
+            <div class="form-group" style="margin:0"><label style="font-size:12px">Durée de vie minimale restante</label><input type="text" name="dlc_min" placeholder="Ex : 9 mois" style="width:150px"></div>
+            <div class="form-group" style="margin:0"><label style="font-size:12px">Certificats demandés</label><input type="text" name="certificats" placeholder="Ex : Halal, ISO 22000" style="width:220px"></div>
+            <label style="font-weight:400;display:inline-flex;gap:6px;align-items:center;min-height:36px"><input type="checkbox" name="echantillon" value="1"> Échantillon nécessaire</label>
+            <div class="form-group" style="margin:0;flex:1;min-width:220px"><label style="font-size:12px">Notes</label><input type="text" name="notes" style="width:100%"></div>
+          </div>
+        </details>
+        <?php endif; ?>
         <button type="submit" class="btn btn-sm">+ Ajouter</button>
       </form>
     </div>
