@@ -1108,7 +1108,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .ac-sub{font-size:13px;color:#5B6B78;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ac-chip{font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px;white-space:nowrap}
 .ac-late{background:#FFE3DA;color:#8F3217}.ac-today{background:#DFF3E8;color:#14633C}.ac-next{background:#DDF1F3;color:#0A6773}
-@media (max-width:768px){.dash-filtres{padding:0;border:0;background:none}.ac-row{gap:10px}.ac-row .btn{width:100%}}
+@media (max-width:768px){.dash-filtres{padding:0;border:0;background:none}.dash-filtres .form-group{flex:1 1 100%;flex-direction:column;align-items:stretch;gap:4px;min-width:0 !important}.dash-filtres select{width:100%;max-width:none}.dash-filtres>a{margin-left:0 !important}.ac-row{gap:10px}.ac-row .btn{width:100%}}
 
 /* Les pastilles de statut restent sur une seule ligne (ex. « À qualifier »). */
 .badge { white-space: nowrap; }
