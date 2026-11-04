@@ -72,6 +72,9 @@ $unitesArticle = \App\Models\Demande::UNITES;
     <?php if ($peutModifier): ?>
       <a href="/index.php?r=demandes/<?= $demande['id'] ?>/modifier" class="btn btn-secondary"><?= Icon::svg('edit-2', 'icon', 14) ?> Modifier</a>
     <?php endif; ?>
+    <?php if ($peutQualifier): ?>
+      <button class="btn btn-secondary" onclick="document.getElementById('attente-form').style.display='block'">En attente d'infos</button>
+    <?php endif; ?>
     <?php if ($peutRejeter): ?>
       <button class="btn btn-secondary" onclick="document.getElementById('rejeter-form').style.display='block'">Rejeter</button>
     <?php endif; ?>
@@ -106,14 +109,55 @@ $unitesArticle = \App\Models\Demande::UNITES;
   <div class="ii"><?= Icon::svg('clock', '', 16) ?><div><div class="il">Date souhaitée client</div><div class="iv"><?= !empty($demande['date_souhaitee_client']) ? date('d/m/Y', strtotime($demande['date_souhaitee_client'])) : 'Non renseignée' ?></div></div></div>
 </div>
 
+<?php if ($peutQualifier): ?>
+<div class="card" id="attente-form" style="display:none">
+  <h2>Demander des informations au client</h2>
+  <div style="font-size:13px;color:#666;margin-bottom:10px">La demande reste en pause, sans dossier. Rien n'est envoyé automatiquement : copiez le message vers WhatsApp ou l'e-mail.</div>
+  <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/attente-infos">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <div class="form-group">
+      <label>Que manque-t-il ?</label>
+      <div style="display:flex;gap:6px 16px;flex-wrap:wrap">
+        <?php foreach (Demande::INFOS_MANQUANTES as $im): ?>
+          <label style="font-weight:400;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" name="manque[]" value="<?= View::e($im) ?>"> <?= View::e($im) ?></label>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Message à envoyer au client</label>
+      <textarea name="message_client" id="messageClient" rows="4" placeholder="Bonjour, pour chiffrer votre demande, pouvez-vous préciser… Merci."></textarea>
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('messageClient').value)">Copier le message</button>
+      </div>
+    </div>
+    <div class="form-group" style="max-width:240px">
+      <label>Me le rappeler le</label>
+      <input type="date" name="rappel_le" value="<?= date('Y-m-d', strtotime('+3 days')) ?>">
+      <div style="font-size:12px;color:#888;margin-top:4px">Devient l'échéance interne : la demande passe « En retard » si le client ne répond pas.</div>
+    </div>
+    <button type="submit" class="btn">Mettre en attente d'infos</button>
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('attente-form').style.display='none'">Annuler</button>
+  </form>
+</div>
+<?php endif; ?>
+
 <?php if ($peutRejeter): ?>
 <div class="card" id="rejeter-form" style="display:none">
   <h2>Rejeter la demande</h2>
+  <div style="font-size:13px;color:#666;margin-bottom:10px">La demande est conservée dans l'historique et ne crée aucun dossier. Un doublon ? Utilisez plutôt la voie « Complément » pour la rattacher à la demande existante.</div>
   <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/rejeter">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <div class="form-group" style="max-width:320px">
+      <label>Pourquoi la rejeter ? *</label>
+      <select name="raison" required>
+        <option value="">— Choisir —</option>
+        <?php foreach (Demande::RAISONS_REJET as $r): ?><option><?= View::e($r) ?></option><?php endforeach; ?>
+      </select>
+    </div>
     <div class="form-group">
-      <label>Motif *</label>
+      <label>Précisions *</label>
       <textarea name="motif" rows="2" required></textarea>
+      <div style="font-size:12px;color:#888;margin-top:4px">Obligatoire : gardé dans l'historique.</div>
     </div>
     <button type="submit" class="btn">Confirmer le rejet</button>
     <button type="button" class="btn btn-secondary" onclick="document.getElementById('rejeter-form').style.display='none'">Annuler</button>
@@ -121,7 +165,7 @@ $unitesArticle = \App\Models\Demande::UNITES;
 </div>
 <?php endif; ?>
 
-<?php if (!empty($demande['qualification_type']) || $demande['statut'] === 'rejetee'): ?>
+<?php if (!empty($demande['qualification_type']) || in_array($demande['statut'], ['rejetee', 'en_attente_info'], true)): ?>
 <div class="card">
   <h2>Qualification</h2>
   <?php if ($demande['qualification_type'] === 'NEW'): ?>

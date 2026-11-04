@@ -14,6 +14,12 @@ class Demande
         'EXTERNAL_TAKEOVER' => 'Reprise hors Suivora',
     ];
 
+    /** Ce qui peut manquer pour qualifier (mise en attente d'infos). */
+    public const INFOS_MANQUANTES = ['Quantité', 'Marque ou qualité', 'Lieu de livraison', 'Date souhaitée', 'Autre'];
+
+    /** Raisons de rejet proposées (le détail reste obligatoire). */
+    public const RAISONS_REJET = ['Hors de nos activités', 'Doublon', 'Client non solvable', 'Pas de réponse du client', 'Autre'];
+
     // Incoterms 2020 (ICC) — liste standard, utilisée pour le souhait initial du client
     /** Unités proposées dans toutes les listes déroulantes d'articles (demande, besoin, offre, cotation). */
     public const UNITES = [
@@ -690,6 +696,14 @@ class Demande
             $userId,
             $id,
         ]);
+    }
+
+    /** Met la demande en pause : notes = ce qui manque + message ; rappel = échéance interne. */
+    public static function mettreEnAttenteInfos(int $id, string $notes, ?string $rappel): void
+    {
+        Database::connection()->prepare(
+            "UPDATE demandes SET statut = 'en_attente_info', qualification_notes = ?, echeance = COALESCE(?, echeance) WHERE id = ? AND statut IN ('a_qualifier', 'en_attente_info')"
+        )->execute([trim($notes), $rappel, $id]);
     }
 
     public static function reject(int $id, string $motif): void

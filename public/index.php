@@ -161,6 +161,10 @@ $router->post('/demandes/{id}/creer-dossier', function ($params) {
     Auth::requireLogin();
     (new DemandeController())->creerDossier($params);
 });
+$router->post('/demandes/{id}/attente-infos', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->attenteInfos($params);
+});
 $router->post('/demandes/{id}/rejeter', function ($params) {
     Auth::requireLogin();
     (new DemandeController())->rejeter($params);

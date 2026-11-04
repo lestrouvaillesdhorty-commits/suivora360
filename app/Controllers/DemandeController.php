@@ -1475,6 +1475,10 @@ class DemandeController
         }
 
         $motif = trim($_POST['motif'] ?? '');
+        $raison = trim($_POST['raison'] ?? '');
+        if (in_array($raison, Demande::RAISONS_REJET, true) && $motif !== '') {
+            $motif = $raison . ' — ' . $motif;
+        }
         if ($motif === '') {
             View::flash('erreur', 'Le motif de rejet est obligatoire.');
             header('Location: /index.php?r=demandes/' . $demande['id']);
@@ -1486,6 +1490,44 @@ class DemandeController
 
         View::flash('succes', 'Demande rejetée.');
         header('Location: /index.php?r=demandes/' . $demande['id']);
+        exit;
+    }
+
+    /** Met la demande en attente d'informations du client (sans dossier), avec date de rappel. */
+    public function attenteInfos(array $params): void
+    {
+        Auth::requireWrite();
+        $user = Auth::user();
+        $demande = $this->loadDemandeOrRedirect($user, $params);
+        if (!$demande) {
+            return;
+        }
+        $retour = '/index.php?r=demandes/' . $demande['id'];
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        if (!in_array($demande['statut'], ['a_qualifier', 'en_attente_info'], true)) {
+            View::flash('erreur', "Cette demande n'est plus à qualifier.");
+            header('Location: ' . $retour);
+            exit;
+        }
+        $manque = array_values(array_filter((array) ($_POST['manque'] ?? []), fn($v) => in_array($v, Demande::INFOS_MANQUANTES, true)));
+        $message = trim((string) ($_POST['message_client'] ?? ''));
+        $rappel = (string) ($_POST['rappel_le'] ?? '');
+        $rappel = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rappel) ? $rappel : null;
+        $notes = "En attente d'infos du client";
+        if ($manque) {
+            $notes .= ' — manque : ' . implode(', ', $manque);
+        }
+        if ($message !== '') {
+            $notes .= "\nMessage : " . $message;
+        }
+        Demande::mettreEnAttenteInfos((int) $demande['id'], $notes, $rappel);
+        AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'attente_infos_demande', 'demande', (int) $demande['id'], $manque ? implode(', ', $manque) : null);
+        View::flash('succes', "Demande mise en attente d'infos.");
+        header('Location: ' . $retour);
         exit;
     }
 
