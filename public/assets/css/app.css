@@ -1012,3 +1012,16 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
   .dash-kpi .dk-link{display:none}
   .dash-kpi-row{gap:10px}
 }
+/* v65 : filtre de filiale bien visible sur téléphone */
+@media (max-width:768px){
+  .topbar .topbar-org{display:none}
+  .topbar .topbar-filiale{flex:1;min-width:0;padding:4px 8px 4px 10px}
+  .topbar .topbar-filiale label{display:inline;font-size:12px}
+  .topbar .topbar-filiale select{flex:1;max-width:none;min-width:0;font-size:14px;min-height:40px}
+}
+@media (max-width:768px){
+  .pilotage-header + form{flex-wrap:nowrap !important;gap:8px !important;margin:10px 0 !important}
+  .pilotage-header + form .form-group{min-width:0 !important;flex:1}
+  .pilotage-header + form select{width:100%}
+  .pilotage-header + form .btn{display:none}
+}
