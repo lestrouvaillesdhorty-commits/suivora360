@@ -289,7 +289,7 @@ $unitesArticle = \App\Models\Demande::UNITES;
           </form>
         <?php endforeach; ?>
         <?php foreach ($articles as $a): $fa = 'art-form-' . $a['id']; ?>
-          <div class="art-ligne">
+          <div class="artl">
             <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="designation" value="<?= View::e($a['designation']) ?>" form="<?= $fa ?>"></div>
             <div class="art-champ"><label>Qté</label><input type="number" step="0.01" name="quantite" value="<?= View::e((string) $a['quantite']) ?>" form="<?= $fa ?>"></div>
             <div class="art-champ"><label>Unité</label>
@@ -320,7 +320,7 @@ $unitesArticle = \App\Models\Demande::UNITES;
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
-      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles" class="art-ligne art-nouveau">
+      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles" class="artl art-nouveau">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
         <div class="art-titre">Ajouter un article</div>
         <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="designation" required></div>

@@ -190,28 +190,23 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
       <h2>Articles / besoins</h2>
       <?php if (!$estModification): ?>
         <div style="font-size:12px;color:#888;margin-bottom:10px">Facultatif à ce stade — une demande de service encore peu détaillée peut être enregistrée sans aucune ligne.</div>
-        <table id="articlesTable">
-          <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Conditionnement / précision</th><th>Référence</th><th>Marque</th><th></th></tr></thead>
-          <tbody id="articlesBody"></tbody>
-        </table>
-        <button type="button" class="btn btn-sm btn-secondary" id="btnAjouterLigne" style="margin-top:8px">+ Ajouter une ligne</button>
+        <div id="articlesBody"></div>
+        <button type="button" class="btn btn-sm art-ajout" id="btnAjouterLigne" style="margin-top:4px">+ Ajouter un article</button>
         <template id="articleRowTemplate">
-          <tr>
-            <td><input type="text" name="art_designation[]"></td>
-            <td><input type="number" step="0.01" name="art_quantite[]" style="width:80px"></td>
-            <td>
+          <div class="artl">
+            <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="art_designation[]"></div>
+            <div class="art-champ"><label>Qté</label><input type="number" step="0.01" name="art_quantite[]"></div>
+            <div class="art-champ"><label>Unité</label>
               <select name="art_unite[]">
                 <option value="">Choisir…</option>
-                <?php foreach (\App\Models\Demande::UNITES as $u): ?>
-                  <option><?= $u ?></option>
-                <?php endforeach; ?>
+                <?php foreach (\App\Models\Demande::UNITES as $u): ?><option><?= $u ?></option><?php endforeach; ?>
               </select>
-            </td>
-            <td><input type="text" name="art_conditionnement[]" placeholder="ex. sacs de 50 kg"></td>
-            <td><input type="text" name="art_reference[]" style="width:100px"></td>
-            <td><input type="text" name="art_marque[]" style="width:100px"></td>
-            <td><button type="button" class="btn btn-sm btn-secondary btn-retirer-ligne">&times;</button></td>
-          </tr>
+            </div>
+            <div class="art-champ art-c-cond"><label>Conditionnement / précision</label><input type="text" name="art_conditionnement[]" placeholder="ex. sacs de 50 kg"></div>
+            <div class="art-champ"><label>Référence</label><input type="text" name="art_reference[]"></div>
+            <div class="art-champ"><label>Marque</label><input type="text" name="art_marque[]"></div>
+            <div class="art-actions"><button type="button" class="btn btn-sm btn-secondary btn-retirer-ligne" title="Retirer">&times;</button></div>
+          </div>
         </template>
       <?php else: ?>
         <div style="font-size:12px;color:#888;margin-bottom:10px">La modification des lignes se fait directement depuis la fiche de la demande, pour être enregistrée immédiatement.</div>
@@ -448,7 +443,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
     function ajouterLigne() {
       var clone = template.content.cloneNode(true);
       clone.querySelector('.btn-retirer-ligne').addEventListener('click', function (e) {
-        e.target.closest('tr').remove();
+        e.target.closest('.artl').remove();
       });
       articlesBody.appendChild(clone);
     }
