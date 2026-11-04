@@ -1110,3 +1110,5 @@ tbody tr:last-child td { border-bottom: 0; }
 .ac-late{background:#FFE3DA;color:#8F3217}.ac-today{background:#DFF3E8;color:#14633C}.ac-next{background:#DDF1F3;color:#0A6773}
 @media (max-width:768px){.dash-filtres{padding:0;border:0;background:none}.ac-row{gap:10px}.ac-row .btn{width:100%}}
 
+/* Les pastilles de statut restent sur une seule ligne (ex. « À qualifier »). */
+.badge { white-space: nowrap; }

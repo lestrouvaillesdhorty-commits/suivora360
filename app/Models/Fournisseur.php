@@ -53,8 +53,8 @@ class Fournisseur
     ];
 
     public const QUALIFICATION_BADGES = [
-        'a_qualifier' => 'badge-gray',
-        'en_cours' => 'badge-yellow',
+        'a_qualifier' => 'badge-yellow',
+        'en_cours' => 'badge-blue',
         'valide' => 'badge-green',
         'non_retenu' => 'badge-red',
     ];
