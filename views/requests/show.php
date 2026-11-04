@@ -288,71 +288,60 @@ $unitesArticle = \App\Models\Demande::UNITES;
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
           </form>
         <?php endforeach; ?>
-        <table class="responsive-cards">
-          <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Conditionnement / précision</th><th>Référence</th><th>Marque</th><th></th></tr></thead>
-          <tbody>
-          <?php foreach ($articles as $a): ?>
-            <tr>
-              <td data-label="Désignation"><input type="text" name="designation" value="<?= View::e($a['designation']) ?>" form="art-form-<?= $a['id'] ?>" style="width:100%;min-width:160px"></td>
-              <td data-label="Qté"><input type="number" step="0.01" name="quantite" value="<?= View::e((string) $a['quantite']) ?>" form="art-form-<?= $a['id'] ?>" style="width:75px"></td>
-              <td data-label="Unité">
-                <select name="unite" form="art-form-<?= $a['id'] ?>">
-                  <option value="" <?= $a['unite'] === '' ? 'selected' : '' ?>></option>
-                  <?php $unitesLigne = $unitesArticle; if ($a['unite'] !== '' && !in_array($a['unite'], $unitesLigne, true)) { $unitesLigne[] = $a['unite']; } ?>
-                  <?php foreach ($unitesLigne as $u): ?>
-                    <option <?= $a['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </td>
-              <td data-label="Conditionnement"><input type="text" name="conditionnement" value="<?= View::e($a['conditionnement'] ?? '') ?>" form="art-form-<?= $a['id'] ?>" style="width:100%"></td>
-              <td data-label="Référence"><input type="text" name="reference" value="<?= View::e($a['reference']) ?>" form="art-form-<?= $a['id'] ?>" style="width:90px"></td>
-              <td data-label="Marque"><input type="text" name="marque" value="<?= View::e($a['marque']) ?>" form="art-form-<?= $a['id'] ?>" style="width:90px"></td>
-              <td data-label="Actions" style="white-space:nowrap">
-                <button type="submit" form="art-form-<?= $a['id'] ?>" class="btn btn-sm btn-secondary" title="Enregistrer"><?= Icon::svg('check-circle', 'icon', 14) ?></button>
-                <button type="submit" form="art-form-<?= $a['id'] ?>" formaction="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= $a['id'] ?>/supprimer" class="btn btn-sm btn-secondary" title="Retirer" onclick="return confirm('Retirer cette ligne ?');"><?= Icon::svg('trash-2', 'icon', 14) ?></button>
-              </td>
-            </tr>
+        <?php foreach ($articles as $a): $fa = 'art-form-' . $a['id']; ?>
+          <div class="art-ligne">
+            <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="designation" value="<?= View::e($a['designation']) ?>" form="<?= $fa ?>"></div>
+            <div class="art-champ"><label>Qté</label><input type="number" step="0.01" name="quantite" value="<?= View::e((string) $a['quantite']) ?>" form="<?= $fa ?>"></div>
+            <div class="art-champ"><label>Unité</label>
+              <select name="unite" form="<?= $fa ?>">
+                <option value="" <?= $a['unite'] === '' ? 'selected' : '' ?>></option>
+                <?php $unitesLigne = $unitesArticle; if ($a['unite'] !== '' && !in_array($a['unite'], $unitesLigne, true)) { $unitesLigne[] = $a['unite']; } ?>
+                <?php foreach ($unitesLigne as $u): ?><option <?= $a['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option><?php endforeach; ?>
+              </select>
+            </div>
+            <div class="art-champ art-c-cond"><label>Conditionnement / précision</label><input type="text" name="conditionnement" value="<?= View::e($a['conditionnement'] ?? '') ?>" form="<?= $fa ?>"></div>
+            <div class="art-champ"><label>Référence</label><input type="text" name="reference" value="<?= View::e($a['reference']) ?>" form="<?= $fa ?>"></div>
+            <div class="art-champ"><label>Marque</label><input type="text" name="marque" value="<?= View::e($a['marque']) ?>" form="<?= $fa ?>"></div>
+            <div class="art-actions">
+              <button type="submit" form="<?= $fa ?>" class="btn btn-sm art-ok" title="Enregistrer"><?= Icon::svg('check-circle', 'icon', 14) ?> Enregistrer</button>
+              <button type="submit" form="<?= $fa ?>" formaction="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= $a['id'] ?>/supprimer" class="btn btn-sm btn-secondary" title="Retirer" onclick="return confirm('Retirer cette ligne ?');"><?= Icon::svg('trash-2', 'icon', 14) ?></button>
+            </div>
             <?php if ($detailsArticle): ?>
-            <tr class="art-details-row"><td colspan="7" style="padding-top:0">
-              <details <?= (!empty($a['dlc_min']) || !empty($a['certificats']) || !empty($a['echantillon']) || !empty($a['notes'])) ? 'open' : '' ?>>
-                <summary style="cursor:pointer;font-size:13px;color:#0A6773">Détails : durée de vie, certificats, échantillon, notes</summary>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:8px 0">
-                  <div class="form-group" style="margin:0"><label style="font-size:12px">Durée de vie minimale restante</label><input type="text" name="dlc_min" value="<?= View::e($a['dlc_min'] ?? '') ?>" placeholder="Ex : 9 mois" form="art-form-<?= $a['id'] ?>" style="width:150px"></div>
-                  <div class="form-group" style="margin:0"><label style="font-size:12px">Certificats demandés</label><input type="text" name="certificats" value="<?= View::e($a['certificats'] ?? '') ?>" placeholder="Ex : Halal, ISO 22000" form="art-form-<?= $a['id'] ?>" style="width:220px"></div>
-                  <label style="font-weight:400;display:inline-flex;gap:6px;align-items:center;min-height:36px"><input type="checkbox" name="echantillon" value="1" <?= !empty($a['echantillon']) ? 'checked' : '' ?> form="art-form-<?= $a['id'] ?>"> Échantillon nécessaire</label>
-                  <div class="form-group" style="margin:0;flex:1;min-width:220px"><label style="font-size:12px">Notes</label><input type="text" name="notes" value="<?= View::e($a['notes'] ?? '') ?>" form="art-form-<?= $a['id'] ?>" style="width:100%"></div>
-                </div>
-              </details>
-            </td></tr>
+            <details class="art-details" <?= (!empty($a['dlc_min']) || !empty($a['certificats']) || !empty($a['echantillon']) || !empty($a['notes'])) ? 'open' : '' ?>>
+              <summary>Détails : durée de vie, certificats, échantillon, notes</summary>
+              <div class="art-det-grille">
+                <div class="art-champ"><label>Durée de vie minimale restante</label><input type="text" name="dlc_min" value="<?= View::e($a['dlc_min'] ?? '') ?>" placeholder="Ex : 9 mois" form="<?= $fa ?>"></div>
+                <div class="art-champ"><label>Certificats demandés</label><input type="text" name="certificats" value="<?= View::e($a['certificats'] ?? '') ?>" placeholder="Ex : Halal, ISO 22000" form="<?= $fa ?>"></div>
+                <div class="art-champ"><label>Notes</label><input type="text" name="notes" value="<?= View::e($a['notes'] ?? '') ?>" form="<?= $fa ?>"></div>
+                <label class="art-check"><input type="checkbox" name="echantillon" value="1" <?= !empty($a['echantillon']) ? 'checked' : '' ?> form="<?= $fa ?>"> Échantillon nécessaire</label>
+              </div>
+            </details>
             <?php endif; ?>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
+          </div>
+        <?php endforeach; ?>
       <?php endif; ?>
-      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles" style="margin-top:14px;padding-top:14px;border-top:1px solid #eef0f4;display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
+      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles" class="art-ligne art-nouveau">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-        <div class="form-group" style="margin:0"><label style="font-size:12px">Désignation</label><input type="text" name="designation" required></div>
-        <div class="form-group" style="margin:0"><label style="font-size:12px">Qté</label><input type="number" step="0.01" name="quantite" style="width:75px"></div>
-        <div class="form-group" style="margin:0"><label style="font-size:12px">Unité</label>
-          <select name="unite">
-            <option value=""></option>
-            <?php foreach ($unitesArticle as $u): ?><option><?= $u ?></option><?php endforeach; ?>
-          </select>
+        <div class="art-titre">Ajouter un article</div>
+        <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="designation" required></div>
+        <div class="art-champ"><label>Qté</label><input type="number" step="0.01" name="quantite"></div>
+        <div class="art-champ"><label>Unité</label>
+          <select name="unite"><option value=""></option><?php foreach ($unitesArticle as $u): ?><option><?= $u ?></option><?php endforeach; ?></select>
         </div>
-        <div class="form-group" style="margin:0"><label style="font-size:12px">Conditionnement</label><input type="text" name="conditionnement"></div>
-        <div class="form-group" style="margin:0"><label style="font-size:12px">Référence</label><input type="text" name="reference" style="width:90px"></div>
-        <div class="form-group" style="margin:0"><label style="font-size:12px">Marque</label><input type="text" name="marque" style="width:90px"></div>
+        <div class="art-champ art-c-cond"><label>Conditionnement / précision</label><input type="text" name="conditionnement"></div>
+        <div class="art-champ"><label>Référence</label><input type="text" name="reference"></div>
+        <div class="art-champ"><label>Marque</label><input type="text" name="marque"></div>
+        <div class="art-actions"><button type="submit" class="btn btn-sm art-ajout">+ Ajouter</button></div>
         <?php if ($detailsArticle): ?>
-        <details style="flex-basis:100%"><summary style="cursor:pointer;font-size:13px;color:#0A6773">Détails : durée de vie, certificats, échantillon, notes</summary>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:8px 0">
-            <div class="form-group" style="margin:0"><label style="font-size:12px">Durée de vie minimale restante</label><input type="text" name="dlc_min" placeholder="Ex : 9 mois" style="width:150px"></div>
-            <div class="form-group" style="margin:0"><label style="font-size:12px">Certificats demandés</label><input type="text" name="certificats" placeholder="Ex : Halal, ISO 22000" style="width:220px"></div>
-            <label style="font-weight:400;display:inline-flex;gap:6px;align-items:center;min-height:36px"><input type="checkbox" name="echantillon" value="1"> Échantillon nécessaire</label>
-            <div class="form-group" style="margin:0;flex:1;min-width:220px"><label style="font-size:12px">Notes</label><input type="text" name="notes" style="width:100%"></div>
+        <details class="art-details"><summary>Détails : durée de vie, certificats, échantillon, notes</summary>
+          <div class="art-det-grille">
+            <div class="art-champ"><label>Durée de vie minimale restante</label><input type="text" name="dlc_min" placeholder="Ex : 9 mois"></div>
+            <div class="art-champ"><label>Certificats demandés</label><input type="text" name="certificats" placeholder="Ex : Halal, ISO 22000"></div>
+            <div class="art-champ"><label>Notes</label><input type="text" name="notes"></div>
+            <label class="art-check"><input type="checkbox" name="echantillon" value="1"> Échantillon nécessaire</label>
           </div>
         </details>
         <?php endif; ?>
-        <button type="submit" class="btn btn-sm">+ Ajouter</button>
       </form>
     </div>
 

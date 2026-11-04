@@ -1191,3 +1191,21 @@ td .btn-sm[title^="Télécharger"] { background:#2F6FED; border-color:#2F6FED; c
 td .btn-sm[title^="Télécharger"] svg { color:#fff; stroke:#fff; }
 td .btn-sm[title^="Télécharger"]:hover { background:#1F57C9; }
 td .btn-sm[title] { margin-right:4px; }
+
+/* Lignes d'articles d'une demande (modification) */
+.art-ligne{display:grid;grid-template-columns:minmax(180px,2fr) 90px 130px minmax(140px,1.4fr) minmax(90px,1fr) minmax(90px,1fr) auto;gap:10px 12px;align-items:end;background:#F4FAFB;border:1px solid #CFE7EB;border-left:4px solid var(--primary);border-radius:12px;padding:14px 16px;margin:0 0 12px}
+.art-champ{display:flex;flex-direction:column;gap:4px;min-width:0}
+.art-champ label{font-size:11.5px;font-weight:700;color:var(--primary-dark);margin:0}
+.art-champ input,.art-champ select{width:100%;min-width:0}
+.art-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.art-ok{background:#1FA463;border-color:#1FA463;color:#fff}.art-ok svg{stroke:#fff;color:#fff}.art-ok:hover{background:#12794A}
+.art-ajout{background:#0B7C8A;color:#fff;padding:10px 18px;font-size:14px}
+.art-ligne .btn-secondary[title="Retirer"]{background:#FFE3DE;border-color:#F2A99A;color:#C2321A}.art-ligne .btn-secondary[title="Retirer"] svg{stroke:#C2321A}
+.art-ligne .btn-secondary[title="Retirer"]:hover{background:#E5484D;color:#fff}.art-ligne .btn-secondary[title="Retirer"]:hover svg{stroke:#fff}
+.art-nouveau{background:#fff;border:2px dashed #9FD0D8;border-left:2px dashed #9FD0D8;margin-top:6px}
+.art-titre{grid-column:1/-1;font-weight:800;color:var(--primary-dark);font-size:14px}
+.art-details{grid-column:1/-1;border-top:1px solid #D5E9EC;padding-top:8px}
+.art-details summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--primary-dark)}
+.art-det-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 12px;align-items:end;padding:10px 0 2px}
+.art-check{display:inline-flex;gap:8px;align-items:center;font-weight:600;font-size:13px;min-height:38px}
+@media (max-width:900px){.art-ligne{grid-template-columns:1fr 1fr}.art-c-des,.art-c-cond{grid-column:1/-1}.art-actions{grid-column:1/-1;justify-content:flex-end}}
