@@ -6,7 +6,12 @@ use App\Core\View;
 if (\App\Models\Dossier::estAnnule($dossier)) { return; }
 
 $pa = \App\Services\ProchaineAction::calculer($dossier);
-$couleurs = ['info' => '#0B7C8A', 'attente' => '#4F7A96', 'alerte' => '#C8402A', 'ok' => '#2E9A5F'];
+$couleurs = [
+    'info' => 'linear-gradient(135deg,#0B9AAE,#075A66)',
+    'attente' => 'linear-gradient(135deg,#FF9A2E,#E8590C)',
+    'alerte' => 'linear-gradient(135deg,#F0594A,#B3261E)',
+    'ok' => 'linear-gradient(135deg,#2DBE75,#12794A)',
+];
 $fond = $couleurs[$pa['ton']] ?? $couleurs['info'];
 $peutAgir = Auth::canWrite();
 $csrfPa = Auth::csrfToken();
