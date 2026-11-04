@@ -51,15 +51,15 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 ?>
 <div class="pilotage-header">
   <div>
-    <h1>Bonjour <?= View::e(explode(' ', trim((string) ($currentUser['nom'] ?? '')))[0]) ?></h1>
-    <div class="subtitle" style="margin-bottom:0">Voici ce qui demande votre attention aujourd'hui — pour l'analyse détaillée par activité/responsable, voir <a href="/index.php?r=pilotage">Pilotage</a><?php if (!Auth::canVoirPilotage()): ?> (réservé à certains rôles)<?php endif; ?>.</div>
+    <h1>Bonjour <?= View::e(trim((string) ($currentUser['nom'] ?? ''))) ?></h1>
+    <div class="subtitle" style="margin-bottom:0">Voici ce qui demande votre attention aujourd'hui.</div>
   </div>
   <a href="/index.php?r=demandes/nouvelle" class="btn btn-pilotage"><?= Icon::svg('plus', 'icon', 16) ?> Nouvelle demande</a>
 </div>
 
 <?php /* [ajouté 03/10, demande explicite de Marie Laure] Switcher filiale/activité — jusqu'ici impossible de filtrer le tableau de bord. */ ?>
 <?php if (count($filiales) > 1 || !empty($activites)): ?>
-<form method="get" action="/index.php" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:14px 0">
+<form method="get" action="/index.php" class="dash-filtres" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0">
   <?php /* Le tableau de bord est la route "/" (pas "r=dashboard") — pas de champ "r" ici, sinon le routeur renvoie un 404. */ ?>
   <?php if (count($filiales) > 1): ?>
   <div class="form-group" style="margin-bottom:0;min-width:200px">
@@ -82,7 +82,7 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
     </select>
   </div>
   <?php if ($filialeIdSelection || $activiteSelection): ?>
-    <a href="/index.php" class="btn btn-sm btn-secondary">Réinitialiser les filtres</a>
+    <a href="/index.php" style="margin-left:auto;font-size:13px;font-weight:600">Réinitialiser</a>
   <?php endif; ?>
 </form>
 <?php endif; ?>
@@ -137,65 +137,41 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
 <div class="dash2" style="margin-top:18px">
 <div class="dash2-left">
   <div class="card dg-actions" id="actions-prioritaires">
-    <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('target', 'icon', 17) ?> À faire maintenant</h2>
-    <div class="prio-tabs" role="tablist">
-      <?php foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle): ?>
-        <button type="button" class="prio-tab<?= $cle === $prioTabDefaut ? ' active' : '' ?>" data-tab="<?= $cle ?>">
-          <?= $prioTabLabels[$cle] ?> <span class="prio-tab-count"><?= count($actionsPrioritaires[$cle]) ?></span>
-        </button>
-      <?php endforeach; ?>
-    </div>
-    <?php foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle): ?>
-      <?php $items = $actionsPrioritaires[$cle]; ?>
-      <div class="prio-panel" data-panel="<?= $cle ?>" <?= $cle !== $prioTabDefaut ? 'hidden' : '' ?>>
-        <?php if (empty($items)): ?>
-          <div class="empty-state"><?= $prioEmptyMessages[$cle] ?></div>
-        <?php else: ?>
-          <?php
-          $premiers = array_slice($items, 0, 3);
-          $reste = array_slice($items, 3);
-          $renderPrioItem = function (array $it) use ($prioTypeStyle, $cle) {
-              $style = $prioTypeStyle[$it['type']];
-              $joursEcart = (int) round((strtotime($it['echeance']) - strtotime(date('Y-m-d'))) / 86400);
-              if ($cle === 'retard') {
-                  $echeanceTexte = abs($joursEcart) . ' j de retard';
-                  $echeanceCouleur = '#C8402A';
-              } elseif ($cle === 'aujourd_hui') {
-                  $echeanceTexte = "Aujourd'hui";
-                  $echeanceCouleur = '#8F3217';
-              } else {
-                  $echeanceTexte = $joursEcart <= 1 ? 'Demain' : 'Dans ' . $joursEcart . ' j';
-                  $echeanceCouleur = 'inherit';
-              }
-              ?>
-              <li class="prio-item" onclick="window.location='<?= View::e($it['lien']) ?>'">
-                <span class="prio-type" style="background:<?= $style['bg'] ?>;color:<?= $style['fg'] ?>"><?= Icon::svg($style['icon'], 'icon', 16) ?></span>
-                <div class="prio-main">
-                  <div class="pm-title"><?= View::e($it['titre'] ?: $it['type_label']) ?></div>
-                  <div class="pm-ref"><?= View::e($it['reference'] ?? '') ?> <span class="badge badge-gray" style="text-transform:capitalize"><?= $it['type_label'] ?></span></div>
-                </div>
-                <div class="prio-action"><?= View::e($it['action']) ?></div>
-                <div class="prio-side">
-                  <span class="ps-echeance" style="color:<?= $echeanceCouleur ?>" <?= $it['echeance_synthetique'] ? 'title="Échéance estimée — aucune date de relance enregistrée pour ce type de dossier"' : '' ?>><?= $echeanceTexte ?><?= $it['echeance_synthetique'] ? ' *' : '' ?></span>
-                  <span class="ps-resp"><?= !empty($it['responsable_id']) ? View::e(Utilisateur::nameOf((int) $it['responsable_id'])) : 'Non assigné' ?></span>
-                </div>
-                <?= Icon::rowArrow() ?>
-              </li>
-              <?php
-          };
-          ?>
-          <ul class="prio-list">
-            <?php foreach ($premiers as $it): $renderPrioItem($it); endforeach; ?>
-          </ul>
-          <?php if (!empty($reste)): ?>
-            <ul class="prio-list prio-list-more" hidden>
-              <?php foreach ($reste as $it): $renderPrioItem($it); endforeach; ?>
-            </ul>
-            <button type="button" class="prio-more-toggle" data-label-more="Voir les <?= count($items) ?> actions" data-label-less="Voir moins">Voir les <?= count($items) ?> actions <?= Icon::svg('chevron-right', 'icon', 13) ?></button>
-          <?php endif; ?>
-        <?php endif; ?>
-      </div>
-    <?php endforeach; ?>
+    <?php
+    $toutes = [];
+    foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
+        foreach ($actionsPrioritaires[$cle] as $it) { $it['_cle'] = $cle; $toutes[] = $it; }
+    }
+    $rendreAction = function (array $it) use ($prioTypeStyle) {
+        $style = $prioTypeStyle[$it['type']];
+        $cle = $it['_cle'];
+        $j = (int) round((strtotime($it['echeance']) - strtotime(date('Y-m-d'))) / 86400);
+        if ($cle === 'retard') { $txt = 'En retard · ' . abs($j) . ' j'; $cls = 'ac-late'; }
+        elseif ($cle === 'aujourd_hui') { $txt = "Aujourd'hui"; $cls = 'ac-today'; }
+        else { $txt = $j <= 1 ? 'Demain' : 'Dans ' . $j . ' j'; $cls = 'ac-next'; }
+        ?>
+        <li class="ac-row">
+          <span class="prio-type ac-ico" style="background:<?= $style['bg'] ?>;color:<?= $style['fg'] ?>"><?= Icon::svg($style['icon'], 'icon', 20) ?></span>
+          <div class="ac-main">
+            <div class="ac-title"><?= View::e($it['action']) ?></div>
+            <div class="ac-sub"><?= View::e($it['titre'] ?: $it['type_label']) ?> · <?= View::e($it['reference'] ?? '') ?></div>
+          </div>
+          <span class="ac-chip <?= $cls ?>"><?= $txt ?></span>
+          <a href="<?= View::e($it['lien']) ?>" class="btn btn-sm btn-secondary">Ouvrir</a>
+        </li>
+        <?php
+    };
+    ?>
+    <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('target', 'icon', 17) ?> À faire maintenant <?php if ($actionsEnRetardCount > 0): ?><span class="badge badge-orange"><?= $actionsEnRetardCount ?> en retard</span><?php endif; ?></span></h2>
+    <?php if (empty($toutes)): ?>
+      <div class="empty-state">Rien à traiter pour le moment — bien joué.</div>
+    <?php else: ?>
+      <ul class="ac-list"><?php foreach (array_slice($toutes, 0, 5) as $it) { $rendreAction($it); } ?></ul>
+      <?php if (count($toutes) > 5): ?>
+        <ul class="ac-list" id="ac-more" hidden><?php foreach (array_slice($toutes, 5) as $it) { $rendreAction($it); } ?></ul>
+        <button type="button" class="prio-more-toggle" id="ac-toggle" data-more="Voir les <?= count($toutes) ?> actions" data-less="Voir moins">Voir les <?= count($toutes) ?> actions</button>
+      <?php endif; ?>
+    <?php endif; ?>
   </div>
 
   <div class="card dg-demandes">
@@ -269,27 +245,8 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
 <?php endif; ?>
 <script>
 (function () {
-  var card = document.getElementById('actions-prioritaires');
-  if (!card) { return; }
-  var tabs = card.querySelectorAll('.prio-tab');
-  var panels = card.querySelectorAll('.prio-panel');
-  tabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      tabs.forEach(function (t) { t.classList.remove('active'); });
-      panels.forEach(function (p) { p.hidden = true; });
-      tab.classList.add('active');
-      var panel = card.querySelector('.prio-panel[data-panel="' + tab.dataset.tab + '"]');
-      if (panel) { panel.hidden = false; }
-    });
-  });
-  card.querySelectorAll('.prio-more-toggle').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var panel = btn.closest('.prio-panel');
-      var more = panel.querySelector('.prio-list-more');
-      if (!more) { return; }
-      more.hidden = !more.hidden;
-      btn.firstChild.textContent = more.hidden ? btn.dataset.labelMore + ' ' : btn.dataset.labelLess + ' ';
-    });
-  });
+  var t = document.getElementById('ac-toggle'), m = document.getElementById('ac-more');
+  if (!t || !m) { return; }
+  t.addEventListener('click', function () { m.hidden = !m.hidden; t.textContent = m.hidden ? t.dataset.more : t.dataset.less; });
 })();
 </script>
