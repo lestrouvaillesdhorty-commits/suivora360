@@ -1209,3 +1209,8 @@ td .btn-sm[title] { margin-right:4px; }
 .art-det-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 12px;align-items:end;padding:10px 0 2px}
 .art-check{display:inline-flex;gap:8px;align-items:center;font-weight:600;font-size:13px;min-height:38px}
 @media (max-width:900px){.art-ligne{grid-template-columns:1fr 1fr}.art-c-des,.art-c-cond{grid-column:1/-1}.art-actions{grid-column:1/-1;justify-content:flex-end}}
+/* Désignation en pleine largeur (ligne du haut) */
+.art-ligne{grid-template-columns:90px 130px minmax(140px,1.6fr) minmax(90px,1fr) minmax(90px,1fr) auto}
+.art-ligne .art-c-des{grid-column:1/-1}
+.art-ligne .art-c-cond{grid-column:auto}
+@media (max-width:900px){.art-ligne{grid-template-columns:1fr 1fr}.art-ligne .art-c-cond{grid-column:1/-1}}
