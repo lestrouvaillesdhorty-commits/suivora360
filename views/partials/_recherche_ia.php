@@ -6,7 +6,7 @@ use App\Core\View;
  * Variables : $rechCible, $rechFormId, $rechAvecSite, $rechTexte (champs texte/liste à remplir), $rechCoches (groupes de cases), $csrfToken.
  */
 ?>
-      <div class="card" id="blocRechercheIa" style="background:#f6f8ff;border:1px solid #dbe3fb;box-shadow:none">
+      <div class="card" id="blocRechercheIa" style="background:#F2F9FA;border:1px solid #BFE0E5;box-shadow:none">
         <strong>Chercher les informations avec l'IA</strong>
         <?php if (\App\Services\AiExtracteur::estDisponible()): ?>
         <div style="font-size:13px;color:#555;margin:4px 0 10px">Saisissez le nom (et le pays<?= $rechAvecSite ? '' : ' ou le site internet' ?> si vous les avez) : l'IA cherche les informations publiques et remplit <strong>les champs vides</strong>. Vous complétez le reste et vérifiez tout avant d'enregistrer.</div>

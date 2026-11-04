@@ -1130,3 +1130,13 @@ tbody tr:last-child td { border-bottom: 0; }
   .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto;transform:translateX(-100%)}
   .sidebar.sidebar-open{transform:none}
 }
+
+/* Formulaires guidés en étapes (etapes.js) */
+.etapes-barre{list-style:none;margin:0 0 18px;padding:0;display:flex;gap:6px;flex-wrap:wrap}
+.etapes-barre li{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:999px;background:#fff;border:1px solid var(--border);color:#6A6E8D;font-weight:600;font-size:14px;cursor:pointer}
+.etapes-barre .etapes-num{width:26px;height:26px;border-radius:50%;background:#ECEFF3;color:#4A5565;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.etapes-barre li.actif{border-color:var(--primary);color:var(--primary-dark);background:var(--primary-light)}
+.etapes-barre li.actif .etapes-num{background:var(--primary);color:#fff}
+.etapes-barre li.fait .etapes-num{background:#2E9A5F;color:#fff}
+.etapes-nav{display:flex;gap:10px;align-items:center;margin:4px 0 14px}
+@media (max-width:768px){.etapes-barre li{padding-right:10px}.etapes-barre .etapes-titre{display:none}.etapes-barre li.actif .etapes-titre{display:inline}.etapes-nav .btn{min-height:46px}}

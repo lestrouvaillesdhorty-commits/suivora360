@@ -124,7 +124,7 @@
 
   /* 5) Longs formulaires (fiche client / fournisseur) : sections repliables, première ouverte */
   var fm = document.querySelector('form#fournisseurForm, form#clientForm');
-  if (fm) {
+  if (fm && !fm.hasAttribute('data-etapes')) {
     var secs = Array.prototype.filter.call(fm.querySelectorAll('.card'), function (c) {
       return c.firstElementChild && c.firstElementChild.tagName === 'H2' && !c.parentElement.closest('.card');
     });

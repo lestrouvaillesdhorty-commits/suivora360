@@ -56,13 +56,13 @@ $ouvrirCommercial = $estModif && ($client['secteur'] || $client['adresse_livrais
   </div>
 <?php endif; ?>
 
-<form method="post" action="<?= View::e($actionUrl) ?>" id="clientForm" novalidate<?= $estModif ? '' : ' data-brouillon="client"' ?>>
+<form method="post" action="<?= View::e($actionUrl) ?>" id="clientForm" novalidate<?= $estModif ? '' : ' data-brouillon="client"' ?><?= ($estModif || $aSaisie) ? '' : ' data-etapes' ?>>
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
   <div class="detail-grid">
     <div>
       <?php $rechCible = 'client'; $rechFormId = 'clientForm'; $rechAvecSite = true; $rechTexte = ['type', 'secteur', 'ville', 'adresse', 'code_postal', 'siret', 'tva', 'contact_prenom', 'contact_nom', 'fonction_contact', 'email', 'adresse_livraison']; $rechCoches = []; include __DIR__ . '/../partials/_recherche_ia.php'; ?>
 
-      <div class="card">
+      <div class="card" data-etape="Identité">
         <h2>Identification</h2>
         <div class="form-group">
           <label for="nom">Nom / raison sociale *</label>
@@ -99,7 +99,7 @@ $ouvrirCommercial = $estModif && ($client['secteur'] || $client['adresse_livrais
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" data-etape="Contact">
         <h2>Contact principal</h2>
         <div class="form-row">
           <div class="form-group"><label for="contact_prenom">Prénom</label><input type="text" id="contact_prenom" name="contact_prenom" value="<?= View::e($val('contact_prenom')) ?>"></div>
@@ -149,7 +149,7 @@ $ouvrirCommercial = $estModif && ($client['secteur'] || $client['adresse_livrais
     </div>
 
     <div>
-      <div class="card">
+      <div class="card" data-etape="Suivi">
         <h2>Gestion</h2>
         <div class="form-group">
           <label for="filiale_id">Filiale *</label>
@@ -207,12 +207,12 @@ $ouvrirCommercial = $estModif && ($client['secteur'] || $client['adresse_livrais
         <?php endif; ?>
       </div>
 
-      <div class="card">
+      <div class="card" data-etape="Suivi">
         <h2>Notes internes</h2>
         <textarea name="notes" rows="5" placeholder="Visibles uniquement par l’équipe."><?= View::e($val('notes')) ?></textarea>
       </div>
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap" data-etapes-fin>
         <button type="submit" class="btn"><?= $estModif ? 'Enregistrer les modifications' : 'Créer le client' ?></button>
         <a class="btn btn-secondary" href="<?= View::e($estModif ? '/index.php?r=clients/' . (int) $client['id'] : $retour) ?>">Annuler</a>
       </div>

@@ -66,13 +66,13 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
   </div>
 <?php endif; ?>
 
-<form method="post" action="<?= View::e($actionUrl) ?>" id="fournisseurForm" novalidate<?= $estModif ? '' : ' data-brouillon="fournisseur"' ?>>
+<form method="post" action="<?= View::e($actionUrl) ?>" id="fournisseurForm" novalidate<?= $estModif ? '' : ' data-brouillon="fournisseur"' ?><?= ($estModif || $aSaisie) ? '' : ' data-etapes' ?>>
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
   <div class="detail-grid">
     <div>
       <?php $rechCible = 'fournisseur'; $rechFormId = 'fournisseurForm'; $rechAvecSite = false; $rechTexte = ['nom_commercial', 'specialites', 'ville', 'adresse', 'code_postal', 'site_web', 'siret', 'tva', 'contact_prenom', 'contact_nom', 'fonction_contact', 'email', 'quantite_min', 'pays_desservis', 'marques', 'conditions_paiement']; $rechCoches = ['types', 'activites', 'devises_proposees']; include __DIR__ . '/../partials/_recherche_ia.php'; ?>
 
-      <div class="card">
+      <div class="card" data-etape="Identité">
         <h2>Identification</h2>
         <div class="form-row">
           <div class="form-group">
@@ -147,7 +147,7 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" data-etape="Contact">
         <h2>Contact principal</h2>
         <div class="form-row">
           <div class="form-group"><label for="contact_prenom">Prénom</label><input type="text" id="contact_prenom" name="contact_prenom" value="<?= View::e($val('contact_prenom')) ?>"></div>
@@ -165,7 +165,7 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
         <div style="font-size:12px;color:#888">D’autres interlocuteurs et adresses (entrepôt, usine…) peuvent être ajoutés depuis la fiche, onglet « Contacts ».</div>
       </div>
 
-      <div class="card">
+      <div class="card" data-etape="Conditions">
         <h2>Conditions commerciales</h2>
         <div class="form-group">
           <label>Devises proposées</label>
@@ -224,7 +224,7 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
     </div>
 
     <div>
-      <div class="card">
+      <div class="card" data-etape="Suivi">
         <h2>Gestion</h2>
         <div class="form-group">
           <label for="filiale_id">Filiale *</label>
@@ -286,12 +286,12 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
         <?php endif; ?>
       </div>
 
-      <div class="card">
+      <div class="card" data-etape="Suivi">
         <h2>Notes internes</h2>
         <textarea name="notes" rows="5" placeholder="Visibles uniquement par l’équipe."><?= View::e($val('notes')) ?></textarea>
       </div>
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap" data-etapes-fin>
         <button type="submit" class="btn"><?= $estModif ? 'Enregistrer les modifications' : 'Créer le fournisseur' ?></button>
         <a class="btn btn-secondary" href="<?= View::e($estModif ? '/index.php?r=fournisseurs/' . (int) $fournisseur['id'] : $retour) ?>">Annuler</a>
       </div>

@@ -178,6 +178,7 @@ function navActive(string $path, string $prefix): string {
 <script src="/assets/js/galerie.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/galerie.js') ?>"></script>
 <script src="/assets/js/mobile.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/mobile.js') ?>"></script>
 <?php if ($currentUser): ?><script src="/assets/js/alertes.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/alertes.js') ?>"></script><?php endif; ?>
+<?php if ($currentUser): ?><script src="/assets/js/etapes.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/etapes.js') ?>"></script><?php endif; ?>
 <?php if ($currentUser): ?><script src="/assets/js/brouillon.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/brouillon.js') ?>"></script><?php endif; ?>
 </body>
 </html>
