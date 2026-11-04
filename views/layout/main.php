@@ -39,21 +39,19 @@ function navActive(string $path, string $prefix): string {
         <?php if (!empty($notifNonLues)): ?><span class="badge badge-red"><?= $notifNonLues ?></span><?php endif; ?>
       </a>
       <?php endif; ?>
-      <?php $suiviOuvert = false; foreach (['/offres', '/comparateur', '/cotations', '/commandes', '/factures'] as $gp) { if (str_starts_with($path, $gp)) { $suiviOuvert = true; } } ?>
-      <div class="section-label">Opérations</div>
+      <div class="section-label">Pilotage</div>
       <a href="/index.php?r=demandes" class="<?= navActive($path, '/demandes') ?>"><?= Icon::svg('inbox') ?><span>Demandes</span></a>
       <a href="/index.php?r=dossiers" class="<?= navActive($path, '/dossiers') ?>"><?= Icon::svg('folder') ?><span>Dossiers</span></a>
-      <a href="/index.php?r=clients" class="<?= navActive($path, '/clients') ?>"><?= Icon::svg('users') ?><span>Clients</span></a>
+      <div class="section-label">Achats</div>
       <a href="/index.php?r=fournisseurs" class="<?= navActive($path, '/fournisseurs') ?>"><?= Icon::svg('truck') ?><span>Fournisseurs</span></a>
+      <a href="/index.php?r=offres" class="<?= navActive($path, '/offres') ?>"><?= Icon::svg('tag') ?><span>Offres</span></a>
+      <a href="/index.php?r=comparateur" class="<?= navActive($path, '/comparateur') ?>"><?= Icon::svg('layers') ?><span>Comparateur</span></a>
       <a href="/index.php?r=simulateur" class="<?= navActive($path, '/simulateur') ?>"><?= Icon::svg('sliders') ?><span>Simulateur de prix</span></a>
-      <details class="nav-group"<?= $suiviOuvert ? ' open' : '' ?>>
-        <summary title="Listes de tous les dossiers. Pour travailler sur une affaire, ouvrez le dossier : tout y est (offres, comparaison, cotations, commande, factures)."><?= Icon::svg('layers') ?><span>Suivi transversal</span></summary>
-        <a href="/index.php?r=offres" class="<?= navActive($path, '/offres') ?>"><?= Icon::svg('tag') ?><span>Offres</span></a>
-        <a href="/index.php?r=comparateur" class="<?= navActive($path, '/comparateur') ?>"><?= Icon::svg('layers') ?><span>Comparateur</span></a>
-        <a href="/index.php?r=cotations" class="<?= navActive($path, '/cotations') ?>"><?= Icon::svg('file-text') ?><span>Cotations</span></a>
-        <a href="/index.php?r=commandes" class="<?= navActive($path, '/commandes') ?>"><?= Icon::svg('shopping-cart') ?><span>Commandes</span></a>
-        <a href="/index.php?r=factures" class="<?= navActive($path, '/factures') ?>"><?= Icon::svg('dollar-sign') ?><span>Factures</span></a>
-      </details>
+      <div class="section-label">Ventes</div>
+      <a href="/index.php?r=clients" class="<?= navActive($path, '/clients') ?>"><?= Icon::svg('users') ?><span>Clients</span></a>
+      <a href="/index.php?r=cotations" class="<?= navActive($path, '/cotations') ?>"><?= Icon::svg('file-text') ?><span>Cotations</span></a>
+      <a href="/index.php?r=commandes" class="<?= navActive($path, '/commandes') ?>"><?= Icon::svg('shopping-cart') ?><span>Commandes</span></a>
+      <a href="/index.php?r=factures" class="<?= navActive($path, '/factures') ?>"><?= Icon::svg('dollar-sign') ?><span>Factures</span></a>
       <?php if ($currentUser && (Permissions::isAdmin($currentUser['role']) || Permissions::canManageParametres($currentUser['role']))): ?>
       <div class="section-label">Administration</div>
       <?php if (Permissions::isAdmin($currentUser['role'])): ?>

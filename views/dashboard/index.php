@@ -31,9 +31,9 @@ $statutDemandeBadges = [
    l'autre du tableau de bord. */
 $prioTypeStyle = [
     'demande' => ['bg' => '#DDF1F3', 'fg' => '#0B7C8A', 'icon' => 'file-text'],
-    'offre' => ['bg' => '#dbeafe', 'fg' => '#2563eb', 'icon' => 'file'],
-    'cotation' => ['bg' => '#ffedd5', 'fg' => '#c2410c', 'icon' => 'tag'],
-    'commande' => ['bg' => '#dbeafe', 'fg' => '#2563eb', 'icon' => 'shopping-cart'],
+    'offre' => ['bg' => '#DFF3E8', 'fg' => '#14633C', 'icon' => 'file'],
+    'cotation' => ['bg' => '#FFE3DA', 'fg' => '#8F3217', 'icon' => 'tag'],
+    'commande' => ['bg' => '#DFF3E8', 'fg' => '#14633C', 'icon' => 'shopping-cart'],
 ];
 $prioTabLabels = ['retard' => 'En retard', 'aujourd_hui' => "Aujourd'hui", 'a_venir' => 'À venir'];
 $prioEmptyMessages = [
@@ -51,8 +51,8 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 ?>
 <div class="pilotage-header">
   <div>
-    <h1>Tableau de bord</h1>
-    <div class="subtitle" style="margin-bottom:0">Vos priorités et opérations à suivre — pour l'analyse détaillée par activité/responsable, voir <a href="/index.php?r=pilotage">Pilotage</a><?php if (!Auth::canVoirPilotage()): ?> (réservé à certains rôles)<?php endif; ?>.</div>
+    <h1>Bonjour <?= View::e(explode(' ', trim((string) ($currentUser['nom'] ?? '')))[0]) ?></h1>
+    <div class="subtitle" style="margin-bottom:0">Voici ce qui demande votre attention aujourd'hui — pour l'analyse détaillée par activité/responsable, voir <a href="/index.php?r=pilotage">Pilotage</a><?php if (!Auth::canVoirPilotage()): ?> (réservé à certains rôles)<?php endif; ?>.</div>
   </div>
   <a href="/index.php?r=demandes/nouvelle" class="btn btn-pilotage"><?= Icon::svg('plus', 'icon', 16) ?> Nouvelle demande</a>
 </div>
@@ -93,11 +93,11 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
     <div><div class="dk-value"><?= $demandeCounts['a_qualifier'] ?></div><div class="dk-label">À qualifier</div><div class="dk-link">Voir les demandes <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
   <a href="/index.php?r=demandes" class="dash-kpi">
-    <div class="dk-icon" style="background:#dbeafe;color:#2563eb"><?= Icon::svg('file', 'icon', 21) ?></div>
+    <div class="dk-icon" style="background:#DFF3E8;color:#14633C"><?= Icon::svg('file', 'icon', 21) ?></div>
     <div><div class="dk-value"><?= $offresAAnalyserCount ?></div><div class="dk-label">Offres à analyser</div><div class="dk-link">Voir les offres <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
   <a href="/index.php?r=dossiers" class="dash-kpi">
-    <div class="dk-icon" style="background:#ffedd5;color:#c2410c"><?= Icon::svg('tag', 'icon', 21) ?></div>
+    <div class="dk-icon" style="background:#FFE3DA;color:#8F3217"><?= Icon::svg('tag', 'icon', 21) ?></div>
     <div><div class="dk-value"><?= $cotationsARelancerCount ?></div><div class="dk-label">Cotations à relancer</div><div class="dk-link">Voir les cotations <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
   <?php /* [corrigé 04/10] Reliait "En retard" au seul compteur demandeCounts['en_retard']
@@ -107,8 +107,8 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
      exactement la même chose que l'onglet "En retard" d'Actions prioritaires,
      et le libellé est explicite sur son périmètre élargi. */ ?>
   <a href="#actions-prioritaires" class="dash-kpi">
-    <div class="dk-icon" style="background:#fee2e2;color:#dc2626"><?= Icon::svg('clock', 'icon', 21) ?></div>
-    <div><div class="dk-value" style="<?= $actionsEnRetardCount > 0 ? 'color:#991b1b' : '' ?>"><?= $actionsEnRetardCount ?></div><div class="dk-label">Actions en retard</div><div class="dk-link">Voir les actions <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
+    <div class="dk-icon" style="background:#FDE5DF;color:#C8402A"><?= Icon::svg('clock', 'icon', 21) ?></div>
+    <div><div class="dk-value" style="<?= $actionsEnRetardCount > 0 ? 'color:#A63A1F' : '' ?>"><?= $actionsEnRetardCount ?></div><div class="dk-label">Actions en retard</div><div class="dk-link">Voir les actions <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
 </div>
 
@@ -116,15 +116,15 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
 $opsColors = [
   'demandes'   => ['bg' => '#DDF1F3', 'fg' => '#0B7C8A', 'icon' => 'file-text'],
   'dossiers'   => ['bg' => '#d1fae5', 'fg' => '#059669', 'icon' => 'folder'],
-  'offres'     => ['bg' => '#dbeafe', 'fg' => '#2563eb', 'icon' => 'file'],
-  'cotations'  => ['bg' => '#ffedd5', 'fg' => '#c2410c', 'icon' => 'tag'],
-  'commandes'  => ['bg' => '#dbeafe', 'fg' => '#2563eb', 'icon' => 'shopping-cart'],
+  'offres'     => ['bg' => '#DFF3E8', 'fg' => '#14633C', 'icon' => 'file'],
+  'cotations'  => ['bg' => '#FFE3DA', 'fg' => '#8F3217', 'icon' => 'tag'],
+  'commandes'  => ['bg' => '#DFF3E8', 'fg' => '#14633C', 'icon' => 'shopping-cart'],
   'livraisons' => ['bg' => '#ede9fe', 'fg' => '#7c3aed', 'icon' => 'truck'],
 ];
 $opsLabels = ['demandes' => 'Demandes', 'dossiers' => 'Dossiers', 'offres' => 'Offres', 'cotations' => 'Cotations', 'commandes' => 'Commandes', 'livraisons' => 'Livraisons'];
 $opsLinks = ['demandes' => 'demandes', 'dossiers' => 'dossiers&statut=actif', 'offres' => 'demandes', 'cotations' => 'dossiers', 'commandes' => 'dossiers', 'livraisons' => 'dossiers'];
 $opsKeys = array_keys($opsLabels);
-$graviteBorder = ['haute' => '#dc2626', 'moyenne' => '#f97316', 'basse' => '#eab308'];
+$graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab308'];
 ?>
 
 <?php /* [réorganisé 04/10, sur la base de la maquette de référence de Marie
@@ -158,7 +158,7 @@ $graviteBorder = ['haute' => '#dc2626', 'moyenne' => '#f97316', 'basse' => '#eab
   </details>
 
   <div class="card dg-actions" id="actions-prioritaires">
-    <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('target', 'icon', 17) ?> Actions prioritaires</h2>
+    <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('target', 'icon', 17) ?> À faire maintenant</h2>
     <div class="prio-tabs" role="tablist">
       <?php foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle): ?>
         <button type="button" class="prio-tab<?= $cle === $prioTabDefaut ? ' active' : '' ?>" data-tab="<?= $cle ?>">
@@ -180,10 +180,10 @@ $graviteBorder = ['haute' => '#dc2626', 'moyenne' => '#f97316', 'basse' => '#eab
               $joursEcart = (int) round((strtotime($it['echeance']) - strtotime(date('Y-m-d'))) / 86400);
               if ($cle === 'retard') {
                   $echeanceTexte = abs($joursEcart) . ' j de retard';
-                  $echeanceCouleur = '#dc2626';
+                  $echeanceCouleur = '#C8402A';
               } elseif ($cle === 'aujourd_hui') {
                   $echeanceTexte = "Aujourd'hui";
-                  $echeanceCouleur = '#c2410c';
+                  $echeanceCouleur = '#8F3217';
               } else {
                   $echeanceTexte = $joursEcart <= 1 ? 'Demain' : 'Dans ' . $joursEcart . ' j';
                   $echeanceCouleur = 'inherit';
@@ -304,6 +304,30 @@ $graviteBorder = ['haute' => '#dc2626', 'moyenne' => '#f97316', 'basse' => '#eab
   </div>
 </div>
 
+<?php if (!empty($dossiersEnCours)): ?>
+<div class="card dos-encours" style="margin-top:20px">
+  <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('folder', 'icon', 17) ?> Dossiers en cours</span><a href="/index.php?r=dossiers" style="font-size:13px;font-weight:600">Tous les dossiers</a></h2>
+  <div style="overflow-x:auto">
+  <table class="table-soft" style="width:100%;min-width:640px">
+    <thead><tr><th>Dossier</th><th>Objet et client</th><th>Étape</th><th style="width:26%">Avancement</th><th>Échéance</th></tr></thead>
+    <tbody>
+    <?php foreach ($dossiersEnCours as $dc):
+        $pct = \App\Models\Dossier::progression((string) $dc['etape']);
+        $enRetard = !empty($dc['echeance']) && $dc['echeance'] < date('Y-m-d');
+    ?>
+      <tr onclick="location.href='/index.php?r=dossiers/<?= (int) $dc['id'] ?>'" style="cursor:pointer">
+        <td><a href="/index.php?r=dossiers/<?= (int) $dc['id'] ?>"><strong><?= View::e($dc['reference']) ?></strong></a></td>
+        <td><div style="font-weight:600"><?= View::e($dc['objet']) ?></div><div style="font-size:12.5px;color:#6b7280"><?= View::e((string) ($dc['client_nom'] ?? '')) ?></div></td>
+        <td><span class="badge badge-blue"><?= View::e(\App\Models\Dossier::ETAPES_LABELS[$dc['etape']] ?? $dc['etape']) ?></span></td>
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="bar-soft<?= $enRetard ? ' late' : '' ?>" style="flex:1"><i style="width:<?= (int) $pct ?>%"></i></div><strong style="font-size:12.5px;width:36px;text-align:right"><?= (int) $pct ?> %</strong></div></td>
+        <td><?= !empty($dc['echeance']) ? '<span class="badge ' . ($enRetard ? 'badge-orange' : 'badge-gray') . '">' . ($enRetard ? 'En retard' : date('d/m/Y', strtotime($dc['echeance']))) . '</span>' : '—' ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  </div>
+</div>
+<?php endif; ?>
 <script>
 (function () {
   var card = document.getElementById('actions-prioritaires');

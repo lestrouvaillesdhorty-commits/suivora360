@@ -63,6 +63,17 @@ class DashboardController
         usort($echeancesAVenir, fn($a, $b) => strcmp($a['echeance'], $b['echeance']));
         $echeancesAVenir = array_slice($echeancesAVenir, 0, 6);
 
+        // Dossiers en cours (bloc « avancement » du tableau de bord) : les plus récents, avec leur étape.
+        $dossiersEnCours = [];
+        try {
+            $dossiersEnCours = array_slice(Dossier::visibleFor($user, array_filter([
+                'statut' => 'actif',
+                'filiale_id' => $filialeIdSelection,
+            ])), 0, 6);
+        } catch (\Throwable $e) {
+            $dossiersEnCours = [];
+        }
+
         $actionsPrioritaires = $this->construireActionsPrioritaires($user, $filialeIds, $activite ?: null);
         $actionsEnRetardCount = count($actionsPrioritaires['retard']);
 
@@ -80,6 +91,7 @@ class DashboardController
             'livraisonsEnCoursCount' => $livraisonsEnCoursCount,
             'dernieresDemandes' => $dernieresDemandes,
             'echeancesAVenir' => $echeancesAVenir,
+            'dossiersEnCours' => $dossiersEnCours,
             'actionsPrioritaires' => $actionsPrioritaires,
             'actionsEnRetardCount' => $actionsEnRetardCount,
             'suivi' => [
