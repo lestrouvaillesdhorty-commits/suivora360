@@ -218,6 +218,21 @@ class PilotageController
             }
             $t = $vue['resultats_activite']['total'];
             fputcsv($out, ['Total', $t['commandes'], $t['ventes_ht'], $t['marge'], $t['marge_pct']], ';', '"', '\\');
+        } elseif ($onglet === 'atraiter') {
+            $seuil = max(1, min(90, (int) ($_GET['seuil'] ?? 3)));
+            $type = array_key_exists($_GET['type'] ?? '', Pilotage::TYPES_A_TRAITER) ? $_GET['type'] : '';
+            $d = Pilotage::aTraiter($user, $seuil, $type, (int) ($_GET['resp'] ?? 0));
+            fputcsv($out, ['Attente de plus de (jours)', $seuil], ';', '"', '\\');
+            fputcsv($out, [], ';', '"', '\\');
+            fputcsv($out, ['Type', 'Élément', 'Dossier', 'Responsable', 'Fonction', 'En attente depuis le', 'Jours d\'attente'], ';', '"', '\\');
+            $fct = \App\Models\FonctionEquipe::parUtilisateur((int) $user['organisation_id']);
+            foreach ($d['lignes'] as $l) {
+                fputcsv($out, \App\Core\Csv::row([
+                    Pilotage::TYPES_A_TRAITER[$l['type']][0], $l['titre'], $l['dossier_reference'] ?: '',
+                    $l['responsable_id'] ? Utilisateur::nameOf($l['responsable_id']) : 'Non assigné',
+                    $fct[$l['responsable_id']]['libelle'] ?? '', date('d/m/Y', strtotime($l['depuis'])), $l['jours'],
+                ]), ';', '"', '\\');
+            }
         } elseif ($onglet === 'objectifs') {
             $mois = ObjectifCollaborateur::moisValide($_GET['mois'] ?? '');
             $d = Pilotage::objectifsMois($user, $mois, $filters['devise']);

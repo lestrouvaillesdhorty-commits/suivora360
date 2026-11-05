@@ -42,6 +42,9 @@ $total = count($d['lignes']);
       <select name="resp" onchange="this.form.submit()"><option value="0">Tous</option><?php foreach ($noms as $id => $n): ?><option value="<?= $id ?>" <?= $respFiltre === $id ? 'selected' : '' ?>><?= View::e($n) ?></option><?php endforeach; ?></select></div>
   </form>
 
+  <?php if ($total > 0): ?>
+  <div style="margin-bottom:12px"><a class="btn btn-pilotage" href="<?= View::e('/index.php?' . http_build_query(['r' => 'pilotage/export.csv', 'onglet' => 'atraiter', 'seuil' => $seuil, 'type' => $typeFiltre, 'resp' => $respFiltre])) ?>"><?= Icon::svg('download', 'icon', 15) ?> Exporter vers Excel (CSV)</a></div>
+  <?php endif; ?>
   <?php if ($total === 0): ?>
     <div class="empty-state">Rien en attente depuis plus de <?= (int) $seuil ?> jour(s). Tout est traité.</div>
   <?php else: ?>
