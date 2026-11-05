@@ -116,7 +116,7 @@ class ComparateurController
             }
         }
         // Rien à comparer globalement tant qu'aucun article n'a au moins deux offres (ou si les offres couvrent des articles différents).
-        $masquerGlobal = $parArticleDispo && $aDesLignesLiees && ($nbComparables === 0 || $couvertureDifferente);
+        $masquerGlobal = $parArticleDispo && $aDesLignesLiees && !$offresSansLien && ($nbComparables === 0 || $couvertureDifferente);
         if ($couvertureDifferente) {
             $meilleurCoutRenduParDevise = [];
             $meilleurPrixParDevise = [];

@@ -62,7 +62,23 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
     <div class="alert alert-erreur">Ces offres ne portent pas toutes sur les mêmes articles : leurs totaux ne sont pas comparables. Comparez article par article ci-dessous (aucun « meilleur total » n'est surligné dans le tableau global).</div>
   <?php endif; ?>
   <?php if (!empty($offresSansLien)): ?>
-    <div class="alert alert-erreur">Offre(s) sans article rattaché : <?= View::e(implode(', ', array_map(fn($x) => $x['fournisseur_nom'] . ' (' . $x['reference'] . ')', $offresSansLien))) ?>. Ouvrez l'offre (Modifier) et choisissez, pour chaque ligne, l'article de la demande concerné pour qu'elle apparaisse ici.</div>
+    <div class="alert alert-erreur">
+      <strong>Offre(s) sans article rattaché :</strong> elles n'apparaissent pas dans les tableaux par article. Vous pouvez les retenir en entier ci-dessous, ou ouvrir l'offre (Modifier) pour choisir l'article de chaque ligne.
+      <?php foreach ($offresSansLien as $x): ?>
+        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span><?= View::e($x['fournisseur_nom']) ?> (<?= View::e($x['reference']) ?>)</span>
+          <a href="/index.php?r=offres/<?= (int) $x['id'] ?>/modifier" class="btn btn-sm btn-secondary">Rattacher les articles</a>
+          <?php if ($peutValider && $x['statut'] === 'recue'): ?>
+          <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/<?= $decisionExistante ? 'retenir-en-plus' : 'retenir' ?>" style="margin:0">
+            <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+            <input type="hidden" name="offre_id" value="<?= (int) $x['id'] ?>">
+            <input type="hidden" name="motif_decision" value="Offre retenue en entier">
+            <button type="submit" class="btn btn-sm">Retenir cette offre en entier</button>
+          </form>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
   <?php endif; ?>
   <?php if (!empty($nbDirects) && $peutValider): ?>
   <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir-directs" style="margin:10px 0">
