@@ -18,7 +18,18 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
 <h1 style="margin-top:8px"><?= $cotationPrecedente ? 'Nouvelle version de la cotation ' . View::e($cotationPrecedente['reference']) . ' (v' . ((int) $cotationPrecedente['version'] + 1) . ')' : 'Nouvelle cotation client' ?></h1>
 <div class="subtitle">Dossier <?= View::e($dossier['reference']) ?> — <?= View::e($dossier['objet']) ?></div>
 
-<?php if ($offreRetenue):
+<?php if ($offreRetenue && !empty($modeGroupe)):
+  $dvG = $calcAchat['devise'];
+  $fG = fn($x) => number_format((float) $x, 2, ',', ' ') . ' ' . $dvG;
+?>
+  <div class="alert alert-succes"><strong><?= count($offresRetenues) ?> offre(s) retenue(s)</strong> — coût d'achat réparti par article :
+    <div style="margin-top:6px;font-size:13px">
+    <?php foreach ($calcAchat['offres'] as $l): ?>• <?= View::e($l['fournisseur']) ?> : prix <?= $fG($l['prix']) ?><?php if ($l['frais_propres'] > 0.004): ?> + ses frais <?= $fG($l['frais_propres']) ?><?php endif; ?><?php if ($l['part_communs'] > 0.004): ?> + part des frais communs <?= $fG($l['part_communs']) ?><?php endif; ?> = <strong><?= $fG($l['total']) ?></strong><br><?php endforeach; ?>
+    <?php foreach ($calcAchat['frais'] as $f): ?>• Frais communs « <?= View::e($f['libelle']) ?> » : <?= $fG($f['montant']) ?> (répartis au prorata de la valeur d'achat)<br><?php endforeach; ?>
+    = <strong>coût total d'achat : <?= $fG($calcAchat['total']) ?></strong> — c'est la base de la marge ci-dessous.</div>
+    <?php if ($calcAchat['ignores']): ?><div style="margin-top:6px;color:#9b1c1c">Non additionné (devise différente) : <?= View::e(implode(', ', $calcAchat['ignores'])) ?>.</div><?php endif; ?>
+  </div>
+<?php elseif ($offreRetenue):
   $coutTotalOffre = \App\Models\Offre::coutRendu($offreRetenue);
   $fraisOffre = [
       'Expédition jusqu\'à la destination finale' => $offreRetenue['transport_montant'] ?? 0, 'Assurance' => $offreRetenue['assurance_montant'] ?? 0,
@@ -68,7 +79,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
     $tauxPrec = $cotationPrecedente ? (float) ($cotationPrecedente['taux_change'] ?? 1) : 0;
     $achatOrigine = $cotationPrecedente
         ? ($cotationPrecedente['montant_achat'] !== null ? rtrim(rtrim(number_format((float) $cotationPrecedente['montant_achat'] / ($tauxPrec > 0 ? $tauxPrec : 1), 2, '.', ''), '0'), '.') : '')
-        : (isset($offreRetenue['montant_total']) ? rtrim(rtrim(number_format(\App\Models\Offre::coutRendu($offreRetenue), 2, '.', ''), '0'), '.') : '');
+        : (!empty($modeGroupe) ? rtrim(rtrim(number_format((float) $calcAchat['total'], 2, '.', ''), '0'), '.') : (isset($offreRetenue['montant_total']) ? rtrim(rtrim(number_format(\App\Models\Offre::coutRendu($offreRetenue), 2, '.', ''), '0'), '.') : ''));
     $devisesListe = ['EUR', 'USD', 'XOF', 'XAF', 'GBP', 'CNY'];
     $tvaSel = $cotationPrecedente && $cotationPrecedente['tva_taux'] !== null ? (float) $cotationPrecedente['tva_taux'] : (float) $tvaDefaut;
     $tvaOptions = \App\Models\Parametres::TVA_OPTIONS; if (!in_array($tvaSel, $tvaOptions, true)) { $tvaOptions[] = $tvaSel; }

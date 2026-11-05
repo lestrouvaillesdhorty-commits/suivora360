@@ -127,6 +127,41 @@ class ComparateurController
         exit;
     }
 
+    /** Retient une offre en plus de celles déjà retenues (articles pris chez plusieurs fournisseurs). */
+    public function retenirEnPlus(array $params): void
+    {
+        $retour = '/index.php?r=dossiers/' . (int) $params['id'] . '/comparateur';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        Dossier::refuserSiAnnule($dossier);
+        if (!Auth::canValiderOffres()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
+        $offreId = (int) \App\Core\Tenant::offreDuDossier($_POST['offre_id'] ?? 0, (int) $dossier['id']);
+        $motif = trim($_POST['motif_decision'] ?? '');
+        if ($offreId <= 0 || $motif === '') {
+            View::flash('erreur', 'Merci d\'indiquer un motif de décision.');
+        } elseif (Offre::retenirEnPlus((int) $dossier['id'], $offreId, $motif)) {
+            AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offre_retenue_en_plus', 'offre', $offreId, $motif);
+            View::flash('succes', 'Offre ajoutée aux offres retenues. Pensez aux frais communs (expédition finale) dans l\'onglet Achats du dossier.');
+        } else {
+            View::flash('erreur', 'Impossible : ce fournisseur est déjà retenu sur ce dossier, ou l\'offre n\'est plus disponible.');
+        }
+        header('Location: ' . (($_POST['retour'] ?? '') === 'dossier' ? '/index.php?r=dossiers/' . $dossier['id'] . '&onglet=achats&sous=offres' : $retour));
+        exit;
+    }
+
     /**
      * Revenir sur une décision déjà prise (remet toutes les offres du
      * dossier à "reçue"). Réservé à Propriétaire + Achats (comme "Retenir

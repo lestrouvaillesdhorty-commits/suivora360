@@ -32,7 +32,12 @@ class CotationController
 
         $demande = Demande::find((int) $dossier['demande_id']);
         $clients = Client::allForFiliale((int) $dossier['filiale_id']);
-        $offreRetenue = Offre::retenueForDossier((int) $dossier['id']);
+        $offresRetenues = Offre::retenuesForDossier((int) $dossier['id']);
+        $offreRetenue = $offresRetenues[0] ?? null;
+        $fraisCommuns = \App\Models\DossierFraisCommuns::forDossier((int) $dossier['id']);
+        $calcAchat = \App\Models\DossierFraisCommuns::calculer($offresRetenues, $fraisCommuns);
+        // Plusieurs fournisseurs retenus ou frais communs : le coût de chaque article porte sa part des frais.
+        $modeGroupe = count($offresRetenues) > 1 || $calcAchat['total_communs'] > 0;
 
         // [ajouté 06/10, étape 3] ?version_de=<cotationId> : nouvelle version
         // pré-remplie à partir de la cotation indiquée (doit appartenir au
@@ -52,11 +57,26 @@ class CotationController
         // sinon des articles de la demande.
         $depuisOffre = false;
         if (!$cotationPrecedente) {
-            if ($offreRetenue) {
-                foreach (\App\Models\OffreItem::forOffre((int) $offreRetenue['id']) as $oi) {
-                    $itemsPrecedents[] = ['designation' => $oi['designation'], 'quantite' => $oi['quantite'], 'unite' => (string) ($oi['unite'] ?? ''), 'prix_unitaire' => $oi['prix_unitaire'], 'cout' => $oi['prix_unitaire'],
+            foreach ($offresRetenues as $oR) {
+                if ($modeGroupe && !isset($calcAchat['offres'][(int) $oR['id']])) {
+                    continue; // devise différente : non additionnée (signalée à l'écran)
+                }
+                $lignesOffre = \App\Models\OffreItem::forOffre((int) $oR['id']);
+                $sommeMontants = 0.0;
+                foreach ($lignesOffre as $oi) {
+                    $sommeMontants += (float) ($oi['montant'] ?? 0);
+                }
+                $extra = $modeGroupe ? (float) $calcAchat['offres'][(int) $oR['id']]['frais_propres'] + (float) $calcAchat['offres'][(int) $oR['id']]['part_communs'] : 0.0;
+                foreach ($lignesOffre as $oi) {
+                    $cout = $oi['prix_unitaire'];
+                    if ($extra > 0.004 && $sommeMontants > 0 && (float) ($oi['montant'] ?? 0) > 0 && (float) $oi['quantite'] > 0) {
+                        $cout = round((float) $oi['prix_unitaire'] + $extra * ((float) $oi['montant'] / $sommeMontants) / (float) $oi['quantite'], 4);
+                    }
+                    $itemsPrecedents[] = ['designation' => $oi['designation'], 'quantite' => $oi['quantite'], 'unite' => (string) ($oi['unite'] ?? ''), 'prix_unitaire' => $oi['prix_unitaire'], 'cout' => $cout,
                         'conditionnement' => $oi['conditionnement'] ?? '', 'reference' => $oi['reference'] ?? '', 'marque' => $oi['marque'] ?? '', 'caracteristiques' => $oi['caracteristiques'] ?? ''];
                 }
+            }
+            if ($itemsPrecedents) {
                 $depuisOffre = !empty($itemsPrecedents);
             }
             if (empty($itemsPrecedents) && $demande) {
@@ -78,6 +98,9 @@ class CotationController
             'demande' => $demande,
             'clients' => $clients,
             'offreRetenue' => $offreRetenue,
+            'offresRetenues' => $offresRetenues,
+            'calcAchat' => $calcAchat,
+            'modeGroupe' => $modeGroupe,
             'cotationPrecedente' => $cotationPrecedente,
             'itemsPrecedents' => $itemsPrecedents,
         ]);

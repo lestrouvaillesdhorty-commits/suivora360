@@ -68,6 +68,50 @@ class Offre
         return $stmt->fetchAll();
     }
 
+    /** Toutes les offres retenues du dossier (une par fournisseur au maximum). */
+    public static function retenuesForDossier(int $dossierId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT o.*, fo.nom AS fournisseur_nom FROM offres o
+             INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
+             WHERE o.dossier_id = ? AND o.statut = 'retenue' ORDER BY o.id"
+        );
+        $stmt->execute([$dossierId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Retient une offre EN PLUS de celles déjà retenues (articles pris chez
+     * plusieurs fournisseurs). Refusé si une offre de ce même fournisseur est
+     * déjà retenue ; les autres offres reçues du même fournisseur sont écartées.
+     */
+    public static function retenirEnPlus(int $dossierId, int $offreId, string $motif): bool
+    {
+        $offre = self::find($offreId);
+        if (!$offre || (int) $offre['dossier_id'] !== $dossierId || $offre['statut'] !== 'recue') {
+            return false;
+        }
+        foreach (self::retenuesForDossier($dossierId) as $r) {
+            if ((int) $r['fournisseur_id'] === (int) $offre['fournisseur_id']) {
+                return false;
+            }
+        }
+        $pdo = Database::connection();
+        $now = date('Y-m-d H:i:s');
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("UPDATE offres SET statut = 'rejetee', updated_at = ? WHERE dossier_id = ? AND fournisseur_id = ? AND id != ? AND statut = 'recue'")
+                ->execute([$now, $dossierId, $offre['fournisseur_id'], $offreId]);
+            $pdo->prepare("UPDATE offres SET statut = 'retenue', motif_decision = ?, updated_at = ? WHERE id = ? AND dossier_id = ?")
+                ->execute([$motif, $now, $offreId, $dossierId]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        return true;
+    }
+
     public static function retenueForDossier(int $dossierId): ?array
     {
         $stmt = Database::connection()->prepare(

@@ -35,6 +35,50 @@ if (count($offresRecues) === 1 && !$dejaRetenue && \App\Core\Auth::canValiderOff
   <button type="submit" class="btn art-ok">Retenir cette offre</button>
 </form>
 <?php endif; ?>
+<?php
+$retenuesDossier = \App\Models\Offre::retenuesForDossier((int) $dossier['id']);
+if ($retenuesDossier):
+  $fraisDossier = \App\Models\DossierFraisCommuns::forDossier((int) $dossier['id']);
+  $calc = \App\Models\DossierFraisCommuns::calculer($retenuesDossier, $fraisDossier);
+  $dv = $calc['devise'];
+  $m2 = fn($x) => number_format((float) $x, 2, ',', ' ') . ' ' . $dv;
+  $peutFrais = (\App\Core\Auth::canValiderOffres() || \App\Core\Auth::canGererCotations()) && \App\Models\DossierFraisCommuns::disponible();
+?>
+<div class="card" style="margin-top:14px;border-left:5px solid #1FA463">
+  <h3 style="margin:0 0 4px">Coût d'achat du dossier</h3>
+  <div style="font-size:12.5px;color:#555;margin-bottom:10px">Offres retenues (une par fournisseur) + frais payés une seule fois pour tout le dossier (ex. expédition finale unique). Ce total est la base de la cotation client.</div>
+  <div class="table-scroll"><table class="dtable">
+    <thead><tr><th>Fournisseur retenu</th><th class="num">Prix fournisseur</th><th class="num">Ses frais (transport…)</th><th class="num">Part des frais communs</th><th class="num">Coût total</th></tr></thead>
+    <tbody>
+    <?php foreach ($calc['offres'] as $oid => $l): ?>
+      <tr><td><?= View::e($l['fournisseur']) ?></td><td class="num"><?= $m2($l['prix']) ?></td><td class="num"><?= $l['frais_propres'] > 0.004 ? $m2($l['frais_propres']) : '—' ?></td><td class="num"><?= $l['part_communs'] > 0.004 ? $m2($l['part_communs']) : '—' ?></td><td class="num"><strong><?= $m2($l['total']) ?></strong></td></tr>
+    <?php endforeach; ?>
+    </tbody>
+    <tfoot><tr><td colspan="4"><strong>Coût total d'achat du dossier</strong></td><td class="num"><strong><?= $m2($calc['total']) ?></strong></td></tr></tfoot>
+  </table></div>
+  <?php if ($calc['ignores']): ?><div class="alert alert-erreur" style="margin-top:10px">Non additionné (devise différente de <?= View::e($dv) ?>) : <?= View::e(implode(', ', $calc['ignores'])) ?>.</div><?php endif; ?>
+
+  <h4 style="margin:16px 0 6px">Frais communs du dossier</h4>
+  <?php if ($fraisDossier): ?>
+    <ul style="margin:0 0 10px;padding-left:18px">
+    <?php foreach ($fraisDossier as $f): ?>
+      <li><?= View::e($f['libelle']) ?> : <strong><?= number_format((float) $f['montant'], 2, ',', ' ') ?> <?= View::e($f['devise']) ?></strong>
+        <?php if ($peutFrais): ?><form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/frais-communs/<?= (int) $f['id'] ?>/supprimer" style="display:inline" onsubmit="return confirm('Supprimer ce frais ?')"><input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>"><button type="submit" class="btn btn-sm" title="Supprimer">Supprimer</button></form><?php endif; ?></li>
+    <?php endforeach; ?>
+    </ul>
+  <?php else: ?><div style="font-size:13px;color:#666;margin-bottom:8px">Aucun frais commun. Ajoutez par exemple l'expédition finale si tous les articles partent en une seule fois.</div><?php endif; ?>
+  <?php if ($peutFrais): ?>
+  <form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/frais-communs" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>">
+    <div class="art-champ" style="min-width:220px"><label>Libellé</label><input type="text" name="libelle" value="Expédition finale (tous articles)" maxlength="120"></div>
+    <div class="art-champ" style="width:140px"><label>Montant</label><input type="text" inputmode="decimal" name="montant" required placeholder="0"></div>
+    <div class="art-champ" style="width:100px"><label>Devise</label><input type="text" name="devise" value="<?= View::e($dv) ?>" maxlength="10"></div>
+    <button type="submit" class="btn art-ok">Ajouter ce frais</button>
+  </form>
+  <?php endif; ?>
+  <div style="font-size:12.5px;margin-top:10px;color:#0A5F6B">Un autre article chez un autre fournisseur ? <a href="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/comparateur">Ouvrez le comparateur et utilisez « Retenir aussi… »</a>. La cotation reprend tous les articles retenus.</div>
+</div>
+<?php endif; ?>
 <?php if (empty($offres)): ?>
   <div class="card" style="margin-top:14px"><div class="empty-state">Aucune offre reçue pour ce dossier pour le moment.</div></div>
 <?php else: ?>

@@ -643,6 +643,18 @@ $router->post('/dossiers/{id}/comparateur/retenir', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->retenir($params);
 });
+$router->post('/dossiers/{id}/comparateur/retenir-en-plus', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->retenirEnPlus($params);
+});
+$router->post('/dossiers/{id}/frais-communs', function ($params) {
+    Auth::requireLogin();
+    (new \App\Controllers\FraisCommunsController())->ajouter($params);
+});
+$router->post('/dossiers/{id}/frais-communs/{fid}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new \App\Controllers\FraisCommunsController())->supprimer($params);
+});
 $router->post('/dossiers/{id}/comparateur/ecarter', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->ecarter($params);

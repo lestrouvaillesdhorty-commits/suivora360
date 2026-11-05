@@ -281,6 +281,19 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
                 <?php endif; ?>
               <?php endif; ?>
 
+              <?php if ($decisionExistante && $peutValider && $o['statut'] === 'recue'): ?>
+              <details style="margin-bottom:6px">
+                <summary style="cursor:pointer" class="btn btn-sm btn-secondary">Retenir aussi…</summary>
+                <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir-en-plus" style="margin-top:8px;min-width:200px">
+                  <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                  <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
+                  <div style="font-size:12px;color:#555;margin-bottom:4px">Pour des articles pris chez un autre fournisseur : cette offre s'ajoute à celle déjà retenue.</div>
+                  <label style="font-size:12px">Motif (obligatoire)</label>
+                  <textarea name="motif_decision" rows="2" required placeholder="ex: article X moins cher chez ce fournisseur"></textarea>
+                  <button type="submit" class="btn btn-sm" style="margin-top:6px">Confirmer — retenir aussi</button>
+                </form>
+              </details>
+              <?php endif; ?>
               <?php if (!$decisionExistante && $peutValider): ?>
               <details style="margin-bottom:6px">
                 <summary style="cursor:pointer" class="btn btn-sm">Retenir…</summary>
