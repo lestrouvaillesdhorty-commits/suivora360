@@ -21,6 +21,20 @@ $piecesParOffre = \App\Models\DossierPieceJointe::parOffre($piecesJointes ?? [])
   <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/offres/manuelle" class="btn btn-secondary">+ Saisir une offre (prix trouvé en ligne…)</a>
 </div>
 <?php endif; ?>
+<?php
+$offresRecues = array_values(array_filter($offres ?? [], fn($o) => ($o['statut'] ?? '') === 'recue'));
+$dejaRetenue = array_filter($offres ?? [], fn($o) => ($o['statut'] ?? '') === 'retenue');
+if (count($offresRecues) === 1 && !$dejaRetenue && \App\Core\Auth::canValiderOffres()): $uniq = $offresRecues[0]; ?>
+<form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/comparateur/retenir" class="art-ligne-offre-unique">
+  <input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>">
+  <input type="hidden" name="offre_id" value="<?= (int) $uniq['id'] ?>">
+  <input type="hidden" name="retour" value="dossier">
+  <div style="flex:1;min-width:220px"><strong>Une seule offre reçue (<?= View::e($uniq['fournisseur_nom'] ?? '') ?>) : pas besoin de comparer.</strong>
+    <div style="font-size:12.5px;color:#0A5F6B;margin-top:2px">Retenez-la pour préparer la cotation client avec son prix d'achat.</div></div>
+  <div class="art-champ" style="min-width:220px"><label>Motif</label><input type="text" name="motif_decision" value="Offre unique reçue" required></div>
+  <button type="submit" class="btn art-ok">Retenir cette offre</button>
+</form>
+<?php endif; ?>
 <?php if (empty($offres)): ?>
   <div class="card" style="margin-top:14px"><div class="empty-state">Aucune offre reçue pour ce dossier pour le moment.</div></div>
 <?php else: ?>

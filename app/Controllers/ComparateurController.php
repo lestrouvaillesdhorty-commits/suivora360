@@ -118,6 +118,11 @@ class ComparateurController
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offre_retenue', 'offre', $offreId, $motif);
         View::flash('succes', 'Offre retenue pour ce dossier.');
 
+        // Raccourci « offre unique » : retour à la fiche du dossier plutôt qu'au comparateur.
+        if (($_POST['retour'] ?? '') === 'dossier') {
+            header('Location: /index.php?r=dossiers/' . $dossier['id'] . '&onglet=synthese');
+            exit;
+        }
         header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/comparateur');
         exit;
     }

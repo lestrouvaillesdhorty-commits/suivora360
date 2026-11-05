@@ -86,6 +86,15 @@ class ProchaineAction
             return self::res('Envoyer la consultation à ' . $c['fournisseur_nom'], 'Le message est prêt (articles, quantités, conditions demandées). Choisissez le contact et le canal, relisez, puis envoyez.' . ($autres > 0 ? ' ' . $autres . ' autre' . ($autres > 1 ? 's' : '') . ' consultation' . ($autres > 1 ? 's' : '') . ' à envoyer ensuite.' : ''), 'Envoyer', '/index.php?r=consultations/' . (int) $c['id'] . '/partages/nouvelle', $cpt, 'info', null,
                 ['bouton' => 'Toutes les consultations', 'url' => $base . '&onglet=achats']);
         }
+        // Une seule offre reçue et aucune autre réponse attendue : inutile de passer par le comparateur.
+        $enAttenteAutres = $envoyees && $avecOffre < count($envoyees);
+        if (count($offresEnCours) === 1 && !$retenue && !$enAttenteAutres && \App\Core\Auth::canValiderOffres()) {
+            $o = $offresEnCours[0];
+            return self::res('Retenir l\'offre de ' . $o['fournisseur_nom'], 'Une seule offre a été reçue : pas besoin de comparer. Retenez-la pour préparer la cotation client avec son prix d\'achat.', 'Retenir cette offre',
+                null, $cpt, 'info',
+                ['url' => $base . '/comparateur/retenir', 'champs' => ['offre_id' => (int) $o['id'], 'motif_decision' => 'Offre unique reçue', 'retour' => 'dossier'], 'confirm' => 'Retenir cette offre (motif : « Offre unique reçue ») ?'],
+                ['bouton' => 'Ouvrir le comparateur', 'url' => $base . '/comparateur']);
+        }
         if ($offresEnCours) {
             $nb = count($offresEnCours);
             return self::res('Comparer les offres et retenir la meilleure', $nb . ' offre' . ($nb > 1 ? 's' : '') . ' reçue' . ($nb > 1 ? 's' : '') . '. Comparez les prix, délais et conditions, puis retenez celle qui convient.', 'Ouvrir le comparateur', $base . '/comparateur', $cpt, 'info', null,
