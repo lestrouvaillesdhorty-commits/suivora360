@@ -1249,3 +1249,7 @@ td .btn-sm[title="Récapitulatif"]:hover { background:#5F3FC4; }
 .photo-ligne .photo-case{display:inline-flex;gap:6px;align-items:center;font-weight:700;font-size:13px;color:var(--primary-dark);margin:0}
 .photo-ligne .photo-suppr{display:inline-flex;gap:6px;align-items:center;font-weight:600;font-size:13px;color:#C2321A;margin:0}
 .art-ligne-offre-unique{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;background:linear-gradient(135deg,#E6F7EE,#F2FAFB);border:1px solid #9ED9B8;border-left:4px solid #1FA463;border-radius:12px;padding:14px 16px;margin:14px 0 0}
+.cout-bloc{background:#F4FAFB;border:1px solid #CFE7EB;border-left:4px solid #F59E0B;border-radius:12px;padding:14px 16px;margin:6px 0 16px}
+.cout-titre{font-weight:800;color:var(--primary-dark);font-size:14px}.cout-titre span{font-weight:500;font-size:12px;color:#5E6B7A}
+.cout-aide{font-size:12.5px;color:#4B5563;margin:4px 0 10px;line-height:1.45}
+.cout-total{margin-top:6px;font-size:15px;color:#0A5F6B}.cout-total strong{font-size:18px}

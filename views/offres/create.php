@@ -141,6 +141,21 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       <div class="form-group"><label>Délai de livraison annoncé</label><input type="text" name="delai_livraison" value="<?= View::e((string) $v('delai_livraison')) ?>" placeholder="ex: 4 à 6 semaines"></div>
     </div>
     <div class="form-group"><label>Validité de l'offre</label><input type="date" name="validite_offre" value="<?= View::e((string) $v('validite_offre')) ?>"></div>
+    <div class="cout-bloc">
+      <div class="cout-titre">Coût jusqu'à la destination finale <span>(dans la devise de l'offre — facultatif)</span></div>
+      <div class="cout-aide">Le « Montant total de l'offre » ci-dessus est le prix du fournisseur (avec son propre transport s'il l'inclut). Ajoutez ici ce qui s'y ajoute jusqu'à l'arrivée chez le client : expédition vers la destination finale, assurance, douane… Le coût total sert de base à la marge de la cotation.</div>
+      <div class="form-row">
+          <div class="form-group"><label>Expédition jusqu'à la destination finale</label><input type="number" step="0.01" name="transport_montant" value="<?= View::e((string) $v('transport_montant')) ?>"></div>
+          <div class="form-group"><label>Assurance</label><input type="number" step="0.01" name="assurance_montant" value="<?= View::e((string) $v('assurance_montant')) ?>"></div>
+          <div class="form-group"><label>Emballage</label><input type="number" step="0.01" name="emballage_montant" value="<?= View::e((string) $v('emballage_montant')) ?>"></div>
+      </div>
+      <div class="form-row">
+          <div class="form-group"><label>Douane / droits estimés</label><input type="number" step="0.01" name="douane_montant" value="<?= View::e((string) $v('douane_montant')) ?>"></div>
+          <div class="form-group"><label>Dédouanement</label><input type="number" step="0.01" name="dedouanement_montant" value="<?= View::e((string) $v('dedouanement_montant')) ?>"></div>
+          <div class="form-group"><label>Autres frais</label><input type="number" step="0.01" name="autres_frais_montant" value="<?= View::e((string) $v('autres_frais_montant')) ?>"></div>
+      </div>
+      <div class="cout-total">Coût total estimé : <strong id="coutTotalOffre">—</strong></div>
+    </div>
     <?php if (!$manuel && !($edition && !empty($offrePrecedente['source_type']))): ?>
     <div class="form-group"><label>Lien du produit sur le site web (facultatif)</label><input type="url" name="source_url" maxlength="500" style="width:100%" placeholder="https://… (page du produit chez le fournisseur)" value="<?= View::e((string) ($offrePrecedente['source_url'] ?? '')) ?>"></div>
     <?php endif; ?>
@@ -191,17 +206,6 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
         </div>
         <div class="form-group"><label>Garantie</label><input type="text" name="garantie" value="<?= View::e((string) $v('garantie')) ?>" placeholder="ex: 12 mois pièces"></div>
 
-        <h2 style="font-size:13px;color:#666;margin-top:16px">Coût rendu — frais complémentaires (dans la devise de l'offre)</h2>
-        <div class="form-row">
-          <div class="form-group"><label>Transport</label><input type="number" step="0.01" name="transport_montant" value="<?= View::e((string) $v('transport_montant')) ?>"></div>
-          <div class="form-group"><label>Assurance</label><input type="number" step="0.01" name="assurance_montant" value="<?= View::e((string) $v('assurance_montant')) ?>"></div>
-          <div class="form-group"><label>Emballage</label><input type="number" step="0.01" name="emballage_montant" value="<?= View::e((string) $v('emballage_montant')) ?>"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Douane / droits estimés</label><input type="number" step="0.01" name="douane_montant" value="<?= View::e((string) $v('douane_montant')) ?>"></div>
-          <div class="form-group"><label>Dédouanement</label><input type="number" step="0.01" name="dedouanement_montant" value="<?= View::e((string) $v('dedouanement_montant')) ?>"></div>
-          <div class="form-group"><label>Autres frais</label><input type="number" step="0.01" name="autres_frais_montant" value="<?= View::e((string) $v('autres_frais_montant')) ?>"></div>
-        </div>
       </div>
     </details>
 
@@ -316,6 +320,20 @@ document.getElementById('items-body').addEventListener('click', function (e) {
     });
     reconstruire();
   });
+})();
+</script>
+<script>
+(function () {
+  var f = document.getElementById('coutTotalOffre'); if (!f) { return; }
+  var form = f.closest('form'), noms = ['montant_total','transport_montant','assurance_montant','emballage_montant','douane_montant','dedouanement_montant','autres_frais_montant'];
+  function val(n) { var e = form.querySelector('[name="' + n + '"]'); var v = e ? parseFloat(String(e.value).replace(',', '.')) : 0; return isNaN(v) ? 0 : v; }
+  function maj() {
+    var t = 0, frais = 0; noms.forEach(function (n, i) { var v = val(n); t += v; if (i > 0) { frais += v; } });
+    var dev = form.querySelector('[name="devise"]'); dev = dev ? dev.value : '';
+    f.textContent = (val('montant_total') > 0 || frais > 0) ? t.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + dev : '—';
+  }
+  noms.concat(['devise']).forEach(function (n) { var e = form.querySelector('[name="' + n + '"]'); if (e) { e.addEventListener('input', maj); e.addEventListener('change', maj); } });
+  maj();
 })();
 </script>
 <script>

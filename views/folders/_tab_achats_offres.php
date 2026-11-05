@@ -55,7 +55,7 @@ if (count($offresRecues) === 1 && !$dejaRetenue && \App\Core\Auth::canValiderOff
             <td><?= View::e($o['reference']) ?></td>
             <td>v<?= (int) $o['version'] ?></td>
             <td><?= $nbLignes ?></td>
-            <td style="font-weight:700"><?= number_format((float) $o['montant_total'], 2, ',', ' ') ?></td>
+            <td style="font-weight:700"><?= number_format((float) $o['montant_total'], 2, ',', ' ') ?><?php $ct = Offre::coutRendu($o); if ($ct > (float) $o['montant_total'] + 0.004): ?><div style="font-size:11.5px;font-weight:600;color:#0A5F6B">Coût total : <?= number_format($ct, 2, ',', ' ') ?></div><?php endif; ?></td>
             <td><?= View::e($o['devise'] ?: '—') ?></td>
             <td>
               <?php if ($transportInclus === true): ?>

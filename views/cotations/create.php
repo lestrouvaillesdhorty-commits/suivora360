@@ -18,8 +18,20 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
 <h1 style="margin-top:8px"><?= $cotationPrecedente ? 'Nouvelle version de la cotation ' . View::e($cotationPrecedente['reference']) . ' (v' . ((int) $cotationPrecedente['version'] + 1) . ')' : 'Nouvelle cotation client' ?></h1>
 <div class="subtitle">Dossier <?= View::e($dossier['reference']) ?> — <?= View::e($dossier['objet']) ?></div>
 
-<?php if ($offreRetenue): ?>
-  <div class="alert alert-succes">Offre retenue : <?= View::e($offreRetenue['fournisseur_nom']) ?> — <?= number_format((float) $offreRetenue['montant_total'], 2, ',', ' ') ?> <?= View::e($offreRetenue['devise']) ?> (incoterm négocié : <?= View::e($offreRetenue['incoterm_negocie']) ?: '—' ?>)</div>
+<?php if ($offreRetenue):
+  $coutTotalOffre = \App\Models\Offre::coutRendu($offreRetenue);
+  $fraisOffre = [
+      'Expédition jusqu\'à la destination finale' => $offreRetenue['transport_montant'] ?? 0, 'Assurance' => $offreRetenue['assurance_montant'] ?? 0,
+      'Emballage' => $offreRetenue['emballage_montant'] ?? 0, 'Douane / droits' => $offreRetenue['douane_montant'] ?? 0,
+      'Dédouanement' => $offreRetenue['dedouanement_montant'] ?? 0, 'Autres frais' => $offreRetenue['autres_frais_montant'] ?? 0,
+  ];
+  $fmtM = fn($x) => number_format((float) $x, 2, ',', ' ') . ' ' . $offreRetenue['devise'];
+?>
+  <div class="alert alert-succes">Offre retenue : <?= View::e($offreRetenue['fournisseur_nom']) ?> (incoterm négocié : <?= View::e($offreRetenue['incoterm_negocie']) ?: '—' ?>)
+    <div style="margin-top:6px;font-size:13px">Prix du fournisseur : <strong><?= $fmtM($offreRetenue['montant_total']) ?></strong>
+    <?php foreach ($fraisOffre as $lib => $m): if ((float) $m > 0): ?> + <?= View::e($lib) ?> : <?= $fmtM($m) ?><?php endif; endforeach; ?>
+    = <strong>coût total d'achat : <?= $fmtM($coutTotalOffre) ?></strong> — c'est la base de la marge ci-dessous.</div>
+  </div>
 <?php else: ?>
   <div class="alert alert-erreur">Aucune offre n'a encore été retenue pour ce dossier (voir le Comparateur). Vous pouvez tout de même créer une cotation manuellement.</div>
 <?php endif; ?>
@@ -56,7 +68,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
     $tauxPrec = $cotationPrecedente ? (float) ($cotationPrecedente['taux_change'] ?? 1) : 0;
     $achatOrigine = $cotationPrecedente
         ? ($cotationPrecedente['montant_achat'] !== null ? rtrim(rtrim(number_format((float) $cotationPrecedente['montant_achat'] / ($tauxPrec > 0 ? $tauxPrec : 1), 2, '.', ''), '0'), '.') : '')
-        : (isset($offreRetenue['montant_total']) ? rtrim(rtrim(number_format((float) $offreRetenue['montant_total'], 2, '.', ''), '0'), '.') : '');
+        : (isset($offreRetenue['montant_total']) ? rtrim(rtrim(number_format(\App\Models\Offre::coutRendu($offreRetenue), 2, '.', ''), '0'), '.') : '');
     $devisesListe = ['EUR', 'USD', 'XOF', 'XAF', 'GBP', 'CNY'];
     $tvaSel = $cotationPrecedente && $cotationPrecedente['tva_taux'] !== null ? (float) $cotationPrecedente['tva_taux'] : (float) $tvaDefaut;
     $tvaOptions = \App\Models\Parametres::TVA_OPTIONS; if (!in_array($tvaSel, $tvaOptions, true)) { $tvaOptions[] = $tvaSel; }
