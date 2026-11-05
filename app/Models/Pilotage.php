@@ -1635,6 +1635,80 @@ class Pilotage
         return ['mois' => $mois, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot, 'fonctions' => $fonctionsListe];
     }
 
+    /**
+     * Devis perdus (cotations refusées) sur la période, avec leur motif de
+     * perte. Montants convertis dans la devise de reporting (comme le reste du
+     * Pilotage). Taux de perte = refusés / (acceptés + refusés) sur la période.
+     */
+    public static function pertes(array $user, array $filters): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        $vide = ['lignes' => [], 'par_motif' => [], 'nb' => 0, 'montant' => 0.0, 'non_convertis' => [], 'sans_motif' => 0, 'taux_perte' => null, 'acceptes' => 0];
+        if (empty($filialeIds)) {
+            return $vide;
+        }
+        $ph = implode(',', array_fill(0, count($filialeIds), '?'));
+        $dispo = Cotation::colonnesPerte();
+        $dateExpr = $dispo ? 'COALESCE(co.perdu_le, co.updated_at)' : 'co.updated_at';
+        $sel = $dispo ? 'co.motif_perte, co.motif_perte_detail' : "NULL AS motif_perte, NULL AS motif_perte_detail";
+        $base = " FROM cotations co
+                INNER JOIN dossiers d ON d.id = co.dossier_id
+                INNER JOIN demandes dm ON dm.id = d.demande_id
+                INNER JOIN clients cl ON cl.id = co.client_id
+                WHERE co.filiale_id IN ($ph) AND co.statut = ? AND $dateExpr >= ? AND $dateExpr <= ?";
+        $params = fn(string $statut) => array_merge($filialeIds, [$statut, $filters['date_debut'] . ' 00:00:00', $filters['date_fin'] . ' 23:59:59']);
+        $filtre = '';
+        $extra = [];
+        if (!empty($filters['activite'])) {
+            $filtre .= ' AND dm.activite = ?';
+            $extra[] = $filters['activite'];
+        }
+        if (!empty($filters['responsable_id'])) {
+            $filtre .= ' AND d.responsable_id = ?';
+            $extra[] = $filters['responsable_id'];
+        }
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare("SELECT co.id, co.reference, co.montant_total, co.devise, $sel, $dateExpr AS perdu_le, cl.nom AS client_nom,
+                d.id AS dossier_id, d.reference AS dossier_reference, d.responsable_id, d.filiale_id" . $base . $filtre . " ORDER BY $dateExpr DESC");
+        $stmt->execute(array_merge($params('refusee'), $extra));
+        $lignes = $stmt->fetchAll();
+
+        $stmt = $pdo->prepare('SELECT COUNT(*)' . $base . $filtre);
+        $stmt->execute(array_merge($params('acceptee'), $extra));
+        $acceptes = (int) $stmt->fetchColumn();
+
+        $parMotif = [];
+        $montants = [];
+        $sansMotif = 0;
+        foreach ($lignes as $l) {
+            $m = $l['motif_perte'] ?: '';
+            if ($m === '') {
+                $sansMotif++;
+            }
+            $parMotif[$m] = $parMotif[$m] ?? ['nb' => 0, 'ventes' => []];
+            $parMotif[$m]['nb']++;
+            $parMotif[$m]['ventes'][] = ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
+            $montants[] = ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
+        }
+        foreach ($parMotif as $k => $v) {
+            $agg = self::agregerMontants($v['ventes'], $filters['devise'], $filialeIds);
+            $parMotif[$k] = ['nb' => $v['nb'], 'montant' => (float) $agg['total']];
+        }
+        uasort($parMotif, fn($a, $b) => $b['nb'] <=> $a['nb']);
+        $agg = self::agregerMontants($montants, $filters['devise'], $filialeIds);
+        $nb = count($lignes);
+        return [
+            'lignes' => $lignes,
+            'par_motif' => $parMotif,
+            'nb' => $nb,
+            'montant' => (float) $agg['total'],
+            'non_convertis' => $agg['non_convertis'],
+            'sans_motif' => $sansMotif,
+            'taux_perte' => ($nb + $acceptes) > 0 ? round($nb / ($nb + $acceptes) * 100, 1) : null,
+            'acceptes' => $acceptes,
+        ];
+    }
+
     public const TYPES_A_TRAITER = [
         'demande' => ['Demande client non traitée', '#E5484D'],
         'consultation' => ['Demande de devis fournisseur sans réponse', '#F57C2B'],

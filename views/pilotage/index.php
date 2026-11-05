@@ -3,7 +3,7 @@ use App\Core\Icon;
 use App\Core\View;
 use App\Models\Pilotage;
 
-$onglets = ['general' => 'Vue générale', 'activites' => 'Activités', 'collaborateurs' => 'Collaborateurs', 'objectifs' => 'Objectifs & commissions', 'atraiter' => 'À traiter'];
+$onglets = ['general' => 'Vue générale', 'activites' => 'Activités', 'collaborateurs' => 'Collaborateurs', 'objectifs' => 'Objectifs & commissions', 'atraiter' => 'À traiter', 'pertes' => 'Pertes'];
 $qs = $queryString;
 function pilotageTabUrl(string $onglet, string $qs): string {
     $sep = $qs !== '' ? '&' . $qs : '';
@@ -20,6 +20,7 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
     <div class="subtitle" style="margin-bottom:0">
       <?php if ($onglet === 'general'): ?>Comparez les résultats de vos activités
       <?php elseif ($onglet === 'activites'): ?>Comparez les résultats de vos activités
+      <?php elseif ($onglet === 'pertes'): ?>Pourquoi on perd des devis
       <?php elseif ($onglet === 'atraiter'): ?>Devis, offres et demandes qui attendent une action
       <?php elseif ($onglet === 'objectifs'): ?>Objectifs mensuels de marge et commissions par collaborateur
       <?php else: ?>Performance et contribution des collaborateurs<?php endif; ?>
@@ -29,7 +30,9 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
   <div class="pilotage-actions">
     <div style="position:relative">
       <a href="<?= pilotageExportUrl('csv', $onglet, $qs) ?>" class="btn btn-pilotage" style="margin-right:6px"><?= Icon::svg('download', 'icon', 15) ?> Exporter Excel (CSV)</a>
+      <?php if ($onglet !== 'pertes'): ?>
       <a href="<?= pilotageExportUrl('pdf', $onglet, $qs) ?>" class="btn btn-secondary" target="_blank" rel="noopener"><?= Icon::svg('printer', 'icon', 15) ?> Exporter PDF</a>
+      <?php endif; ?>
     </div>
   </div>
   <?php endif; ?>
@@ -138,6 +141,8 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
   <?php View::renderPlain('pilotage/_general', ['vueGenerale' => $vueGenerale, 'filters' => $filters, 'qs' => $qs]) ?>
 <?php elseif ($onglet === 'activites'): ?>
   <?php View::renderPlain('pilotage/_activites', ['activitesData' => $activitesData, 'filters' => $filters, 'qs' => $qs]) ?>
+<?php elseif ($onglet === 'pertes'): ?>
+  <?php View::renderPlain('pilotage/_pertes', ['pertesData' => $pertesData, 'filters' => $filters, 'qs' => $qs, 'utilisateurs' => $utilisateurs]) ?>
 <?php elseif ($onglet === 'atraiter'): ?>
   <?php View::renderPlain('pilotage/_atraiter', ['aTraiterData' => $aTraiterData, 'seuil' => $seuil, 'typeFiltre' => $typeFiltre, 'respFiltre' => $respFiltre, 'utilisateurs' => $utilisateurs]) ?>
 <?php elseif ($onglet === 'objectifs'): ?>

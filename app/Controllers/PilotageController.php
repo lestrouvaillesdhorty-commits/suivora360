@@ -23,7 +23,7 @@ use App\Models\Utilisateur;
  */
 class PilotageController
 {
-    private const ONGLETS = ['general', 'activites', 'collaborateurs', 'objectifs', 'atraiter'];
+    private const ONGLETS = ['general', 'activites', 'collaborateurs', 'objectifs', 'atraiter', 'pertes'];
 
     public function index(): void
     {
@@ -46,6 +46,8 @@ class PilotageController
             $data['vueGenerale'] = Pilotage::vueGenerale($user, $filters);
         } elseif ($onglet === 'activites') {
             $data['activitesData'] = Pilotage::activites($user, $filters);
+        } elseif ($onglet === 'pertes') {
+            $data['pertesData'] = Pilotage::pertes($user, $filters);
         } elseif ($onglet === 'atraiter') {
             $seuil = max(1, min(90, (int) ($_GET['seuil'] ?? 3)));
             $type = array_key_exists($_GET['type'] ?? '', Pilotage::TYPES_A_TRAITER) ? $_GET['type'] : '';
@@ -218,6 +220,16 @@ class PilotageController
             }
             $t = $vue['resultats_activite']['total'];
             fputcsv($out, ['Total', $t['commandes'], $t['ventes_ht'], $t['marge'], $t['marge_pct']], ';', '"', '\\');
+        } elseif ($onglet === 'pertes') {
+            $d = Pilotage::pertes($user, $filters);
+            fputcsv($out, ['Devis', 'Client', 'Dossier', 'Responsable', 'Date de perte', 'Montant', 'Devise', 'Motif', 'Précision'], ';', '"', '\\');
+            foreach ($d['lignes'] as $l) {
+                fputcsv($out, \App\Core\Csv::row([
+                    $l['reference'], $l['client_nom'], $l['dossier_reference'], $l['responsable_id'] ? Utilisateur::nameOf((int) $l['responsable_id']) : 'Non assigné',
+                    date('d/m/Y', strtotime((string) $l['perdu_le'])), $l['montant_total'], $l['devise'],
+                    \App\Models\Cotation::MOTIFS_PERTE[$l['motif_perte'] ?? ''] ?? 'Motif non renseigné', $l['motif_perte_detail'] ?? '',
+                ]), ';', '"', '\\');
+            }
         } elseif ($onglet === 'atraiter') {
             $seuil = max(1, min(90, (int) ($_GET['seuil'] ?? 3)));
             $type = array_key_exists($_GET['type'] ?? '', Pilotage::TYPES_A_TRAITER) ? $_GET['type'] : '';

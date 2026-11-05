@@ -36,6 +36,12 @@ $bg = $badges[$cotation['statut']];
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
       <label for="commentaire">Un commentaire pour votre interlocuteur (facultatif)</label>
       <input type="text" id="commentaire" name="commentaire" maxlength="300">
+      <?php if (\App\Models\Cotation::colonnesPerte()): ?>
+      <label for="motif" style="margin-top:10px">Si vous refusez, quelle en est la raison ? (facultatif)</label>
+      <select id="motif" name="motif"><option value="">—</option>
+        <?php foreach (\App\Models\Cotation::MOTIFS_PERTE as $k => $lb): if ($k === 'sans_reponse') { continue; } ?><option value="<?= $k ?>"><?= View::e($lb) ?></option><?php endforeach; ?>
+      </select>
+      <?php endif; ?>
       <div class="act">
         <button type="submit" name="decision" value="acceptee" class="btn bp">J'accepte cette cotation</button>
         <button type="submit" name="decision" value="refusee" class="btn bs">Je refuse</button>

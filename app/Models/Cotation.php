@@ -18,6 +18,33 @@ class Cotation
         'remplacee' => 'Remplacée',
     ];
 
+    /** Motifs de perte d'un devis refusé (liste déroulante + commentaire libre). */
+    public const MOTIFS_PERTE = [
+        'prix' => 'Prix trop élevé',
+        'delai' => 'Délai trop long',
+        'concurrent' => 'Concurrent choisi',
+        'qualite' => 'Produit ou qualité non adapté',
+        'besoin' => 'Besoin changé ou annulé',
+        'abandon' => 'Projet abandonné ou reporté',
+        'sans_reponse' => 'Plus de réponse du client',
+        'autre' => 'Autre (préciser)',
+    ];
+
+    public static function colonnesPerte(): bool
+    {
+        return \App\Core\Schema::colonne('cotations', 'motif_perte');
+    }
+
+    public static function enregistrerPerte(int $id, ?string $motif, string $detail = ''): void
+    {
+        if (!self::colonnesPerte()) {
+            return;
+        }
+        $motif = isset(self::MOTIFS_PERTE[(string) $motif]) ? $motif : null;
+        Database::connection()->prepare('UPDATE cotations SET motif_perte = ?, motif_perte_detail = ? WHERE id = ?')
+            ->execute([$motif, $motif ? mb_substr(trim($detail), 0, 300) : null, $id]);
+    }
+
     /**
      * Statuts que l'utilisateur peut choisir à la main (liste déroulante de
      * la fiche cotation) — "remplacee" est posé uniquement par la création
@@ -201,6 +228,14 @@ class Cotation
         }
         $stmt = Database::connection()->prepare('UPDATE cotations SET statut = ?, updated_at = ? WHERE id = ?');
         $stmt->execute([$statut, date('Y-m-d H:i:s'), $id]);
+        if (self::colonnesPerte()) {
+            // Date de perte à l'entrée en « refusée » ; effacée (ainsi que le motif) si le devis est rouvert.
+            if ($statut === 'refusee') {
+                Database::connection()->prepare('UPDATE cotations SET perdu_le = COALESCE(perdu_le, ?) WHERE id = ?')->execute([date('Y-m-d H:i:s'), $id]);
+            } else {
+                Database::connection()->prepare('UPDATE cotations SET perdu_le = NULL, motif_perte = NULL, motif_perte_detail = NULL WHERE id = ?')->execute([$id]);
+            }
+        }
     }
 
     public static function userCanAccess(array $user, array $cotation): bool

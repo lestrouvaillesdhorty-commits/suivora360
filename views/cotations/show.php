@@ -88,11 +88,35 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
       <form method="post" action="/index.php?r=cotations/<?= $cotation['id'] ?>/statut" style="margin-top:16px;padding-top:16px;border-top:1px solid #eef0f4">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
         <label>Changer le statut</label>
-        <select name="statut" onchange="this.form.submit()">
+        <select name="statut" id="selStatutCot">
           <?php foreach (Cotation::statutsManuels() as $code => $label): ?>
             <option value="<?= $code ?>" <?= $cotation['statut'] === $code ? 'selected' : '' ?>><?= $label ?></option>
           <?php endforeach; ?>
         </select>
+        <?php if (Cotation::colonnesPerte()): ?>
+        <div id="blocPerte" style="margin-top:12px;<?= $cotation['statut'] === 'refusee' ? '' : 'display:none' ?>">
+          <label>Pourquoi ce devis est-il perdu ?</label>
+          <select name="motif_perte" id="motifPerte">
+            <option value="">— Choisir le motif —</option>
+            <?php foreach (Cotation::MOTIFS_PERTE as $k => $lb): ?><option value="<?= $k ?>" <?= ($cotation['motif_perte'] ?? '') === $k ? 'selected' : '' ?>><?= View::e($lb) ?></option><?php endforeach; ?>
+          </select>
+          <label style="margin-top:8px">Précision (facultatif)</label>
+          <input type="text" name="motif_perte_detail" maxlength="300" value="<?= View::e((string) ($cotation['motif_perte_detail'] ?? '')) ?>" placeholder="ex. concurrent 8 % moins cher">
+        </div>
+        <button type="submit" class="btn btn-sm" id="btnStatutCot" style="margin-top:12px;<?= $cotation['statut'] === 'refusee' ? '' : 'display:none' ?>">Enregistrer</button>
+        <script>
+        (function () {
+          var sel = document.getElementById('selStatutCot'), bloc = document.getElementById('blocPerte'), btn = document.getElementById('btnStatutCot'), mot = document.getElementById('motifPerte');
+          sel.addEventListener('change', function () {
+            if (sel.value === 'refusee') { bloc.style.display = ''; btn.style.display = ''; mot.required = true; mot.focus(); }
+            else { bloc.style.display = 'none'; btn.style.display = 'none'; mot.required = false; sel.form.submit(); }
+          });
+          if (sel.value === 'refusee') { mot.required = true; }
+        })();
+        </script>
+        <?php else: ?>
+        <script>document.getElementById('selStatutCot').addEventListener('change', function () { this.form.submit(); });</script>
+        <?php endif; ?>
       </form>
       <?php endif; ?>
     </div>

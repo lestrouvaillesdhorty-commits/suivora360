@@ -221,7 +221,16 @@ class CotationController
             exit;
         }
 
+        $motifPerte = (string) ($_POST['motif_perte'] ?? '');
+        if ($nouveauStatut === 'refusee' && Cotation::colonnesPerte() && !isset(Cotation::MOTIFS_PERTE[$motifPerte])) {
+            View::flash('erreur', 'Indiquez le motif du refus avant d\'enregistrer ce statut.');
+            header('Location: /index.php?r=cotations/' . $cotation['id']);
+            exit;
+        }
         Cotation::updateStatut((int) $cotation['id'], $nouveauStatut);
+        if ($nouveauStatut === 'refusee') {
+            Cotation::enregistrerPerte((int) $cotation['id'], $motifPerte, (string) ($_POST['motif_perte_detail'] ?? ''));
+        }
         if ($nouveauStatut === 'acceptee') {
             Dossier::avancerA((int) $cotation['dossier_id'], 'commande'); // parcours guidé : cotation acceptée → étape Commande
         }

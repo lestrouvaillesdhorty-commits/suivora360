@@ -115,6 +115,9 @@ class PortailClientController
         $commentaire = mb_substr(trim((string) ($_POST['commentaire'] ?? '')), 0, 300);
 
         Cotation::updateStatut((int) $cotation['id'], $choix);
+        if ($choix === 'refusee') {
+            Cotation::enregistrerPerte((int) $cotation['id'], (string) ($_POST['motif'] ?? ''), $commentaire);
+        }
         $details = $choix . ' par le client (espace client)' . ($commentaire !== '' ? ' — ' . $commentaire : '');
         $cotationComplete = Cotation::find((int) $cotation['id']);
         $filialeId = (int) ($cotationComplete['filiale_id'] ?? $client['filiale_id']);
