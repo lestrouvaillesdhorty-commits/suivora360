@@ -195,6 +195,7 @@ document.getElementById('items-body').addEventListener('click', function (e) {
       dv = $('devise_devis'), dOffre = $('devise_achat'), taux = $('taux_change'), bloc = $('bloc-taux');
   var T = <?= json_encode(['EUR' => ['XAF' => $tauxEurFcfa, 'XOF' => $tauxEurFcfa], 'XAF' => ['EUR' => 1 / max($tauxEurFcfa, 0.0001), 'XOF' => 1], 'XOF' => ['EUR' => 1 / max($tauxEurFcfa, 0.0001), 'XAF' => 1]]) ?>;
   var auto = !<?= $cotationPrecedente ? 'true' : 'false' ?>, tauxManuel = <?= $tauxPrec > 0 ? 'true' : 'false' ?>;
+  var prevTx = NaN, prevM = 0;
   var r2 = function (x) { return (Math.round(x * 100) / 100).toFixed(2); };
   var num = function (el) { var v = el ? parseFloat(el.value) : NaN; return v; };
   function memeDevise() { return dv.value === dOffre.value; }
@@ -217,6 +218,15 @@ document.getElementById('items-body').addEventListener('click', function (e) {
   function recalc() {
     var tx = tauxEff(), m = marge ? (parseFloat(marge.value) || 0) : 0, a = num(achat);
     if (!isNaN(tx) && tx > 0) {
+      // Lignes sans coût de base (nouvelle version, ligne ajoutée à la main) : on le déduit du prix affiché
+      // avec le taux et la marge précédents, pour que le taux et la marge les fassent aussi bouger.
+      if (!isNaN(prevTx) && prevTx > 0) {
+        body.querySelectorAll('[name="item_prix_unitaire[]"]').forEach(function (inp) {
+          var v = parseFloat(inp.value);
+          if (!inp.hasAttribute('data-cout') && !inp.dataset.manuel && !isNaN(v)) { inp.dataset.cout = String(v / (prevTx * (1 + prevM / 100))); }
+        });
+      }
+      prevTx = tx; prevM = m;
       body.querySelectorAll('[data-cout]').forEach(function (inp) { inp.value = r2(parseFloat(inp.dataset.cout) * tx * (1 + m / 100)); });
     }
     var s = sommeLignes();
@@ -233,10 +243,10 @@ document.getElementById('items-body').addEventListener('click', function (e) {
   taux.addEventListener('input', function () { tauxManuel = true; auto = true; recalc(); });
   dv.addEventListener('change', function () { tauxManuel = false; majTaux(); auto = true; recalc(); });
   body.addEventListener('input', function (e) {
-    if (e.target.name === 'item_prix_unitaire[]' && e.target.dataset.cout) { e.target.removeAttribute('data-cout'); }
+    if (e.target.name === 'item_prix_unitaire[]') { e.target.removeAttribute('data-cout'); e.target.dataset.manuel = '1'; }
     var s = sommeLignes(); if (auto && s !== null && isNaN(num(achat))) { ht.value = r2(s); depuisHt(); }
   });
   body.addEventListener('click', function () { setTimeout(sommeLignes, 0); });
-  majTaux(); recalc(); affTva();
+  majTaux(); prevTx = tauxEff(); prevM = marge ? (parseFloat(marge.value) || 0) : 0; recalc(); affTva();
 })();
 </script>
