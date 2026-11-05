@@ -202,6 +202,213 @@ class PdfSimple
         }
     }
 
+
+    // ------------------------------------------- mise en page « devis » (identique à l'aperçu)
+
+    private const TEAL = [0.043, 0.486, 0.541];
+
+    public function espace(float $h): void
+    {
+        $this->y -= $h;
+    }
+
+    /** En-tête : à gauche logo + nom + coordonnées, à droite titre du document ; filet turquoise dessous. */
+    public function enteteDevis(?array $logo, string $nom, array $coord, string $titre, array $droite): void
+    {
+        $largG = (self::W - 2 * self::MARGE) * 0.58;
+        $hG = 0.0;
+        $lh = 0.0;
+        if ($logo && $logo['w'] > 0 && $logo['h'] > 0) {
+            $r = min(150 / $logo['w'], 46 / $logo['h']);
+            $lw = $logo['w'] * $r;
+            $lh = $logo['h'] * $r;
+            $hG += $lh + 6;
+        }
+        $lNom = $this->couper($nom, 15, $largG, true);
+        $hG += count($lNom) * 18;
+        $lCoord = [];
+        foreach ($coord as $c) {
+            foreach ($this->couper($c, 8.5, $largG, false) as $l) {
+                $lCoord[] = $l;
+            }
+        }
+        $hG += count($lCoord) * 11.5 + 2;
+        $lTitre = $this->couper($titre, 14, (self::W - 2 * self::MARGE) * 0.4, true);
+        $hD = count($lTitre) * 17 + count($droite) * 12.5;
+        $h = max($hG, $hD);
+        $this->assurerPlace($h + 16);
+        $haut = $this->y;
+        $yy = $haut;
+        if ($logo && $lh > 0) {
+            $this->imgs[] = $logo;
+            $n = count($this->imgs) - 1;
+            $this->curImgs[] = $n;
+            $this->flux .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /Im%d Do Q\n", $lw, $lh, self::MARGE, $yy - $lh, $n);
+            $yy -= $lh + 6;
+        }
+        foreach ($lNom as $l) {
+            $yy -= 14;
+            $this->texte(self::MARGE, $yy, $l, 15, true, [0.11, 0.125, 0.19]);
+            $yy -= 4;
+        }
+        $yy -= 2;
+        foreach ($lCoord as $l) {
+            $yy -= 8.5;
+            $this->texte(self::MARGE, $yy, $l, 8.5, false, [0.33, 0.35, 0.4]);
+            $yy -= 3;
+        }
+        $xd = self::W - self::MARGE;
+        $yy = $haut;
+        foreach ($lTitre as $l) {
+            $yy -= 14;
+            $this->texte($xd - $this->largeur($l, 14, true), $yy, $l, 14, true, [0.11, 0.125, 0.19]);
+            $yy -= 3;
+        }
+        foreach ($droite as $l) {
+            $yy -= 9.5;
+            $this->texte($xd - $this->largeur($l, 9.5, false), $yy, $l, 9.5, false, [0.33, 0.35, 0.4]);
+            $yy -= 3;
+        }
+        $this->y = $haut - $h - 8;
+        $this->rect(self::MARGE, $this->y, self::W - 2 * self::MARGE, 2.5, self::TEAL);
+        $this->y -= 16;
+    }
+
+    /** Cadres d'information côte à côte (fond clair) : [[titre, [lignes]], …] ; la 1re ligne est en gras. */
+    public function blocsInfo(array $blocs): void
+    {
+        $n = max(1, count($blocs));
+        $gap = 12.0;
+        $larg = (self::W - 2 * self::MARGE - ($n - 1) * $gap) / $n;
+        $rendu = [];
+        $hMax = 0.0;
+        foreach ($blocs as [$titre, $lignes]) {
+            $ls = [];
+            foreach ($lignes as $k => $l) {
+                foreach ($this->couper((string) $l, 9.5, $larg - 20, $k === 0) as $j => $c) {
+                    $ls[] = [$c, $k === 0];
+                }
+            }
+            $rendu[] = [$titre, $ls];
+            $hMax = max($hMax, 12 + 14 + count($ls) * 12.5 + 8);
+        }
+        $this->assurerPlace($hMax + 6);
+        $haut = $this->y;
+        foreach ($rendu as $i => [$titre, $ls]) {
+            $x = self::MARGE + $i * ($larg + $gap);
+            $this->rect($x, $haut - $hMax, $larg, $hMax, [0.949, 0.969, 0.973]);
+            $this->texte($x + 10, $haut - 17, $titre, 8.5, true, [0.4, 0.42, 0.47]);
+            $yy = $haut - 17;
+            foreach ($ls as [$c, $gras]) {
+                $yy -= 12.5;
+                $this->texte($x + 10, $yy, $c, 9.5, $gras, [0.11, 0.125, 0.19]);
+            }
+        }
+        $this->y = $haut - $hMax - 14;
+    }
+
+    /**
+     * Tableau à en-tête turquoise. Cellule = texte, ou [texte, détail] (détail en petit gris dessous).
+     * $droite = indices des colonnes alignées à droite.
+     */
+    public function tableauDevis(array $entetes, array $lignes, array $largeurs, array $droite = []): void
+    {
+        $utile = self::W - 2 * self::MARGE;
+        $total = array_sum($largeurs);
+        $cols = array_map(fn($l) => $utile * $l / $total, $largeurs);
+        $taille = 9;
+        $ligne = function (array $cellules, bool $entete) use ($cols, $taille, $droite, $utile) {
+            $pret = [];
+            $nb = 1;
+            foreach ($cellules as $i => $c) {
+                $txt = is_array($c) ? (string) $c[0] : (string) $c;
+                $det = is_array($c) ? (string) ($c[1] ?? '') : '';
+                $a = $this->couper($txt, $taille, $cols[$i] - 12, $entete);
+                $b = $det !== '' ? $this->couper($det, 7.5, $cols[$i] - 12, false) : [];
+                $pret[$i] = [$a, $b];
+                $nb = max($nb, count($a) + (count($b) ? count($b) * 0.85 : 0));
+            }
+            $h = $nb * ($taille + 3) + 9;
+            $this->assurerPlace($h + 4);
+            if ($entete) {
+                $this->rect(self::MARGE, $this->y - $h, $utile, $h, self::TEAL);
+            }
+            $x = self::MARGE;
+            foreach ($pret as $i => [$a, $b]) {
+                $yy = $this->y - 5;
+                foreach ($a as $l) {
+                    $yy -= $taille;
+                    $px = in_array($i, $droite, true) ? $x + $cols[$i] - 6 - $this->largeur($l, $taille, $entete) : $x + 6;
+                    $this->texte($px, $yy, $l, $taille, $entete, $entete ? [1, 1, 1] : [0.11, 0.125, 0.19]);
+                    $yy -= 3;
+                }
+                foreach ($b as $l) {
+                    $yy -= 7.5;
+                    $this->texte($x + 6, $yy, $l, 7.5, false, [0.4, 0.42, 0.47]);
+                    $yy -= 2.5;
+                }
+                $x += $cols[$i];
+            }
+            $this->y -= $h;
+            if (!$entete) {
+                $this->ligne(self::MARGE, $this->y, self::MARGE + $utile, [0.9, 0.91, 0.94]);
+            }
+        };
+        $ligne($entetes, true);
+        foreach ($lignes as $l) {
+            $ligne($l, false);
+        }
+        $this->y -= 8;
+    }
+
+    /** Bloc de totaux aligné à droite ; la dernière ligne (TTC) est mise en valeur. */
+    public function totauxDevis(array $lignes, string $libelleTtc, string $valeurTtc): void
+    {
+        $larg = 240.0;
+        $x1 = self::W - self::MARGE - $larg;
+        $x2 = self::W - self::MARGE;
+        $this->assurerPlace(count($lignes) * 17 + 40);
+        foreach ($lignes as [$k, $v]) {
+            $this->y -= 13;
+            $this->texte($x1, $this->y, $k, 9.5, false, [0.11, 0.125, 0.19]);
+            $this->texte($x2 - $this->largeur($v, 9.5, false), $this->y, $v, 9.5, false, [0.11, 0.125, 0.19]);
+            $this->y -= 4;
+        }
+        $this->y -= 3;
+        $this->rect($x1, $this->y, $larg, 1.6, self::TEAL);
+        $this->y -= 20;
+        $this->texte($x1, $this->y, $libelleTtc, 13, true, [0.11, 0.125, 0.19]);
+        $this->texte($x2 - $this->largeur($valeurTtc, 13, true), $this->y, $valeurTtc, 13, true, [0.11, 0.125, 0.19]);
+        $this->y -= 16;
+    }
+
+    /** Intitulé en gras suivi d'un paragraphe (remarques, conditions…). */
+    public function noteTitree(string $titre, string $texte, float $taille = 9): void
+    {
+        $this->assurerPlace(40);
+        $this->y -= 8;
+        $this->ecrireLignes([$titre], 10, true, [0.11, 0.125, 0.19], 1);
+        $this->paragraphe($texte, $taille);
+    }
+
+    /** Zone de signature : texte à gauche, cadre en pointillés à droite. */
+    public function signatureDevis(string $titre, string $aide): void
+    {
+        $this->assurerPlace(110);
+        $this->y -= 14;
+        $haut = $this->y;
+        $moitie = (self::W - 2 * self::MARGE - 18) / 2;
+        $this->texte(self::MARGE, $haut - 10, $titre, 10, true, [0.11, 0.125, 0.19]);
+        $yy = $haut - 10;
+        foreach ($this->couper($aide, 8, $moitie, false) as $l) {
+            $yy -= 11;
+            $this->texte(self::MARGE, $yy, $l, 8, false, [0.4, 0.42, 0.47]);
+        }
+        $x = self::MARGE + $moitie + 18;
+        $this->flux .= sprintf("0.75 0.88 0.9 RG 1 w [4 3] 0 d %.2F %.2F %.2F %.2F re S [] 0 d\n", $x, $haut - 80, $moitie, 80);
+        $this->y = $haut - 92;
+    }
+
     // ------------------------------------------------------------- interne
 
     private function nouvellePage(): void

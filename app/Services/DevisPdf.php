@@ -66,67 +66,59 @@ class DevisPdf
         $t = self::totaux($c);
         $pdf = new PdfSimple(trim(($emetteur['nom'] ?? '') . ' - Devis ' . $c['reference'] . ((int) ($c['version'] ?? 1) > 1 ? ' v' . $c['version'] : '')));
         $pdf->piedEntreprise(self::ligneEntreprise($emetteur));
-        $pdf->sousTitre((string) ($emetteur['nom'] ?? ''));
-        $enteteInfos = trim(implode('   |   ', array_filter([
-            trim(preg_replace('/\s*\R\s*/u', ', ', (string) ($emetteur['adresse'] ?? ''))),
-            !empty($emetteur['telephone']) ? 'Tél. ' . $emetteur['telephone'] : '',
-            (string) ($emetteur['email'] ?? ''),
-        ])));
-        if ($enteteInfos !== '') { $pdf->paragraphe($enteteInfos, 8.5); }
         $validite = self::validite($c, $emetteur);
-        $pdf->titre('DEVIS ' . $c['reference'] . ((int) ($c['version'] ?? 1) > 1 ? ' (version ' . $c['version'] . ')' : ''));
-        $pdf->sousTitre('Date : ' . date('d/m/Y', strtotime((string) $c['created_at'])) . ($validite ? '   |   Valable jusqu\'au ' . date('d/m/Y', strtotime($validite)) : '') . '   |   Dossier : ' . ($c['dossier_reference'] ?? ''));
+        $logo = null;
+        if (!empty($emetteur['logo'])) {
+            $chemin = \App\Core\Storage::path('uploads/logos/' . basename((string) $emetteur['logo']));
+            $logo = is_file($chemin) ? PhotoProduit::jpeg($chemin, 400) : null;
+        }
+        $coord = array_values(array_filter([
+            trim(preg_replace('/\s*\R\s*/u', ', ', (string) ($emetteur['adresse'] ?? ''))),
+            trim((!empty($emetteur['telephone']) ? 'Tél. ' . $emetteur['telephone'] : '') . (!empty($emetteur['telephone']) && !empty($emetteur['email']) ? '  ·  ' : '') . (string) ($emetteur['email'] ?? '')),
+        ]));
+        $droite = array_values(array_filter([
+            (int) ($c['version'] ?? 1) > 1 ? 'Version ' . (int) $c['version'] : '',
+            'Date : ' . date('d/m/Y', strtotime((string) $c['created_at'])),
+            $validite ? 'Valable jusqu\'au ' . date('d/m/Y', strtotime($validite)) : '',
+        ]));
+        $pdf->enteteDevis($logo, (string) ($emetteur['nom'] ?? ''), $coord, 'DEVIS ' . $c['reference'], $droite);
 
-        $pdf->section('Client');
         $adr = trim(implode(', ', array_filter([(string) ($client['adresse'] ?? ''), trim(($client['code_postal'] ?? '') . ' ' . ($client['ville'] ?? '')), (string) ($client['pays'] ?? '')])));
-        $paires = ['Client' => (string) ($client['nom'] ?? $c['client_nom'] ?? '')];
-        if ($adr !== '') { $paires['Adresse'] = $adr; }
-        if (!empty($client['email'])) { $paires['E-mail'] = $client['email']; }
-        if (!empty($client['telephone'])) { $paires['Téléphone'] = $client['telephone']; }
-        $pdf->paires($paires);
+        $lc = [(string) ($client['nom'] ?? $c['client_nom'] ?? '')];
+        if ($adr !== '') { $lc[] = $adr; }
+        if (!empty($client['email'])) { $lc[] = (string) $client['email']; }
+        if (!empty($client['telephone'])) { $lc[] = (string) $client['telephone']; }
+        $lr = ['Dossier : ' . ($c['dossier_reference'] ?? '')];
+        if (!empty($c['incoterm_client'])) { $lr[] = 'Incoterm : ' . (Demande::INCOTERMS[$c['incoterm_client']] ?? $c['incoterm_client']); }
+        if (!empty($c['mode_paiement_negocie'])) { $lr[] = 'Paiement : ' . (Demande::MODES_PAIEMENT[$c['mode_paiement_negocie']] ?? $c['mode_paiement_negocie']); }
+        $pdf->blocsInfo([['Client', $lc], ['Références', $lr]]);
 
-        $pdf->section('Détail de l\'offre');
         if ($items) {
             $lignes = [];
             foreach ($items as $i => $it) {
-                $lignes[] = [(string) ($i + 1), $it['designation'], self::details($it),
+                $det = self::details($it);
+                $lignes[] = [(string) ($i + 1), [(string) $it['designation'], $det],
                     rtrim(rtrim(number_format((float) $it['quantite'], 2, ',', ''), '0'), ','), (string) ($it['unite'] ?? ''),
                     $it['prix_unitaire'] !== null ? self::fmt($it['prix_unitaire']) : '-', $it['montant'] !== null ? self::fmt($it['montant']) : '-'];
             }
-            $pdf->tableau(['N°', 'Désignation', 'Détails', 'Qté', 'Unité', 'PU HT', 'Total HT'], $lignes, [0.8, 4, 3.6, 1.1, 1.3, 2, 2.2]);
+            $pdf->tableauDevis(['N°', 'Désignation', 'Qté', 'Unité', 'PU HT', 'Total HT'], $lignes, [0.7, 5.2, 1.1, 1.2, 1.9, 2.1], [2, 4, 5]);
         } else {
-            $pdf->paragraphe('Offre globale (voir le montant ci-dessous).');
+            $pdf->paragraphe('Offre globale (voir les montants ci-dessous).');
         }
 
-        $pdf->section('Montants');
-        $tot = ['Total HT' => self::fmt($t['ht']) . ' ' . $dev];
-        $tot['TVA' . ($t['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($t['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '')] = self::fmt($t['tva']) . ' ' . $dev;
-        $tot['TOTAL TTC'] = self::fmt($t['ttc']) . ' ' . $dev;
-        $pdf->paires($tot);
+        $tvaLib = 'TVA' . ($t['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($t['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '');
+        $pdf->totauxDevis([['Total HT', self::fmt($t['ht']) . ' ' . $dev], [$tvaLib, self::fmt($t['tva']) . ' ' . $dev]], 'Total TTC', self::fmt($t['ttc']) . ' ' . $dev);
 
-        $cond = [];
-        if (!empty($c['incoterm_client'])) { $cond['Incoterm'] = Demande::INCOTERMS[$c['incoterm_client']] ?? $c['incoterm_client']; }
-        if (!empty($c['mode_paiement_negocie'])) { $cond['Paiement'] = Demande::MODES_PAIEMENT[$c['mode_paiement_negocie']] ?? $c['mode_paiement_negocie']; }
-        if ($validite) { $cond['Validité du devis'] = date('d/m/Y', strtotime($validite)); }
-        if ($cond) {
-            $pdf->section('Conditions');
-            $pdf->paires($cond);
-        }
         if (trim((string) ($c['notes'] ?? '')) !== '') {
-            $pdf->section('Remarques');
-            $pdf->paragraphe((string) $c['notes']);
+            $pdf->noteTitree('Remarques', (string) $c['notes']);
         }
         if (trim((string) ($emetteur['devis_conditions'] ?? '')) !== '') {
-            $pdf->section('Conditions générales');
-            $pdf->paragraphe((string) $emetteur['devis_conditions'], 9);
+            $pdf->noteTitree('Conditions générales', (string) $emetteur['devis_conditions'], 8.5);
         }
         if (trim((string) ($emetteur['coordonnees_bancaires'] ?? '')) !== '') {
-            $pdf->section('Règlement par virement');
-            $pdf->paragraphe((string) $emetteur['coordonnees_bancaires'], 9);
+            $pdf->noteTitree('Règlement par virement', (string) $emetteur['coordonnees_bancaires'], 9);
         }
-        $pdf->section('Bon pour accord');
-        $pdf->paragraphe("Date :                                   Nom et qualité :                                   Signature (précédée de la mention « Bon pour accord ») :", 9);
-        $pdf->paragraphe(' ', 24);
+        $pdf->signatureDevis('Bon pour accord', 'Date, nom et qualité du signataire, signature précédée de la mention « Bon pour accord »');
         $pdf->photos(PhotoProduit::imagesDevis($c), 'Photos du produit');
         $pdf->paragraphe('Devis établi par ' . ($emetteur['nom'] ?? '') . '. Merci de nous confirmer votre accord en réponse à ce message.', 8.5);
         return $pdf->rendre();
