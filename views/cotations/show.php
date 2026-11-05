@@ -17,6 +17,7 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
     <a href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>/apercu" target="_blank" class="btn btn-secondary">Voir le devis</a>
+    <?php if ($cotation['statut'] !== 'remplacee' && \App\Core\Auth::canGererCotations() && !$commandeExistante): ?><a href="/index.php?r=dossiers/<?= (int) $cotation['dossier_id'] ?>/cotations/nouvelle&version_de=<?= (int) $cotation['id'] ?>" class="btn btn-secondary">Modifier (nouvelle version)</a><?php endif; ?>
     <?php if ($cotation['statut'] !== 'remplacee'): ?><a href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>/envoyer" class="btn"><?= $cotation['statut'] === 'brouillon' ? 'Envoyer au client' : 'Renvoyer au client' ?></a><?php endif; ?>
   <?php if ($cotation['statut'] === 'acceptee' && !$commandeExistante): ?>
     <form method="post" action="/index.php?r=dossiers/<?= $cotation['dossier_id'] ?>/commande">
