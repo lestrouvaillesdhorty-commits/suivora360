@@ -28,6 +28,7 @@
     if (titres.length < 2) { return; }
     var ia = form.querySelector('#blocRechercheIa'); // l'aide IA accompagne la première étape
     var courant = 0;
+    form.noValidate = true; // la vérification se fait ici, étape par étape (sinon un champ invalide caché bloque l'envoi sans rien dire)
     var onglets = document.getElementById('formTabs'); if (onglets) { onglets.style.display = 'none'; }
 
     var barre = document.createElement('ol');
@@ -49,17 +50,15 @@
     colonne.appendChild(nav);
     colonne.appendChild(fin);
 
-    function champsRequis(i) {
-      var out = [];
-      blocs.forEach(function (b) {
-        if (b.getAttribute('data-etape') === titres[i]) {
-          Array.prototype.forEach.call(b.querySelectorAll('[required]'), function (c) { out.push(c); });
-        }
-      });
-      return out;
-    }
+    var msg = document.createElement('div');
+    msg.className = 'etapes-erreur';
+    msg.setAttribute('role', 'alert');
+    msg.style.display = 'none';
+    barre.parentNode.insertBefore(msg, barre.nextSibling);
+
     function afficher(i) {
       courant = i;
+      msg.style.display = 'none';
       blocs.forEach(function (b) { b.classList.toggle('etape-off', b.getAttribute('data-etape') !== titres[i]); });
       if (ia) { ia.style.display = (i === 0) ? '' : 'none'; }
       var derniere = i === titres.length - 1;
@@ -71,12 +70,44 @@
       });
       window.scrollTo({ top: Math.max(0, barre.getBoundingClientRect().top + window.pageYOffset - 70), behavior: 'smooth' });
     }
+    function controlesEtape(i) {
+      var out = [];
+      blocs.forEach(function (b) {
+        if (b.getAttribute('data-etape') === titres[i]) {
+          Array.prototype.forEach.call(b.querySelectorAll('input, select, textarea'), function (c) {
+            if (c.type === 'hidden' || c.type === 'submit' || c.type === 'button' || c.disabled || c.closest('template')) { return; }
+            out.push(c);
+          });
+        }
+      });
+      return out;
+    }
+    function libelle(c) {
+      var g = c.closest('.form-group, .art-champ'), l = g && g.querySelector('label');
+      return l ? l.textContent.replace(/\s+/g, ' ').replace('*', '').trim() : (c.name || 'un champ');
+    }
+    function pourquoi(c) {
+      var v = c.validity;
+      if (v.valueMissing) { return 'à renseigner'; }
+      if (v.typeMismatch && c.type === 'url') { return 'le lien doit commencer par https://'; }
+      if (v.typeMismatch && c.type === 'email') { return 'adresse e-mail invalide'; }
+      if (v.rangeUnderflow || v.rangeOverflow) { return 'valeur hors limites'; }
+      if (v.patternMismatch) { return 'format invalide'; }
+      return 'valeur invalide';
+    }
     function valider(i) {
-      var champs = champsRequis(i);
+      msg.style.display = 'none';
+      var champs = controlesEtape(i);
       for (var k = 0; k < champs.length; k++) {
-        if (!champs[k].value || !String(champs[k].value).trim()) {
-          champs[k].focus();
-          if (champs[k].reportValidity) { champs[k].reportValidity(); }
+        var c = champs[k];
+        if (c.type === 'url' && c.value && !/^[a-z][a-z0-9+.-]*:\/\//i.test(c.value.trim())) { c.value = 'https://' + c.value.trim(); }
+        var v = c.validity;
+        var ok = c.checkValidity() || (v.stepMismatch && !v.valueMissing && !v.typeMismatch && !v.rangeUnderflow && !v.rangeOverflow && !v.patternMismatch);
+        if (!ok) {
+          msg.textContent = 'Étape « ' + titres[i] + ' » — ' + libelle(c) + ' : ' + pourquoi(c) + '.';
+          msg.style.display = '';
+          try { c.focus(); } catch (e) {}
+          if (c.reportValidity) { c.reportValidity(); }
           return false;
         }
       }
@@ -111,3 +142,11 @@
     Array.prototype.forEach.call(document.querySelectorAll('form[data-etapes]'), init);
   });
 })();
+
+/* Liens saisis sans « https:// » (collage depuis un site, mobile) : on complète au lieu de bloquer l'envoi. */
+document.addEventListener('change', function (e) {
+  var c = e.target;
+  if (c && c.tagName === 'INPUT' && c.type === 'url' && c.value && !/^[a-z][a-z0-9+.-]*:\/\//i.test(c.value.trim())) {
+    c.value = 'https://' + c.value.trim();
+  }
+});
