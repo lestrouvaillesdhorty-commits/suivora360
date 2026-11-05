@@ -1,7 +1,10 @@
 <?php
 use App\Core\Icon;
 use App\Core\View;
+use App\Models\FonctionEquipe;
 use App\Models\Pilotage;
+
+$fonctionsUtilisateurs = FonctionEquipe::parUtilisateur((int) (\App\Core\Auth::user()['organisation_id'] ?? 0));
 
 $cd = $collaborateursData;
 $lignes = $cd['lignes'];
@@ -48,7 +51,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
       <tbody>
         <?php foreach ($lignes as $r): ?>
         <tr class="row-clickable" onclick="window.location='<?= pcDetailUrl($r['utilisateur_id'], $filters, $qs) ?>'">
-          <td data-label="Collaborateur"><span class="avatar-with-name"><?= Icon::avatar($r['nom'], 32) ?><?= View::e($r['nom']) ?></span></td>
+          <td data-label="Collaborateur"><span class="avatar-with-name"><?= Icon::avatar($r['nom'], 32) ?><?= View::e($r['nom']) ?><?= FonctionEquipe::badge($fonctionsUtilisateurs[$r['utilisateur_id']] ?? null) ?></span></td>
           <td data-label="Dossiers" class="num"><?= $r['dossiers'] ?></td>
           <td data-label="Ventes HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>
           <td data-label="Marge attribuée" class="num"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['marge_non_convertis']) ?></td>
@@ -127,7 +130,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
       <tbody>
         <?php foreach ($achatsData as $r): ?>
         <tr>
-          <td data-label="Collaborateur"><?= View::e($r['nom']) ?></td>
+          <td data-label="Collaborateur"><?= View::e($r['nom']) ?><?= FonctionEquipe::badge($fonctionsUtilisateurs[$r['utilisateur_id']] ?? null) ?></td>
           <td data-label="Offres" class="num"><?= $r['offres_saisies'] ?></td>
           <td data-label="Délai" class="num"><?= $r['delai_moyen_reponse'] !== null ? $r['delai_moyen_reponse'] . ' j' : 'Non renseigné' ?></td>
           <td data-label="Conformité" class="num"><?= Pilotage::fmtPct($r['conformite_pct']) ?></td>

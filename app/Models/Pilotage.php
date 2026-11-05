@@ -1543,6 +1543,13 @@ class Pilotage
         $reglages = ObjectifCollaborateur::reglages($orgId);
         $objectifs = ObjectifCollaborateur::objectifs($orgId, $mois);
         $moisCourant = date('Y-m');
+        $fonctionsListe = FonctionEquipe::disponible() ? FonctionEquipe::toutes($orgId) : [];
+        $fonctionsParId = [];
+        $ordreFonction = [];
+        foreach ($fonctionsListe as $i => $f) {
+            $fonctionsParId[(int) $f['id']] = $f;
+            $ordreFonction[(int) $f['id']] = $i;
+        }
         $ecoule = $mois === $moisCourant ? max(5, round((int) date('j') / (int) date('t') * 100)) : ($mois > $moisCourant ? 0 : 100);
 
         $lignes = [];
@@ -1592,6 +1599,9 @@ class Pilotage
                 'utilisateur_id' => $uid,
                 'nom' => $u['nom'],
                 'role' => $u['role'] ?? '',
+                'fonction_id' => $fid = ($reg['fonction_id'] ?? null) && isset($fonctionsParId[$reg['fonction_id']]) ? (int) $reg['fonction_id'] : null,
+                'fonction' => $fid ? $fonctionsParId[$fid]['libelle'] : null,
+                'fonction_couleur' => $fid ? FonctionEquipe::couleur($fid) : '#8A97A0',
                 'dossiers' => $nb,
                 'indicateur' => $ind,
                 'type' => $type,
@@ -1607,7 +1617,7 @@ class Pilotage
                 'non_convertis' => $nonConv,
             ];
         }
-        usort($lignes, fn($a, $b) => [$b['objectif'] !== null, $b['realise']] <=> [$a['objectif'] !== null, $a['realise']]);
+        usort($lignes, fn($a, $b) => [$ordreFonction[$a['fonction_id']] ?? 999, $b['objectif'] !== null, $b['realise']] <=> [$ordreFonction[$b['fonction_id']] ?? 999, $a['objectif'] !== null, $a['realise']]);
 
         // Totaux : uniquement sur les indicateurs en montant (on n'additionne pas des euros et des commandes).
         $tot = ['objectif' => 0.0, 'realise' => 0.0, 'commission' => 0.0];
@@ -1622,7 +1632,7 @@ class Pilotage
         $tot['reste'] = max(0.0, $tot['objectif'] - $tot['realise']);
         $tot['pct'] = $tot['objectif'] > 0 ? (int) round($tot['realise'] / $tot['objectif'] * 100) : null;
 
-        return ['mois' => $mois, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot];
+        return ['mois' => $mois, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot, 'fonctions' => $fonctionsListe];
     }
 
     // -------------------------------------------------------------------

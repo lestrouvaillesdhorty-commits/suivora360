@@ -866,6 +866,10 @@ $router->post('/pilotage/objectifs', function () {
     Auth::requireLogin();
     (new PilotageController())->enregistrerObjectifs();
 });
+$router->post('/pilotage/fonctions', function () {
+    Auth::requireLogin();
+    (new PilotageController())->enregistrerFonctions();
+});
 $router->get('/pilotage/detail', function () {
     Auth::requireLogin();
     (new PilotageController())->detail();

@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\View;
 use App\Models\Demande;
 use App\Models\Filiale;
+use App\Models\FonctionEquipe;
 use App\Models\ObjectifCollaborateur;
 use App\Models\Pilotage;
 use App\Models\Utilisateur;
@@ -60,6 +61,37 @@ class PilotageController
         View::render('pilotage/index', $data);
     }
 
+    /** Ajoute, modifie ou supprime les fonctions de l'équipe (libellés propres à l'entreprise). */
+    public function enregistrerFonctions(): void
+    {
+        Auth::requirePilotage();
+        $user = Auth::user();
+        $orgId = (int) $user['organisation_id'];
+        $mois = ObjectifCollaborateur::moisValide($_POST['mois'] ?? '');
+        $retour = '/index.php?r=pilotage&onglet=objectifs&mois=' . $mois . '&devise=' . rawurlencode((string) ($_POST['devise'] ?? 'EUR'));
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null) || !FonctionEquipe::disponible()) {
+            View::flash('erreur', 'Action impossible (session expirée ou migration v42 non lancée).');
+            header('Location: ' . $retour);
+            exit;
+        }
+        $nombre = fn($v) => (float) str_replace([' ', ','], ['', '.'], (string) $v);
+        $action = (string) ($_POST['action'] ?? '');
+        if (str_starts_with($action, 'supprimer:')) {
+            FonctionEquipe::supprimer($orgId, (int) substr($action, 10));
+            View::flash('succes', 'Fonction supprimée. Les personnes rattachées n\'ont plus de fonction.');
+        } else {
+            foreach ((array) ($_POST['f_libelle'] ?? []) as $id => $lib) {
+                FonctionEquipe::modifier($orgId, (int) $id, (string) $lib, (string) ($_POST['f_indicateur'][$id] ?? 'marge'), (string) ($_POST['f_base'][$id] ?? 'responsable'), $nombre($_POST['f_taux'][$id] ?? 0));
+            }
+            if (trim((string) ($_POST['n_libelle'] ?? '')) !== '') {
+                FonctionEquipe::creer($orgId, (string) $_POST['n_libelle'], (string) ($_POST['n_indicateur'] ?? 'marge'), (string) ($_POST['n_base'] ?? 'responsable'), $nombre($_POST['n_taux'] ?? 0));
+            }
+            View::flash('succes', 'Fonctions enregistrées.');
+        }
+        header('Location: ' . $retour);
+        exit;
+    }
+
     /** Enregistre les objectifs du mois, taux et base de commission (direction). */
     public function enregistrerObjectifs(): void
     {
@@ -100,10 +132,11 @@ class PilotageController
             $taux = $nombre($_POST['taux'][$uid] ?? 0);
             $base = (string) ($_POST['base'][$uid] ?? 'responsable');
             $indicateur = (string) ($_POST['indicateur'][$uid] ?? 'marge');
-            if ($objVal === '' && $taux <= 0) {
+            $fonctionId = (int) ($_POST['fonction'][$uid] ?? 0) ?: null;
+            if ($objVal === '' && $taux <= 0 && !$fonctionId) {
                 continue;
             }
-            ObjectifCollaborateur::enregistrer($orgId, $uid, $mois, $nombre($objVal), $devise, $taux, $base, $indicateur);
+            ObjectifCollaborateur::enregistrer($orgId, $uid, $mois, $nombre($objVal), $devise, $taux, $base, $indicateur, $fonctionId);
             $n++;
         }
         View::flash('succes', 'Objectifs et commissions enregistrés (' . $n . ').');
@@ -182,17 +215,17 @@ class PilotageController
             $d = Pilotage::objectifsMois($user, $mois, $filters['devise']);
             fputcsv($out, ['Mois', $mois], ';', '"', '\\');
             fputcsv($out, [], ';', '"', '\\');
-            fputcsv($out, ['Collaborateur', 'Indicateur', 'Base de calcul', 'Objectif', 'Réalisé', 'Avancement (%)', 'Reste à faire', 'Statut', 'Taux commission (%)', 'Commission', 'Unité'], ';', '"', '\\');
+            fputcsv($out, ['Collaborateur', 'Fonction', 'Indicateur', 'Base de calcul', 'Objectif', 'Réalisé', 'Avancement (%)', 'Reste à faire', 'Statut', 'Taux commission (%)', 'Commission', 'Unité'], ';', '"', '\\');
             foreach ($d['lignes'] as $r) {
                 $unite = $r['type'] === 'money' ? $filters['devise'] : 'commandes';
                 fputcsv($out, \App\Core\Csv::row([
-                    $r['nom'], ObjectifCollaborateur::INDICATEURS[$r['indicateur']][0] ?? $r['indicateur'], ObjectifCollaborateur::BASES[$r['base']] ?? $r['base'],
+                    $r['nom'], $r['fonction'] ?? '', ObjectifCollaborateur::INDICATEURS[$r['indicateur']][0] ?? $r['indicateur'], ObjectifCollaborateur::BASES[$r['base']] ?? $r['base'],
                     $r['objectif'] ?? '', round($r['realise'], 2), $r['pct'] ?? '', $r['reste'] !== null ? round($r['reste'], 2) : '',
                     $r['statut'], $r['taux'] > 0 ? $r['taux'] : '', $r['commission'] ?? '', $unite,
                 ]), ';', '"', '\\');
             }
             $t = $d['totaux'];
-            fputcsv($out, ['Total équipe (montants)', '', '', $t['objectif'], round($t['realise'], 2), $t['pct'] ?? '', round($t['reste'], 2), '', '', round($t['commission'], 2), $filters['devise']], ';', '"', '\\');
+            fputcsv($out, ['Total équipe (montants)', '', '', '', $t['objectif'], round($t['realise'], 2), $t['pct'] ?? '', round($t['reste'], 2), '', '', round($t['commission'], 2), $filters['devise']], ';', '"', '\\');
         } elseif ($onglet === 'activites') {
             $data = Pilotage::activites($user, $filters);
             fputcsv($out, ['Activité', 'Commandes', 'Ventes HT', 'Marge sur commandes confirmées', 'Marge / ventes HT (%)', 'Part des ventes (%)'], ';', '"', '\\');
