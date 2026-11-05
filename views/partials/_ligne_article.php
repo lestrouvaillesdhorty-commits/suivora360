@@ -9,6 +9,14 @@ if (($item['unite'] ?? '') !== '' && !in_array($item['unite'], $unites, true)) {
 ?>
 <tr class="art-ligne"><td colspan="5" style="padding:0;border:0">
   <div class="art-grid">
+    <?php if (!empty($articlesDemande)): ?>
+    <div class="art-da"><label>Article de la demande concerné</label>
+      <select name="item_demande_article[]">
+        <option value="0">— Choisir l'article —</option>
+        <?php foreach ($articlesDemande as $ad): ?><option value="<?= (int) $ad['id'] ?>" <?= (int) ($item['demande_article_id'] ?? 0) === (int) $ad['id'] ? 'selected' : '' ?>><?= View::e($ad['designation']) ?></option><?php endforeach; ?>
+        <option value="-1" <?= (int) ($item['demande_article_id'] ?? 0) === -1 ? 'selected' : '' ?>>Autre article (hors demande)</option>
+      </select></div>
+    <?php endif; ?>
     <div class="art-des"><label>Désignation</label><input type="text" name="item_designation[]" value="<?= View::e((string) ($item['designation'] ?? '')) ?>"></div>
     <div class="art-q"><label>Qté</label><input type="number" step="0.01" name="item_quantite[]" value="<?= $num($item['quantite'] ?? null) ?>"></div>
     <div class="art-u"><label>Unité</label>

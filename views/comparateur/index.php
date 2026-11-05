@@ -54,6 +54,65 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
     Le meilleur résultat (prix marchandises et coût rendu les plus bas) est surligné <strong>par devise</strong> — les montants dans des devises différentes ne sont pas encore convertis automatiquement (multi-devises prévu plus tard), donc comparez d'abord les offres dans la même devise.
   </div>
 
+  <?php if (!empty($parArticleDispo)): ?>
+  <div id="articles"></div>
+  <h2 style="margin:18px 0 6px">Comparaison article par article</h2>
+  <div style="font-size:13px;color:#555;margin-bottom:8px">On compare un même article chez plusieurs fournisseurs. Choisissez le gagnant de chaque article : son fournisseur est retenu automatiquement et la cotation reprend uniquement les articles gagnants.</div>
+  <?php if (!empty($couvertureDifferente)): ?>
+    <div class="alert alert-erreur">Ces offres ne portent pas toutes sur les mêmes articles : leurs totaux ne sont pas comparables. Comparez article par article ci-dessous (aucun « meilleur total » n'est surligné dans le tableau global).</div>
+  <?php endif; ?>
+  <?php if (!empty($offresSansLien)): ?>
+    <div class="alert alert-erreur">Offre(s) sans article rattaché : <?= View::e(implode(', ', array_map(fn($x) => $x['fournisseur_nom'] . ' (' . $x['reference'] . ')', $offresSansLien))) ?>. Ouvrez l'offre (Modifier) et choisissez, pour chaque ligne, l'article de la demande concerné pour qu'elle apparaisse ici.</div>
+  <?php endif; ?>
+  <?php foreach ($parArticle as $aid => $bloc): $a = $bloc['article']; ?>
+  <div class="card cmp-article">
+    <h3><?= View::e($a['designation']) ?><?php if ($a['quantite'] !== null && $a['quantite'] !== ''): ?> <span style="font-weight:400;color:#555">— <?= View::e(rtrim(rtrim(number_format((float) $a['quantite'], 2, '.', ''), '0'), '.')) ?> <?= View::e((string) ($a['unite'] ?? '')) ?></span><?php endif; ?></h3>
+    <?php if (empty($bloc['lignes'])): ?>
+      <div style="font-size:13px;color:#666">Aucune offre ne couvre encore cet article.</div>
+    <?php else: ?>
+    <div class="table-scroll"><table class="dtable">
+      <thead><tr><th>Fournisseur</th><th class="num">Prix unitaire</th><th class="num">Quantité proposée</th><th class="num">Montant</th><th>Offre</th><th>Décision</th></tr></thead>
+      <tbody>
+      <?php $gagnant = false; foreach ($bloc['lignes'] as $l): $o = $l['offre']; $it = $l['item'];
+        $dv = $o['devise'] ?: '—';
+        $best = isset($bloc['meilleur'][$dv]) && $it['prix_unitaire'] !== null && (float) $it['prix_unitaire'] == $bloc['meilleur'][$dv] && count($bloc['lignes']) > 1;
+        if (!empty($it['retenu'])) { $gagnant = true; } ?>
+        <tr<?= !empty($it['retenu']) ? ' style="background:#f0fdf4"' : '' ?>>
+          <td><?= View::e($o['fournisseur_nom']) ?></td>
+          <td class="num <?= $best ? 'cmp-meilleur' : '' ?>"><?= $it['prix_unitaire'] !== null ? number_format((float) $it['prix_unitaire'], 2, ',', ' ') . ' ' . View::e($dv) : '—' ?></td>
+          <td class="num"><?= $it['quantite'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['quantite'], 2, '.', ''), '0'), '.')) : '—' ?></td>
+          <td class="num"><?= $it['montant'] !== null ? number_format((float) $it['montant'], 2, ',', ' ') . ' ' . View::e($dv) : '—' ?></td>
+          <td><?= View::e($o['reference']) ?></td>
+          <td>
+            <?php if (!empty($it['retenu'])): ?>
+              <span class="badge" style="background:#1FA463;color:#fff">✓ Retenu pour cet article</span>
+            <?php elseif ($peutValider): ?>
+              <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir-article" style="margin:0">
+                <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                <input type="hidden" name="offre_id" value="<?= (int) $o['id'] ?>">
+                <input type="hidden" name="item_id" value="<?= (int) $it['id'] ?>">
+                <input type="hidden" name="motif_decision" value="Meilleur prix pour cet article">
+                <button type="submit" class="btn btn-sm">Retenir pour cet article</button>
+              </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+    <?php if ($gagnant && $peutValider): ?>
+      <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir-article" style="margin-top:8px">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <input type="hidden" name="article_id" value="<?= (int) $aid ?>">
+        <button type="submit" name="action" value="annuler" class="btn btn-sm btn-secondary">Annuler le choix pour cet article</button>
+      </form>
+    <?php endif; ?>
+    <?php endif; ?>
+  </div>
+  <?php endforeach; ?>
+  <h2 style="margin:22px 0 6px">Comparaison globale des offres</h2>
+  <?php endif; ?>
+
   <?php
     // Tableau transposé (décision Marie Laure, 29/09) : les critères en
     // lignes, chaque offre en colonne — pour comparer toutes les offres sur

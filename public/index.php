@@ -643,6 +643,10 @@ $router->post('/dossiers/{id}/comparateur/retenir', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->retenir($params);
 });
+$router->post('/dossiers/{id}/comparateur/retenir-article', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->retenirArticle($params);
+});
 $router->post('/dossiers/{id}/comparateur/retenir-en-plus', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->retenirEnPlus($params);

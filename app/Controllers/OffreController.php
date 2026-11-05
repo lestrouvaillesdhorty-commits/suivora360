@@ -28,7 +28,7 @@ class OffreController
         }
         $lignes = [];
         foreach ($articles as $a) {
-            $lignes[] = ['designation' => $a['designation'], 'quantite' => $a['quantite'], 'unite' => (string) ($a['unite'] ?? ''), 'prix_unitaire' => null,
+            $lignes[] = ['demande_article_id' => (int) $a['id'], 'designation' => $a['designation'], 'quantite' => $a['quantite'], 'unite' => (string) ($a['unite'] ?? ''), 'prix_unitaire' => null,
                 'conditionnement' => (string) ($a['conditionnement'] ?? ''), 'reference' => (string) ($a['reference'] ?? ''), 'marque' => (string) ($a['marque'] ?? ''), 'caracteristiques' => (string) ($a['caracteristiques'] ?? '')];
         }
         return $lignes;
@@ -111,6 +111,7 @@ class OffreController
                 'reference' => $_POST['item_reference'][$i] ?? '',
                 'marque' => $_POST['item_marque'][$i] ?? '',
                 'caracteristiques' => $_POST['item_caracteristiques'][$i] ?? '',
+                'demande_article_id' => $_POST['item_demande_article'][$i] ?? null,
             ];
         }
 
@@ -243,6 +244,7 @@ class OffreController
                 'reference' => $_POST['item_reference'][$i] ?? '',
                 'marque' => $_POST['item_marque'][$i] ?? '',
                 'caracteristiques' => $_POST['item_caracteristiques'][$i] ?? '',
+                'demande_article_id' => $_POST['item_demande_article'][$i] ?? null,
             ];
         }
 
@@ -379,6 +381,7 @@ class OffreController
                 'reference' => $_POST['item_reference'][$i] ?? '',
                 'marque' => $_POST['item_marque'][$i] ?? '',
                 'caracteristiques' => $_POST['item_caracteristiques'][$i] ?? '',
+                'demande_article_id' => $_POST['item_demande_article'][$i] ?? null,
             ];
         }
         $data = $_POST;

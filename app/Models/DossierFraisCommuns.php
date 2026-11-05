@@ -66,8 +66,20 @@ class DossierFraisCommuns
                 $ignores[] = 'offre ' . $o['fournisseur_nom'] . ' (' . $o['devise'] . ')';
                 continue;
             }
-            $prix = (float) $o['montant_total'];
-            $propres = Offre::coutRendu($o) - $prix;
+            $prixOffre = (float) $o['montant_total'];
+            $propresOffre = Offre::coutRendu($o) - $prixOffre;
+            // Choix article par article : seules les lignes gagnantes comptent (et la part correspondante des frais propres de l'offre).
+            $gagnantes = OffreItem::retenuesDe((int) $o['id']);
+            if ($gagnantes) {
+                $prix = 0.0;
+                foreach ($gagnantes as $g) {
+                    $prix += (float) ($g['montant'] ?? 0);
+                }
+                $propres = $prixOffre > 0 ? $propresOffre * min(1.0, $prix / $prixOffre) : 0.0;
+            } else {
+                $prix = $prixOffre;
+                $propres = $propresOffre;
+            }
             $offres[(int) $o['id']] = ['fournisseur' => $o['fournisseur_nom'], 'prix' => $prix, 'frais_propres' => $propres, 'part_communs' => 0.0];
             $sommePrix += $prix;
         }

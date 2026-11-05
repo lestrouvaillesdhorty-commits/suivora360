@@ -236,6 +236,7 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
         <button type="button" class="btn btn-sm btn-secondary" id="add-item">+ Ligne</button>
       </div>
       <div style="font-size:12px;color:#666;margin-top:4px"><?php if (!$offrePrecedente && !empty($itemsPrecedents)): ?>Articles repris de la demande : saisissez seulement les prix unitaires. <?php endif; ?>Le montant total de l'offre se calcule tout seul (quantité × prix) ; vous pouvez le corriger à la main.</div>
+      <?php $articlesDemande = !empty($dossier['demande_id']) ? \App\Models\DemandeArticle::forDemande((int) $dossier['demande_id']) : []; ?>
       <table style="margin-top:10px" id="items-table"><tbody id="items-body">
         <?php foreach ($itemsPrecedents ?? [] as $item) { include __DIR__ . '/../partials/_ligne_article.php'; } ?>
       </tbody></table>

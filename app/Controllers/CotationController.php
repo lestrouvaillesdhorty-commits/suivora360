@@ -37,7 +37,8 @@ class CotationController
         $fraisCommuns = \App\Models\DossierFraisCommuns::forDossier((int) $dossier['id']);
         $calcAchat = \App\Models\DossierFraisCommuns::calculer($offresRetenues, $fraisCommuns);
         // Plusieurs fournisseurs retenus ou frais communs : le coût de chaque article porte sa part des frais.
-        $modeGroupe = count($offresRetenues) > 1 || $calcAchat['total_communs'] > 0;
+        $modeGroupe = count($offresRetenues) > 1 || $calcAchat['total_communs'] > 0
+            || (bool) array_filter($offresRetenues, fn($o) => \App\Models\OffreItem::retenuesDe((int) $o['id']) !== []);
 
         // [ajouté 06/10, étape 3] ?version_de=<cotationId> : nouvelle version
         // pré-remplie à partir de la cotation indiquée (doit appartenir au
@@ -61,7 +62,7 @@ class CotationController
                 if ($modeGroupe && !isset($calcAchat['offres'][(int) $oR['id']])) {
                     continue; // devise différente : non additionnée (signalée à l'écran)
                 }
-                $lignesOffre = \App\Models\OffreItem::forOffre((int) $oR['id']);
+                $lignesOffre = \App\Models\OffreItem::retenuesDe((int) $oR['id']) ?: \App\Models\OffreItem::forOffre((int) $oR['id']);
                 $sommeMontants = 0.0;
                 foreach ($lignesOffre as $oi) {
                     $sommeMontants += (float) ($oi['montant'] ?? 0);

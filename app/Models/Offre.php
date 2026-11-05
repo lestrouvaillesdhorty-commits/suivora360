@@ -112,6 +112,89 @@ class Offre
         return true;
     }
 
+    /** Rend explicite le choix des offres retenues « en bloc » : toutes leurs lignes rattachées à un article deviennent gagnantes. */
+    private static function expliciterRetenues(int $dossierId): void
+    {
+        $pdo = Database::connection();
+        foreach (self::retenuesForDossier($dossierId) as $r) {
+            if (!OffreItem::retenuesDe((int) $r['id'])) {
+                $pdo->prepare('UPDATE offre_items SET retenu = 1 WHERE offre_id = ? AND demande_article_id IS NOT NULL AND demande_article_id > 0')->execute([(int) $r['id']]);
+            }
+        }
+    }
+
+    /**
+     * Retient une offre POUR UN ARTICLE : la ligne devient la gagnante de cet
+     * article (les autres lignes du même article sont désélectionnées) et
+     * l'offre passe « retenue » sans écarter les autres offres. Un seul
+     * fournisseur retenu par offre : refusé si ce fournisseur est déjà retenu
+     * avec une autre offre. Retourne '' si OK, sinon le message d'erreur.
+     */
+    public static function retenirArticle(int $dossierId, int $offreId, int $itemId, string $motif): string
+    {
+        if (!OffreItem::colonneArticle()) {
+            return 'Lancez d\'abord la migration v44.';
+        }
+        $offre = self::find($offreId);
+        $pdo = Database::connection();
+        $st = $pdo->prepare('SELECT * FROM offre_items WHERE id = ? AND offre_id = ?');
+        $st->execute([$itemId, $offreId]);
+        $item = $st->fetch();
+        if (!$offre || (int) $offre['dossier_id'] !== $dossierId || !in_array($offre['statut'], ['recue', 'retenue'], true) || !$item || (int) $item['demande_article_id'] <= 0) {
+            return 'Cette ligne n\'est pas rattachée à un article de la demande.';
+        }
+        foreach (self::retenuesForDossier($dossierId) as $r) {
+            if ((int) $r['fournisseur_id'] === (int) $offre['fournisseur_id'] && (int) $r['id'] !== $offreId) {
+                return 'Ce fournisseur est déjà retenu sur ce dossier avec une autre offre : modifiez cette offre plutôt que d\'en retenir deux.';
+            }
+        }
+        $now = date('Y-m-d H:i:s');
+        $articleId = (int) $item['demande_article_id'];
+        $pdo->beginTransaction();
+        try {
+            self::expliciterRetenues($dossierId);
+            // Offres qui perdent cet article
+            $st = $pdo->prepare('SELECT DISTINCT oi.offre_id FROM offre_items oi INNER JOIN offres o ON o.id = oi.offre_id WHERE o.dossier_id = ? AND oi.demande_article_id = ? AND oi.retenu = 1 AND oi.id != ?');
+            $st->execute([$dossierId, $articleId, $itemId]);
+            $perdants = array_map('intval', array_column($st->fetchAll(), 'offre_id'));
+            $pdo->prepare('UPDATE offre_items SET retenu = 0 WHERE demande_article_id = ? AND offre_id IN (SELECT id FROM offres WHERE dossier_id = ?)')->execute([$articleId, $dossierId]);
+            $pdo->prepare('UPDATE offre_items SET retenu = 1 WHERE id = ?')->execute([$itemId]);
+            if ($offre['statut'] !== 'retenue') {
+                $pdo->prepare("UPDATE offres SET statut = 'retenue', motif_decision = ?, updated_at = ? WHERE id = ?")->execute([$motif, $now, $offreId]);
+            }
+            foreach ($perdants as $pid) {
+                if ($pid !== $offreId && !OffreItem::retenuesDe($pid)) {
+                    $pdo->prepare("UPDATE offres SET statut = 'recue', updated_at = ? WHERE id = ? AND statut = 'retenue'")->execute([$now, $pid]);
+                }
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        return '';
+    }
+
+    /** Annule le choix du gagnant d'un article ; une offre sans plus aucune ligne gagnante redevient « reçue ». */
+    public static function annulerArticle(int $dossierId, int $articleId): void
+    {
+        if (!OffreItem::colonneArticle()) {
+            return;
+        }
+        $pdo = Database::connection();
+        $now = date('Y-m-d H:i:s');
+        self::expliciterRetenues($dossierId);
+        $st = $pdo->prepare('SELECT DISTINCT oi.offre_id FROM offre_items oi INNER JOIN offres o ON o.id = oi.offre_id WHERE o.dossier_id = ? AND oi.demande_article_id = ? AND oi.retenu = 1');
+        $st->execute([$dossierId, $articleId]);
+        $touches = array_map('intval', array_column($st->fetchAll(), 'offre_id'));
+        $pdo->prepare('UPDATE offre_items SET retenu = 0 WHERE demande_article_id = ? AND offre_id IN (SELECT id FROM offres WHERE dossier_id = ?)')->execute([$articleId, $dossierId]);
+        foreach ($touches as $oid) {
+            if (!OffreItem::retenuesDe($oid)) {
+                $pdo->prepare("UPDATE offres SET statut = 'recue', updated_at = ? WHERE id = ? AND statut = 'retenue'")->execute([$now, $oid]);
+            }
+        }
+    }
+
     public static function retenueForDossier(int $dossierId): ?array
     {
         $stmt = Database::connection()->prepare(
@@ -283,11 +366,17 @@ class Offre
             } elseif (self::colonnesSource() && array_key_exists('source_url', $data)) {
                 $pdo->prepare('UPDATE offres SET source_url = ? WHERE id = ?')->execute([self::lienValide($data['source_url']), $id]);
             }
+            $gagnants = array_map(fn($r) => (int) $r['demande_article_id'], OffreItem::retenuesDe($id));
             $pdo->prepare('DELETE FROM offre_items WHERE offre_id = ?')->execute([$id]);
             foreach ($items as $item) {
                 if (trim($item['designation'] ?? '') !== '') {
                     OffreItem::create($id, $item);
                 }
+            }
+            if ($gagnants && OffreItem::colonneArticle()) {
+                // La modification recrée les lignes : on conserve le statut « retenue » des gagnants par article.
+                $ph = implode(',', array_fill(0, count($gagnants), '?'));
+                $pdo->prepare("UPDATE offre_items SET retenu = 1 WHERE offre_id = ? AND demande_article_id IN ($ph)")->execute(array_merge([$id], $gagnants));
             }
             $pdo->commit();
         } catch (\Throwable $e) {

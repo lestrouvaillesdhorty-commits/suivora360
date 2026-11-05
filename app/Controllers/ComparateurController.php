@@ -64,6 +64,51 @@ class ComparateurController
             }
         }
 
+        // Comparaison article par article : chaque ligne d'offre est rattachée à un article de la demande.
+        $articlesDemande = !empty($dossier['demande_id']) ? \App\Models\DemandeArticle::forDemande((int) $dossier['demande_id']) : [];
+        $parArticle = [];
+        $couvertures = [];
+        $offresSansLien = [];
+        $parArticleDispo = OffreItem::colonneArticle();
+        if ($parArticleDispo) {
+            foreach ($articlesDemande as $a) {
+                $parArticle[(int) $a['id']] = ['article' => $a, 'lignes' => [], 'meilleur' => []];
+            }
+            foreach ($offres as $offre) {
+                if (!in_array($offre['statut'], ['recue', 'retenue'], true)) {
+                    continue;
+                }
+                $ids = [];
+                foreach ($itemsByOffre[$offre['id']] as $it) {
+                    $aid = (int) ($it['demande_article_id'] ?? 0);
+                    if ($aid > 0 && isset($parArticle[$aid])) {
+                        $ids[$aid] = true;
+                        $parArticle[$aid]['lignes'][] = ['offre' => $offre, 'item' => $it];
+                        if ($it['prix_unitaire'] !== null && (float) $it['prix_unitaire'] > 0) {
+                            $dv = $offre['devise'] ?: '—';
+                            $pu = (float) $it['prix_unitaire'];
+                            if (!isset($parArticle[$aid]['meilleur'][$dv]) || $pu < $parArticle[$aid]['meilleur'][$dv]) {
+                                $parArticle[$aid]['meilleur'][$dv] = $pu;
+                            }
+                        }
+                    }
+                }
+                if ($ids) {
+                    $k = array_keys($ids);
+                    sort($k);
+                    $couvertures[implode(',', $k)] = true;
+                } else {
+                    $offresSansLien[] = $offre;
+                }
+            }
+        }
+        // Offres qui ne portent pas sur les mêmes articles : le total n'est pas comparable, on ne désigne pas de « meilleur ».
+        $couvertureDifferente = count($couvertures) > 1;
+        if ($couvertureDifferente) {
+            $meilleurCoutRenduParDevise = [];
+            $meilleurPrixParDevise = [];
+        }
+
         // [ajouté 06/10, étape 2 du découpage Dossiers] $filiale/$demande et
         // 'onglet' => 'achats' : requis par views/folders/_dossier_header.php,
         // désormais réutilisée ici pour que cette page (route restée
@@ -81,6 +126,10 @@ class ComparateurController
             'meilleurPrixParDevise' => $meilleurPrixParDevise,
             'decisionExistante' => $decisionExistante,
             'peutValider' => Auth::canValiderOffres(),
+            'parArticle' => $parArticle,
+            'parArticleDispo' => $parArticleDispo,
+            'couvertureDifferente' => $couvertureDifferente,
+            'offresSansLien' => $offresSansLien,
         ]);
     }
 
@@ -124,6 +173,48 @@ class ComparateurController
             exit;
         }
         header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/comparateur');
+        exit;
+    }
+
+    /** Choisit (ou annule) le gagnant d'un article : la ligne d'offre retenue pour cet article. */
+    public function retenirArticle(array $params): void
+    {
+        $retour = '/index.php?r=dossiers/' . (int) $params['id'] . '/comparateur#articles';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        Dossier::refuserSiAnnule($dossier);
+        if (!Auth::canValiderOffres()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
+        $did = (int) $dossier['id'];
+        if (($_POST['action'] ?? '') === 'annuler') {
+            Offre::annulerArticle($did, (int) ($_POST['article_id'] ?? 0));
+            AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'article_choix_annule', 'dossier', $did, 'article ' . (int) ($_POST['article_id'] ?? 0));
+            View::flash('succes', 'Choix annulé pour cet article.');
+        } else {
+            $offreId = (int) \App\Core\Tenant::offreDuDossier($_POST['offre_id'] ?? 0, $did);
+            $motif = trim($_POST['motif_decision'] ?? '') ?: 'Meilleur prix pour cet article';
+            $err = $offreId > 0 ? Offre::retenirArticle($did, $offreId, (int) ($_POST['item_id'] ?? 0), $motif) : 'Offre introuvable.';
+            if ($err !== '') {
+                View::flash('erreur', $err);
+            } else {
+                \App\Models\Dossier::avancerA($did, 'cotation', (int) $user['id']);
+                AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offre_retenue_article', 'offre', $offreId, $motif);
+                View::flash('succes', 'Offre retenue pour cet article. Les frais communs (expédition finale) se saisissent dans l\'onglet Achats du dossier.');
+            }
+        }
+        header('Location: ' . $retour);
         exit;
     }
 
