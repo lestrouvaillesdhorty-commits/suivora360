@@ -95,6 +95,18 @@ class ProchaineAction
                 ['url' => $base . '/comparateur/retenir', 'champs' => ['offre_id' => (int) $o['id'], 'motif_decision' => 'Offre unique reçue', 'retour' => 'dossier'], 'confirm' => 'Retenir cette offre (motif : « Offre unique reçue ») ?'],
                 ['bouton' => 'Ouvrir le comparateur', 'url' => $base . '/comparateur']);
         }
+        // Offres rattachées aux articles : on ne compare que les articles qui ont au moins deux offres.
+        if ($offresEnCours && \App\Core\Auth::canValiderOffres()) {
+            $parArticle = \App\Models\Offre::lignesParArticle($id);
+            $comparables = array_filter($parArticle, fn($l) => count($l) >= 2);
+            $directs = array_filter($parArticle, fn($l) => count($l) === 1 && (int) $l[0]['retenu'] === 0);
+            if ($parArticle && !$comparables && $directs && !$enAttenteAutres) {
+                $nbD = count($directs);
+                return self::res('Retenir les offres : un seul fournisseur par article', 'Chaque article n\'a qu\'une seule offre : il n\'y a rien à comparer. Retenez-les en une fois, puis ajoutez les frais communs (expédition finale) et créez la cotation.', 'Retenir les ' . $nbD . ' article' . ($nbD > 1 ? 's' : ''), null, $cpt, 'info',
+                    ['url' => $base . '/comparateur/retenir-directs', 'champs' => [], 'confirm' => 'Retenir les ' . $nbD . ' article(s) avec leur unique offre ?'],
+                    ['bouton' => 'Voir le détail par article', 'url' => $base . '/comparateur']);
+            }
+        }
         if ($offresEnCours) {
             $nb = count($offresEnCours);
             return self::res('Comparer les offres et retenir la meilleure', $nb . ' offre' . ($nb > 1 ? 's' : '') . ' reçue' . ($nb > 1 ? 's' : '') . '. Comparez les prix, délais et conditions, puis retenez celle qui convient.', 'Ouvrir le comparateur', $base . '/comparateur', $cpt, 'info', null,

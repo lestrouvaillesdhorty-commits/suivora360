@@ -104,6 +104,19 @@ class ComparateurController
         }
         // Offres qui ne portent pas sur les mêmes articles : le total n'est pas comparable, on ne désigne pas de « meilleur ».
         $couvertureDifferente = count($couvertures) > 1;
+        $aDesLignesLiees = (bool) $couvertures;
+        $nbComparables = 0;
+        $nbDirects = 0;
+        foreach ($parArticle as $b) {
+            $n = count($b['lignes']);
+            if ($n >= 2) {
+                $nbComparables++;
+            } elseif ($n === 1 && empty($b['lignes'][0]['item']['retenu'])) {
+                $nbDirects++;
+            }
+        }
+        // Rien à comparer globalement tant qu'aucun article n'a au moins deux offres (ou si les offres couvrent des articles différents).
+        $masquerGlobal = $parArticleDispo && $aDesLignesLiees && ($nbComparables === 0 || $couvertureDifferente);
         if ($couvertureDifferente) {
             $meilleurCoutRenduParDevise = [];
             $meilleurPrixParDevise = [];
@@ -127,6 +140,10 @@ class ComparateurController
             'decisionExistante' => $decisionExistante,
             'peutValider' => Auth::canValiderOffres(),
             'parArticle' => $parArticle,
+            'aDesLignesLiees' => $aDesLignesLiees,
+            'nbDirects' => $nbDirects,
+            'nbComparables' => $nbComparables,
+            'masquerGlobal' => $masquerGlobal,
             'parArticleDispo' => $parArticleDispo,
             'couvertureDifferente' => $couvertureDifferente,
             'offresSansLien' => $offresSansLien,
@@ -173,6 +190,39 @@ class ComparateurController
             exit;
         }
         header('Location: /index.php?r=dossiers/' . $dossier['id'] . '/comparateur');
+        exit;
+    }
+
+    /** Retient d'un coup tous les articles qui n'ont qu'une seule offre (aucune comparaison nécessaire). */
+    public function retenirDirects(array $params): void
+    {
+        $retour = '/index.php?r=dossiers/' . (int) $params['id'] . '&onglet=achats&sous=offres';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        Dossier::refuserSiAnnule($dossier);
+        if (!Auth::canValiderOffres()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
+        $n = Offre::retenirDirects((int) $dossier['id']);
+        if ($n > 0) {
+            \App\Models\Dossier::avancerA((int) $dossier['id'], 'cotation', (int) $user['id']);
+            AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offres_retenues_directes', 'dossier', (int) $dossier['id'], $n . ' article(s)');
+            View::flash('succes', $n . ' article(s) retenu(s) directement (une seule offre chacun). Ajoutez les frais communs si besoin, puis créez la cotation.');
+        } else {
+            View::flash('erreur', 'Aucun article à retenir directement.');
+        }
+        header('Location: ' . $retour);
         exit;
     }
 

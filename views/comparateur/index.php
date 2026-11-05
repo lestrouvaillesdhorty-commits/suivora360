@@ -26,7 +26,7 @@ $typeDossier = $dossier['type_dossier'] ?? 'autre';
 $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
 ?>
 
-<?php if (count($offres) < 2): ?>
+<?php if (count($offres) < 2 && empty($aDesLignesLiees)): ?>
   <div class="card"><div class="alert alert-erreur" style="margin:0">Ce dossier a <?= count($offres) ?> offre(s) reçue(s) exploitable(s). Une comparaison fiable nécessite au moins deux offres — enregistrez d'autres offres reçues avant de comparer, sinon vous risqueriez de choisir sans point de comparaison réel.</div></div>
 <?php endif; ?>
 
@@ -64,12 +64,20 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
   <?php if (!empty($offresSansLien)): ?>
     <div class="alert alert-erreur">Offre(s) sans article rattaché : <?= View::e(implode(', ', array_map(fn($x) => $x['fournisseur_nom'] . ' (' . $x['reference'] . ')', $offresSansLien))) ?>. Ouvrez l'offre (Modifier) et choisissez, pour chaque ligne, l'article de la demande concerné pour qu'elle apparaisse ici.</div>
   <?php endif; ?>
+  <?php if (!empty($nbDirects) && $peutValider): ?>
+  <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/retenir-directs" style="margin:10px 0">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <button type="submit" class="btn art-ok">Retenir les <?= (int) $nbDirects ?> article(s) qui n'ont qu'une seule offre</button>
+    <span style="font-size:12.5px;color:#555;margin-left:8px">Pas de comparaison à faire pour eux.</span>
+  </form>
+  <?php endif; ?>
   <?php foreach ($parArticle as $aid => $bloc): $a = $bloc['article']; ?>
-  <div class="card cmp-article">
+  <div class="card cmp-article"<?= count($bloc['lignes']) === 1 ? ' style="border-left-color:#1FA463"' : '' ?>>
     <h3><?= View::e($a['designation']) ?><?php if ($a['quantite'] !== null && $a['quantite'] !== ''): ?> <span style="font-weight:400;color:#555">— <?= View::e(rtrim(rtrim(number_format((float) $a['quantite'], 2, '.', ''), '0'), '.')) ?> <?= View::e((string) ($a['unite'] ?? '')) ?></span><?php endif; ?></h3>
     <?php if (empty($bloc['lignes'])): ?>
       <div style="font-size:13px;color:#666">Aucune offre ne couvre encore cet article.</div>
     <?php else: ?>
+    <?php if (count($bloc['lignes']) === 1): ?><div style="font-size:12.5px;color:#0A5F6B;margin-bottom:6px">Une seule offre pour cet article : rien à comparer.</div><?php endif; ?>
     <div class="table-scroll"><table class="dtable">
       <thead><tr><th>Fournisseur</th><th class="num">Prix unitaire</th><th class="num">Quantité proposée</th><th class="num">Montant</th><th>Offre</th><th>Décision</th></tr></thead>
       <tbody>
@@ -92,7 +100,7 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
                 <input type="hidden" name="offre_id" value="<?= (int) $o['id'] ?>">
                 <input type="hidden" name="item_id" value="<?= (int) $it['id'] ?>">
                 <input type="hidden" name="motif_decision" value="Meilleur prix pour cet article">
-                <button type="submit" class="btn btn-sm">Retenir pour cet article</button>
+                <button type="submit" class="btn btn-sm"><?= count($bloc['lignes']) === 1 ? 'Retenir cette offre' : 'Retenir pour cet article' ?></button>
               </form>
             <?php endif; ?>
           </td>
@@ -110,8 +118,9 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
     <?php endif; ?>
   </div>
   <?php endforeach; ?>
-  <h2 style="margin:22px 0 6px">Comparaison globale des offres</h2>
   <?php endif; ?>
+  <?php if (empty($masquerGlobal)): ?>
+  <?php if (!empty($parArticleDispo)): ?><h2 style="margin:22px 0 6px">Comparaison globale des offres</h2><?php endif; ?>
 
   <?php
     // Tableau transposé (décision Marie Laure, 29/09) : les critères en
@@ -399,4 +408,7 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
     </tbody>
   </table>
   </div>
+  <?php else: ?>
+  <div class="card" style="font-size:13px;color:#555">Pas de comparaison globale : les offres portent sur des articles différents, donc il n'y a rien à comparer entre elles. Chaque article n'ayant qu'une offre se retient directement ci-dessus.</div>
+  <?php endif; ?>
 <?php endif; ?>

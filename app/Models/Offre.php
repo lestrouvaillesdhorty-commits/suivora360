@@ -175,6 +175,46 @@ class Offre
         return '';
     }
 
+    /**
+     * Analyse par article des offres actives (reçues ou retenues) :
+     * article_id => lignes [offre_id, item_id, retenu]. Sert à savoir quels
+     * articles ont au moins deux offres (à comparer) et lesquels n'en ont
+     * qu'une (à retenir directement).
+     */
+    public static function lignesParArticle(int $dossierId): array
+    {
+        if (!OffreItem::colonneArticle()) {
+            return [];
+        }
+        $stmt = Database::connection()->prepare(
+            "SELECT oi.id AS item_id, oi.offre_id, oi.demande_article_id, oi.retenu FROM offre_items oi
+             INNER JOIN offres o ON o.id = oi.offre_id
+             WHERE o.dossier_id = ? AND o.statut IN ('recue','retenue') AND oi.demande_article_id IS NOT NULL AND oi.demande_article_id > 0
+             ORDER BY oi.id"
+        );
+        $stmt->execute([$dossierId]);
+        $out = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $out[(int) $r['demande_article_id']][] = $r;
+        }
+        return $out;
+    }
+
+    /** Retient chaque article qui n'a qu'une seule offre (pas encore retenue). Retourne le nombre d'articles retenus. */
+    public static function retenirDirects(int $dossierId): int
+    {
+        $n = 0;
+        foreach (self::lignesParArticle($dossierId) as $lignes) {
+            if (count($lignes) !== 1 || (int) $lignes[0]['retenu'] === 1) {
+                continue;
+            }
+            if (self::retenirArticle($dossierId, (int) $lignes[0]['offre_id'], (int) $lignes[0]['item_id'], 'Seule offre reçue pour cet article') === '') {
+                $n++;
+            }
+        }
+        return $n;
+    }
+
     /** Annule le choix du gagnant d'un article ; une offre sans plus aucune ligne gagnante redevient « reçue ». */
     public static function annulerArticle(int $dossierId, int $articleId): void
     {
