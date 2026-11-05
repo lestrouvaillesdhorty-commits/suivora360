@@ -99,10 +99,11 @@ class PilotageController
             $objVal = trim((string) $obj);
             $taux = $nombre($_POST['taux'][$uid] ?? 0);
             $base = (string) ($_POST['base'][$uid] ?? 'responsable');
+            $indicateur = (string) ($_POST['indicateur'][$uid] ?? 'marge');
             if ($objVal === '' && $taux <= 0) {
                 continue;
             }
-            ObjectifCollaborateur::enregistrer($orgId, $uid, $mois, $nombre($objVal), $devise, $taux, $base);
+            ObjectifCollaborateur::enregistrer($orgId, $uid, $mois, $nombre($objVal), $devise, $taux, $base, $indicateur);
             $n++;
         }
         View::flash('succes', 'Objectifs et commissions enregistrés (' . $n . ').');
@@ -176,6 +177,22 @@ class PilotageController
             }
             $t = $vue['resultats_activite']['total'];
             fputcsv($out, ['Total', $t['commandes'], $t['ventes_ht'], $t['marge'], $t['marge_pct']], ';', '"', '\\');
+        } elseif ($onglet === 'objectifs') {
+            $mois = ObjectifCollaborateur::moisValide($_GET['mois'] ?? '');
+            $d = Pilotage::objectifsMois($user, $mois, $filters['devise']);
+            fputcsv($out, ['Mois', $mois], ';', '"', '\\');
+            fputcsv($out, [], ';', '"', '\\');
+            fputcsv($out, ['Collaborateur', 'Indicateur', 'Base de calcul', 'Objectif', 'Réalisé', 'Avancement (%)', 'Reste à faire', 'Statut', 'Taux commission (%)', 'Commission', 'Unité'], ';', '"', '\\');
+            foreach ($d['lignes'] as $r) {
+                $unite = $r['type'] === 'money' ? $filters['devise'] : 'commandes';
+                fputcsv($out, \App\Core\Csv::row([
+                    $r['nom'], ObjectifCollaborateur::INDICATEURS[$r['indicateur']][0] ?? $r['indicateur'], ObjectifCollaborateur::BASES[$r['base']] ?? $r['base'],
+                    $r['objectif'] ?? '', round($r['realise'], 2), $r['pct'] ?? '', $r['reste'] !== null ? round($r['reste'], 2) : '',
+                    $r['statut'], $r['taux'] > 0 ? $r['taux'] : '', $r['commission'] ?? '', $unite,
+                ]), ';', '"', '\\');
+            }
+            $t = $d['totaux'];
+            fputcsv($out, ['Total équipe (montants)', '', '', $t['objectif'], round($t['realise'], 2), $t['pct'] ?? '', round($t['reste'], 2), '', '', round($t['commission'], 2), $filters['devise']], ';', '"', '\\');
         } elseif ($onglet === 'activites') {
             $data = Pilotage::activites($user, $filters);
             fputcsv($out, ['Activité', 'Commandes', 'Ventes HT', 'Marge sur commandes confirmées', 'Marge / ventes HT (%)', 'Part des ventes (%)'], ';', '"', '\\');

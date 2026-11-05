@@ -16,6 +16,23 @@ class ObjectifCollaborateur
         'offres' => 'Dossiers où son offre est retenue',
     ];
 
+    /** Indicateurs d'objectif : clé => [libellé, type] (money = montant, count = nombre). */
+    public const INDICATEURS = [
+        'marge' => ['Marge', 'money'],
+        'ventes' => ["Chiffre d'affaires HT", 'money'],
+        'commandes' => ['Nombre de commandes', 'count'],
+    ];
+
+    public static function colonneIndicateur(): bool
+    {
+        try {
+            Database::connection()->query('SELECT indicateur FROM reglages_collaborateurs LIMIT 1');
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     public static function disponible(): bool
     {
         try {
@@ -33,14 +50,15 @@ class ObjectifCollaborateur
         return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mois) ? $mois : date('Y-m');
     }
 
-    /** @return array<int,array{taux_commission:float,base:string}> */
+    /** @return array<int,array{taux_commission:float,base:string,indicateur:string}> */
     public static function reglages(int $organisationId): array
     {
-        $stmt = Database::connection()->prepare('SELECT utilisateur_id, taux_commission, base FROM reglages_collaborateurs WHERE organisation_id = ?');
+        $col = self::colonneIndicateur() ? ', indicateur' : '';
+        $stmt = Database::connection()->prepare('SELECT utilisateur_id, taux_commission, base' . $col . ' FROM reglages_collaborateurs WHERE organisation_id = ?');
         $stmt->execute([$organisationId]);
         $out = [];
         foreach ($stmt->fetchAll() as $r) {
-            $out[(int) $r['utilisateur_id']] = ['taux_commission' => (float) $r['taux_commission'], 'base' => $r['base']];
+            $out[(int) $r['utilisateur_id']] = ['taux_commission' => (float) $r['taux_commission'], 'base' => $r['base'], 'indicateur' => $r['indicateur'] ?? 'marge'];
         }
         return $out;
     }
@@ -57,11 +75,13 @@ class ObjectifCollaborateur
         return $out;
     }
 
-    public static function enregistrer(int $organisationId, int $utilisateurId, string $mois, float $objectif, string $devise, float $taux, string $base): void
+    public static function enregistrer(int $organisationId, int $utilisateurId, string $mois, float $objectif, string $devise, float $taux, string $base, string $indicateur = 'marge'): void
     {
         $pdo = Database::connection();
         $now = date('Y-m-d H:i:s');
         $base = isset(self::BASES[$base]) ? $base : 'responsable';
+        $indicateur = isset(self::INDICATEURS[$indicateur]) ? $indicateur : 'marge';
+        $avecInd = self::colonneIndicateur();
         $taux = max(0.0, min(100.0, $taux));
         $objectif = max(0.0, $objectif);
 
@@ -78,11 +98,11 @@ class ObjectifCollaborateur
         $stmt = $pdo->prepare('SELECT id FROM reglages_collaborateurs WHERE utilisateur_id = ?');
         $stmt->execute([$utilisateurId]);
         if ($stmt->fetchColumn()) {
-            $pdo->prepare('UPDATE reglages_collaborateurs SET taux_commission = ?, base = ?, updated_at = ? WHERE utilisateur_id = ?')
-                ->execute([$taux, $base, $now, $utilisateurId]);
+            $pdo->prepare('UPDATE reglages_collaborateurs SET taux_commission = ?, base = ?, updated_at = ?' . ($avecInd ? ', indicateur = ?' : '') . ' WHERE utilisateur_id = ?')
+                ->execute($avecInd ? [$taux, $base, $now, $indicateur, $utilisateurId] : [$taux, $base, $now, $utilisateurId]);
         } else {
-            $pdo->prepare('INSERT INTO reglages_collaborateurs (organisation_id, utilisateur_id, taux_commission, base, updated_at) VALUES (?,?,?,?,?)')
-                ->execute([$organisationId, $utilisateurId, $taux, $base, $now]);
+            $pdo->prepare('INSERT INTO reglages_collaborateurs (organisation_id, utilisateur_id, taux_commission, base, updated_at' . ($avecInd ? ', indicateur' : '') . ') VALUES (?,?,?,?,?' . ($avecInd ? ',?' : '') . ')')
+                ->execute($avecInd ? [$organisationId, $utilisateurId, $taux, $base, $now, $indicateur] : [$organisationId, $utilisateurId, $taux, $base, $now]);
         }
     }
 
@@ -96,8 +116,8 @@ class ObjectifCollaborateur
             if (isset($existants[$uid])) {
                 continue;
             }
-            $r = self::reglages($organisationId)[$uid] ?? ['taux_commission' => 0.0, 'base' => 'responsable'];
-            self::enregistrer($organisationId, $uid, $mois, $o['objectif_marge'], $o['devise'], $r['taux_commission'], $r['base']);
+            $r = self::reglages($organisationId)[$uid] ?? ['taux_commission' => 0.0, 'base' => 'responsable', 'indicateur' => 'marge'];
+            self::enregistrer($organisationId, $uid, $mois, $o['objectif_marge'], $o['devise'], $r['taux_commission'], $r['base'], $r['indicateur']);
             $n++;
         }
         return $n;

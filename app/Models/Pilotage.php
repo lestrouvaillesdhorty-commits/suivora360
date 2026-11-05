@@ -1542,6 +1542,8 @@ class Pilotage
 
         $reglages = ObjectifCollaborateur::reglages($orgId);
         $objectifs = ObjectifCollaborateur::objectifs($orgId, $mois);
+        $moisCourant = date('Y-m');
+        $ecoule = $mois === $moisCourant ? max(5, round((int) date('j') / (int) date('t') * 100)) : ($mois > $moisCourant ? 0 : 100);
 
         $lignes = [];
         foreach (Utilisateur::allForOrganisation($orgId) as $u) {
@@ -1549,8 +1551,10 @@ class Pilotage
             if (isset($u['actif']) && !(int) $u['actif'] && !isset($objectifs[$uid])) {
                 continue;
             }
-            $reg = $reglages[$uid] ?? ['taux_commission' => 0.0, 'base' => 'responsable'];
-            $marges = [];
+            $reg = $reglages[$uid] ?? ['taux_commission' => 0.0, 'base' => 'responsable', 'indicateur' => 'marge'];
+            $ind = $reg['indicateur'] ?? 'marge';
+            $type = ObjectifCollaborateur::INDICATEURS[$ind][1] ?? 'money';
+            $montants = [];
             $nb = 0;
             foreach ($commandes as $c) {
                 $attribue = $reg['base'] === 'offres'
@@ -1560,39 +1564,63 @@ class Pilotage
                     continue;
                 }
                 $nb++;
-                if ($c['marge_montant'] !== null) {
-                    $marges[] = ['montant' => $c['marge_montant'], 'devise' => $c['devise'], 'filiale_id' => $c['filiale_id']];
+                $val = $ind === 'ventes' ? $c['montant_total'] : $c['marge_montant'];
+                if ($type === 'money' && $val !== null) {
+                    $montants[] = ['montant' => $val, 'devise' => $c['devise'], 'filiale_id' => $c['filiale_id']];
                 }
             }
-            $agg = self::agregerMontants($marges, $devise, $filialeIds);
+            if ($type === 'money') {
+                $agg = self::agregerMontants($montants, $devise, $filialeIds);
+                $realise = (float) $agg['total'];
+                $nonConv = $agg['non_convertis'];
+            } else {
+                $realise = (float) $nb;
+                $nonConv = [];
+            }
             $objectif = $objectifs[$uid]['objectif_marge'] ?? null;
-            $realise = (float) $agg['total'];
-            $pct = ($objectif !== null && $objectif > 0) ? round($realise / $objectif * 100) : null;
+            $pct = ($objectif !== null && $objectif > 0) ? (int) round($realise / $objectif * 100) : null;
+            if ($pct === null) {
+                $statut = ['Pas d\'objectif', '#8A97A0'];
+            } elseif ($pct >= 100) {
+                $statut = ['Atteint', '#1FA463'];
+            } elseif ($mois < $moisCourant) {
+                $statut = ['Non atteint', '#E5484D'];
+            } else {
+                $statut = $pct >= $ecoule * 0.8 ? ['En bonne voie', '#0B9AAE'] : ['En retard', '#F57C2B'];
+            }
             $lignes[] = [
                 'utilisateur_id' => $uid,
                 'nom' => $u['nom'],
                 'role' => $u['role'] ?? '',
                 'dossiers' => $nb,
+                'indicateur' => $ind,
+                'type' => $type,
                 'objectif' => $objectif,
                 'realise' => $realise,
                 'pct' => $pct,
                 'reste' => $objectif !== null ? max(0.0, $objectif - $realise) : null,
+                'statut' => $statut[0],
+                'couleur' => $statut[1],
                 'taux' => (float) $reg['taux_commission'],
                 'base' => $reg['base'],
-                'commission' => $reg['taux_commission'] > 0 ? round($realise * $reg['taux_commission'] / 100, 2) : null,
-                'non_convertis' => $agg['non_convertis'],
+                'commission' => ($type === 'money' && $reg['taux_commission'] > 0) ? round($realise * $reg['taux_commission'] / 100, 2) : null,
+                'non_convertis' => $nonConv,
             ];
         }
         usort($lignes, fn($a, $b) => [$b['objectif'] !== null, $b['realise']] <=> [$a['objectif'] !== null, $a['realise']]);
 
+        // Totaux : uniquement sur les indicateurs en montant (on n'additionne pas des euros et des commandes).
         $tot = ['objectif' => 0.0, 'realise' => 0.0, 'commission' => 0.0];
         foreach ($lignes as $l) {
+            if ($l['type'] !== 'money') {
+                continue;
+            }
             $tot['objectif'] += (float) ($l['objectif'] ?? 0);
-            $tot['realise'] += $l['objectif'] !== null || $l['taux'] > 0 ? $l['realise'] : 0;
+            $tot['realise'] += $l['objectif'] !== null ? $l['realise'] : 0;
             $tot['commission'] += (float) ($l['commission'] ?? 0);
         }
         $tot['reste'] = max(0.0, $tot['objectif'] - $tot['realise']);
-        $tot['pct'] = $tot['objectif'] > 0 ? round($tot['realise'] / $tot['objectif'] * 100) : null;
+        $tot['pct'] = $tot['objectif'] > 0 ? (int) round($tot['realise'] / $tot['objectif'] * 100) : null;
 
         return ['mois' => $mois, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot];
     }
