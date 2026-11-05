@@ -127,6 +127,7 @@ class DevisPdf
         $pdf->section('Bon pour accord');
         $pdf->paragraphe("Date :                                   Nom et qualité :                                   Signature (précédée de la mention « Bon pour accord ») :", 9);
         $pdf->paragraphe(' ', 24);
+        $pdf->photos(PhotoProduit::imagesDevis($c), 'Photos du produit');
         $pdf->paragraphe('Devis établi par ' . ($emetteur['nom'] ?? '') . '. Merci de nous confirmer votre accord en réponse à ce message.', 8.5);
         return $pdf->rendre();
     }

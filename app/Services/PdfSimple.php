@@ -25,6 +25,10 @@ class PdfSimple
     ];
 
     private array $pages = [];
+    /** Images JPEG du document : [['data','w','h','cs']…] ; $pageImgs[page] = index des images utilisées. */
+    private array $imgs = [];
+    private array $pageImgs = [];
+    private array $curImgs = [];
     private string $flux = '';
     private float $y = 0;
     private int $numPage = 0;
@@ -136,11 +140,19 @@ class PdfSimple
         foreach ($this->pages as $i => $contenu) {
             $idPage = 5 + $i * 2;
             $idFlux = $idPage + 1;
-            $objets[$idPage] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::W . ' ' . self::H . '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' . $idFlux . ' 0 R >>';
+            $xobj = '';
+            foreach ($this->pageImgs[$i] ?? [] as $n) {
+                $xobj .= '/Im' . $n . ' ' . (5 + $nbPages * 2 + $n) . ' 0 R ';
+            }
+            $objets[$idPage] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::W . ' ' . self::H . '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>' . ($xobj !== '' ? ' /XObject << ' . $xobj . '>>' : '') . ' >> /Contents ' . $idFlux . ' 0 R >>';
             $comp = function_exists('gzcompress') ? gzcompress($contenu, 6) : false;
             $objets[$idFlux] = $comp !== false
                 ? "<< /Length " . strlen($comp) . " /Filter /FlateDecode >>\nstream\n" . $comp . "\nendstream"
                 : "<< /Length " . strlen($contenu) . " >>\nstream\n" . $contenu . "\nendstream";
+        }
+        foreach ($this->imgs as $n => $im) {
+            $objets[5 + $nbPages * 2 + $n] = '<< /Type /XObject /Subtype /Image /Width ' . $im['w'] . ' /Height ' . $im['h']
+                . ' /ColorSpace /' . $im['cs'] . ' /BitsPerComponent 8 /Filter /DCTDecode /Length ' . strlen($im['data']) . " >>\nstream\n" . $im['data'] . "\nendstream";
         }
 
         $pdf = "%PDF-1.4\n";
@@ -158,6 +170,36 @@ class PdfSimple
         }
         $pdf .= "trailer\n<< /Size " . ($max + 1) . " /Root 1 0 R >>\nstartxref\n" . $xref . "\n%%EOF";
         return $pdf;
+    }
+
+
+    /** Planche de photos (3 par ligne) : $images = [['data'=>jpeg,'w'=>..,'h'=>..,'cs'=>'DeviceRGB'|'DeviceGray']…]. */
+    public function photos(array $images, string $titre = 'Photos'): void
+    {
+        if (!$images) {
+            return;
+        }
+        $this->section($titre);
+        $colonnes = 3;
+        $gap = 10.0;
+        $cell = (self::W - 2 * self::MARGE - ($colonnes - 1) * $gap) / $colonnes;
+        $boxH = $cell * 0.75;
+        foreach (array_chunk($images, $colonnes) as $ligne) {
+            $this->assurerPlace($boxH + 8);
+            $haut = $this->y;
+            foreach ($ligne as $k => $im) {
+                $r = min($cell / $im['w'], $boxH / $im['h']);
+                $w = $im['w'] * $r;
+                $h = $im['h'] * $r;
+                $x = self::MARGE + $k * ($cell + $gap) + ($cell - $w) / 2;
+                $yb = $haut - $boxH + ($boxH - $h) / 2;
+                $this->imgs[] = $im;
+                $n = count($this->imgs) - 1;
+                $this->curImgs[] = $n;
+                $this->flux .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /Im%d Do Q\n", $w, $h, $x, $yb, $n);
+            }
+            $this->y = $haut - $boxH - 8;
+        }
     }
 
     // ------------------------------------------------------------- interne
@@ -189,6 +231,8 @@ class PdfSimple
         }
         $this->texte(self::MARGE, 14, $pied, 8, false, [0.55, 0.55, 0.55]);
         $this->pages[] = $this->flux;
+        $this->pageImgs[] = $this->curImgs;
+        $this->curImgs = [];
         $this->flux = '';
     }
 

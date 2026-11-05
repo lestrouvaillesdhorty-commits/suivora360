@@ -1240,3 +1240,11 @@ td .btn-sm[title] { margin-right:4px; }
 .phase-step.done .ps-dot { color: #fff; border-color: #1FA463; }
 td .btn-sm[title="Récapitulatif"] { background:#7C5CE0; border-color:#7C5CE0; color:#fff; }
 td .btn-sm[title="Récapitulatif"]:hover { background:#5F3FC4; }
+
+/* Photos d'une offre */
+.photos-liste{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.photo-ligne{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#F4FAFB;border:1px solid #CFE7EB;border-left:4px solid var(--primary);border-radius:12px;padding:8px 12px}
+.photo-ligne img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #CFE7EB;background:#fff}
+.photo-ligne .photo-nom{flex:1;min-width:120px;font-size:13px;font-weight:600;word-break:break-all}
+.photo-ligne .photo-case{display:inline-flex;gap:6px;align-items:center;font-weight:700;font-size:13px;color:var(--primary-dark);margin:0}
+.photo-ligne .photo-suppr{display:inline-flex;gap:6px;align-items:center;font-weight:600;font-size:13px;color:#C2321A;margin:0}

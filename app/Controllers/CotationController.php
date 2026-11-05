@@ -246,6 +246,7 @@ class CotationController
             'cotation' => $cotation, 'items' => $items, 'client' => $client, 'emetteur' => $emetteur,
             'totaux' => \App\Services\DevisPdf::totaux($cotation),
             'logoUri' => \App\Models\EntrepriseInfo::logoDataUri($emetteur),
+            'photos' => \App\Services\PhotoProduit::urisDevis($cotation),
         ]);
     }
 

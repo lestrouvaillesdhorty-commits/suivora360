@@ -79,6 +79,12 @@ th{background:#0B7C8A;color:#fff;font-size:12px;text-align:left;padding:8px}td{p
       <div class="zone"></div>
     </div>
   </div>
+  <?php if (!empty($photos)): ?>
+  <div style="margin:18px 0 6px;font-weight:700;font-size:13px;border-bottom:1px solid #d9dde6;padding-bottom:4px">Photos du produit</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+    <?php foreach ($photos as $uri): ?><img src="<?= $uri ?>" alt="Photo du produit" style="width:31%;max-height:190px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px"><?php endforeach; ?>
+  </div>
+  <?php endif; ?>
   <div class="pied">
     <div class="pl"><strong><?= View::e($emetteur['nom']) ?></strong><?= !empty($emetteur['adresse']) ? ' — ' . View::e(trim(preg_replace('/\s*\R\s*/u', ', ', (string) $emetteur['adresse']))) : '' ?></div>
     <div class="pl"><?= View::e(implode('  ·  ', array_filter([!empty($emetteur['telephone']) ? 'Tél. ' . $emetteur['telephone'] : '', $emetteur['email'] ?? '', $emetteur['site_web'] ?? '']))) ?></div>

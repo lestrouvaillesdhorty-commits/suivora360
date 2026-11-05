@@ -139,7 +139,9 @@ class OffreController
         }
         $avert = null;
         if (!empty($dossierOffre)) {
-            $avert = $this->joindreFichierOffre($dossierOffre, $user, (int) $offreId);
+            $avertFichier = $this->joindreFichierOffre($dossierOffre, $user, (int) $offreId);
+            $avertPhotos = \App\Services\PhotoProduit::enregistrer($dossierOffre, $user, (int) $offreId);
+            $avert = $avertFichier ?: $avertPhotos;
         }
         if ($avert) {
             View::flash('erreur', $avert);
@@ -256,7 +258,9 @@ class OffreController
         $offreId = Offre::create($consultation, $data, $items, (int) $user['id'], null);
 
         AuditLog::log($filialeId, (int) $user['id'], 'creation_offre', 'offre', $offreId, 'Saisie manuelle (' . Offre::SOURCES[$source] . ')');
-        $avert = $this->joindreFichierOffre($dossier, $user, (int) $offreId);
+        $avertFichier = $this->joindreFichierOffre($dossier, $user, (int) $offreId);
+        $avertPhotos = \App\Services\PhotoProduit::enregistrer($dossier, $user, (int) $offreId);
+        $avert = $avertFichier ?: $avertPhotos;
         if ($avert) {
             View::flash('erreur', $avert);
         }
@@ -384,7 +388,10 @@ class OffreController
         Offre::modifier((int) $offre['id'], $data, $items);
         AuditLog::log((int) $offre['filiale_id'], (int) $user['id'], 'modification_offre', 'offre', (int) $offre['id'], $offre['reference']);
 
-        $avert = $this->joindreFichierOffre($ctx['dossier'], $user, (int) $offre['id']);
+        \App\Services\PhotoProduit::miseAJour($ctx['dossier'], (int) $offre['id']);
+        $avertFichier = $this->joindreFichierOffre($ctx['dossier'], $user, (int) $offre['id']);
+        $avertPhotos = \App\Services\PhotoProduit::enregistrer($ctx['dossier'], $user, (int) $offre['id']);
+        $avert = $avertFichier ?: $avertPhotos;
         if ($avert) {
             View::flash('erreur', $avert);
         }

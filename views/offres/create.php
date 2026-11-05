@@ -205,6 +205,27 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       </div>
     </details>
 
+    <?php $photosExist = ($edition && !empty($offrePrecedente['id']) && !empty($dossier['id'])) ? \App\Services\PhotoProduit::deOffre((int) $dossier['id'], (int) $offrePrecedente['id']) : []; ?>
+    <div class="form-group photos-offre">
+      <label>Photos du produit (facultatif)</label>
+      <?php if ($photosExist): ?>
+      <div class="photos-liste">
+        <?php foreach ($photosExist as $ph): ?>
+        <div class="photo-ligne">
+          <input type="hidden" name="photo_exist[]" value="<?= (int) $ph['id'] ?>">
+          <img src="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/pieces/<?= (int) $ph['id'] ?>/telecharger" alt="">
+          <div class="photo-nom"><?= View::e($ph['nom_original']) ?></div>
+          <label class="photo-case"><input type="checkbox" name="photo_exist_devis[]" value="<?= (int) $ph['id'] ?>" <?= $ph['visibilite'] === 'client' ? 'checked' : '' ?>> Afficher sur le devis</label>
+          <label class="photo-suppr"><input type="checkbox" name="photo_suppr[]" value="<?= (int) $ph['id'] ?>"> Supprimer</label>
+        </div>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+      <div class="photos-liste" id="photosListe"></div>
+      <button type="button" class="btn btn-sm art-ajout" id="photosAjout">+ Ajouter des photos</button>
+      <input type="file" id="photosInput" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple style="display:none">
+      <div style="font-size:12px;color:#666;margin-top:6px">JPG, PNG ou WebP, 10 Mo max. Cochez « Afficher sur le devis » pour les photos que le client doit voir ; les autres restent internes.</div>
+    </div>
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <label style="margin:0">Détail des articles (optionnel)</label>
@@ -262,6 +283,41 @@ document.getElementById('items-body').addEventListener('click', function (e) {
 });
 </script>
 
+<script>
+(function () {
+  var inp = document.getElementById('photosInput'), btn = document.getElementById('photosAjout'), liste = document.getElementById('photosListe');
+  if (!inp || !btn || !liste || !window.DataTransfer) { if (btn) { btn.style.display = 'none'; } if (inp) { inp.style.display = ''; } return; }
+  var fichiers = [], surDevis = [];
+  function reconstruire() {
+    var dt = new DataTransfer();
+    fichiers.forEach(function (f) { dt.items.add(f); });
+    inp.files = dt.files;
+    liste.innerHTML = '';
+    fichiers.forEach(function (f, i) {
+      var l = document.createElement('div'); l.className = 'photo-ligne';
+      var im = document.createElement('img'); im.src = URL.createObjectURL(f); im.alt = '';
+      var n = document.createElement('div'); n.className = 'photo-nom'; n.textContent = f.name;
+      var c = document.createElement('label'); c.className = 'photo-case';
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.name = 'photo_devis[]'; cb.value = i; cb.checked = !!surDevis[i];
+      cb.addEventListener('change', function () { surDevis[i] = cb.checked; });
+      c.appendChild(cb); c.appendChild(document.createTextNode(' Afficher sur le devis'));
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'btn btn-sm btn-secondary'; x.title = 'Supprimer'; x.textContent = 'Retirer';
+      x.addEventListener('click', function () { fichiers.splice(i, 1); surDevis.splice(i, 1); reconstruire(); });
+      l.appendChild(im); l.appendChild(n); l.appendChild(c); l.appendChild(x); liste.appendChild(l);
+    });
+  }
+  btn.addEventListener('click', function () { inp.click(); });
+  inp.addEventListener('change', function () {
+    var nouveaux = Array.prototype.slice.call(inp.files);
+    // le sélecteur remplace la liste : on ajoute seulement ce qui n'y est pas déjà
+    nouveaux.forEach(function (f) {
+      var deja = fichiers.some(function (g) { return g.name === f.name && g.size === f.size && g.lastModified === f.lastModified; });
+      if (!deja) { fichiers.push(f); surDevis.push(false); }
+    });
+    reconstruire();
+  });
+})();
+</script>
 <script>
 (function () {
   var btn = document.getElementById('iaLire');

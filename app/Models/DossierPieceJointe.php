@@ -16,6 +16,7 @@ class DossierPieceJointe
     // ne la lit encore ; "interne" par défaut).
     public const CATEGORIES = [
         'offres_fournisseurs' => 'Offres fournisseurs',
+        'photos_produit' => 'Photos de produits',
         'cotations_client' => 'Cotations client',
         'commande_facturation' => 'Commande et facturation',
         'transport_douane' => 'Transport et douane',
