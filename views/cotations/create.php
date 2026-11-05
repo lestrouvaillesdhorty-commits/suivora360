@@ -27,7 +27,8 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
     <?php foreach ($calcAchat['offres'] as $l): ?>• <?= View::e($l['fournisseur']) ?> : prix <?= $fG($l['prix']) ?><?php if ($l['frais_propres'] > 0.004): ?> + ses frais <?= $fG($l['frais_propres']) ?><?php endif; ?><?php if ($l['part_communs'] > 0.004): ?> + part des frais communs <?= $fG($l['part_communs']) ?><?php endif; ?> = <strong><?= $fG($l['total']) ?></strong><br><?php endforeach; ?>
     <?php foreach ($calcAchat['frais'] as $f): ?>• Frais communs « <?= View::e($f['libelle']) ?> » : <?= $fG($f['montant']) ?> (répartis au prorata de la valeur d'achat)<br><?php endforeach; ?>
     = <strong>coût total d'achat : <?= $fG($calcAchat['total']) ?></strong> — c'est la base de la marge ci-dessous.</div>
-    <?php if ($calcAchat['ignores']): ?><div style="margin-top:6px;color:#9b1c1c">Non additionné (devise différente) : <?= View::e(implode(', ', $calcAchat['ignores'])) ?>.</div><?php endif; ?>
+    <?php if (!empty($etatTaux['devises'])): ?><div style="margin-top:6px;font-size:12.5px">Devises converties en <?= View::e($dvG) ?> :<?php foreach ($etatTaux['devises'] as $dev => $e): ?> 1 <?= View::e($dev) ?> = <?= $e['taux'] ? View::e(rtrim(rtrim(number_format($e['taux'], 6, '.', ''), '0'), '.')) : '?' ?> <?= View::e($dvG) ?>;<?php endforeach; ?> <a href="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>&onglet=achats&sous=offres">modifier les taux</a></div><?php endif; ?>
+    <?php if ($calcAchat['ignores']): ?><div style="margin-top:6px;color:#9b1c1c">Non additionné : <?= View::e(implode(' ; ', $calcAchat['ignores'])) ?>. <a href="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>&onglet=achats&sous=offres">Indiquer le taux</a></div><?php endif; ?>
   </div>
 <?php elseif ($offreRetenue):
   $coutTotalOffre = \App\Models\Offre::coutRendu($offreRetenue);

@@ -659,6 +659,10 @@ $router->post('/dossiers/{id}/frais-communs', function ($params) {
     Auth::requireLogin();
     (new \App\Controllers\FraisCommunsController())->ajouter($params);
 });
+$router->post('/dossiers/{id}/taux-change', function ($params) {
+    Auth::requireLogin();
+    (new \App\Controllers\FraisCommunsController())->taux($params);
+});
 $router->post('/dossiers/{id}/frais-communs/{fid}/supprimer', function ($params) {
     Auth::requireLogin();
     (new \App\Controllers\FraisCommunsController())->supprimer($params);

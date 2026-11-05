@@ -35,7 +35,8 @@ class CotationController
         $offresRetenues = Offre::retenuesForDossier((int) $dossier['id']);
         $offreRetenue = $offresRetenues[0] ?? null;
         $fraisCommuns = \App\Models\DossierFraisCommuns::forDossier((int) $dossier['id']);
-        $calcAchat = \App\Models\DossierFraisCommuns::calculer($offresRetenues, $fraisCommuns);
+        $etatTaux = \App\Models\DossierTauxChange::etat($dossier, $offresRetenues, $fraisCommuns);
+        $calcAchat = \App\Models\DossierFraisCommuns::calculer($offresRetenues, $fraisCommuns, array_filter(array_map(fn($d) => $d['taux'], $etatTaux['devises'])));
         // Plusieurs fournisseurs retenus ou frais communs : le coût de chaque article porte sa part des frais.
         $modeGroupe = count($offresRetenues) > 1 || $calcAchat['total_communs'] > 0
             || (bool) array_filter($offresRetenues, fn($o) => \App\Models\OffreItem::retenuesDe((int) $o['id']) !== []);
@@ -67,11 +68,12 @@ class CotationController
                 foreach ($lignesOffre as $oi) {
                     $sommeMontants += (float) ($oi['montant'] ?? 0);
                 }
+                $tOffre = $modeGroupe ? (float) ($calcAchat['offres'][(int) $oR['id']]['taux'] ?? 1) : 1.0;
                 $extra = $modeGroupe ? (float) $calcAchat['offres'][(int) $oR['id']]['frais_propres'] + (float) $calcAchat['offres'][(int) $oR['id']]['part_communs'] : 0.0;
                 foreach ($lignesOffre as $oi) {
-                    $cout = $oi['prix_unitaire'];
+                    $cout = $oi['prix_unitaire'] !== null ? round((float) $oi['prix_unitaire'] * $tOffre, 4) : null;
                     if ($extra > 0.004 && $sommeMontants > 0 && (float) ($oi['montant'] ?? 0) > 0 && (float) $oi['quantite'] > 0) {
-                        $cout = round((float) $oi['prix_unitaire'] + $extra * ((float) $oi['montant'] / $sommeMontants) / (float) $oi['quantite'], 4);
+                        $cout = round((float) $oi['prix_unitaire'] * $tOffre + $extra * ((float) $oi['montant'] / $sommeMontants) / (float) $oi['quantite'], 4);
                     }
                     $itemsPrecedents[] = ['designation' => $oi['designation'], 'quantite' => $oi['quantite'], 'unite' => (string) ($oi['unite'] ?? ''), 'prix_unitaire' => $oi['prix_unitaire'], 'cout' => $cout,
                         'conditionnement' => $oi['conditionnement'] ?? '', 'reference' => $oi['reference'] ?? '', 'marque' => $oi['marque'] ?? '', 'caracteristiques' => $oi['caracteristiques'] ?? ''];
@@ -101,6 +103,7 @@ class CotationController
             'offreRetenue' => $offreRetenue,
             'offresRetenues' => $offresRetenues,
             'calcAchat' => $calcAchat,
+            'etatTaux' => $etatTaux,
             'modeGroupe' => $modeGroupe,
             'cotationPrecedente' => $cotationPrecedente,
             'itemsPrecedents' => $itemsPrecedents,

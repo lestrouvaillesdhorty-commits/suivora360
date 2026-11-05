@@ -39,7 +39,8 @@ if (count($offresRecues) === 1 && !$dejaRetenue && \App\Core\Auth::canValiderOff
 $retenuesDossier = \App\Models\Offre::retenuesForDossier((int) $dossier['id']);
 if ($retenuesDossier):
   $fraisDossier = \App\Models\DossierFraisCommuns::forDossier((int) $dossier['id']);
-  $calc = \App\Models\DossierFraisCommuns::calculer($retenuesDossier, $fraisDossier);
+  $etatTaux = \App\Models\DossierTauxChange::etat($dossier, $retenuesDossier, $fraisDossier);
+  $calc = \App\Models\DossierFraisCommuns::calculer($retenuesDossier, $fraisDossier, array_filter(array_map(fn($d) => $d['taux'], $etatTaux['devises'])));
   $dv = $calc['devise'];
   $m2 = fn($x) => number_format((float) $x, 2, ',', ' ') . ' ' . $dv;
   $peutFrais = (\App\Core\Auth::canValiderOffres() || \App\Core\Auth::canGererCotations()) && \App\Models\DossierFraisCommuns::disponible();
@@ -51,12 +52,26 @@ if ($retenuesDossier):
     <thead><tr><th>Fournisseur retenu</th><th class="num">Prix fournisseur</th><th class="num">Ses frais (transport…)</th><th class="num">Part des frais communs</th><th class="num">Coût total</th></tr></thead>
     <tbody>
     <?php foreach ($calc['offres'] as $oid => $l): ?>
-      <tr><td><?= View::e($l['fournisseur']) ?></td><td class="num"><?= $m2($l['prix']) ?></td><td class="num"><?= $l['frais_propres'] > 0.004 ? $m2($l['frais_propres']) : '—' ?></td><td class="num"><?= $l['part_communs'] > 0.004 ? $m2($l['part_communs']) : '—' ?></td><td class="num"><strong><?= $m2($l['total']) ?></strong></td></tr>
+      <tr><td><?= View::e($l['fournisseur']) ?><?php if (($l['taux'] ?? 1) != 1): ?><div style="font-size:11px;color:#667">converti de <?= View::e($l['devise_origine']) ?> (taux <?= View::e(rtrim(rtrim(number_format($l['taux'], 6, '.', ''), '0'), '.')) ?>)</div><?php endif; ?></td><td class="num"><?= $m2($l['prix']) ?></td><td class="num"><?= $l['frais_propres'] > 0.004 ? $m2($l['frais_propres']) : '—' ?></td><td class="num"><?= $l['part_communs'] > 0.004 ? $m2($l['part_communs']) : '—' ?></td><td class="num"><strong><?= $m2($l['total']) ?></strong></td></tr>
     <?php endforeach; ?>
     </tbody>
     <tfoot><tr><td colspan="4"><strong>Coût total d'achat du dossier</strong></td><td class="num"><strong><?= $m2($calc['total']) ?></strong></td></tr></tfoot>
   </table></div>
-  <?php if ($calc['ignores']): ?><div class="alert alert-erreur" style="margin-top:10px">Non additionné (devise différente de <?= View::e($dv) ?>) : <?= View::e(implode(', ', $calc['ignores'])) ?>.</div><?php endif; ?>
+  <?php if ($etatTaux['devises']): ?>
+  <div class="alert <?= $calc['ignores'] ? 'alert-erreur' : 'alert-succes' ?>" style="margin-top:10px">
+    <strong>Devises différentes</strong> : tout est converti en <?= View::e($dv) ?>. Vérifiez le taux de chaque devise<?= $calc['ignores'] ? ' (un taux manque, voir ci-dessous)' : '' ?>.
+    <?php if ((\App\Core\Auth::canValiderOffres() || \App\Core\Auth::canGererCotations()) && \App\Models\DossierTauxChange::disponible()): ?>
+    <form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/taux-change" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">
+      <input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>"><input type="hidden" name="ref" value="<?= View::e($dv) ?>">
+      <?php foreach ($etatTaux['devises'] as $dev => $e): ?>
+        <div class="art-champ" style="width:200px"><label>1 <?= View::e($dev) ?> = ? <?= View::e($dv) ?></label><input type="text" inputmode="decimal" name="taux[<?= View::e($dev) ?>]" value="<?= $e['taux'] ? View::e(rtrim(rtrim(number_format($e['taux'], 6, '.', ''), '0'), '.')) : '' ?>" placeholder="taux" required></div>
+      <?php endforeach; ?>
+      <button type="submit" class="btn art-ok">Enregistrer les taux</button>
+    </form>
+    <?php elseif (!\App\Models\DossierTauxChange::disponible()): ?><div style="margin-top:6px">Lancez la migration v46 pour enregistrer les taux.</div><?php endif; ?>
+    <?php if ($calc['ignores']): ?><div style="margin-top:6px;color:#9b1c1c">Non additionné : <?= View::e(implode(' ; ', $calc['ignores'])) ?>.</div><?php endif; ?>
+  </div>
+  <?php endif; ?>
 
   <h4 style="margin:16px 0 6px">Frais communs du dossier</h4>
   <?php if ($fraisDossier): ?>

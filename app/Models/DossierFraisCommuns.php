@@ -52,7 +52,7 @@ class DossierFraisCommuns
      * Retourne : devise, offres (id => [fournisseur, prix, frais_propres, part_communs, total]),
      * frais (lignes prises en compte), total_communs, total, ignores (libellés).
      */
-    public static function calculer(array $retenues, array $frais): array
+    public static function calculer(array $retenues, array $frais, array $taux = []): array
     {
         if (!$retenues) {
             return ['devise' => '', 'offres' => [], 'frais' => [], 'total_communs' => 0.0, 'total' => 0.0, 'ignores' => []];
@@ -62,9 +62,14 @@ class DossierFraisCommuns
         $offres = [];
         $sommePrix = 0.0;
         foreach ($retenues as $o) {
-            if (($o['devise'] ?: 'EUR') !== $devise) {
-                $ignores[] = 'offre ' . $o['fournisseur_nom'] . ' (' . $o['devise'] . ')';
-                continue;
+            $dO = $o['devise'] ?: 'EUR';
+            $t = 1.0;
+            if ($dO !== $devise) {
+                $t = (float) ($taux[$dO] ?? 0);
+                if ($t <= 0) {
+                    $ignores[] = 'offre ' . $o['fournisseur_nom'] . ' (' . $dO . ') : taux de change à indiquer';
+                    continue;
+                }
             }
             $prixOffre = (float) $o['montant_total'];
             $propresOffre = Offre::coutRendu($o) - $prixOffre;
@@ -80,18 +85,27 @@ class DossierFraisCommuns
                 $prix = $prixOffre;
                 $propres = $propresOffre;
             }
-            $offres[(int) $o['id']] = ['fournisseur' => $o['fournisseur_nom'], 'prix' => $prix, 'frais_propres' => $propres, 'part_communs' => 0.0];
+            $prix *= $t;
+            $propres *= $t;
+            $offres[(int) $o['id']] = ['fournisseur' => $o['fournisseur_nom'], 'prix' => $prix, 'frais_propres' => $propres, 'part_communs' => 0.0, 'taux' => $t, 'devise_origine' => $dO];
             $sommePrix += $prix;
         }
         $lignes = [];
         $totalCommuns = 0.0;
         foreach ($frais as $f) {
-            if (($f['devise'] ?: 'EUR') !== $devise) {
-                $ignores[] = 'frais « ' . $f['libelle'] . ' » (' . $f['devise'] . ')';
-                continue;
+            $dF = $f['devise'] ?: 'EUR';
+            $t = 1.0;
+            if ($dF !== $devise) {
+                $t = (float) ($taux[$dF] ?? 0);
+                if ($t <= 0) {
+                    $ignores[] = 'frais « ' . $f['libelle'] . ' » (' . $dF . ') : taux de change à indiquer';
+                    continue;
+                }
             }
+            $f['montant_origine'] = (float) $f['montant'];
+            $f['montant'] = (float) $f['montant'] * $t;
             $lignes[] = $f;
-            $totalCommuns += (float) $f['montant'];
+            $totalCommuns += $f['montant'];
         }
         $n = count($offres);
         foreach ($offres as $id => &$o) {
