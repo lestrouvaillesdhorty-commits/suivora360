@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\View;
 use App\Models\Demande;
 use App\Models\Filiale;
+use App\Models\ObjectifCollaborateur;
 use App\Models\Pilotage;
 use App\Models\Utilisateur;
 
@@ -21,7 +22,7 @@ use App\Models\Utilisateur;
  */
 class PilotageController
 {
-    private const ONGLETS = ['general', 'activites', 'collaborateurs'];
+    private const ONGLETS = ['general', 'activites', 'collaborateurs', 'objectifs'];
 
     public function index(): void
     {
@@ -44,6 +45,11 @@ class PilotageController
             $data['vueGenerale'] = Pilotage::vueGenerale($user, $filters);
         } elseif ($onglet === 'activites') {
             $data['activitesData'] = Pilotage::activites($user, $filters);
+        } elseif ($onglet === 'objectifs') {
+            $mois = ObjectifCollaborateur::moisValide($_GET['mois'] ?? '');
+            $data['mois'] = $mois;
+            $data['objectifsDispo'] = ObjectifCollaborateur::disponible();
+            $data['objectifsData'] = $data['objectifsDispo'] ? Pilotage::objectifsMois($user, $mois, $filters['devise']) : null;
         } else {
             $data['collaborateursData'] = Pilotage::collaborateurs($user, $filters);
             if ($filters['role'] === 'achats') {
@@ -52,6 +58,56 @@ class PilotageController
         }
 
         View::render('pilotage/index', $data);
+    }
+
+    /** Enregistre les objectifs du mois, taux et base de commission (direction). */
+    public function enregistrerObjectifs(): void
+    {
+        Auth::requirePilotage();
+        $user = Auth::user();
+        $mois = ObjectifCollaborateur::moisValide($_POST['mois'] ?? '');
+        $devise = trim((string) ($_POST['devise'] ?? '')) ?: 'EUR';
+        $retour = '/index.php?r=pilotage&onglet=objectifs&mois=' . $mois . '&devise=' . rawurlencode($devise);
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, réessayez.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        if (!ObjectifCollaborateur::disponible()) {
+            View::flash('erreur', 'Lancez d\'abord la migration v40.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        $orgId = (int) $user['organisation_id'];
+        if (($_POST['action'] ?? '') === 'copier') {
+            $n = ObjectifCollaborateur::copierMoisPrecedent($orgId, $mois);
+            View::flash('succes', $n > 0 ? "$n objectif(s) copié(s) du mois précédent." : 'Rien à copier : le mois précédent est vide ou déjà repris.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        $valides = [];
+        foreach (Utilisateur::allForOrganisation($orgId) as $u) {
+            $valides[(int) $u['id']] = true;
+        }
+        $nombre = fn($v) => (float) str_replace([' ', ','], ['', '.'], (string) $v);
+        $n = 0;
+        foreach ((array) ($_POST['objectif'] ?? []) as $uid => $obj) {
+            $uid = (int) $uid;
+            if (!isset($valides[$uid])) {
+                continue;
+            }
+            $objVal = trim((string) $obj);
+            $taux = $nombre($_POST['taux'][$uid] ?? 0);
+            $base = (string) ($_POST['base'][$uid] ?? 'responsable');
+            if ($objVal === '' && $taux <= 0) {
+                continue;
+            }
+            ObjectifCollaborateur::enregistrer($orgId, $uid, $mois, $nombre($objVal), $devise, $taux, $base);
+            $n++;
+        }
+        View::flash('succes', 'Objectifs et commissions enregistrés (' . $n . ').');
+        header('Location: ' . $retour);
+        exit;
     }
 
     /**

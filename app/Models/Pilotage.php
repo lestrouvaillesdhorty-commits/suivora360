@@ -1512,6 +1512,91 @@ class Pilotage
         return $lignes;
     }
 
+    /**
+     * Objectifs mensuels et commissions par collaborateur.
+     * Réalisé = marge des commandes confirmées du mois (date de la commande),
+     * attribuée selon la base choisie : 'responsable' (responsable du dossier)
+     * ou 'offres' (auteur de l'offre retenue du dossier). Commission = taux ×
+     * marge réalisée. Aucune valeur n'est inventée : marge non renseignée = 0
+     * avec avertissement de conversion si besoin.
+     */
+    public static function objectifsMois(array $user, string $mois, string $devise): array
+    {
+        $orgId = (int) $user['organisation_id'];
+        $filialeIds = Filiale::visibleIdsFor($user);
+        $debut = $mois . '-01';
+        $fin = date('Y-m-t', strtotime($debut));
+        $filtres = ['date_debut' => $debut, 'date_fin' => $fin, 'activite' => '', 'responsable_id' => ''];
+        $commandes = empty($filialeIds) ? [] : self::commandesConfirmees($user, $filtres);
+
+        $auteurOffre = [];
+        $dossierIds = array_values(array_unique(array_map(fn($c) => (int) $c['dossier_id'], $commandes)));
+        if ($dossierIds) {
+            $ph = implode(',', array_fill(0, count($dossierIds), '?'));
+            $stmt = Database::connection()->prepare("SELECT dossier_id, created_by FROM offres WHERE statut = 'retenue' AND dossier_id IN ($ph)");
+            $stmt->execute($dossierIds);
+            foreach ($stmt->fetchAll() as $r) {
+                $auteurOffre[(int) $r['dossier_id']] = (int) $r['created_by'];
+            }
+        }
+
+        $reglages = ObjectifCollaborateur::reglages($orgId);
+        $objectifs = ObjectifCollaborateur::objectifs($orgId, $mois);
+
+        $lignes = [];
+        foreach (Utilisateur::allForOrganisation($orgId) as $u) {
+            $uid = (int) $u['id'];
+            if (isset($u['actif']) && !(int) $u['actif'] && !isset($objectifs[$uid])) {
+                continue;
+            }
+            $reg = $reglages[$uid] ?? ['taux_commission' => 0.0, 'base' => 'responsable'];
+            $marges = [];
+            $nb = 0;
+            foreach ($commandes as $c) {
+                $attribue = $reg['base'] === 'offres'
+                    ? ($auteurOffre[(int) $c['dossier_id']] ?? 0) === $uid
+                    : (int) ($c['responsable_id'] ?? 0) === $uid;
+                if (!$attribue) {
+                    continue;
+                }
+                $nb++;
+                if ($c['marge_montant'] !== null) {
+                    $marges[] = ['montant' => $c['marge_montant'], 'devise' => $c['devise'], 'filiale_id' => $c['filiale_id']];
+                }
+            }
+            $agg = self::agregerMontants($marges, $devise, $filialeIds);
+            $objectif = $objectifs[$uid]['objectif_marge'] ?? null;
+            $realise = (float) $agg['total'];
+            $pct = ($objectif !== null && $objectif > 0) ? round($realise / $objectif * 100) : null;
+            $lignes[] = [
+                'utilisateur_id' => $uid,
+                'nom' => $u['nom'],
+                'role' => $u['role'] ?? '',
+                'dossiers' => $nb,
+                'objectif' => $objectif,
+                'realise' => $realise,
+                'pct' => $pct,
+                'reste' => $objectif !== null ? max(0.0, $objectif - $realise) : null,
+                'taux' => (float) $reg['taux_commission'],
+                'base' => $reg['base'],
+                'commission' => $reg['taux_commission'] > 0 ? round($realise * $reg['taux_commission'] / 100, 2) : null,
+                'non_convertis' => $agg['non_convertis'],
+            ];
+        }
+        usort($lignes, fn($a, $b) => [$b['objectif'] !== null, $b['realise']] <=> [$a['objectif'] !== null, $a['realise']]);
+
+        $tot = ['objectif' => 0.0, 'realise' => 0.0, 'commission' => 0.0];
+        foreach ($lignes as $l) {
+            $tot['objectif'] += (float) ($l['objectif'] ?? 0);
+            $tot['realise'] += $l['objectif'] !== null || $l['taux'] > 0 ? $l['realise'] : 0;
+            $tot['commission'] += (float) ($l['commission'] ?? 0);
+        }
+        $tot['reste'] = max(0.0, $tot['objectif'] - $tot['realise']);
+        $tot['pct'] = $tot['objectif'] > 0 ? round($tot['realise'] / $tot['objectif'] * 100) : null;
+
+        return ['mois' => $mois, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot];
+    }
+
     // -------------------------------------------------------------------
     // Drill-down — détail des opérations composant un résultat
     // -------------------------------------------------------------------

@@ -3,7 +3,7 @@ use App\Core\Icon;
 use App\Core\View;
 use App\Models\Pilotage;
 
-$onglets = ['general' => 'Vue générale', 'activites' => 'Activités', 'collaborateurs' => 'Collaborateurs'];
+$onglets = ['general' => 'Vue générale', 'activites' => 'Activités', 'collaborateurs' => 'Collaborateurs', 'objectifs' => 'Objectifs & commissions'];
 $qs = $queryString;
 function pilotageTabUrl(string $onglet, string $qs): string {
     $sep = $qs !== '' ? '&' . $qs : '';
@@ -20,15 +20,18 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
     <div class="subtitle" style="margin-bottom:0">
       <?php if ($onglet === 'general'): ?>Comparez les résultats de vos activités
       <?php elseif ($onglet === 'activites'): ?>Comparez les résultats de vos activités
+      <?php elseif ($onglet === 'objectifs'): ?>Objectifs mensuels de marge et commissions par collaborateur
       <?php else: ?>Performance et contribution des collaborateurs<?php endif; ?>
     </div>
   </div>
+  <?php if ($onglet !== 'objectifs'): ?>
   <div class="pilotage-actions">
     <div style="position:relative">
       <a href="<?= pilotageExportUrl('csv', $onglet, $qs) ?>" class="btn btn-pilotage" style="margin-right:6px"><?= Icon::svg('download', 'icon', 15) ?> Exporter Excel (CSV)</a>
       <a href="<?= pilotageExportUrl('pdf', $onglet, $qs) ?>" class="btn btn-secondary" target="_blank" rel="noopener"><?= Icon::svg('printer', 'icon', 15) ?> Exporter PDF</a>
     </div>
   </div>
+  <?php endif; ?>
 </div>
 
 <div class="pilotage-tabs">
@@ -37,6 +40,7 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
   <?php endforeach; ?>
 </div>
 
+<?php if ($onglet !== 'objectifs'): ?>
 <div class="filter-bar">
   <form method="get" action="/index.php" id="filterForm">
     <input type="hidden" name="r" value="pilotage">
@@ -127,10 +131,14 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
   <div class="period-label"><?= Icon::svg('calendar', 'icon', 13) ?> <?= View::e($filters['periode_label']) ?> · Base : <?= Pilotage::BASES[$filters['base']] ?> · Devise : <?= View::e($filters['devise']) ?></div>
 </div>
 
+<?php endif; ?>
+
 <?php if ($onglet === 'general'): ?>
   <?php View::renderPlain('pilotage/_general', ['vueGenerale' => $vueGenerale, 'filters' => $filters, 'qs' => $qs]) ?>
 <?php elseif ($onglet === 'activites'): ?>
   <?php View::renderPlain('pilotage/_activites', ['activitesData' => $activitesData, 'filters' => $filters, 'qs' => $qs]) ?>
+<?php elseif ($onglet === 'objectifs'): ?>
+  <?php View::renderPlain('pilotage/_objectifs', ['objectifsData' => $objectifsData, 'objectifsDispo' => $objectifsDispo, 'mois' => $mois, 'filters' => $filters]) ?>
 <?php else: ?>
   <?php View::renderPlain('pilotage/_collaborateurs', ['collaborateursData' => $collaborateursData, 'achatsData' => $achatsData ?? null, 'filters' => $filters, 'qs' => $qs]) ?>
 <?php endif; ?>
