@@ -50,7 +50,7 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
           <?php foreach (Offre::SOURCES as $code => $lib): ?><option value="<?= $code ?>"><?= View::e($lib) ?></option><?php endforeach; ?>
         </select>
       </div>
-      <div class="form-group"><label>Lien de la page (si site web)</label><input type="url" name="source_url" placeholder="https://…" maxlength="500"></div>
+      <div class="form-group"><label>Lien du produit sur le site web</label><input type="url" name="source_url" placeholder="https://… (page du produit)" maxlength="500"></div>
     </div>
     <div class="form-group" style="max-width:260px"><label>Prix consulté le *</label><input type="date" name="source_date" value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>" required></div>
     <div class="form-group">
@@ -109,7 +109,7 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       <div class="form-row">
         <div class="form-group"><label>Source du prix</label>
           <select name="source_type"><?php foreach (Offre::SOURCES as $code => $lib): ?><option value="<?= $code ?>" <?= $offrePrecedente['source_type'] === $code ? 'selected' : '' ?>><?= View::e($lib) ?></option><?php endforeach; ?></select></div>
-        <div class="form-group"><label>Lien de la page</label><input type="url" name="source_url" maxlength="500" value="<?= View::e((string) ($offrePrecedente['source_url'] ?? '')) ?>"></div>
+        <div class="form-group"><label>Lien du produit sur le site web</label><input type="url" name="source_url" maxlength="500" value="<?= View::e((string) ($offrePrecedente['source_url'] ?? '')) ?>"></div>
         <div class="form-group"><label>Prix consulté le</label><input type="date" name="source_date" value="<?= View::e((string) ($offrePrecedente['source_date'] ?? '')) ?>" max="<?= date('Y-m-d') ?>"></div>
       </div>
       <?php endif; ?>
@@ -141,6 +141,9 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
       <div class="form-group"><label>Délai de livraison annoncé</label><input type="text" name="delai_livraison" value="<?= View::e((string) $v('delai_livraison')) ?>" placeholder="ex: 4 à 6 semaines"></div>
     </div>
     <div class="form-group"><label>Validité de l'offre</label><input type="date" name="validite_offre" value="<?= View::e((string) $v('validite_offre')) ?>"></div>
+    <?php if (!$manuel && !($edition && !empty($offrePrecedente['source_type']))): ?>
+    <div class="form-group"><label>Lien du produit sur le site web (facultatif)</label><input type="url" name="source_url" maxlength="500" style="width:100%" placeholder="https://… (page du produit chez le fournisseur)" value="<?= View::e((string) ($offrePrecedente['source_url'] ?? '')) ?>"></div>
+    <?php endif; ?>
 
     <?php if ($typeDossier === 'transport_logistique'): ?>
       <div class="form-group"><label>Mode de transport</label><input type="text" name="mode_transport" value="<?= View::e((string) $v('mode_transport')) ?>" placeholder="ex: Maritime FCL, Aérien, Routier"></div>

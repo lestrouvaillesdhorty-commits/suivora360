@@ -36,8 +36,8 @@ $piecesParOffre = \App\Models\DossierPieceJointe::parOffre($piecesJointes ?? [])
           ?>
           <tr>
             <td class="row-title"><?= View::e($o['fournisseur_nom']) ?>
-              <?php if (!empty($o['source_type'])): ?><br><span class="badge badge-gray"><?= View::e(Offre::SOURCES[$o['source_type']] ?? 'Saisie manuelle') ?></span><?php if (!empty($o['source_url']) && preg_match('#^https?://#i', $o['source_url'])): ?> <a href="<?= View::e($o['source_url']) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px">Voir la source</a><?php endif; ?>
-              <?php if (!empty($o['source_date'])): ?><br><span style="font-size:12px;color:#6b7280">Prix consulté le <?= date('d/m/Y', strtotime($o['source_date'])) ?></span><?php endif; endif; ?></td>
+              <?php if (!empty($o['source_type'])): ?><br><span class="badge badge-gray"><?= View::e(Offre::SOURCES[$o['source_type']] ?? 'Saisie manuelle') ?></span><?php if (!empty($o['source_url']) && preg_match('#^https?://#i', $o['source_url'])): ?> <a href="<?= View::e($o['source_url']) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px">Voir le produit ↗</a><?php endif; ?>
+              <?php if (!empty($o['source_date'])): ?><br><span style="font-size:12px;color:#6b7280">Prix consulté le <?= date('d/m/Y', strtotime($o['source_date'])) ?></span><?php endif; elseif (!empty($o['source_url']) && preg_match('#^https?://#i', $o['source_url'])): ?><br><a href="<?= View::e($o['source_url']) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px">Voir le produit ↗</a><?php endif; ?></td>
             <td><?= View::e($o['reference']) ?></td>
             <td>v<?= (int) $o['version'] ?></td>
             <td><?= $nbLignes ?></td>

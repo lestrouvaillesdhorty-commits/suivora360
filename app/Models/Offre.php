@@ -164,7 +164,10 @@ class Offre
             // [10/10] Offre saisie manuellement : on garde la source (web, catalogue, téléphone…) et son lien.
             if (!empty($data['source_type']) && self::colonnesSource()) {
                 $pdo->prepare('UPDATE offres SET source_type = ?, source_url = ?, source_date = ? WHERE id = ?')
-                    ->execute([$data['source_type'], trim($data['source_url'] ?? '') ?: null, ($data['source_date'] ?? '') ?: null, $offreId]);
+                    ->execute([$data['source_type'], self::lienValide($data['source_url'] ?? ''), ($data['source_date'] ?? '') ?: null, $offreId]);
+            } elseif (self::colonnesSource() && trim((string) ($data['source_url'] ?? '')) !== '') {
+                // Lien du produit sur le site du fournisseur (offre non saisie « manuellement »)
+                $pdo->prepare('UPDATE offres SET source_url = ? WHERE id = ?')->execute([self::lienValide($data['source_url']), $offreId]);
             }
 
             if ($offrePrecedenteId !== null) {
@@ -232,7 +235,9 @@ class Offre
             ]);
             if (!empty($data['source_type']) && self::colonnesSource()) {
                 $pdo->prepare('UPDATE offres SET source_type = ?, source_url = ?, source_date = ? WHERE id = ?')
-                    ->execute([$data['source_type'], trim($data['source_url'] ?? '') ?: null, ($data['source_date'] ?? '') ?: null, $id]);
+                    ->execute([$data['source_type'], self::lienValide($data['source_url'] ?? ''), ($data['source_date'] ?? '') ?: null, $id]);
+            } elseif (self::colonnesSource() && array_key_exists('source_url', $data)) {
+                $pdo->prepare('UPDATE offres SET source_url = ? WHERE id = ?')->execute([self::lienValide($data['source_url']), $id]);
             }
             $pdo->prepare('DELETE FROM offre_items WHERE offre_id = ?')->execute([$id]);
             foreach ($items as $item) {
@@ -253,6 +258,13 @@ class Offre
         'telephone' => 'Téléphone / WhatsApp',
         'autre' => 'Autre',
     ];
+
+    /** Lien http(s) propre, ou null s'il est vide / invalide. */
+    public static function lienValide($lien): ?string
+    {
+        $lien = trim((string) $lien);
+        return ($lien !== '' && preg_match('#^https?://#i', $lien)) ? mb_substr($lien, 0, 500) : null;
+    }
 
     /** Les colonnes source_type / source_url existent-elles (migration v27 passée) ? */
     public static function colonnesSource(): bool

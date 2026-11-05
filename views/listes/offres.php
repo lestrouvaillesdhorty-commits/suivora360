@@ -18,7 +18,7 @@ $badges = ['recue' => 'blue', 'retenue' => 'green', 'rejetee' => 'gray', 'rempla
   <tbody>
   <?php foreach ($lignes as $o): $expiree = $o['statut'] === 'recue' && $o['validite_offre'] && $o['validite_offre'] < date('Y-m-d'); ?>
     <tr>
-      <td data-label="Offre"><a href="/index.php?r=consultations/<?= (int) $o['consultation_id'] ?>"><?= View::e($o['reference']) ?></a><?php if (!empty($o['version']) && (int) $o['version'] > 1): ?> <span style="font-size:12px;color:#888">v<?= (int) $o['version'] ?></span><?php endif; ?></td>
+      <td data-label="Offre"><a href="/index.php?r=consultations/<?= (int) $o['consultation_id'] ?>"><?= View::e($o['reference']) ?></a><?php if (!empty($o['version']) && (int) $o['version'] > 1): ?> <span style="font-size:12px;color:#888">v<?= (int) $o['version'] ?></span><?php endif; ?><?php if (!empty($o['source_url']) && preg_match('#^https?://#i', $o['source_url'])): ?><br><a href="<?= View::e($o['source_url']) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px" onclick="event.stopPropagation()">Voir le produit ↗</a><?php endif; ?></td>
       <td data-label="Dossier"><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>"><?= View::e($o['dossier_reference']) ?></a><br><span style="font-size:12px;color:#888"><?= View::e($o['dossier_objet']) ?></span></td>
       <td data-label="Fournisseur"><?= View::e($o['fournisseur_nom']) ?></td>
       <td data-label="Montant" class="num"><?= $o['montant_total'] !== null ? Pilotage::fmt((float) $o['montant_total'], (string) $o['devise']) : '—' ?></td>
