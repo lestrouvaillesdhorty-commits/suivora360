@@ -1635,6 +1635,115 @@ class Pilotage
         return ['mois' => $mois, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot, 'fonctions' => $fonctionsListe];
     }
 
+    public const TYPES_A_TRAITER = [
+        'demande' => ['Demande client non traitée', '#E5484D'],
+        'consultation' => ['Demande de devis fournisseur sans réponse', '#F57C2B'],
+        'offre' => ['Offre reçue à analyser', '#0B9AAE'],
+        'cotation' => ['Devis client sans réponse', '#7C5CE0'],
+    ];
+
+    /**
+     * Éléments en attente depuis plus de $seuilJours jours :
+     *  - demandes clients pas encore traitées (« à qualifier » ou « en attente d'infos ») ;
+     *  - demandes de devis envoyées (ou relancées) à un fournisseur sans offre reçue ;
+     *  - offres reçues sur un dossier où aucune offre n'est encore retenue ;
+     *  - devis envoyés au client sans réponse (statut « envoyée »).
+     * Classés du plus ancien au plus récent. Dossiers annulés exclus.
+     */
+    public static function aTraiter(array $user, int $seuilJours, string $type = '', int $responsableId = 0): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        if (empty($filialeIds)) {
+            return ['lignes' => [], 'compteurs' => [], 'par_responsable' => []];
+        }
+        $ph = implode(',', array_fill(0, count($filialeIds), '?'));
+        $pdo = Database::connection();
+        $limite = date('Y-m-d H:i:s', strtotime("-$seuilJours days"));
+        $maintenant = time();
+        $lignes = [];
+
+        $ajouter = function (array $rows, string $t, callable $fabrique) use (&$lignes, $maintenant) {
+            foreach ($rows as $r) {
+                $depuis = strtotime((string) $r['depuis']);
+                if (!$depuis) {
+                    continue;
+                }
+                [$titre, $url] = $fabrique($r);
+                $lignes[] = [
+                    'type' => $t,
+                    'titre' => $titre,
+                    'url' => $url,
+                    'dossier_id' => (int) $r['dossier_id'],
+                    'dossier_reference' => $r['dossier_reference'],
+                    'responsable_id' => (int) ($r['responsable_id'] ?? 0),
+                    'jours' => max(0, (int) floor(($maintenant - $depuis) / 86400)),
+                    'depuis' => date('Y-m-d', $depuis),
+                    'objet_id' => (int) $r['objet_id'],
+                ];
+            }
+        };
+
+        if ($type === '' || $type === 'demande') {
+            $st = $pdo->prepare("SELECT dm.id AS objet_id, dm.reference, COALESCE(dm.recue_le, dm.created_at) AS depuis, dm.objet, dm.expediteur_nom, dm.expediteur_entreprise,
+                    0 AS dossier_id, '' AS dossier_reference, dm.responsable_id
+                FROM demandes dm
+                WHERE dm.filiale_id IN ($ph) AND dm.statut IN ('a_qualifier','en_attente_info') AND COALESCE(dm.recue_le, dm.created_at) <= ?");
+            $st->execute(array_merge($filialeIds, [$limite]));
+            $ajouter($st->fetchAll(), 'demande', function ($r) {
+                $qui = trim((string) ($r['expediteur_entreprise'] ?: $r['expediteur_nom']));
+                $obj = trim((string) $r['objet']);
+                return [$r['reference'] . ($qui !== '' ? ' — ' . $qui : '') . ($obj !== '' ? ' : ' . mb_substr($obj, 0, 60) : ''), '/index.php?r=demandes/' . (int) $r['objet_id']];
+            });
+        }
+        if ($type === '' || $type === 'consultation') {
+            $st = $pdo->prepare("SELECT cf.id AS objet_id, cf.reference, COALESCE(cf.date_relance, cf.date_envoi) AS depuis, fo.nom AS fournisseur,
+                    d.id AS dossier_id, d.reference AS dossier_reference, d.responsable_id
+                FROM consultations_fournisseur cf
+                INNER JOIN dossiers d ON d.id = cf.dossier_id
+                INNER JOIN fournisseurs fo ON fo.id = cf.fournisseur_id
+                WHERE cf.filiale_id IN ($ph) AND cf.statut IN ('envoyee','relance') AND cf.date_envoi IS NOT NULL
+                  AND COALESCE(cf.date_relance, cf.date_envoi) <= ? AND d.statut = 'actif'
+                  AND NOT EXISTS (SELECT 1 FROM offres o WHERE o.consultation_id = cf.id AND o.statut != 'remplacee')");
+            $st->execute(array_merge($filialeIds, [substr($limite, 0, 10)]));
+            $ajouter($st->fetchAll(), 'consultation', fn($r) => ['Demande ' . $r['reference'] . ' à ' . $r['fournisseur'], '/index.php?r=consultations/' . (int) $r['objet_id']]);
+        }
+        if ($type === '' || $type === 'offre') {
+            $st = $pdo->prepare("SELECT o.id AS objet_id, o.reference, o.created_at AS depuis, fo.nom AS fournisseur,
+                    d.id AS dossier_id, d.reference AS dossier_reference, d.responsable_id
+                FROM offres o
+                INNER JOIN dossiers d ON d.id = o.dossier_id
+                INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
+                WHERE o.filiale_id IN ($ph) AND o.statut = 'recue' AND o.created_at <= ? AND d.statut = 'actif'
+                  AND NOT EXISTS (SELECT 1 FROM offres r WHERE r.dossier_id = o.dossier_id AND r.statut = 'retenue')");
+            $st->execute(array_merge($filialeIds, [$limite]));
+            $ajouter($st->fetchAll(), 'offre', fn($r) => ['Offre ' . $r['reference'] . ' de ' . $r['fournisseur'], '/index.php?r=dossiers/' . (int) $r['dossier_id'] . '/comparateur']);
+        }
+        if ($type === '' || $type === 'cotation') {
+            $st = $pdo->prepare("SELECT co.id AS objet_id, co.reference, COALESCE(co.updated_at, co.created_at) AS depuis, cl.nom AS client,
+                    d.id AS dossier_id, d.reference AS dossier_reference, d.responsable_id
+                FROM cotations co
+                INNER JOIN dossiers d ON d.id = co.dossier_id
+                INNER JOIN clients cl ON cl.id = co.client_id
+                WHERE co.filiale_id IN ($ph) AND co.statut = 'envoyee' AND COALESCE(co.updated_at, co.created_at) <= ? AND d.statut = 'actif'");
+            $st->execute(array_merge($filialeIds, [$limite]));
+            $ajouter($st->fetchAll(), 'cotation', fn($r) => ['Devis ' . $r['reference'] . ' — ' . $r['client'], '/index.php?r=cotations/' . (int) $r['objet_id']]);
+        }
+
+        if ($responsableId > 0) {
+            $lignes = array_values(array_filter($lignes, fn($l) => $l['responsable_id'] === $responsableId));
+        }
+        usort($lignes, fn($a, $b) => $b['jours'] <=> $a['jours']);
+
+        $compteurs = array_fill_keys(array_keys(self::TYPES_A_TRAITER), 0);
+        $parResp = [];
+        foreach ($lignes as $l) {
+            $compteurs[$l['type']]++;
+            $parResp[$l['responsable_id']] = ($parResp[$l['responsable_id']] ?? 0) + 1;
+        }
+        arsort($parResp);
+        return ['lignes' => $lignes, 'compteurs' => $compteurs, 'par_responsable' => $parResp];
+    }
+
     // -------------------------------------------------------------------
     // Drill-down — détail des opérations composant un résultat
     // -------------------------------------------------------------------

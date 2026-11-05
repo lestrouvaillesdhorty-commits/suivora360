@@ -23,7 +23,7 @@ use App\Models\Utilisateur;
  */
 class PilotageController
 {
-    private const ONGLETS = ['general', 'activites', 'collaborateurs', 'objectifs'];
+    private const ONGLETS = ['general', 'activites', 'collaborateurs', 'objectifs', 'atraiter'];
 
     public function index(): void
     {
@@ -46,6 +46,14 @@ class PilotageController
             $data['vueGenerale'] = Pilotage::vueGenerale($user, $filters);
         } elseif ($onglet === 'activites') {
             $data['activitesData'] = Pilotage::activites($user, $filters);
+        } elseif ($onglet === 'atraiter') {
+            $seuil = max(1, min(90, (int) ($_GET['seuil'] ?? 3)));
+            $type = array_key_exists($_GET['type'] ?? '', Pilotage::TYPES_A_TRAITER) ? $_GET['type'] : '';
+            $resp = (int) ($_GET['resp'] ?? 0);
+            $data['seuil'] = $seuil;
+            $data['typeFiltre'] = $type;
+            $data['respFiltre'] = $resp;
+            $data['aTraiterData'] = Pilotage::aTraiter($user, $seuil, $type, $resp);
         } elseif ($onglet === 'objectifs') {
             $mois = ObjectifCollaborateur::moisValide($_GET['mois'] ?? '');
             $data['mois'] = $mois;
