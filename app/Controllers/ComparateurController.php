@@ -109,7 +109,8 @@ class ComparateurController
         $nbDirects = 0;
         foreach ($parArticle as $b) {
             $n = count($b['lignes']);
-            if ($n >= 2) {
+            $nbOffresDistinctes = count(array_unique(array_map(fn($l) => (int) $l['offre']['id'], $b['lignes'])));
+            if ($nbOffresDistinctes >= 2) {
                 $nbComparables++;
             } elseif ($n === 1 && empty($b['lignes'][0]['item']['retenu'])) {
                 $nbDirects++;

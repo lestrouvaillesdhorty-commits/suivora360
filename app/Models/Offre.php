@@ -406,7 +406,7 @@ class Offre
             } elseif (self::colonnesSource() && array_key_exists('source_url', $data)) {
                 $pdo->prepare('UPDATE offres SET source_url = ? WHERE id = ?')->execute([self::lienValide($data['source_url']), $id]);
             }
-            $gagnants = array_map(fn($r) => (int) $r['demande_article_id'], OffreItem::retenuesDe($id));
+            $gagnants = OffreItem::retenuesDe($id);
             $pdo->prepare('DELETE FROM offre_items WHERE offre_id = ?')->execute([$id]);
             foreach ($items as $item) {
                 if (trim($item['designation'] ?? '') !== '') {
@@ -414,9 +414,25 @@ class Offre
                 }
             }
             if ($gagnants && OffreItem::colonneArticle()) {
-                // La modification recrée les lignes : on conserve le statut « retenue » des gagnants par article.
-                $ph = implode(',', array_fill(0, count($gagnants), '?'));
-                $pdo->prepare("UPDATE offre_items SET retenu = 1 WHERE offre_id = ? AND demande_article_id IN ($ph)")->execute(array_merge([$id], $gagnants));
+                // La modification recrée les lignes : on conserve le statut « retenue » du gagnant de chaque article,
+                // en retrouvant la bonne variante (même conditionnement) et non toutes les lignes du même article.
+                $nouvelles = OffreItem::forOffre($id);
+                foreach ($gagnants as $g) {
+                    $cible = null;
+                    foreach ($nouvelles as $n) {
+                        if ((int) $n['demande_article_id'] !== (int) $g['demande_article_id']) {
+                            continue;
+                        }
+                        if (($n['conditionnement'] ?? '') === ($g['conditionnement'] ?? '')) {
+                            $cible = $n['id'];
+                            break;
+                        }
+                        $cible = $cible ?? $n['id'];
+                    }
+                    if ($cible) {
+                        $pdo->prepare('UPDATE offre_items SET retenu = 1 WHERE id = ?')->execute([(int) $cible]);
+                    }
+                }
             }
             $pdo->commit();
         } catch (\Throwable $e) {

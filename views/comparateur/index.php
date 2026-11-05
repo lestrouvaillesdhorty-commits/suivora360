@@ -93,16 +93,19 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
     <?php if (empty($bloc['lignes'])): ?>
       <div style="font-size:13px;color:#666">Aucune offre ne couvre encore cet article.</div>
     <?php else: ?>
-    <?php if (count($bloc['lignes']) === 1): ?><div style="font-size:12.5px;color:#0A5F6B;margin-bottom:6px">Une seule offre pour cet article : rien à comparer.</div><?php endif; ?>
+    <?php $nbOffresArt = count(array_unique(array_map(fn($l) => (int) $l['offre']['id'], $bloc['lignes']))); ?>
+    <?php if (count($bloc['lignes']) === 1): ?><div style="font-size:12.5px;color:#0A5F6B;margin-bottom:6px">Une seule offre pour cet article : rien à comparer.</div>
+    <?php elseif ($nbOffresArt === 1): ?><div style="font-size:12.5px;color:#0A5F6B;margin-bottom:6px">Un seul fournisseur, <?= count($bloc['lignes']) ?> conditionnements ou variantes : choisissez celui à retenir (ce n'est pas une comparaison entre fournisseurs).</div><?php endif; ?>
     <div class="table-scroll"><table class="dtable">
-      <thead><tr><th>Fournisseur</th><th class="num">Prix unitaire</th><th class="num">Quantité proposée</th><th class="num">Montant</th><th>Offre</th><th>Décision</th></tr></thead>
+      <thead><tr><th>Fournisseur</th><th>Conditionnement</th><th class="num">Prix unitaire</th><th class="num">Quantité proposée</th><th class="num">Montant</th><th>Offre</th><th>Décision</th></tr></thead>
       <tbody>
       <?php $gagnant = false; foreach ($bloc['lignes'] as $l): $o = $l['offre']; $it = $l['item'];
         $dv = $o['devise'] ?: '—';
-        $best = isset($bloc['meilleur'][$dv]) && $it['prix_unitaire'] !== null && (float) $it['prix_unitaire'] == $bloc['meilleur'][$dv] && count($bloc['lignes']) > 1;
+        $best = isset($bloc['meilleur'][$dv]) && $it['prix_unitaire'] !== null && (float) $it['prix_unitaire'] == $bloc['meilleur'][$dv] && $nbOffresArt > 1;
         if (!empty($it['retenu'])) { $gagnant = true; } ?>
         <tr<?= !empty($it['retenu']) ? ' style="background:#f0fdf4"' : '' ?>>
           <td><?= View::e($o['fournisseur_nom']) ?></td>
+          <td><?= View::e(trim((string) ($it['conditionnement'] ?? '')) ?: '—') ?><?php if (trim((string) ($it['reference'] ?? '')) !== ''): ?><br><small><?= View::e($it['reference']) ?></small><?php endif; ?></td>
           <td class="num <?= $best ? 'cmp-meilleur' : '' ?>"><?= $it['prix_unitaire'] !== null ? number_format((float) $it['prix_unitaire'], 2, ',', ' ') . ' ' . View::e($dv) : '—' ?></td>
           <td class="num"><?= $it['quantite'] !== null ? View::e(rtrim(rtrim(number_format((float) $it['quantite'], 2, '.', ''), '0'), '.')) : '—' ?></td>
           <td class="num"><?= $it['montant'] !== null ? number_format((float) $it['montant'], 2, ',', ' ') . ' ' . View::e($dv) : '—' ?></td>
