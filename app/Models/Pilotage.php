@@ -199,7 +199,7 @@ class Pilotage
     }
 
     /** Palette stable (même couleur pour une même série d'un rendu à l'autre). */
-    public const PALETTE = ['#2F6FED', '#F57C2B', '#1FA463', '#7C5CE0', '#E5484D', '#0B9AAE', '#FFC83D', '#D6409F'];
+    public const PALETTE = ['#2F6FED', '#1FA463', '#F57C2B', '#7C5CE0', '#E5484D', '#0B9AAE', '#FFC83D', '#D6409F'];
 
     public static function couleurPour(int $index): string
     {
@@ -676,6 +676,7 @@ class Pilotage
         $resultatsActivite = self::tableauResultatsActivite($lignesCommandes, $filters['devise'], $filialeIds);
         $resultatsActivitePrec = self::detailParActivite($lignesCommandesPrec, $filters['devise'], $filialeIds);
 
+        $statutsCot = self::cotationsParStatut($user, $filters);
         return [
             'montant_ht_commandes' => $montantHtCommandes,
             'montant_ht_commandes_tendance' => self::tendance($montantHtCommandes['total'], $montantHtPrec['total']),
@@ -687,10 +688,12 @@ class Pilotage
             'valeur_dossiers_actifs' => $valeurActive,
             'evolution_mensuelle' => self::evolutionMensuelle($user, $filters, 6),
             'repartition_activite' => self::repartitionParActivite($lignesCommandes, $filters['devise'], $filialeIds),
-            'cotations_statuts' => self::cotationsParStatut($user, $filters),
+            'cotations_statuts' => $statutsCot,
             'cotations_urgentes' => self::cotationsEnAttenteUrgentes($user, $filters, 7),
             'delais' => self::delaisMoyens($user, $filters),
             'resultats_activite' => $resultatsActivite,
+            'resultats_client' => self::resultatsParClient($lignesCommandes, $filters['devise'], $filialeIds),
+            'entonnoir' => self::entonnoir($user, $filters, $statutsCot, count($lignesCommandes)),
             'recommandations' => self::recommandationsRentabilite($resultatsActivite, $resultatsActivitePrec, $transformation, $transformationTendance),
         ];
     }
@@ -1062,11 +1065,81 @@ class Pilotage
         return self::detailParActivite($lignesCommandes, $devise, $filialeIds);
     }
 
-    private static function detailParActivite(array $lignesCommandes, string $devise, array $filialeIds): array
+    /** Mini-courbe de tendance (SVG), à partir d'une série de valeurs. */
+    public static function sparkline(array $valeurs, string $couleur): string
+    {
+        $v = array_values(array_map('floatval', $valeurs));
+        if (count($v) < 2) {
+            return '';
+        }
+        $min = min($v);
+        $max = max($v);
+        $pts = [];
+        $n = count($v);
+        foreach ($v as $i => $x) {
+            $px = round($i / ($n - 1) * 160, 1);
+            $py = $max > $min ? round(32 - ($x - $min) / ($max - $min) * 28, 1) : 18;
+            $pts[] = $px . ',' . $py;
+        }
+        return '<svg class="kpi-spark" viewBox="0 0 160 36" preserveAspectRatio="none" role="img" aria-label="Tendance sur les derniers mois"><polyline fill="none" stroke="' . $couleur . '" stroke-width="2" points="' . implode(' ', $pts) . '"/></svg>';
+    }
+
+    /** Résultats par client (même calcul que par activité, regroupé sur le nom du client). */
+    public static function resultatsParClient(array $lignesCommandes, string $devise, array $filialeIds): array
+    {
+        return self::detailParActivite($lignesCommandes, $devise, $filialeIds, 'client_nom');
+    }
+
+    /**
+     * Entonnoir commercial de la période : demandes reçues, dossiers ouverts, devis envoyés, devis acceptés,
+     * commandes. Respecte activité et responsable.
+     */
+    public static function entonnoir(array $user, array $filters, array $statutsCotations, int $nbCommandes): array
+    {
+        $filialeIds = Filiale::visibleIdsFor($user);
+        $nbDemandes = 0;
+        $nbDossiers = 0;
+        if ($filialeIds) {
+            $ph = implode(',', array_fill(0, count($filialeIds), '?'));
+            $pdo = Database::connection();
+            $bornes = [$filters['date_debut'] . ' 00:00:00', $filters['date_fin'] . ' 23:59:59'];
+            $sql = "SELECT COUNT(*) FROM demandes dm WHERE dm.filiale_id IN ($ph) AND dm.created_at >= ? AND dm.created_at <= ?";
+            $params = array_merge($filialeIds, $bornes);
+            if (!empty($filters['activite'])) { $sql .= ' AND dm.activite = ?'; $params[] = $filters['activite']; }
+            if (!empty($filters['responsable_id'])) { $sql .= ' AND dm.responsable_id = ?'; $params[] = $filters['responsable_id']; }
+            $st = $pdo->prepare($sql);
+            $st->execute($params);
+            $nbDemandes = (int) $st->fetchColumn();
+
+            $sql = "SELECT COUNT(*) FROM dossiers d INNER JOIN demandes dm ON dm.id = d.demande_id WHERE d.filiale_id IN ($ph) AND d.created_at >= ? AND d.created_at <= ?";
+            $params = array_merge($filialeIds, $bornes);
+            if (!empty($filters['activite'])) { $sql .= ' AND dm.activite = ?'; $params[] = $filters['activite']; }
+            if (!empty($filters['responsable_id'])) { $sql .= ' AND d.responsable_id = ?'; $params[] = $filters['responsable_id']; }
+            $st = $pdo->prepare($sql);
+            $st->execute($params);
+            $nbDossiers = (int) $st->fetchColumn();
+        }
+        $etapes = [
+            ['label' => 'Demandes clients', 'n' => $nbDemandes, 'couleur' => '#2F6FED'],
+            ['label' => 'Dossiers ouverts', 'n' => $nbDossiers, 'couleur' => '#0B9AAE'],
+            ['label' => 'Devis envoyés', 'n' => (int) $statutsCotations['total_emis'], 'couleur' => '#7C5CE0'],
+            ['label' => 'Devis acceptés', 'n' => (int) $statutsCotations['acceptee'], 'couleur' => '#F57C2B'],
+            ['label' => 'Commandes', 'n' => $nbCommandes, 'couleur' => '#1FA463'],
+        ];
+        $max = max(1, max(array_column($etapes, 'n')));
+        foreach ($etapes as $i => $e) {
+            $etapes[$i]['largeur'] = round($e['n'] / $max * 100, 1);
+            $prec = $i > 0 ? $etapes[$i - 1]['n'] : 0;
+            $etapes[$i]['pct'] = $i > 0 && $prec > 0 ? round($e['n'] / $prec * 100) : null;
+        }
+        return $etapes;
+    }
+
+    private static function detailParActivite(array $lignesCommandes, string $devise, array $filialeIds, string $cle = 'activite'): array
     {
         $parActivite = [];
         foreach ($lignesCommandes as $l) {
-            $a = $l['activite'] !== '' ? $l['activite'] : 'Non renseigné';
+            $a = ($l[$cle] ?? '') !== '' ? $l[$cle] : 'Non renseigné';
             $parActivite[$a] = $parActivite[$a] ?? ['commandes' => [], 'marges' => []];
             $parActivite[$a]['commandes'][] = ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
             if ($l['marge_montant'] !== null) {

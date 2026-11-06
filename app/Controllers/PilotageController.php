@@ -40,6 +40,7 @@ class PilotageController
             'filiales' => Filiale::visibleFor($user),
             'activites' => Pilotage::activitesConfigurees(),
             'queryString' => $this->querystringSansOnglet($_GET),
+            'vues' => \App\Models\PilotageVue::pourUtilisateur((int) $user['id']),
         ];
 
         if ($onglet === 'general') {
@@ -307,6 +308,38 @@ class PilotageController
         }
 
         View::renderPlain('pilotage/imprimable', $data);
+    }
+
+    /** Enregistre l'onglet et les filtres affichés sous un nom. */
+    public function enregistrerVue(): void
+    {
+        Auth::requirePilotage();
+        $user = Auth::user();
+        $onglet = in_array($_POST['onglet'] ?? '', self::ONGLETS, true) ? $_POST['onglet'] : 'general';
+        $retour = '/index.php?r=pilotage&onglet=' . $onglet;
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null) || !\App\Models\PilotageVue::disponible()) {
+            View::flash('erreur', 'Lancez d\'abord la migration v47.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        parse_str((string) ($_POST['filtres'] ?? ''), $f);
+        unset($f['r'], $f['onglet']);
+        $qs = http_build_query($f);
+        \App\Models\PilotageVue::creer((int) $user['id'], (string) ($_POST['nom'] ?? ''), $onglet, $qs);
+        View::flash('succes', 'Vue enregistrée.');
+        header('Location: ' . $retour . ($qs !== '' ? '&' . $qs : ''));
+        exit;
+    }
+
+    public function supprimerVue(array $params): void
+    {
+        Auth::requirePilotage();
+        if (Auth::verifyCsrf($_POST['csrf_token'] ?? null) && \App\Models\PilotageVue::disponible()) {
+            \App\Models\PilotageVue::supprimer((int) Auth::user()['id'], (int) $params['id']);
+            View::flash('succes', 'Vue supprimée.');
+        }
+        header('Location: /index.php?r=pilotage');
+        exit;
     }
 
     private function querystringSansOnglet(array $params): string

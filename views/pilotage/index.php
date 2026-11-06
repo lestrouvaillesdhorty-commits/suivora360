@@ -45,6 +45,22 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
 </div>
 
 <?php if (!in_array($onglet, ['objectifs', 'atraiter'], true)): ?>
+<div class="vues-bar">
+  <?php if (!empty($vues)): ?>
+  <div class="vues-liste"><span class="vues-label">Mes vues</span>
+    <?php foreach ($vues as $v): ?>
+      <span class="vue-chip"><a href="/index.php?r=pilotage&amp;onglet=<?= View::e($v['onglet']) ?><?= $v['filtres'] !== '' ? '&amp;' . View::e($v['filtres']) : '' ?>"><?= View::e($v['nom']) ?></a><form method="post" action="/index.php?r=pilotage/vues/<?= (int) $v['id'] ?>/supprimer" onsubmit="return confirm('Supprimer cette vue ?')"><input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>"><button type="submit" title="Supprimer cette vue" aria-label="Supprimer la vue <?= View::e($v['nom']) ?>">&times;</button></form></span>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <form method="post" action="/index.php?r=pilotage/vues" class="vue-save">
+    <input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>">
+    <input type="hidden" name="onglet" value="<?= View::e($onglet) ?>"><input type="hidden" name="filtres" value="<?= View::e($qs) ?>">
+    <input type="text" name="nom" maxlength="80" required placeholder="Nommer cette vue (ex. Vue direction)" aria-label="Nom de la vue">
+    <button type="submit" class="btn btn-secondary btn-sm">Enregistrer cette vue</button>
+  </form>
+  <a href="/index.php?r=pilotage&amp;onglet=<?= View::e($onglet) ?>" class="vue-reset">Effacer les filtres</a>
+</div>
 <div class="filter-bar">
   <form method="get" action="/index.php" id="filterForm">
     <input type="hidden" name="r" value="pilotage">

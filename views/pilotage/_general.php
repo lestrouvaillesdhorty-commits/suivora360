@@ -9,6 +9,11 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
     unset($params['periode_label']);
     return '/index.php?r=pilotage/detail&' . http_build_query($params);
 }
+function pdFiltreUrl(string $cle, $valeur, array $filters): string {
+    $p = array_intersect_key($filters, array_flip(['periode', 'date_debut', 'date_fin', 'activite', 'responsable_id', 'base', 'devise']));
+    $p[$cle] = (string) $valeur;
+    return '/index.php?r=pilotage&onglet=general&' . http_build_query($p);
+}
 ?>
 <div class="kpi-row">
   <div class="kpi-card clickable" onclick="window.location='<?= pdDetailUrl('tout', '', $filters, $qs) ?>'">
@@ -18,6 +23,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <div class="kpi-value"><?= Pilotage::fmt($vg['montant_ht_commandes']['total'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= $vg['nb_commandes'] ?> commande(s) <?= Pilotage::badgeTendance($vg['montant_ht_commandes_tendance']) ?></div>
       <?= Pilotage::avertissementNonConvertis($vg['montant_ht_commandes']['non_convertis']) ?>
+      <?= Pilotage::sparkline(array_column($vg['evolution_mensuelle'] ?? [], 'ventes'), '#2F6FED') ?>
     </div>
   </div>
 
@@ -31,6 +37,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <?php if (!empty($vg['marge']['non_renseignees'])): ?>
         <div class="kpi-warn"><?= Icon::svg('alert-triangle', 'icon', 12) ?> <?= $vg['marge']['non_renseignees'] ?> cotation(s) sans montant d'achat renseigné — marge non calculable, exclue(s) du total</div>
       <?php endif; ?>
+      <?= Pilotage::sparkline(array_column($vg['evolution_mensuelle'] ?? [], 'marge'), '#1FA463') ?>
       <?php if ($vg['marge']['encaissements']): ?>
         <div class="kpi-sub">Dont encaissé (factures payées) : <?= Pilotage::fmt($vg['marge']['encaissements']['total'], $filters['devise']) ?></div>
       <?php endif; ?>
@@ -103,7 +110,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
         </div>
         <div class="donut-legend">
           <?php foreach ($vg['repartition_activite']['lignes'] as $i => $l): ?>
-            <div class="leg-item" onclick="window.location='<?= pdDetailUrl('activite', $l['activite'], $filters, $qs) ?>'">
+            <div class="leg-item" style="cursor:pointer" title="Filtrer toute la page sur cette activité" onclick="window.location='<?= pdFiltreUrl('activite', $l['activite'], $filters) ?>'">
               <span class="dot" style="background:<?= Pilotage::couleurPour($i) ?>"></span>
               <?= View::e($l['activite']) ?>
               <span class="leg-val"><?= $l['part'] ?>%</span>
@@ -153,6 +160,45 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
     <div class="kpi-note">Unité : <?= $dl['unite'] ?></div>
   </div>
 </div>
+
+<?php if (!empty($vg['entonnoir'])): ?>
+<div class="chart-row">
+  <div class="card">
+    <h2>Du premier contact à la commande</h2>
+    <div class="kpi-note" style="margin:0 0 12px">Où perd-on des affaires ? Le pourcentage compare chaque étape à la précédente.</div>
+    <div class="entonnoir">
+      <?php foreach ($vg['entonnoir'] as $e): ?>
+        <div class="e-ligne">
+          <div class="e-tete"><span><?= View::e($e['label']) ?><?php if ($e['pct'] !== null): ?> <small>· <?= (int) $e['pct'] ?> %</small><?php endif; ?></span><strong><?= (int) $e['n'] ?></strong></div>
+          <div class="e-piste"><span style="width:<?= $e['largeur'] ?>%;background:<?= $e['couleur'] ?>"></span></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Résultats par client</h2>
+    <?php if (empty($vg['resultats_client']['lignes'])): ?>
+      <div class="empty-state">Aucune commande confirmée sur la période.</div>
+    <?php else: ?>
+      <table class="pilotage-table responsive-cards">
+        <thead><tr><th>Client</th><th class="num">Commandes</th><th class="num">Montant HT</th><th class="num">Marge</th><th class="num">Marge / ventes</th></tr></thead>
+        <tbody>
+        <?php foreach (array_slice($vg['resultats_client']['lignes'], 0, 10) as $r): ?>
+          <tr>
+            <td data-label="Client"><?= View::e($r['activite']) ?></td>
+            <td data-label="Commandes" class="num"><?= $r['commandes'] ?></td>
+            <td data-label="Montant HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>
+            <td data-label="Marge" class="num"><?= Pilotage::fmt($r['marge'], $filters['devise']) ?></td>
+            <td data-label="Marge / ventes" class="num"><?= Pilotage::fmtPct($r['marge_pct']) ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+      <?php if (count($vg['resultats_client']['lignes']) > 10): ?><div class="kpi-note">10 premiers clients sur <?= count($vg['resultats_client']['lignes']) ?>, classés par montant.</div><?php endif; ?>
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="card">
   <h2>Résultats par activité</h2>

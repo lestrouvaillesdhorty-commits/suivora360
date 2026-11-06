@@ -894,6 +894,14 @@ $router->post('/pilotage/fonctions', function () {
     Auth::requireLogin();
     (new PilotageController())->enregistrerFonctions();
 });
+$router->post('/pilotage/vues', function () {
+    Auth::requireLogin();
+    (new \App\Controllers\PilotageController())->enregistrerVue();
+});
+$router->post('/pilotage/vues/{id}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new \App\Controllers\PilotageController())->supprimerVue($params);
+});
 $router->get('/pilotage/detail', function () {
     Auth::requireLogin();
     (new PilotageController())->detail();
