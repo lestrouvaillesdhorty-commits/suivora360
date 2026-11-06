@@ -1473,17 +1473,25 @@ class Pilotage
         $lignes = [];
         $totalVentes = 0.0;
         $totalMarge = 0.0;
+        $totalCouts = 0.0;
+        $coutsConnus = false;
+        $fraisParCollab = \App\Models\DossierFraisPro::parCollaborateur($user, $filters);
         foreach ($parResponsable as $rid => $data) {
             $aggVentes = self::agregerMontants($data['ventes'], $filters['devise'], $filialeIds);
             $aggMarge = self::agregerMontants($data['marges'], $filters['devise'], $filialeIds);
+            $couts = $fraisParCollab[$rid]['total'] ?? null;
+            if ($couts !== null) {
+                $totalCouts += $couts;
+                $coutsConnus = true;
+            }
             $lignes[] = [
                 'utilisateur_id' => $rid,
                 'nom' => Utilisateur::nameOf($rid),
                 'dossiers' => count($data['dossiers']),
                 'ventes_ht' => $aggVentes['total'],
                 'marge_attribuee' => $aggMarge['total'],
-                'couts_affectes' => null, // Non renseigné — aucune source de données (voir doc de méthode)
-                'contribution_nette' => null, // dépend des coûts -> non renseigné également
+                'couts_affectes' => $couts, // frais professionnels saisis sur les dossiers ; null = rien de saisi
+                'contribution_nette' => $couts !== null ? $aggMarge['total'] - $couts : null,
                 'transformation' => $transformationParResponsable[$rid] ?? null,
                 'ventes_non_convertis' => $aggVentes['non_convertis'],
                 'marge_non_convertis' => $aggMarge['non_convertis'],
@@ -1521,8 +1529,8 @@ class Pilotage
             'totaux' => [
                 'ventes_ht' => $totalVentes,
                 'marge_attribuee' => $totalMarge,
-                'couts_affectes' => null,
-                'contribution_nette' => null,
+                'couts_affectes' => $coutsConnus ? $totalCouts : null,
+                'contribution_nette' => $coutsConnus ? $totalMarge - $totalCouts : null,
                 'ventes_non_convertis' => self::fusionnerNonConvertis(...array_column($lignes, 'ventes_non_convertis')),
                 'marge_non_convertis' => self::fusionnerNonConvertis(...array_column($lignes, 'marge_non_convertis')),
             ],

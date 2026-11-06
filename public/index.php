@@ -655,6 +655,14 @@ $router->post('/dossiers/{id}/comparateur/retenir-en-plus', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->retenirEnPlus($params);
 });
+$router->post('/dossiers/{id}/frais-pro', function ($params) {
+    Auth::requireLogin();
+    (new \App\Controllers\FraisProController())->ajouter($params);
+});
+$router->post('/dossiers/{id}/frais-pro/{fid}/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new \App\Controllers\FraisProController())->supprimer($params);
+});
 $router->post('/dossiers/{id}/frais-communs', function ($params) {
     Auth::requireLogin();
     (new \App\Controllers\FraisCommunsController())->ajouter($params);

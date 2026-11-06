@@ -39,7 +39,14 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
     </div>
   </div>
 </div>
-<div class="kpi-note" style="margin-top:-6px;margin-bottom:16px"><?= Icon::svg('info', 'icon', 12) ?> Coûts affectés et contribution nette non renseignés — aucune source de données n'existe aujourd'hui (pas de suivi du temps ni de commissions). <span class="info-tip" data-tip="Contribution nette = marge attribuée − coûts affectés. Jamais remplacé par zéro ni estimé.">i</span></div>
+<?php if ($totaux['couts_affectes'] !== null): ?>
+<div class="kpi-row" style="margin-top:-4px">
+  <div class="kpi-card"><div class="kpi-icon orange"><?= Icon::svg('dollar-sign') ?></div><div class="kpi-body"><div class="kpi-label">Frais professionnels</div><div class="kpi-value"><?= Pilotage::fmt($totaux['couts_affectes'], $filters['devise']) ?></div><div class="kpi-sub">Saisis sur les dossiers, période choisie</div></div></div>
+  <div class="kpi-card"><div class="kpi-icon violet"><?= Icon::svg('target') ?></div><div class="kpi-body"><div class="kpi-label">Contribution nette de l'équipe <span class="info-tip" data-tip="Marge attribuée − frais professionnels des collaborateurs ayant des frais saisis.">i</span></div><div class="kpi-value"><?= Pilotage::fmt($totaux['contribution_nette'], $filters['devise']) ?></div></div></div>
+</div>
+<?php else: ?>
+<div class="kpi-note" style="margin-top:-6px;margin-bottom:16px"><?= Icon::svg('info', 'icon', 12) ?> Aucun frais professionnel saisi sur la période. Ajoutez-les dans l'onglet « Équipe » d'un dossier : la contribution nette (marge − frais) s'affichera ici. <span class="info-tip" data-tip="Jamais remplacé par zéro ni estimé : sans frais saisis, la case reste vide.">i</span></div>
+<?php endif; ?>
 
 <div class="card">
   <h2>Résultats par collaborateur</h2>
@@ -55,7 +62,9 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
           <td data-label="Dossiers" class="num"><?= $r['dossiers'] ?></td>
           <td data-label="Ventes HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>
           <td data-label="Marge attribuée" class="num"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['marge_non_convertis']) ?></td>
-          <td data-label="Coûts & contribution" class="num cell-na">Non renseigné</td>
+          <?php if ($r['couts_affectes'] !== null): ?>
+          <td data-label="Coûts & contribution" class="num"><?= Pilotage::fmt($r['couts_affectes'], $filters['devise']) ?> de frais<br><strong style="color:<?= $r['contribution_nette'] >= 0 ? '#17804B' : '#C2323A' ?>"><?= Pilotage::fmt($r['contribution_nette'], $filters['devise']) ?></strong> <small style="color:#667">net</small></td>
+          <?php else: ?><td data-label="Coûts & contribution" class="num cell-na">Aucun frais saisi</td><?php endif; ?>
           <td data-label="Transformation" class="num"><?= Pilotage::fmtPct($r['transformation']['taux'] ?? null) ?></td>
           <td class="col-arrow"><?= Icon::rowArrow() ?></td>
         </tr>
@@ -97,7 +106,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
         </div>
         <?php endforeach; ?>
       </div>
-      <div class="kpi-note" style="margin-top:10px"><?= Icon::svg('info', 'icon', 12) ?> Coûts affectés non représentés — non renseignés (voir note ci-dessus).</div>
+      <div class="kpi-note" style="margin-top:10px"><?= Icon::svg('info', 'icon', 12) ?> Les frais professionnels se saisissent par dossier (onglet « Équipe »).</div>
     <?php endif; ?>
   </div>
 
@@ -109,7 +118,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
     </div>
     <div class="exp-item">
       <div class="exp-icon"><?= Icon::svg('file-text', 'icon', 16) ?></div>
-      <div><div class="exp-title">Coûts</div><div class="exp-text">Temps affecté, commissions et frais professionnels — <strong>aucune de ces sources n'existe encore</strong> dans l'application aujourd'hui.</div></div>
+      <div><div class="exp-title">Coûts</div><div class="exp-text">Temps affecté, commissions et frais professionnels — les <strong>frais professionnels</strong> se saisissent dans l'onglet « Équipe » de chaque dossier. Le temps affecté n'existe pas encore.</div></div>
     </div>
     <div class="exp-item">
       <div class="exp-icon"><?= Icon::svg('alert-triangle', 'icon', 16) ?></div>
