@@ -92,6 +92,10 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
   </div>
 </div>
 
+<div class="chart-row">
+  <?php $etapes = $ad['entonnoir']; include __DIR__ . '/_entonnoir.php'; ?>
+</div>
+
 <div class="card">
   <h2>Résultats par activité</h2>
   <?php if (empty($lignes)): ?>

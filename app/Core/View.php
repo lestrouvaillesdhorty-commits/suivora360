@@ -20,6 +20,12 @@ class View
         if ($data['currentUser']) { \App\Services\Rappels::pourUtilisateur($data['currentUser']); }
         $data['notifNonLues'] = $data['currentUser'] ? Notification::nonLuesCountFor((int) $data['currentUser']['id']) : 0;
 
+        // Les pages changent à chaque action : on interdit au navigateur de réafficher une ancienne copie
+        // (bouton Retour, onglet laissé ouvert), sinon le tableau de bord montre des chiffres périmés.
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+        }
         extract($data);
         $content = self::capture(self::BASE . $template . '.php', $data);
         require self::BASE . 'layout/main.php';

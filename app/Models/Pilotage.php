@@ -398,6 +398,7 @@ class Pilotage
             'date_debut' => $dateDebut,
             'date_fin' => $dateFin,
             'activite' => trim(self::champScalaire($input['activite'] ?? '')),
+            'client_id' => preg_replace('/\D/', '', self::champScalaire($input['client_id'] ?? '')),
             'responsable_id' => self::champScalaire($input['responsable_id'] ?? ''),
             'base' => $base,
             'devise' => $devise,
@@ -611,7 +612,7 @@ class Pilotage
                        co.id AS cotation_id, co.montant_total, co.marge_montant, co.devise,
                        d.id AS dossier_id, d.reference AS dossier_reference, d.objet AS dossier_objet, d.responsable_id, d.filiale_id,
                        COALESCE(dm.activite,'') AS activite,
-                       cl.nom AS client_nom
+                       cl.nom AS client_nom, cl.id AS client_id
                 FROM commandes cmd
                 INNER JOIN cotations co ON co.id = cmd.cotation_id
                 INNER JOIN dossiers d ON d.id = cmd.dossier_id
@@ -624,6 +625,10 @@ class Pilotage
         if (!empty($filters['activite'])) {
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
+        }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND cl.id = ?';
+            $params[] = $filters['client_id'];
         }
         if (!empty($filters['responsable_id'])) {
             $sql .= ' AND d.responsable_id = ?';
@@ -722,6 +727,10 @@ class Pilotage
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
         }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
+        }
         if (!empty($filters['responsable_id'])) {
             $sql .= ' AND d.responsable_id = ?';
             $params[] = $filters['responsable_id'];
@@ -770,6 +779,10 @@ class Pilotage
         if (!empty($filters['activite'])) {
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
+        }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
         }
         if (!empty($filters['responsable_id'])) {
             $sql .= ' AND d.responsable_id = ?';
@@ -845,6 +858,10 @@ class Pilotage
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
         }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
+        }
         if (!empty($filters['responsable_id'])) {
             $sql .= ' AND d.responsable_id = ?';
             $params[] = $filters['responsable_id'];
@@ -888,6 +905,10 @@ class Pilotage
         if (!empty($filters['activite'])) {
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
+        }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
         }
         if (!empty($filters['responsable_id'])) {
             $sql .= ' AND d.responsable_id = ?';
@@ -946,6 +967,10 @@ class Pilotage
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
         }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
+        }
         if (!empty($filters['responsable_id'])) {
             $sql .= ' AND d.responsable_id = ?';
             $params[] = $filters['responsable_id'];
@@ -985,6 +1010,10 @@ class Pilotage
         if (!empty($filters['activite'])) {
             $sql .= ' AND activite = ?';
             $params[] = $filters['activite'];
+        }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND client_id = ?';
+            $params[] = $filters['client_id'];
         }
         if (!empty($filters['responsable_id'])) {
             $sql .= ' AND responsable_id = ?';
@@ -1065,6 +1094,19 @@ class Pilotage
         return self::detailParActivite($lignesCommandes, $devise, $filialeIds);
     }
 
+    /** Clients proposés dans le filtre du Pilotage (filiales visibles). */
+    public static function clientsFiltre(array $user): array
+    {
+        $ids = Filiale::visibleIdsFor($user);
+        if (!$ids) {
+            return [];
+        }
+        $ph = implode(',', array_fill(0, count($ids), '?'));
+        $st = Database::connection()->prepare("SELECT id, nom FROM clients WHERE filiale_id IN ($ph) ORDER BY nom");
+        $st->execute($ids);
+        return $st->fetchAll();
+    }
+
     /** Mini-courbe de tendance (SVG), à partir d'une série de valeurs. */
     public static function sparkline(array $valeurs, string $couleur): string
     {
@@ -1106,6 +1148,10 @@ class Pilotage
             $sql = "SELECT COUNT(*) FROM demandes dm WHERE dm.filiale_id IN ($ph) AND dm.created_at >= ? AND dm.created_at <= ?";
             $params = array_merge($filialeIds, $bornes);
             if (!empty($filters['activite'])) { $sql .= ' AND dm.activite = ?'; $params[] = $filters['activite']; }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
+        }
             if (!empty($filters['responsable_id'])) { $sql .= ' AND dm.responsable_id = ?'; $params[] = $filters['responsable_id']; }
             $st = $pdo->prepare($sql);
             $st->execute($params);
@@ -1114,6 +1160,10 @@ class Pilotage
             $sql = "SELECT COUNT(*) FROM dossiers d INNER JOIN demandes dm ON dm.id = d.demande_id WHERE d.filiale_id IN ($ph) AND d.created_at >= ? AND d.created_at <= ?";
             $params = array_merge($filialeIds, $bornes);
             if (!empty($filters['activite'])) { $sql .= ' AND dm.activite = ?'; $params[] = $filters['activite']; }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
+        }
             if (!empty($filters['responsable_id'])) { $sql .= ' AND d.responsable_id = ?'; $params[] = $filters['responsable_id']; }
             $st = $pdo->prepare($sql);
             $st->execute($params);
@@ -1140,7 +1190,7 @@ class Pilotage
         $parActivite = [];
         foreach ($lignesCommandes as $l) {
             $a = ($l[$cle] ?? '') !== '' ? $l[$cle] : 'Non renseigné';
-            $parActivite[$a] = $parActivite[$a] ?? ['commandes' => [], 'marges' => []];
+            $parActivite[$a] = $parActivite[$a] ?? ['commandes' => [], 'marges' => [], 'cle_id' => $l['client_id'] ?? null];
             $parActivite[$a]['commandes'][] = ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
             if ($l['marge_montant'] !== null) {
                 $parActivite[$a]['marges'][] = ['montant' => $l['marge_montant'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
@@ -1157,6 +1207,7 @@ class Pilotage
             $nbCommandes = count($data['commandes']);
             $rows[] = [
                 'activite' => $a,
+                'cle_id' => $data['cle_id'],
                 'commandes' => $nbCommandes,
                 'ventes_ht' => $aggVentes['total'],
                 'ventes_ht_agg' => $aggVentes,
@@ -1356,6 +1407,7 @@ class Pilotage
         return [
             'tableau' => $tableau,
             'tendances' => $tendances,
+            'entonnoir' => self::entonnoir($user, $filters, self::cotationsParStatut($user, $filters), count($lignesCommandes)),
         ];
     }
 
@@ -1521,6 +1573,10 @@ class Pilotage
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
         }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
+        }
         $sql .= ' GROUP BY dc.utilisateur_id, u.nom ORDER BY nb_dossiers DESC';
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
@@ -1552,6 +1608,10 @@ class Pilotage
         if (!empty($filters['activite'])) {
             $sql .= ' AND dm.activite = ?';
             $params[] = $filters['activite'];
+        }
+        if (!empty($filters['client_id'])) {
+            $sql .= ' AND dm.client_id = ?';
+            $params[] = $filters['client_id'];
         }
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);

@@ -39,6 +39,7 @@ class PilotageController
             'utilisateurs' => Utilisateur::allForOrganisation((int) $user['organisation_id']),
             'filiales' => Filiale::visibleFor($user),
             'activites' => Pilotage::activitesConfigurees(),
+            'clientsFiltre' => Pilotage::clientsFiltre($user),
             'queryString' => $this->querystringSansOnglet($_GET),
             'vues' => \App\Models\PilotageVue::pourUtilisateur((int) $user['id']),
         ];

@@ -10,7 +10,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
     return '/index.php?r=pilotage/detail&' . http_build_query($params);
 }
 function pdFiltreUrl(string $cle, $valeur, array $filters): string {
-    $p = array_intersect_key($filters, array_flip(['periode', 'date_debut', 'date_fin', 'activite', 'responsable_id', 'base', 'devise']));
+    $p = array_intersect_key($filters, array_flip(['periode', 'date_debut', 'date_fin', 'activite', 'client_id', 'responsable_id', 'base', 'devise']));
     $p[$cle] = (string) $valeur;
     return '/index.php?r=pilotage&onglet=general&' . http_build_query($p);
 }
@@ -163,18 +163,7 @@ function pdFiltreUrl(string $cle, $valeur, array $filters): string {
 
 <?php if (!empty($vg['entonnoir'])): ?>
 <div class="chart-row">
-  <div class="card">
-    <h2>Du premier contact à la commande</h2>
-    <div class="kpi-note" style="margin:0 0 12px">Où perd-on des affaires ? Le pourcentage compare chaque étape à la précédente.</div>
-    <div class="entonnoir">
-      <?php foreach ($vg['entonnoir'] as $e): ?>
-        <div class="e-ligne">
-          <div class="e-tete"><span><?= View::e($e['label']) ?><?php if ($e['pct'] !== null): ?> <small>· <?= (int) $e['pct'] ?> %</small><?php endif; ?></span><strong><?= (int) $e['n'] ?></strong></div>
-          <div class="e-piste"><span style="width:<?= $e['largeur'] ?>%;background:<?= $e['couleur'] ?>"></span></div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
+  <?php $etapes = $vg['entonnoir']; include __DIR__ . '/_entonnoir.php'; ?>
   <div class="card">
     <h2>Résultats par client</h2>
     <?php if (empty($vg['resultats_client']['lignes'])): ?>
@@ -184,7 +173,7 @@ function pdFiltreUrl(string $cle, $valeur, array $filters): string {
         <thead><tr><th>Client</th><th class="num">Commandes</th><th class="num">Montant HT</th><th class="num">Marge</th><th class="num">Marge / ventes</th></tr></thead>
         <tbody>
         <?php foreach (array_slice($vg['resultats_client']['lignes'], 0, 10) as $r): ?>
-          <tr>
+          <tr class="row-clickable" <?= !empty($r['cle_id']) ? 'title="Filtrer toute la page sur ce client" onclick="window.location=\'' . pdFiltreUrl('client_id', $r['cle_id'], $filters) . '\'"' : '' ?>>
             <td data-label="Client"><?= View::e($r['activite']) ?></td>
             <td data-label="Commandes" class="num"><?= $r['commandes'] ?></td>
             <td data-label="Montant HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>

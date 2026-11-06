@@ -112,6 +112,18 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
       </div>
     </div>
 
+    <div class="f-group">
+      <label for="fClient">Client</label>
+      <div class="f-input-wrap"><?= Icon::svg('users', 'icon', 14) ?>
+      <select name="client_id" id="fClient" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        <?php foreach ($clientsFiltre ?? [] as $c): ?>
+          <option value="<?= (int) $c['id'] ?>" <?= (string) $filters['client_id'] === (string) $c['id'] ? 'selected' : '' ?>><?= View::e($c['nom']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      </div>
+    </div>
+
     <?php if ($onglet === 'collaborateurs'): ?>
     <div class="f-group">
       <label for="fRole">Rôle</label>

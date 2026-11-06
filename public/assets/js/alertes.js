@@ -55,4 +55,17 @@
   verifier(true);
   setInterval(function () { if (!document.hidden) verifier(false); }, 60000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) verifier(false); });
+
+  // Tableau de bord : mise à jour automatique (retour sur la page, onglet laissé ouvert, action traitée ailleurs).
+  var tdb = !!document.querySelector('.dash-kpi-row');
+  var masqueDepuis = 0;
+  window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
+  function formulaireActif() { var a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
+  if (tdb) {
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { masqueDepuis = Date.now(); }
+      else if (masqueDepuis && Date.now() - masqueDepuis > 15000 && !formulaireActif()) { location.reload(); }
+    });
+    setInterval(function () { if (!document.hidden && !formulaireActif()) location.reload(); }, 120000);
+  }
 })();
