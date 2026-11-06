@@ -16,7 +16,7 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
 ?>
 <div class="pilotage-header">
   <div>
-    <h1>Pilotage</h1>
+    <h1>Pilotage<?php if ($onglet === 'collaborateurs'): ?> <span class="pill-direction" title="Coûts et contributions individuelles confidentiels : réservé aux rôles Propriétaire, Admin d'organisation et Finance, y compris dans les exports."><?= Icon::svg('lock', 'icon', 13) ?> Réservé à la direction</span><?php endif; ?></h1>
     <div class="subtitle" style="margin-bottom:0">
       <?php if ($onglet === 'general'): ?>Comparez les résultats de vos activités
       <?php elseif ($onglet === 'activites'): ?>Comparez les résultats de vos activités
@@ -53,12 +53,13 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
+  <details class="vue-save-d"><summary>Enregistrer cette vue</summary>
   <form method="post" action="/index.php?r=pilotage/vues" class="vue-save">
     <input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>">
     <input type="hidden" name="onglet" value="<?= View::e($onglet) ?>"><input type="hidden" name="filtres" value="<?= View::e($qs) ?>">
     <input type="text" name="nom" maxlength="80" required placeholder="Nommer cette vue (ex. Vue direction)" aria-label="Nom de la vue">
-    <button type="submit" class="btn btn-secondary btn-sm">Enregistrer cette vue</button>
-  </form>
+    <button type="submit" class="btn btn-secondary btn-sm">Enregistrer</button>
+  </form></details>
   <a href="/index.php?r=pilotage&amp;onglet=<?= View::e($onglet) ?>" class="vue-reset">Effacer les filtres</a>
 </div>
 <div class="filter-bar">

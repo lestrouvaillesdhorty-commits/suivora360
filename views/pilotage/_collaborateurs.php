@@ -15,15 +15,20 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
     return '/index.php?r=pilotage/detail&' . http_build_query($params);
 }
 ?>
-<div class="direction-banner"><?= Icon::svg('lock', 'icon', 14) ?> <strong>Vue direction</strong> · Coûts et contributions individuelles confidentiels — réservé aux rôles Propriétaire / Admin d'organisation / Finance, y compris dans les exports.</div>
-
+<?php
+$objectifsCollab = $objectifsCollab ?? [];
+$objectifsTotaux = $objectifsTotaux ?? null;
+$teamMarge = (float) ($totaux['marge_attribuee'] ?? 0);
+$teamVentes = (float) ($totaux['ventes_ht'] ?? 0);
+$palAv = ['#2F6FED', '#7C5CE0', '#0B9AAE', '#F57C2B', '#1FA463', '#D6409F'];
+?>
 <?php if ($filters['role'] === 'commercial'): ?>
 
-<div class="kpi-row" style="margin-top:16px">
+<div class="kpi-row" style="margin-top:4px">
   <div class="kpi-card">
     <div class="kpi-icon blue"><?= Icon::svg('bar-chart-2') ?></div>
     <div class="kpi-body">
-      <div class="kpi-label">Ventes HT attribuées <span class="info-tip" data-tip="Attribuées au responsable désigné du dossier (dossiers.responsable_id), jamais réparties entre plusieurs collaborateurs d'un même dossier.">i</span></div>
+      <div class="kpi-label">Ventes HT attribuées <span class="info-tip" data-tip="Attribuées au responsable désigné du dossier, jamais réparties entre plusieurs collaborateurs d'un même dossier.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($totaux['ventes_ht'], $filters['devise']) ?></div>
       <div class="kpi-sub"><?= Pilotage::badgeTendance($cd['tendances']['ventes_ht'] ?? null) ?></div>
       <?= Pilotage::avertissementNonConvertis($totaux['ventes_non_convertis']) ?>
@@ -38,94 +43,115 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
       <?= Pilotage::avertissementNonConvertis($totaux['marge_non_convertis']) ?>
     </div>
   </div>
+  <div class="kpi-card">
+    <div class="kpi-icon violet"><?= Icon::svg('percent') ?></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Taux de marge de l'équipe</div>
+      <div class="kpi-value"><?= $teamVentes > 0 ? Pilotage::fmtPct(round($teamMarge / $teamVentes * 100, 1)) : '—' ?></div>
+    </div>
+  </div>
+  <?php if ($objectifsTotaux && $objectifsTotaux['pct'] !== null): ?>
+  <div class="kpi-card">
+    <div class="kpi-icon orange"><?= Icon::svg('target') ?></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Objectif du mois atteint</div>
+      <div class="kpi-value"><?= (int) $objectifsTotaux['pct'] ?> %</div>
+      <div class="hbar-track" style="margin-top:8px"><div class="hbar-fill" style="width:<?= min(100, (int) $objectifsTotaux['pct']) ?>%;background:<?= $objectifsTotaux['pct'] >= 100 ? '#1FA463' : '#F57C2B' ?>"></div></div>
+    </div>
+  </div>
+  <?php elseif ($totaux['couts_affectes'] !== null): ?>
+  <div class="kpi-card">
+    <div class="kpi-icon orange"><?= Icon::svg('dollar-sign') ?></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Contribution nette <span class="info-tip" data-tip="Marge attribuée − frais professionnels saisis sur les dossiers.">i</span></div>
+      <div class="kpi-value"><?= Pilotage::fmt($totaux['contribution_nette'], $filters['devise']) ?></div>
+      <div class="kpi-sub">Frais : <?= Pilotage::fmt($totaux['couts_affectes'], $filters['devise']) ?></div>
+    </div>
+  </div>
+  <?php endif; ?>
 </div>
-<?php if ($totaux['couts_affectes'] !== null): ?>
-<div class="kpi-row" style="margin-top:-4px">
-  <div class="kpi-card"><div class="kpi-icon orange"><?= Icon::svg('dollar-sign') ?></div><div class="kpi-body"><div class="kpi-label">Frais professionnels</div><div class="kpi-value"><?= Pilotage::fmt($totaux['couts_affectes'], $filters['devise']) ?></div><div class="kpi-sub">Saisis sur les dossiers, période choisie</div></div></div>
-  <div class="kpi-card"><div class="kpi-icon violet"><?= Icon::svg('target') ?></div><div class="kpi-body"><div class="kpi-label">Contribution nette de l'équipe <span class="info-tip" data-tip="Marge attribuée − frais professionnels des collaborateurs ayant des frais saisis.">i</span></div><div class="kpi-value"><?= Pilotage::fmt($totaux['contribution_nette'], $filters['devise']) ?></div></div></div>
-</div>
+
+<?php if (empty($lignes)): ?>
+  <div class="card"><div class="empty-state">Aucun dossier avec commande confirmée sur la période (population : responsable désigné du dossier).</div></div>
 <?php else: ?>
-<div class="kpi-note" style="margin-top:-6px;margin-bottom:16px"><?= Icon::svg('info', 'icon', 12) ?> Aucun frais professionnel saisi sur la période. Ajoutez-les dans l'onglet « Équipe » d'un dossier : la contribution nette (marge − frais) s'affichera ici. <span class="info-tip" data-tip="Jamais remplacé par zéro ni estimé : sans frais saisis, la case reste vide.">i</span></div>
-<?php endif; ?>
-
-<div class="card">
-  <h2>Résultats par collaborateur</h2>
-  <?php if (empty($lignes)): ?>
-    <div class="empty-state">Aucun dossier avec commande confirmée sur la période (population : responsable désigné du dossier).</div>
-  <?php else: ?>
-    <table class="pilotage-table responsive-cards">
-      <thead><tr><th>Collaborateur</th><th class="num">Dossiers</th><th class="num">Ventes HT</th><th class="num">Marge attribuée</th><th class="num">Coûts &amp; contribution</th><th class="num">Transformation</th><th class="col-arrow"></th></tr></thead>
-      <tbody>
-        <?php foreach ($lignes as $r): ?>
-        <tr class="row-clickable" onclick="window.location='<?= pcDetailUrl($r['utilisateur_id'], $filters, $qs) ?>'">
-          <td data-label="Collaborateur"><span class="avatar-with-name"><?= Icon::avatar($r['nom'], 32) ?><?= View::e($r['nom']) ?><?= FonctionEquipe::badge($fonctionsUtilisateurs[$r['utilisateur_id']] ?? null) ?></span></td>
-          <td data-label="Dossiers" class="num"><?= $r['dossiers'] ?></td>
-          <td data-label="Ventes HT" class="num"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['ventes_non_convertis']) ?></td>
-          <td data-label="Marge attribuée" class="num"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?><?= Pilotage::noteNonConvertis($r['marge_non_convertis']) ?></td>
-          <?php if ($r['couts_affectes'] !== null): ?>
-          <td data-label="Coûts & contribution" class="num"><?= Pilotage::fmt($r['couts_affectes'], $filters['devise']) ?> de frais<br><strong style="color:<?= $r['contribution_nette'] >= 0 ? '#17804B' : '#C2323A' ?>"><?= Pilotage::fmt($r['contribution_nette'], $filters['devise']) ?></strong> <small style="color:#667">net</small></td>
-          <?php else: ?><td data-label="Coûts & contribution" class="num cell-na">Aucun frais saisi</td><?php endif; ?>
-          <td data-label="Transformation" class="num"><?= Pilotage::fmtPct($r['transformation']['taux'] ?? null) ?></td>
-          <td class="col-arrow"><?= Icon::rowArrow() ?></td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-    <div class="kpi-note">Attribution explicite par responsable de dossier, sans double comptage. Cliquez une ligne pour voir le détail des dossiers et éléments utilisés dans les calculs.</div>
-  <?php endif; ?>
-
-  <?php if (!empty($cd['collaborateurs_secondaires'])): ?>
-    <h2 style="margin-top:22px">Collaborateurs additionnels (suivi fournisseur)</h2>
-    <div class="kpi-note" style="margin-bottom:8px">Personnes assignées au suivi d'un fournisseur précis sur un dossier (fonctionnalité "Collaborateurs de dossier"), sans règle d'attribution financière : ventes/marge/coûts non applicables — affichés "Non renseigné".</div>
-    <table class="pilotage-table">
-      <thead><tr><th>Collaborateur</th><th class="num">Dossiers suivis</th></tr></thead>
-      <tbody>
-        <?php foreach ($cd['collaborateurs_secondaires'] as $cs): ?>
-        <tr><td><?= View::e($cs['utilisateur_nom']) ?></td><td class="num"><?= $cs['nb_dossiers'] ?></td></tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  <?php endif; ?>
+<div class="collab-grid">
+  <?php foreach ($lignes as $rang => $r):
+      $uid = (int) $r['utilisateur_id'];
+      $o = $objectifsCollab[$uid] ?? null;
+      $part = $teamMarge > 0 ? round($r['marge_attribuee'] / $teamMarge * 100, 1) : 0;
+      $coul = $palAv[$rang % count($palAv)];
+  ?>
+  <div class="card collab-card">
+    <div class="cc-tete">
+      <?= Icon::avatar($r['nom'], 40) ?>
+      <div class="cc-nom"><strong><?= View::e($r['nom']) ?></strong><?= FonctionEquipe::badge($fonctionsUtilisateurs[$uid] ?? null) ?></div>
+      <div class="cc-rang"><small>Rang</small><b><?= $rang + 1 ?></b></div>
+    </div>
+    <div class="cc-metriques">
+      <div><small>Dossiers</small><b><?= (int) $r['dossiers'] ?></b></div>
+      <div><small>Ventes HT</small><b><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></b></div>
+      <div><small>Marge</small><b><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?></b></div>
+      <div><small>Transformation</small><b><?= Pilotage::fmtPct($r['transformation']['taux'] ?? null) ?></b></div>
+    </div>
+    <div>
+      <div class="cc-ligne"><span>Part de la marge de l'équipe</span><b><?= Pilotage::fmtPct($part) ?></b></div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:<?= min(100, $part) ?>%;background:#1FA463"></div></div>
+    </div>
+    <?php if ($o && $o['objectif'] !== null): ?>
+    <div class="cc-obj">
+      <div class="cc-ligne"><span>Objectif du mois : <?= Pilotage::fmt($o['realise'], $filters['devise']) ?> sur <?= Pilotage::fmt($o['objectif'], $filters['devise']) ?></span><b style="color:<?= View::e($o['couleur']) ?>"><?= $o['pct'] !== null ? (int) $o['pct'] . ' %' : '' ?></b></div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:<?= min(100, (int) ($o['pct'] ?? 0)) ?>%;background:<?= View::e($o['couleur']) ?>"></div></div>
+      <?php if (!empty($o['commission'])): ?><div class="cc-sub">Commission estimée : <strong><?= Pilotage::fmt($o['commission'], $filters['devise']) ?></strong></div><?php endif; ?>
+    </div>
+    <?php endif; ?>
+    <?php if ($r['couts_affectes'] !== null): ?>
+    <div class="cc-obj">
+      <div class="cc-ligne"><span>Frais professionnels : <?= Pilotage::fmt($r['couts_affectes'], $filters['devise']) ?></span><b style="color:<?= $r['contribution_nette'] >= 0 ? '#17804B' : '#C2323A' ?>"><?= Pilotage::fmt($r['contribution_nette'], $filters['devise']) ?> net</b></div>
+    </div>
+    <?php endif; ?>
+    <a href="<?= pcDetailUrl($uid, $filters, $qs) ?>" class="cc-lien">Voir ses dossiers</a>
+  </div>
+  <?php endforeach; ?>
 </div>
 
 <div class="chart-row">
   <div class="card">
-    <h2>Marge attribuée par collaborateur</h2>
-    <?php if (empty($lignes)): ?>
-      <div class="empty-state">Aucune donnée.</div>
-    <?php else: ?>
-      <div class="hbar-list">
-        <?php $maxM = max(array_column($lignes, 'marge_attribuee')) ?: 1; ?>
-        <?php foreach ($lignes as $r): ?>
-        <div class="hbar-item">
-          <div class="hbar-label"><span><?= View::e($r['nom']) ?></span></div>
-          <div class="hbar-row">
-            <div class="hbar-track"><div class="hbar-fill" style="width:<?= round($r['marge_attribuee'] / $maxM * 100) ?>%;background:#1FA463"></div></div>
-            <div class="hbar-value"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?></div>
-          </div>
-        </div>
-        <?php endforeach; ?>
+    <h2>Ventes et marge par collaborateur</h2>
+    <div class="hbar-list">
+      <?php $maxV = max(array_column($lignes, 'ventes_ht')) ?: 1; ?>
+      <?php foreach ($lignes as $r): ?>
+      <div class="hbar-item">
+        <div class="hbar-label"><span><?= View::e($r['nom']) ?></span></div>
+        <div class="hbar-row"><div class="hbar-track"><div class="hbar-fill" style="width:<?= round($r['ventes_ht'] / $maxV * 100) ?>%;background:#2F6FED"></div></div><div class="hbar-value"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></div></div>
+        <div class="hbar-row"><div class="hbar-track"><div class="hbar-fill" style="width:<?= round($r['marge_attribuee'] / $maxV * 100) ?>%;background:#1FA463"></div></div><div class="hbar-value"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?></div></div>
       </div>
-      <div class="kpi-note" style="margin-top:10px"><?= Icon::svg('info', 'icon', 12) ?> Les frais professionnels se saisissent par dossier (onglet « Équipe »).</div>
-    <?php endif; ?>
+      <?php endforeach; ?>
+    </div>
+    <div class="linechart-legend" style="margin-top:10px"><span class="leg-item"><span class="dot" style="background:#2F6FED"></span>Ventes HT</span><span class="leg-item"><span class="dot" style="background:#1FA463"></span>Marge</span></div>
   </div>
 
-  <div class="card explication-block">
-    <h2>Comprendre les résultats</h2>
-    <div class="exp-item">
-      <div class="exp-icon"><?= Icon::svg('target', 'icon', 16) ?></div>
-      <div><div class="exp-title">Périmètre</div><div class="exp-text">Dossiers avec commande confirmée sur la période sélectionnée, attribués au responsable désigné du dossier.</div></div>
-    </div>
-    <div class="exp-item">
-      <div class="exp-icon"><?= Icon::svg('file-text', 'icon', 16) ?></div>
-      <div><div class="exp-title">Coûts</div><div class="exp-text">Temps affecté, commissions et frais professionnels — les <strong>frais professionnels</strong> se saisissent dans l'onglet « Équipe » de chaque dossier. Le temps affecté n'existe pas encore.</div></div>
-    </div>
-    <div class="exp-item">
-      <div class="exp-icon"><?= Icon::svg('alert-triangle', 'icon', 16) ?></div>
-      <div><div class="exp-title">Données manquantes</div><div class="exp-text">Signalées explicitement ("Non renseigné"), jamais remplacées par zéro ni estimées.</div></div>
-    </div>
+  <div class="card">
+    <h2>Suivi fournisseur</h2>
+    <div class="kpi-note" style="margin:0 0 10px">Personnes ajoutées sur un dossier pour suivre un fournisseur, sans règle de commission.</div>
+    <?php if (empty($cd['collaborateurs_secondaires'])): ?>
+      <div class="empty-state">Aucun collaborateur additionnel.</div>
+    <?php else: foreach ($cd['collaborateurs_secondaires'] as $cs): ?>
+      <div class="cc-sf"><?= Icon::avatar($cs['utilisateur_nom'], 34) ?><div><strong><?= View::e($cs['utilisateur_nom']) ?></strong><div class="cc-sub"><?= (int) $cs['nb_dossiers'] ?> dossier(s) suivi(s)</div></div></div>
+    <?php endforeach; endif; ?>
   </div>
 </div>
+
+<div class="card">
+  <details class="cc-aide">
+    <summary>Comment lire ces résultats ?</summary>
+    <div class="cc-aide-corps">
+      <div><strong>Périmètre</strong><br>Dossiers avec commande confirmée sur la période, attribués au responsable du dossier.</div>
+      <div><strong>Coûts</strong><br>Les frais professionnels se saisissent dans l'onglet « Équipe » de chaque dossier. Le temps passé n'existe pas encore.</div>
+      <div><strong>Données manquantes</strong><br>Elles sont signalées, jamais remplacées par zéro.</div>
+    </div>
+  </details>
+</div>
+<?php endif; ?>
 
 <?php elseif ($filters['role'] === 'achats'): ?>
 

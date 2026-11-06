@@ -65,6 +65,15 @@ class PilotageController
             $data['objectifsData'] = $data['objectifsDispo'] ? Pilotage::objectifsMois($user, $mois, $filters['devise']) : null;
         } else {
             $data['collaborateursData'] = Pilotage::collaborateurs($user, $filters);
+            $data['objectifsCollab'] = [];
+            $data['objectifsTotaux'] = null;
+            if (ObjectifCollaborateur::disponible()) {
+                $od = Pilotage::objectifsMois($user, ObjectifCollaborateur::moisValide(''), $filters['devise']);
+                foreach ($od['lignes'] as $l) {
+                    $data['objectifsCollab'][(int) $l['utilisateur_id']] = $l;
+                }
+                $data['objectifsTotaux'] = $od['totaux'];
+            }
             if ($filters['role'] === 'achats') {
                 $data['achatsData'] = Pilotage::collaborateursAchats($user, $filters);
             }
