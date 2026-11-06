@@ -89,7 +89,13 @@ class PilotageController
                 $k = $mois;
                 for ($i = 0; $i < 6; $i++) {
                     $dh = $i === 0 ? $data['objectifsData'] : Pilotage::objectifsMois($user, $k, $filters['devise']);
-                    $h[] = ['court' => $dh['periode']['court'], 'objectif' => $dh['totaux']['objectif'], 'realise' => $dh['totaux']['realise']];
+                    $realTous = 0.0;
+                    foreach ($dh['lignes'] as $lg) {
+                        if ($lg['type'] === 'money') {
+                            $realTous += (float) $lg['realise'];
+                        }
+                    }
+                    $h[] = ['court' => $dh['periode']['court'], 'objectif' => $dh['totaux']['objectif'], 'realise' => $realTous];
                     $k = $dh['periode']['prec'];
                 }
                 $data['historique'] = array_reverse($h);

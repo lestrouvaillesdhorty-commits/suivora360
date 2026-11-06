@@ -177,10 +177,11 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
   <div class="kpi-note" style="margin-top:10px"><?= Icon::svg('info', 'icon', 12) ?> L'indicateur, l'attribution et le taux se règlent une fois par personne et valent pour toutes les périodes. L'export CSV s'ouvre directement dans Excel : tous les calculs (avancement, reste, commission) sont déjà faits. Les économies sur achats ne sont pas proposées : il faudrait d'abord un prix de référence par article.</div>
 </div>
 
-<?php $mx = 0; foreach ($historique as $h0) { $mx = max($mx, $h0['objectif'], $h0['realise']); } if (count($historique) > 1 && $mx > 0): $nh = count($historique); ?>
+<?php $mx = 0; foreach ($historique as $h0) { $mx = max($mx, $h0['objectif'], $h0['realise']); } if (count($historique) > 1): $nh = count($historique); $mx = max($mx, 1); ?>
 <div class="card" style="margin-top:18px">
   <h2>Objectif et réalisé — <?= $nh ?> dernières périodes</h2>
-  <p class="kpi-note" style="margin:6px 0 10px">Équipe, indicateurs en montant. Pour voir l'évolution d'un coup d'œil.</p>
+  <p class="kpi-note" style="margin:6px 0 10px">Équipe, indicateurs en montant : le réalisé de toute l'équipe, et l'objectif quand il est saisi. Pour voir l'évolution d'un coup d'œil.</p>
+  <?php if ($mx <= 1): ?><div class="empty-state">Pas encore de chiffres sur ces périodes. Saisissez des objectifs ci-dessus pour voir l'évolution.</div><?php else: ?>
   <svg viewBox="0 0 640 210" style="width:100%;height:auto" role="img" aria-label="Objectif et réalisé par période">
     <line x1="30" y1="170" x2="630" y2="170" stroke="#C9D3DD"/>
     <?php foreach ($historique as $i => $h0): $x = 50 + $i * (580 / $nh); $ho = $h0['objectif'] / $mx * 150; $hr = $h0['realise'] / $mx * 150; ?>
@@ -190,6 +191,7 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
     <?php endforeach; ?>
   </svg>
   <div class="linechart-legend"><span class="leg-item"><span class="dot" style="background:#C9D3DD"></span>Objectif</span><span class="leg-item"><span class="dot" style="background:#2F6FED"></span>Réalisé</span></div>
+  <?php endif; ?>
 </div>
 <?php endif; ?>
 
