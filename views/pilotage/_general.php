@@ -12,7 +12,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
 ?>
 <div class="kpi-row">
   <div class="kpi-card clickable" onclick="window.location='<?= pdDetailUrl('tout', '', $filters, $qs) ?>'">
-    <div class="kpi-icon"><?= Icon::svg('bar-chart-2') ?></div>
+    <div class="kpi-icon blue"><?= Icon::svg('bar-chart-2') ?></div>
     <div class="kpi-body">
       <div class="kpi-label">Montant HT des commandes confirmées <span class="info-tip" data-tip="Somme du montant HT de la cotation liée à chaque commande créée sur la période (date de création de la commande). Une commande confirmée ne signifie pas qu'elle est payée.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($vg['montant_ht_commandes']['total'], $filters['devise']) ?></div>
@@ -38,7 +38,7 @@ function pdDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
   </div>
 
   <div class="kpi-card">
-    <div class="kpi-icon blue"><?= Icon::svg('percent') ?></div>
+    <div class="kpi-icon violet"><?= Icon::svg('percent') ?></div>
     <div class="kpi-body">
       <div class="kpi-label">Taux de transformation des cotations <span class="info-tip" data-tip="Cotations acceptées ÷ cotations soumises (envoyées + acceptées + refusées) sur la période, chaque cotation comptée une seule fois.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmtPct($vg['transformation']['taux']) ?></div>

@@ -21,7 +21,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
 
 <div class="kpi-row" style="margin-top:16px">
   <div class="kpi-card">
-    <div class="kpi-icon"><?= Icon::svg('bar-chart-2') ?></div>
+    <div class="kpi-icon blue"><?= Icon::svg('bar-chart-2') ?></div>
     <div class="kpi-body">
       <div class="kpi-label">Ventes HT attribuées <span class="info-tip" data-tip="Attribuées au responsable désigné du dossier (dossiers.responsable_id), jamais réparties entre plusieurs collaborateurs d'un même dossier.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($totaux['ventes_ht'], $filters['devise']) ?></div>
@@ -91,7 +91,7 @@ function pcDetailUrl($responsableId, array $filters, string $qs): string {
         <div class="hbar-item">
           <div class="hbar-label"><span><?= View::e($r['nom']) ?></span></div>
           <div class="hbar-row">
-            <div class="hbar-track"><div class="hbar-fill" style="width:<?= round($r['marge_attribuee'] / $maxM * 100) ?>%"></div></div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:<?= round($r['marge_attribuee'] / $maxM * 100) ?>%;background:#1FA463"></div></div>
             <div class="hbar-value"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?></div>
           </div>
         </div>

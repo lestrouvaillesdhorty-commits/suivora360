@@ -199,7 +199,7 @@ class Pilotage
     }
 
     /** Palette stable (même couleur pour une même série d'un rendu à l'autre). */
-    public const PALETTE = ['#0B7C8A', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6', '#ec4899', '#14b8a6'];
+    public const PALETTE = ['#2F6FED', '#F57C2B', '#1FA463', '#7C5CE0', '#E5484D', '#0B9AAE', '#FFC83D', '#D6409F'];
 
     public static function couleurPour(int $index): string
     {

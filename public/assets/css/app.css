@@ -256,6 +256,7 @@ textarea { resize: vertical; }
 .kpi-icon.blue { background: #dbeafe; color: #2563eb; }
 .kpi-icon.orange { background: #ffedd5; color: #c2410c; }
 .kpi-icon.red { background: #fee2e2; color: #dc2626; }
+.kpi-icon.violet { background: #ede9fe; color: #6d4fd8; }
 .kpi-icon.teal { background: #ccfbf1; color: #0d9488; }
 .kpi-body { min-width: 0; }
 .kpi-body .kpi-label { font-size: 13px; color: #666; display: flex; align-items: center; gap: 5px; }
@@ -312,7 +313,7 @@ textarea { resize: vertical; }
 .hbar-list .hbar-label { font-size: 13.5px; font-weight: 700; margin-bottom: 7px; display: flex; justify-content: space-between; cursor: pointer; color: var(--ink); }
 .hbar-list .hbar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .hbar-list .hbar-track { flex: 1; background: #f1f2f8; border-radius: 999px; height: 9px; overflow: hidden; }
-.hbar-list .hbar-fill { height: 100%; border-radius: 999px; background: var(--pilotage-violet); }
+.hbar-list .hbar-fill { height: 100%; border-radius: 999px; background: #2F6FED; }
 .hbar-list .hbar-fill.secondary { background: #cfcbfb; }
 .hbar-list .hbar-value { font-size: 12.5px; color: #666; font-weight: 600; min-width: 72px; text-align: right; flex-shrink: 0; }
 .hbar-list .hbar-value.cell-na { color: #b45309; font-weight: 500; min-width: 0; }

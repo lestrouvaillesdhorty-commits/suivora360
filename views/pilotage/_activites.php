@@ -14,7 +14,7 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
 ?>
 <div class="kpi-row">
   <div class="kpi-card">
-    <div class="kpi-icon"><?= Icon::svg('bar-chart-2') ?></div>
+    <div class="kpi-icon blue"><?= Icon::svg('bar-chart-2') ?></div>
     <div class="kpi-body">
       <div class="kpi-label">Ventes HT <span class="info-tip" data-tip="Montant HT des cotations liées aux commandes confirmées sur la période, même population que la Vue générale.">i</span></div>
       <div class="kpi-value"><?= Pilotage::fmt($total['ventes_ht'], $filters['devise']) ?></div>
@@ -32,7 +32,7 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
     </div>
   </div>
   <div class="kpi-card">
-    <div class="kpi-icon blue"><?= Icon::svg('percent') ?></div>
+    <div class="kpi-icon violet"><?= Icon::svg('percent') ?></div>
     <div class="kpi-body">
       <div class="kpi-label">Marge / ventes HT</div>
       <div class="kpi-value"><?= Pilotage::fmtPct($total['marge_pct']) ?></div>
@@ -57,11 +57,11 @@ function paDetailUrl(string $axe, $valeur, array $filters, string $qs): string {
       <?= Pilotage::svgBarChart(
         array_column($lignes, 'activite'),
         ['Ventes HT' => array_column($lignes, 'ventes_ht'), 'Marge' => array_column($lignes, 'marge')],
-        ['Ventes HT' => '#0B7C8A', 'Marge' => '#14b8a6']
+        ['Ventes HT' => '#2F6FED', 'Marge' => '#1FA463']
       ) ?>
       <div class="linechart-legend" style="margin-top:14px">
-        <span class="leg-item"><span class="dot" style="background:#0B7C8A"></span>Ventes HT</span>
-        <span class="leg-item"><span class="dot" style="background:#14b8a6"></span>Marge</span>
+        <span class="leg-item"><span class="dot" style="background:#2F6FED"></span>Ventes HT</span>
+        <span class="leg-item"><span class="dot" style="background:#1FA463"></span>Marge</span>
       </div>
       <div class="kpi-note">Détail et accès par activité dans le tableau "Résultats par activité" ci-dessous.</div>
     <?php endif; ?>
