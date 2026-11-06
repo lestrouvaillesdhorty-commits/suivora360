@@ -59,10 +59,41 @@ class PilotageController
             $data['respFiltre'] = $resp;
             $data['aTraiterData'] = Pilotage::aTraiter($user, $seuil, $type, $resp);
         } elseif ($onglet === 'objectifs') {
-            $mois = ObjectifCollaborateur::moisValide($_GET['mois'] ?? '');
+            $cle = (string) ($_GET['mois'] ?? '');
+            $du = (string) ($_GET['du'] ?? '');
+            $au = (string) ($_GET['au'] ?? '');
+            if (($_GET['type'] ?? '') === 'libre' && $du !== '' && $au !== '') {
+                $cle = 'L' . $du . '_' . $au;
+            }
+            $mois = ObjectifCollaborateur::cleValide($cle);
             $data['mois'] = $mois;
+            $data['periodeObj'] = ObjectifCollaborateur::periode($mois);
+            $comp = in_array($_GET['comp'] ?? '', ['prec', 'an', 'aucune'], true) ? $_GET['comp'] : 'prec';
+            $data['comp'] = $comp;
+            $data['libreDispo'] = ObjectifCollaborateur::libreDisponible();
             $data['objectifsDispo'] = ObjectifCollaborateur::disponible();
             $data['objectifsData'] = $data['objectifsDispo'] ? Pilotage::objectifsMois($user, $mois, $filters['devise']) : null;
+            $data['compData'] = null;
+            $data['historique'] = [];
+            if ($data['objectifsDispo']) {
+                if ($comp !== 'aucune') {
+                    $ck = $data['periodeObj'][$comp === 'an' ? 'an' : 'prec'];
+                    $cd0 = Pilotage::objectifsMois($user, $ck, $filters['devise']);
+                    $map = [];
+                    foreach ($cd0['lignes'] as $l) {
+                        $map[(int) $l['utilisateur_id']] = $l;
+                    }
+                    $data['compData'] = ['periode' => $cd0['periode'], 'lignes' => $map, 'totaux' => $cd0['totaux']];
+                }
+                $h = [];
+                $k = $mois;
+                for ($i = 0; $i < 6; $i++) {
+                    $dh = $i === 0 ? $data['objectifsData'] : Pilotage::objectifsMois($user, $k, $filters['devise']);
+                    $h[] = ['court' => $dh['periode']['court'], 'objectif' => $dh['totaux']['objectif'], 'realise' => $dh['totaux']['realise']];
+                    $k = $dh['periode']['prec'];
+                }
+                $data['historique'] = array_reverse($h);
+            }
         } else {
             $data['collaborateursData'] = Pilotage::collaborateurs($user, $filters);
             $data['objectifsCollab'] = [];
@@ -120,7 +151,7 @@ class PilotageController
         $user = Auth::user();
         $mois = ObjectifCollaborateur::moisValide($_POST['mois'] ?? '');
         $devise = trim((string) ($_POST['devise'] ?? '')) ?: 'EUR';
-        $retour = '/index.php?r=pilotage&onglet=objectifs&mois=' . $mois . '&devise=' . rawurlencode($devise);
+        $retour = '/index.php?r=pilotage&onglet=objectifs&mois=' . rawurlencode($mois) . '&devise=' . rawurlencode($devise) . '&comp=' . rawurlencode((string) ($_POST['comp'] ?? 'prec'));
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             View::flash('erreur', 'Session expirée, réessayez.');
             header('Location: ' . $retour);
@@ -134,7 +165,7 @@ class PilotageController
         $orgId = (int) $user['organisation_id'];
         if (($_POST['action'] ?? '') === 'copier') {
             $n = ObjectifCollaborateur::copierMoisPrecedent($orgId, $mois);
-            View::flash('succes', $n > 0 ? "$n objectif(s) copié(s) du mois précédent." : 'Rien à copier : le mois précédent est vide ou déjà repris.');
+            View::flash('succes', $n > 0 ? "$n objectif(s) copié(s) de la période précédente." : 'Rien à copier : la période précédente est vide ou déjà reprise.');
             header('Location: ' . $retour);
             exit;
         }
@@ -257,9 +288,9 @@ class PilotageController
                 ]), ';', '"', '\\');
             }
         } elseif ($onglet === 'objectifs') {
-            $mois = ObjectifCollaborateur::moisValide($_GET['mois'] ?? '');
+            $mois = ObjectifCollaborateur::cleValide($_GET['mois'] ?? '');
             $d = Pilotage::objectifsMois($user, $mois, $filters['devise']);
-            fputcsv($out, ['Mois', $mois], ';', '"', '\\');
+            fputcsv($out, ['Période', $d['periode']['label']], ';', '"', '\\');
             fputcsv($out, [], ';', '"', '\\');
             fputcsv($out, ['Collaborateur', 'Fonction', 'Indicateur', 'Base de calcul', 'Objectif', 'Réalisé', 'Avancement (%)', 'Reste à faire', 'Statut', 'Taux commission (%)', 'Commission', 'Unité'], ';', '"', '\\');
             foreach ($d['lignes'] as $r) {

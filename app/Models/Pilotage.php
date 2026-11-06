@@ -1665,8 +1665,10 @@ class Pilotage
     {
         $orgId = (int) $user['organisation_id'];
         $filialeIds = Filiale::visibleIdsFor($user);
-        $debut = $mois . '-01';
-        $fin = date('Y-m-t', strtotime($debut));
+        $per = ObjectifCollaborateur::periode($mois);
+        $mois = $per['cle'];
+        $debut = $per['debut'];
+        $fin = $per['fin'];
         $filtres = ['date_debut' => $debut, 'date_fin' => $fin, 'activite' => '', 'responsable_id' => ''];
         $commandes = empty($filialeIds) ? [] : self::commandesConfirmees($user, $filtres);
 
@@ -1683,7 +1685,7 @@ class Pilotage
 
         $reglages = ObjectifCollaborateur::reglages($orgId);
         $objectifs = ObjectifCollaborateur::objectifs($orgId, $mois);
-        $moisCourant = date('Y-m');
+        $aujourdhui = date('Y-m-d');
         $fonctionsListe = FonctionEquipe::disponible() ? FonctionEquipe::toutes($orgId) : [];
         $fonctionsParId = [];
         $ordreFonction = [];
@@ -1691,7 +1693,14 @@ class Pilotage
             $fonctionsParId[(int) $f['id']] = $f;
             $ordreFonction[(int) $f['id']] = $i;
         }
-        $ecoule = $mois === $moisCourant ? max(5, round((int) date('j') / (int) date('t') * 100)) : ($mois > $moisCourant ? 0 : 100);
+        if ($aujourdhui < $debut) {
+            $ecoule = 0;
+        } elseif ($aujourdhui > $fin) {
+            $ecoule = 100;
+        } else {
+            $totalJ = max(1, (int) ((strtotime($fin) - strtotime($debut)) / 86400) + 1);
+            $ecoule = max(5, round(((int) ((strtotime($aujourdhui) - strtotime($debut)) / 86400) + 1) / $totalJ * 100));
+        }
 
         $lignes = [];
         foreach (Utilisateur::allForOrganisation($orgId) as $u) {
@@ -1731,7 +1740,7 @@ class Pilotage
                 $statut = ['Pas d\'objectif', '#8A97A0'];
             } elseif ($pct >= 100) {
                 $statut = ['Atteint', '#1FA463'];
-            } elseif ($mois < $moisCourant) {
+            } elseif ($fin < $aujourdhui) {
                 $statut = ['Non atteint', '#E5484D'];
             } else {
                 $statut = $pct >= $ecoule * 0.8 ? ['En bonne voie', '#0B9AAE'] : ['En retard', '#F57C2B'];
@@ -1773,7 +1782,7 @@ class Pilotage
         $tot['reste'] = max(0.0, $tot['objectif'] - $tot['realise']);
         $tot['pct'] = $tot['objectif'] > 0 ? (int) round($tot['realise'] / $tot['objectif'] * 100) : null;
 
-        return ['mois' => $mois, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot, 'fonctions' => $fonctionsListe];
+        return ['mois' => $mois, 'periode' => $per, 'devise' => $devise, 'lignes' => $lignes, 'totaux' => $tot, 'fonctions' => $fonctionsListe];
     }
 
     /**

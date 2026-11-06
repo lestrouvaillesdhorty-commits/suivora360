@@ -22,7 +22,7 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
       <?php elseif ($onglet === 'activites'): ?>Comparez les résultats de vos activités
       <?php elseif ($onglet === 'pertes'): ?>Pourquoi on perd des devis
       <?php elseif ($onglet === 'atraiter'): ?>Devis, offres et demandes qui attendent une action
-      <?php elseif ($onglet === 'objectifs'): ?>Objectifs mensuels de marge et commissions par collaborateur
+      <?php elseif ($onglet === 'objectifs'): ?>Objectifs et commissions par collaborateur, sur le mois, le trimestre, l'année ou des dates libres
       <?php else: ?>Performance et contribution des collaborateurs<?php endif; ?>
     </div>
   </div>
@@ -175,7 +175,7 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
 <?php elseif ($onglet === 'atraiter'): ?>
   <?php View::renderPlain('pilotage/_atraiter', ['aTraiterData' => $aTraiterData, 'seuil' => $seuil, 'typeFiltre' => $typeFiltre, 'respFiltre' => $respFiltre, 'utilisateurs' => $utilisateurs]) ?>
 <?php elseif ($onglet === 'objectifs'): ?>
-  <?php View::renderPlain('pilotage/_objectifs', ['objectifsData' => $objectifsData, 'objectifsDispo' => $objectifsDispo, 'mois' => $mois, 'filters' => $filters]) ?>
+  <?php View::renderPlain('pilotage/_objectifs', ['objectifsData' => $objectifsData, 'objectifsDispo' => $objectifsDispo, 'mois' => $mois, 'filters' => $filters, 'periodeObj' => $periodeObj ?? null, 'comp' => $comp ?? 'prec', 'compData' => $compData ?? null, 'historique' => $historique ?? [], 'libreDispo' => $libreDispo ?? false]) ?>
 <?php else: ?>
-  <?php View::renderPlain('pilotage/_collaborateurs', ['collaborateursData' => $collaborateursData, 'achatsData' => $achatsData ?? null, 'filters' => $filters, 'qs' => $qs]) ?>
+  <?php View::renderPlain('pilotage/_collaborateurs', ['collaborateursData' => $collaborateursData, 'achatsData' => $achatsData ?? null, 'objectifsCollab' => $objectifsCollab ?? [], 'objectifsTotaux' => $objectifsTotaux ?? null, 'filters' => $filters, 'qs' => $qs]) ?>
 <?php endif; ?>

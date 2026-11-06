@@ -8,18 +8,21 @@ use App\Models\Pilotage;
 
 $d = $objectifsData;
 $devise = $filters['devise'];
-$moisCourant = date('Y-m');
-$prec = date('Y-m', strtotime($mois . '-01 -1 month'));
-$suiv = date('Y-m', strtotime($mois . '-01 +1 month'));
-$libMois = ['01' => 'Janvier', '02' => 'Février', '03' => 'Mars', '04' => 'Avril', '05' => 'Mai', '06' => 'Juin', '07' => 'Juillet', '08' => 'Août', '09' => 'Septembre', '10' => 'Octobre', '11' => 'Novembre', '12' => 'Décembre'];
-$titreMois = ($libMois[substr($mois, 5, 2)] ?? '') . ' ' . substr($mois, 0, 4);
-$urlMois = fn($m) => '/index.php?r=pilotage&onglet=objectifs&mois=' . $m . '&devise=' . rawurlencode($devise);
+$per = $periodeObj;
+$comp = $comp ?? 'prec';
+$compData = $compData ?? null;
+$historique = $historique ?? [];
+$libreDispo = $libreDispo ?? false;
+$titreMois = $per['label'];
+$base = '/index.php?r=pilotage&onglet=objectifs&devise=' . rawurlencode($devise) . '&comp=' . rawurlencode($comp);
+$urlMois = fn($m) => $base . '&mois=' . rawurlencode($m);
+$cleCourante = ObjectifCollaborateur::cleCourante($per['type'] === 'libre' ? 'mois' : $per['type']);
 
 $fonctions = $d['fonctions'] ?? [];
 $fonctionsDispo = FonctionEquipe::disponible();
 $derniereFct = '__init__';
 $fmtVal = fn($v, $type) => $type === 'money' ? Pilotage::fmt($v, $devise) : (string) (int) round($v);
-$exportUrl = '/index.php?r=pilotage/export.csv&onglet=objectifs&mois=' . $mois . '&devise=' . rawurlencode($devise);
+$exportUrl = '/index.php?r=pilotage/export.csv&onglet=objectifs&mois=' . rawurlencode($mois) . '&devise=' . rawurlencode($devise);
 ?>
 <div class="direction-banner"><?= Icon::svg('lock', 'icon', 14) ?> <strong>Vue direction</strong> · Objectifs, commissions et marges individuelles réservés aux rôles Propriétaire / Admin d'organisation / Finance.</div>
 
@@ -27,36 +30,87 @@ $exportUrl = '/index.php?r=pilotage/export.csv&onglet=objectifs&mois=' . $mois .
   <div class="card" style="margin-top:16px"><div class="empty-state">Cette fonction demande une mise à jour de la base : ouvrez <code>/migrate_v40.php?token=…</code> une fois, puis revenez ici.</div></div>
 <?php else: ?>
 
+<?php
+$typesPer = ['mois' => 'Mois', 'trimestre' => 'Trimestre', 'annee' => 'Année'] + ($libreDispo ? ['libre' => 'Dates libres'] : []);
+$evol = function (?float $r, ?float $p): string {
+    if ($p === null || $p <= 0 || $r === null) { return ''; }
+    $dv = ($r - $p) / $p * 100;
+    return '<span style="color:' . ($dv >= 0 ? '#17804B' : '#C2323A') . ';font-weight:600;white-space:nowrap">' . ($dv >= 0 ? '▲' : '▼') . ' ' . number_format(abs($dv), 0, ',', ' ') . ' %</span>';
+};
+$compLabel = $compData ? $compData['periode']['label'] : '';
+?>
 <div class="card" style="margin-top:16px">
-  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
-    <h2 style="margin:0">Objectifs — <?= View::e($titreMois) ?></h2>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <a class="btn btn-secondary btn-sm" href="<?= $urlMois($prec) ?>">← Mois précédent</a>
-      <?php if ($mois !== $moisCourant): ?><a class="btn btn-secondary btn-sm" href="<?= $urlMois($moisCourant) ?>">Mois en cours</a><?php endif; ?>
-      <a class="btn btn-secondary btn-sm" href="<?= $urlMois($suiv) ?>">Mois suivant →</a>
-      <select onchange="window.location='/index.php?r=pilotage&onglet=objectifs&mois=<?= $mois ?>&devise='+this.value" aria-label="Devise">
+  <div class="obj-periode">
+    <div class="obj-champ"><label>Type de période</label>
+      <div class="cc-toggle">
+        <?php foreach ($typesPer as $k => $lb): ?>
+          <a href="<?= View::e($k === 'libre' ? $base . '&mois=' . rawurlencode($per['type'] === 'libre' ? $mois : 'L' . $per['debut'] . '_' . $per['fin']) : $urlMois($per['type'] === $k ? $mois : ObjectifCollaborateur::cleCourante($k))) ?>" class="<?= $per['type'] === $k ? 'on' : '' ?>"><?= $lb ?></a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <div class="obj-champ"><label>Période</label>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <a class="btn btn-secondary btn-sm" href="<?= View::e($urlMois($per['prec'])) ?>" aria-label="Période précédente">←</a>
+        <strong><?= View::e($titreMois) ?></strong>
+        <a class="btn btn-secondary btn-sm" href="<?= View::e($urlMois($per['suiv'])) ?>" aria-label="Période suivante">→</a>
+        <?php if ($per['type'] !== 'libre' && $mois !== $cleCourante): ?><a class="btn btn-secondary btn-sm" href="<?= View::e($urlMois($cleCourante)) ?>">Période en cours</a><?php endif; ?>
+      </div>
+    </div>
+    <div class="obj-champ"><label for="objComp">Comparer à</label>
+      <select id="objComp" onchange="window.location='<?= View::e($urlMois($mois)) ?>'.replace(/&comp=[^&]*/, '&comp=' + this.value)">
+        <option value="prec" <?= $comp === 'prec' ? 'selected' : '' ?>>Période précédente</option>
+        <option value="an" <?= $comp === 'an' ? 'selected' : '' ?>>Même période l'an dernier</option>
+        <option value="aucune" <?= $comp === 'aucune' ? 'selected' : '' ?>>Aucune comparaison</option>
+      </select>
+    </div>
+    <div class="obj-champ"><label for="objDev">Devise</label>
+      <select id="objDev" onchange="window.location='/index.php?r=pilotage&onglet=objectifs&mois=<?= rawurlencode($mois) ?>&comp=<?= rawurlencode($comp) ?>&devise='+this.value">
         <option value="EUR" <?= $devise === 'EUR' ? 'selected' : '' ?>>€ EUR</option>
         <option value="FCFA" <?= $devise === 'FCFA' ? 'selected' : '' ?>>FCFA</option>
         <option value="XAF" <?= $devise === 'XAF' ? 'selected' : '' ?>>XAF</option>
       </select>
     </div>
   </div>
-  <p class="kpi-note" style="margin:8px 0 14px"><?= Icon::svg('info', 'icon', 12) ?> Chaque personne a son indicateur : marge, chiffre d'affaires HT ou nombre de commandes confirmées dans le mois. Commission = taux × réalisé (indicateurs en montant). L'attribution se choisit par personne : responsable du dossier, ou auteur de l'offre retenue.</p>
+  <?php if ($per['type'] === 'libre'): ?>
+  <form method="get" action="/index.php" class="obj-periode" style="margin-top:10px">
+    <input type="hidden" name="r" value="pilotage"><input type="hidden" name="onglet" value="objectifs"><input type="hidden" name="type" value="libre">
+    <input type="hidden" name="devise" value="<?= View::e($devise) ?>"><input type="hidden" name="comp" value="<?= View::e($comp) ?>">
+    <div class="obj-champ"><label for="objDu">Du</label><input type="date" id="objDu" name="du" value="<?= View::e($per['debut']) ?>" required></div>
+    <div class="obj-champ"><label for="objAu">Au</label><input type="date" id="objAu" name="au" value="<?= View::e($per['fin']) ?>" required></div>
+    <div class="obj-champ"><label>&nbsp;</label><button type="submit" class="btn btn-secondary btn-sm">Appliquer</button></div>
+  </form>
+  <?php endif; ?>
+  <p class="kpi-note" style="margin:10px 0 4px"><?= Icon::svg('info', 'icon', 12) ?> Chaque objectif est comparé au réalisé sur <strong>sa propre période</strong><?= $compData ? ' ; comparaison avec : ' . View::e($compLabel) : '' ?>.</p>
+</div>
+
+<?php $tt = $d['totaux']; $tc = $compData['totaux'] ?? null; ?>
+<div class="kpi-row" style="margin-top:14px">
+  <div class="kpi-card"><div class="kpi-icon blue"><?= Icon::svg('target') ?></div><div class="kpi-body"><div class="kpi-label">Objectif de l'équipe (montants)</div><div class="kpi-value"><?= Pilotage::fmt($tt['objectif'], $devise) ?></div></div></div>
+  <div class="kpi-card"><div class="kpi-icon green"><?= Icon::svg('bar-chart-2') ?></div><div class="kpi-body"><div class="kpi-label">Réalisé</div><div class="kpi-value"><?= Pilotage::fmt($tt['realise'], $devise) ?></div><div class="kpi-sub"><?= $tc ? $evol($tt['realise'], $tc['realise']) . ' vs ' . View::e($compData['periode']['court']) : '' ?></div></div></div>
+  <div class="kpi-card"><div class="kpi-icon orange"><?= Icon::svg('percent') ?></div><div class="kpi-body"><div class="kpi-label">Avancement</div><div class="kpi-value"><?= $tt['pct'] !== null ? (int) $tt['pct'] . ' %' : '—' ?></div><?php if ($tt['pct'] !== null): ?><div class="hbar-track" style="margin-top:8px"><div class="hbar-fill" style="width:<?= min(100, (int) $tt['pct']) ?>%;background:<?= $tt['pct'] >= 100 ? '#1FA463' : '#F5A524' ?>"></div></div><?php endif; ?></div></div>
+  <div class="kpi-card"><div class="kpi-icon violet"><?= Icon::svg('dollar-sign') ?></div><div class="kpi-body"><div class="kpi-label">Commissions estimées</div><div class="kpi-value"><?= Pilotage::fmt($tt['commission'], $devise) ?></div><div class="kpi-sub"><?= $tc ? $evol($tt['commission'], $tc['commission']) . ' vs ' . View::e($compData['periode']['court']) : '' ?></div></div></div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+    <h2 style="margin:0">Objectifs — <?= View::e($titreMois) ?></h2>
+  </div>
+  <p class="kpi-note" style="margin:8px 0 14px"><?= Icon::svg('info', 'icon', 12) ?> Chaque personne a son indicateur : marge, chiffre d'affaires HT ou nombre de commandes confirmées sur la période. Commission = taux × réalisé (indicateurs en montant). L'attribution se choisit par personne : responsable du dossier, ou auteur de l'offre retenue.</p>
 
   <form method="post" action="/index.php?r=pilotage/objectifs">
     <input type="hidden" name="csrf_token" value="<?= View::e(Auth::csrfToken()) ?>">
-    <input type="hidden" name="mois" value="<?= View::e($mois) ?>">
+    <input type="hidden" name="mois" value="<?= View::e($mois) ?>"><input type="hidden" name="comp" value="<?= View::e($comp) ?>">
     <input type="hidden" name="devise" value="<?= View::e($devise) ?>">
     <div style="overflow-x:auto"><style>.tbl-obj select,.tbl-obj input[type=text]{padding:6px 8px;font-size:13px;height:auto}.tbl-obj td,.tbl-obj th{padding-left:8px;padding-right:8px}.tbl-obj .num{white-space:nowrap}</style>
     <table class="pilotage-table responsive-cards tbl-obj">
       <thead><tr>
-        <th>Collaborateur</th><th>Fonction</th><th>Indicateur</th><th>Attribution</th><th class="num">Objectif</th><th class="num">Réalisé</th><th style="min-width:90px">Avancement</th><th class="num">Reste à faire</th><th>Statut</th><th class="num">Taux (%)</th><th class="num">Commission</th>
+        <th>Collaborateur</th><th>Fonction</th><th>Indicateur</th><th>Attribution</th><th class="num">Objectif</th><th class="num">Réalisé</th><th style="min-width:90px">Avancement</th><?php if ($compData): ?><th class="num">Réalisé <?= View::e($compData['periode']['court']) ?></th><?php endif; ?><th class="num">Reste à faire</th><th>Statut</th><th class="num">Taux (%)</th><th class="num">Commission</th>
       </tr></thead>
       <tbody>
       <?php foreach ($d['lignes'] as $l):
         $cleFct = (string) ($l['fonction_id'] ?? 0);
         if ($fonctionsDispo && $cleFct !== $derniereFct): $derniereFct = $cleFct; ?>
-        <tr class="groupe-fonction"><td colspan="11" style="background:<?= View::e($l['fonction_couleur']) ?>;color:#fff;font-weight:700;padding:6px 12px"><?= View::e($l['fonction'] ?? 'Sans fonction') ?></td></tr>
+        <tr class="groupe-fonction"><td colspan="12" style="background:<?= View::e($l['fonction_couleur']) ?>;color:#fff;font-weight:700;padding:6px 12px"><?= View::e($l['fonction'] ?? 'Sans fonction') ?></td></tr>
       <?php endif;
         $uid = $l['utilisateur_id']; $lib = $l['statut']; $coul = $l['couleur']; $t0 = $l['type']; ?>
         <tr>
@@ -93,6 +147,9 @@ $exportUrl = '/index.php?r=pilotage/export.csv&onglet=objectifs&mois=' . $mois .
               <small><?= $l['pct'] ?> %</small>
             <?php else: ?><span class="cell-na">—</span><?php endif; ?>
           </td>
+          <?php if ($compData): $pl = $compData['lignes'][$uid] ?? null; ?>
+          <td data-label="Réalisé <?= View::e($compData['periode']['court']) ?>" class="num"><?php if ($pl): ?><?= $fmtVal($pl['realise'], $t0) ?><br><?= $evol($l['realise'], $pl['realise']) ?><?php else: ?><span class="cell-na">—</span><?php endif; ?></td>
+          <?php endif; ?>
           <td data-label="Reste à faire" class="num"><?= $l['reste'] !== null ? $fmtVal($l['reste'], $t0) : '—' ?></td>
           <td data-label="Statut"><span class="badge" style="background:<?= $coul ?>;color:#fff"><?= View::e($lib) ?></span></td>
           <td data-label="Taux" class="num"><input type="text" inputmode="decimal" name="taux[<?= $uid ?>]" value="<?= $l['taux'] > 0 ? View::e((string) $l['taux']) : '' ?>" placeholder="0" style="width:56px;text-align:right"></td>
@@ -106,18 +163,35 @@ $exportUrl = '/index.php?r=pilotage/export.csv&onglet=objectifs&mois=' . $mois .
         <td class="num"><strong><?= Pilotage::fmt($t['objectif'], $devise) ?></strong></td>
         <td class="num"><strong><?= Pilotage::fmt($t['realise'], $devise) ?></strong></td>
         <td><?= $t['pct'] !== null ? '<small>' . $t['pct'] . ' %</small>' : '' ?></td>
+        <?php if ($compData): ?><td class="num"><strong><?= Pilotage::fmt($compData['totaux']['realise'], $devise) ?></strong></td><?php endif; ?>
         <td class="num"><strong><?= Pilotage::fmt($t['reste'], $devise) ?></strong></td><td></td><td></td>
         <td class="num"><strong><?= Pilotage::fmt($t['commission'], $devise) ?></strong></td>
       </tr></tfoot>
     </table></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
       <button type="submit" class="btn btn-primary" name="action" value="enregistrer">Enregistrer les objectifs et taux</button>
-      <button type="submit" class="btn btn-secondary" name="action" value="copier" formnovalidate>Reprendre les objectifs du mois précédent</button>
+      <button type="submit" class="btn btn-secondary" name="action" value="copier" formnovalidate>Reprendre les objectifs de la période précédente</button>
       <a class="btn btn-pilotage" href="<?= $exportUrl ?>"><?= Icon::svg('download', 'icon', 15) ?> Exporter vers Excel (CSV)</a>
     </div>
   </form>
-  <div class="kpi-note" style="margin-top:10px"><?= Icon::svg('info', 'icon', 12) ?> L'indicateur, l'attribution et le taux se règlent une fois par personne et valent pour tous les mois. L'export CSV s'ouvre directement dans Excel : tous les calculs (avancement, reste, commission) sont déjà faits. Les économies sur achats ne sont pas proposées : il faudrait d'abord un prix de référence par article.</div>
+  <div class="kpi-note" style="margin-top:10px"><?= Icon::svg('info', 'icon', 12) ?> L'indicateur, l'attribution et le taux se règlent une fois par personne et valent pour toutes les périodes. L'export CSV s'ouvre directement dans Excel : tous les calculs (avancement, reste, commission) sont déjà faits. Les économies sur achats ne sont pas proposées : il faudrait d'abord un prix de référence par article.</div>
 </div>
+
+<?php $mx = 0; foreach ($historique as $h0) { $mx = max($mx, $h0['objectif'], $h0['realise']); } if (count($historique) > 1 && $mx > 0): $nh = count($historique); ?>
+<div class="card" style="margin-top:18px">
+  <h2>Objectif et réalisé — <?= $nh ?> dernières périodes</h2>
+  <p class="kpi-note" style="margin:6px 0 10px">Équipe, indicateurs en montant. Pour voir l'évolution d'un coup d'œil.</p>
+  <svg viewBox="0 0 640 210" style="width:100%;height:auto" role="img" aria-label="Objectif et réalisé par période">
+    <line x1="30" y1="170" x2="630" y2="170" stroke="#C9D3DD"/>
+    <?php foreach ($historique as $i => $h0): $x = 50 + $i * (580 / $nh); $ho = $h0['objectif'] / $mx * 150; $hr = $h0['realise'] / $mx * 150; ?>
+      <rect x="<?= round($x, 1) ?>" y="<?= round(170 - $ho, 1) ?>" width="26" height="<?= round($ho, 1) ?>" rx="3" fill="#C9D3DD"/>
+      <rect x="<?= round($x + 30, 1) ?>" y="<?= round(170 - $hr, 1) ?>" width="26" height="<?= round($hr, 1) ?>" rx="3" fill="#2F6FED"/>
+      <text x="<?= round($x + 28, 1) ?>" y="190" font-size="11" text-anchor="middle" fill="#1B2B3A"><?= View::e($h0['court']) ?></text>
+    <?php endforeach; ?>
+  </svg>
+  <div class="linechart-legend"><span class="leg-item"><span class="dot" style="background:#C9D3DD"></span>Objectif</span><span class="leg-item"><span class="dot" style="background:#2F6FED"></span>Réalisé</span></div>
+</div>
+<?php endif; ?>
 
 <div class="card" style="margin-top:18px">
   <h2>Fonctions de l'équipe</h2>
@@ -127,7 +201,7 @@ $exportUrl = '/index.php?r=pilotage/export.csv&onglet=objectifs&mois=' . $mois .
   <?php else: ?>
   <form method="post" action="/index.php?r=pilotage/fonctions">
     <input type="hidden" name="csrf_token" value="<?= View::e(Auth::csrfToken()) ?>">
-    <input type="hidden" name="mois" value="<?= View::e($mois) ?>">
+    <input type="hidden" name="mois" value="<?= View::e($mois) ?>"><input type="hidden" name="comp" value="<?= View::e($comp) ?>">
     <input type="hidden" name="devise" value="<?= View::e($devise) ?>">
     <div style="overflow-x:auto"><table class="pilotage-table" style="white-space:nowrap">
       <thead><tr><th>Nom de la fonction</th><th>Indicateur par défaut</th><th>Attribution par défaut</th><th class="num">Taux (%)</th><th></th></tr></thead>

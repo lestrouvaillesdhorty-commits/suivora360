@@ -1343,3 +1343,7 @@ td .btn-sm[title="Récapitulatif"]:hover { background:#5F3FC4; }
   .cc-table td.rk::before { content: "Rang "; }
   .cc-table td.lk { justify-content: flex-start; }
 }
+
+.obj-periode { display: flex; gap: 14px 18px; flex-wrap: wrap; align-items: flex-end; }
+.obj-champ { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+.obj-champ label { font-size: 11px; font-weight: 700; color: #5B6B7B; }
