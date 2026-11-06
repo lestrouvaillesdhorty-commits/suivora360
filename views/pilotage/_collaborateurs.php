@@ -74,6 +74,45 @@ $palAv = ['#2F6FED', '#7C5CE0', '#0B9AAE', '#F57C2B', '#1FA463', '#D6409F'];
 <?php if (empty($lignes)): ?>
   <div class="card"><div class="empty-state">Aucun dossier avec commande confirmée sur la période (population : responsable désigné du dossier).</div></div>
 <?php else: ?>
+<?php
+$nbCollab = count($lignes);
+$vueCollab = $_GET['vue_collab'] ?? ($nbCollab > 4 ? 'tableau' : 'cartes');
+if (!in_array($vueCollab, ['cartes', 'tableau'], true)) { $vueCollab = 'cartes'; }
+$baseVue = '/index.php?' . http_build_query(array_merge($_GET, ['r' => 'pilotage', 'onglet' => 'collaborateurs']));
+$palAv2 = $palAv;
+?>
+<div class="cc-barre">
+  <div><h2 style="margin:0">Classement des <?= $nbCollab ?> collaborateur<?= $nbCollab > 1 ? 's' : '' ?></h2><div class="cc-sub" style="margin:2px 0 0">Trié par marge attribuée.</div></div>
+  <?php if ($nbCollab > 1): ?>
+  <div class="cc-toggle"><a href="<?= View::e($baseVue . '&vue_collab=cartes') ?>" class="<?= $vueCollab === 'cartes' ? 'on' : '' ?>">Cartes</a><a href="<?= View::e($baseVue . '&vue_collab=tableau') ?>" class="<?= $vueCollab === 'tableau' ? 'on' : '' ?>">Tableau</a></div>
+  <?php endif; ?>
+</div>
+
+<?php if ($vueCollab === 'tableau'): ?>
+<div class="card cc-tab-card">
+<table class="cc-table">
+  <thead><tr><th>Rang</th><th>Collaborateur</th><th class="n">Ventes HT</th><th class="n">Marge</th><th class="n">Part de l'équipe</th><th class="n">Transformation</th><th class="n">Objectif du mois</th><th></th></tr></thead>
+  <tbody>
+  <?php foreach ($lignes as $rang => $r):
+      $uid = (int) $r['utilisateur_id'];
+      $o = $objectifsCollab[$uid] ?? null;
+      $part = $teamMarge > 0 ? round($r['marge_attribuee'] / $teamMarge * 100, 1) : 0;
+  ?>
+  <tr>
+    <td data-l="Rang" class="rk"><?= $rang + 1 ?></td>
+    <td data-l="Collaborateur" class="nm"><?= Icon::avatar($r['nom'], 30) ?><b><?= View::e($r['nom']) ?></b><?= FonctionEquipe::badge($fonctionsUtilisateurs[$uid] ?? null) ?></td>
+    <td data-l="Ventes HT" class="n"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></td>
+    <td data-l="Marge" class="n"><?= Pilotage::fmt($r['marge_attribuee'], $filters['devise']) ?></td>
+    <td data-l="Part de l'équipe" class="n"><span class="hbar-track cc-mini"><span class="hbar-fill" style="width:<?= min(100, $part) ?>%;background:#1FA463"></span></span><span><?= Pilotage::fmtPct($part) ?></span></td>
+    <td data-l="Transformation" class="n"><?= Pilotage::fmtPct($r['transformation']['taux'] ?? null) ?></td>
+    <td data-l="Objectif du mois" class="n"><?php if ($o && $o['objectif'] !== null): ?><span class="hbar-track cc-mini"><span class="hbar-fill" style="width:<?= min(100, (int) ($o['pct'] ?? 0)) ?>%;background:<?= View::e($o['couleur']) ?>"></span></span><span style="color:<?= View::e($o['couleur']) ?>;font-weight:700"><?= (int) ($o['pct'] ?? 0) ?> %</span><?php else: ?><span class="cell-na">—</span><?php endif; ?></td>
+    <td class="lk"><a href="<?= pcDetailUrl($uid, $filters, $qs) ?>">Voir</a></td>
+  </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
+</div>
+<?php else: ?>
 <div class="collab-grid">
   <?php foreach ($lignes as $rang => $r):
       $uid = (int) $r['utilisateur_id'];
@@ -113,13 +152,14 @@ $palAv = ['#2F6FED', '#7C5CE0', '#0B9AAE', '#F57C2B', '#1FA463', '#D6409F'];
   </div>
   <?php endforeach; ?>
 </div>
+<?php endif; ?>
 
 <div class="chart-row">
   <div class="card">
-    <h2>Ventes et marge par collaborateur</h2>
+    <h2>Ventes et marge<?= $nbCollab > 5 ? ' — 5 premiers' : ' par collaborateur' ?></h2>
     <div class="hbar-list">
-      <?php $maxV = max(array_column($lignes, 'ventes_ht')) ?: 1; ?>
-      <?php foreach ($lignes as $r): ?>
+      <?php $top = array_slice($lignes, 0, 5); $maxV = max(array_column($top, 'ventes_ht')) ?: 1; ?>
+      <?php foreach ($top as $r): ?>
       <div class="hbar-item">
         <div class="hbar-label"><span><?= View::e($r['nom']) ?></span></div>
         <div class="hbar-row"><div class="hbar-track"><div class="hbar-fill" style="width:<?= round($r['ventes_ht'] / $maxV * 100) ?>%;background:#2F6FED"></div></div><div class="hbar-value"><?= Pilotage::fmt($r['ventes_ht'], $filters['devise']) ?></div></div>
@@ -128,6 +168,7 @@ $palAv = ['#2F6FED', '#7C5CE0', '#0B9AAE', '#F57C2B', '#1FA463', '#D6409F'];
       <?php endforeach; ?>
     </div>
     <div class="linechart-legend" style="margin-top:10px"><span class="leg-item"><span class="dot" style="background:#2F6FED"></span>Ventes HT</span><span class="leg-item"><span class="dot" style="background:#1FA463"></span>Marge</span></div>
+    <?php if ($nbCollab > 5): ?><a href="<?= View::e($baseVue . '&vue_collab=tableau') ?>" class="cc-lien">Voir tous (<?= $nbCollab ?>) dans le tableau</a><?php endif; ?>
   </div>
 
   <div class="card">
