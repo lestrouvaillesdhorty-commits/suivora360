@@ -1,0 +1,17 @@
+{
+  "name": "Suivora360",
+  "short_name": "Suivora360",
+  "description": "La maîtrise de vos opérations.",
+  "start_url": "/index.php?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E3A4A",
+  "theme_color": "#0E3A4A",
+  "lang": "fr",
+  "icons": [
+    { "src": "/assets/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/img/logo-icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/assets/img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

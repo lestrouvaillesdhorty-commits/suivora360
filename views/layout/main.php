@@ -20,6 +20,12 @@ function navActive(string $path, string $prefix): string {
 <title>Suivora360</title>
 <link rel="icon" href="/favicon.ico?v=59">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=59">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0E3A4A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Suivora360">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="/assets/css/app.css?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/css/app.css') ?>">
 </head>
 <body<?= $currentUser ? ' data-uid="' . (int) $currentUser['id'] . '"' : '' ?>>
@@ -180,5 +186,6 @@ function navActive(string $path, string $prefix): string {
 <?php if ($currentUser): ?><script src="/assets/js/alertes.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/alertes.js') ?>"></script><?php endif; ?>
 <?php if ($currentUser): ?><script src="/assets/js/etapes.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/etapes.js') ?>"></script><?php endif; ?>
 <?php if ($currentUser): ?><script src="/assets/js/brouillon.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/brouillon.js') ?>"></script><?php endif; ?>
+<script>if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); }); }</script>
 </body>
 </html>

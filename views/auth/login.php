@@ -10,6 +10,12 @@ if ($flash) unset($_SESSION['flash']);
 <title>Connexion — Suivora360</title>
 <link rel="icon" href="/favicon.ico?v=59">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=59">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0E3A4A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Suivora360">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="/assets/css/app.css">
 <style>
 * { box-sizing:border-box; }
@@ -41,5 +47,6 @@ body { display:flex; align-items:center; justify-content:center; min-height:100v
     <button type="submit" class="btn" style="width:100%;justify-content:center;text-align:center">Se connecter</button>
   </form>
 </div>
+<script>if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); }); }</script>
 </body>
 </html>

@@ -2,3 +2,8 @@
 <Files ".env">
     Require all denied
 </Files>
+
+# Application installable (PWA) : bon type de fichier pour le manifeste
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
