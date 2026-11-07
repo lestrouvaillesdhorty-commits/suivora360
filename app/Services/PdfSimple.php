@@ -205,7 +205,15 @@ class PdfSimple
 
     // ------------------------------------------- mise en page « devis » (identique à l'aperçu)
 
-    private const TEAL = [0.043, 0.486, 0.541];
+    private array $teal = [0.043, 0.486, 0.541];
+
+    /** Couleur principale du document (#RRGGBB) : bandeau, tableau, total. */
+    public function couleur(?string $hex): void
+    {
+        if ($hex && preg_match('/^#[0-9A-Fa-f]{6}$/', $hex)) {
+            $this->teal = [hexdec(substr($hex, 1, 2)) / 255, hexdec(substr($hex, 3, 2)) / 255, hexdec(substr($hex, 5, 2)) / 255];
+        }
+    }
 
     public function espace(float $h): void
     {
@@ -270,7 +278,7 @@ class PdfSimple
             $yy -= 3;
         }
         $this->y = $haut - $h - 8;
-        $this->rect(self::MARGE, $this->y, self::W - 2 * self::MARGE, 2.5, self::TEAL);
+        $this->rect(self::MARGE, $this->y, self::W - 2 * self::MARGE, 2.5, $this->teal);
         $this->y -= 16;
     }
 
@@ -331,7 +339,7 @@ class PdfSimple
             $h = $nb * ($taille + 3) + 9;
             $this->assurerPlace($h + 4);
             if ($entete) {
-                $this->rect(self::MARGE, $this->y - $h, $utile, $h, self::TEAL);
+                $this->rect(self::MARGE, $this->y - $h, $utile, $h, $this->teal);
             }
             $x = self::MARGE;
             foreach ($pret as $i => [$a, $b]) {
@@ -375,7 +383,7 @@ class PdfSimple
             $this->y -= 4;
         }
         $this->y -= 3;
-        $this->rect($x1, $this->y, $larg, 1.6, self::TEAL);
+        $this->rect($x1, $this->y, $larg, 1.6, $this->teal);
         $this->y -= 20;
         $this->texte($x1, $this->y, $libelleTtc, 13, true, [0.11, 0.125, 0.19]);
         $this->texte($x2 - $this->largeur($valeurTtc, 13, true), $this->y, $valeurTtc, 13, true, [0.11, 0.125, 0.19]);

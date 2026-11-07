@@ -522,6 +522,7 @@ CREATE TABLE IF NOT EXISTS cotations (
     notes TEXT,
     version INT NOT NULL DEFAULT 1, -- migrate_v18.php : v1, v2... d'une cotation sur un même dossier
     cotation_precedente_id INT, -- migrate_v18.php : chaîne vers la version remplacée
+    montant_brut DECIMAL(14,2), remise_lignes_montant DECIMAL(14,2), remise_globale_pct DECIMAL(6,2), remise_globale_montant DECIMAL(14,2), remise_motif VARCHAR(255), adresse_livraison TEXT, -- migrate_v50.php
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -538,6 +539,7 @@ CREATE TABLE IF NOT EXISTS cotation_items (
     reference VARCHAR(100) NULL,
     marque VARCHAR(100) NULL,
     caracteristiques VARCHAR(255) NULL,
+    remise_pct DECIMAL(6,2) NULL, -- migrate_v50.php
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -607,6 +609,7 @@ CREATE TABLE IF NOT EXISTS factures (
     date_echeance DATE,
     statut VARCHAR(20) NOT NULL DEFAULT 'emise',
     notes TEXT,
+    numero_officiel VARCHAR(60), fichier VARCHAR(190), fichier_nom VARCHAR(255), -- migrate_v50.php
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -714,6 +717,7 @@ CREATE TABLE IF NOT EXISTS bon_commande_fournisseur_lignes (
     prix_unitaire DECIMAL(14,2),
     montant DECIMAL(14,2),
     ordre INT NOT NULL DEFAULT 0,
+    remise_pct DECIMAL(6,2), -- migrate_v50.php
     INDEX idx_bcfl_bon (bon_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -730,6 +734,7 @@ CREATE TABLE IF NOT EXISTS entreprise_infos ( -- migrate_v36.php : fiche « Mon 
     logo VARCHAR(190),
     devis_validite_jours INT NOT NULL DEFAULT 30,
     devis_conditions TEXT,
+    forme_juridique VARCHAR(100), capital VARCHAR(60), pays VARCHAR(10), regime_tva VARCHAR(190), couleur VARCHAR(7), mise_en_page VARCHAR(20), mentions_pied TEXT, -- migrate_v50.php
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

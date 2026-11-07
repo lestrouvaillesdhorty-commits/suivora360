@@ -8,7 +8,7 @@ $unites = \App\Models\Demande::UNITES;
 if (($item['unite'] ?? '') !== '' && !in_array($item['unite'], $unites, true)) { $unites[] = $item['unite']; }
 ?>
 <tr class="art-ligne"><td colspan="5" style="padding:0;border:0">
-  <div class="art-grid">
+  <div class="art-grid<?= !empty($avecRemise) ? ' avec-remise' : '' ?>">
     <?php if (!empty($articlesDemande)): ?>
     <div class="art-da"><label>Article de la demande concerné</label>
       <select name="item_demande_article[]">
@@ -24,6 +24,7 @@ if (($item['unite'] ?? '') !== '' && !in_array($item['unite'], $unites, true)) {
         <?php foreach ($unites as $u): ?><option <?= ($item['unite'] ?? '') === $u ? 'selected' : '' ?>><?= View::e($u) ?></option><?php endforeach; ?>
       </select></div>
     <div class="art-p"><label>Prix unitaire</label><input type="number" step="0.01" name="item_prix_unitaire[]" <?= ($item['cout'] ?? null) !== null && $item['cout'] !== '' ? 'data-cout="' . View::e((string) $item['cout']) . '"' : '' ?> value="<?= $num($item['prix_unitaire'] ?? null) ?>"></div>
+    <?php if (!empty($avecRemise)): ?><div class="art-rem"><label>Remise %</label><input type="number" step="0.01" min="0" max="100" name="item_remise[]" value="<?= $num($item['remise_pct'] ?? null) ?>"></div><?php endif; ?>
     <div class="art-m"><label>Montant</label><input type="text" class="art-montant" readonly tabindex="-1"></div>
     <div class="art-c"><label>Conditionnement</label><input type="text" name="item_conditionnement[]" value="<?= View::e((string) ($item['conditionnement'] ?? '')) ?>" placeholder="ex. sacs de 50 kg"></div>
     <div class="art-r"><label>Référence</label><input type="text" name="item_reference[]" value="<?= View::e((string) ($item['reference'] ?? '')) ?>"></div>

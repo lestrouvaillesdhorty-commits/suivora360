@@ -17,7 +17,9 @@ class CotationItem
     {
         $quantite = $data['quantite'] !== '' && $data['quantite'] !== null ? (float) $data['quantite'] : null;
         $prixUnitaire = $data['prix_unitaire'] !== '' && $data['prix_unitaire'] !== null ? (float) $data['prix_unitaire'] : null;
-        $montant = ($quantite !== null && $prixUnitaire !== null) ? round($quantite * $prixUnitaire, 2) : null;
+        $remise = ($data['remise_pct'] ?? '') !== '' && (float) $data['remise_pct'] > 0 ? min(100.0, round((float) str_replace(',', '.', (string) $data['remise_pct']), 2)) : null;
+        // Montant de la ligne = net de remise ; le prix unitaire reste le prix avant remise.
+        $montant = ($quantite !== null && $prixUnitaire !== null) ? round($quantite * $prixUnitaire * (1 - ($remise ?? 0) / 100), 2) : null;
 
         return \App\Core\Schema::insert('cotation_items', [
             'cotation_id' => $parentId,
@@ -32,6 +34,7 @@ class CotationItem
             'reference' => trim((string) ($data['reference'] ?? '')),
             'marque' => trim((string) ($data['marque'] ?? '')),
             'caracteristiques' => trim((string) ($data['caracteristiques'] ?? '')),
+            'remise_pct' => $remise,
         ]);
     }
 }

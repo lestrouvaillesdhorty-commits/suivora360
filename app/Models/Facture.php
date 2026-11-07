@@ -62,7 +62,19 @@ class Facture
             $now,
             $now,
         ]);
-        return (int) $pdo->lastInsertId();
+        $id = (int) $pdo->lastInsertId();
+        $maj = [];
+        if (\App\Core\Schema::colonne('factures', 'numero_officiel')) {
+            $maj['numero_officiel'] = mb_substr(trim((string) ($data['numero_officiel'] ?? '')), 0, 60) ?: null;
+        }
+        if (!empty($data['fichier']) && \App\Core\Schema::colonne('factures', 'fichier')) {
+            $maj['fichier'] = $data['fichier'];
+            $maj['fichier_nom'] = mb_substr((string) ($data['fichier_nom'] ?? ''), 0, 255);
+        }
+        if ($maj) {
+            $pdo->prepare('UPDATE factures SET ' . implode(', ', array_map(fn($c) => $c . ' = ?', array_keys($maj))) . ' WHERE id = ?')->execute(array_merge(array_values($maj), [$id]));
+        }
+        return $id;
     }
 
     public static function updateStatut(int $id, string $statut): void

@@ -160,6 +160,24 @@ class Cotation
         }
         $montantTva = $montantHt !== null ? round($montantTotal - $montantHt, 2) : null;
         $tauxChange = ($data['taux_change'] ?? '') !== '' && (float) $data['taux_change'] > 0 ? (float) $data['taux_change'] : null;
+        // Remises : le HT saisi est le NET. On retrouve le brut : net = (brut - remises lignes) x (1 - remise globale %).
+        $remiseLignes = 0.0;
+        foreach ($items as $it) {
+            $r = (float) str_replace(',', '.', (string) ($it['remise_pct'] ?? 0));
+            $q = (float) str_replace(',', '.', (string) ($it['quantite'] ?? 0));
+            $pu = (float) str_replace(',', '.', (string) ($it['prix_unitaire'] ?? 0));
+            if (trim((string) ($it['designation'] ?? '')) !== '' && $r > 0) {
+                $remiseLignes += $q * $pu * min(100.0, $r) / 100;
+            }
+        }
+        $remiseLignes = round($remiseLignes, 2);
+        $remiseGlobalePct = ($data['remise_globale_pct'] ?? '') !== '' ? max(0.0, min(100.0, (float) str_replace(',', '.', (string) $data['remise_globale_pct']))) : 0.0;
+        $montantBrut = $remiseGlobaleMontant = null;
+        if ($montantHt !== null && ($remiseLignes > 0 || $remiseGlobalePct > 0)) {
+            $apresLignes = $remiseGlobalePct < 100 ? $montantHt / (1 - $remiseGlobalePct / 100) : $montantHt;
+            $remiseGlobaleMontant = round($apresLignes - $montantHt, 2);
+            $montantBrut = round($apresLignes + $remiseLignes, 2);
+        }
         $margeMontant = ($montantAchat !== null) ? round(($montantHt ?? $montantTotal) - $montantAchat, 2) : null;
 
         // [ajouté 06/10, étape 3] Nouvelle version : même référence que la
@@ -198,6 +216,12 @@ class Cotation
                 'tva_taux' => $tvaTaux,
                 'montant_tva' => $montantTva,
                 'devise_achat' => ($data['devise_achat'] ?? '') !== '' ? trim($data['devise_achat']) : null,
+                'montant_brut' => $montantBrut,
+                'remise_lignes_montant' => $montantBrut !== null ? $remiseLignes : null,
+                'remise_globale_pct' => $remiseGlobalePct > 0 ? $remiseGlobalePct : null,
+                'remise_globale_montant' => $remiseGlobaleMontant,
+                'remise_motif' => $remiseGlobalePct > 0 ? mb_substr(trim((string) ($data['remise_motif'] ?? '')), 0, 255) : null,
+                'adresse_livraison' => trim((string) ($data['adresse_livraison'] ?? '')) ?: null,
             ]);
 
             if ($precedente) {

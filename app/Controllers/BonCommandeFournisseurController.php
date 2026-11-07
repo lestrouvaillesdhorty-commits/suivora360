@@ -335,6 +335,8 @@ class BonCommandeFournisseurController
             'lignes' => BonCommandeFournisseur::lignes((int) $bon['id']),
             'filiale' => $filiale,
             'organisation' => $org,
+            'info' => \App\Models\EntrepriseInfo::forFiliale((int) $bon['filiale_id']),
+            'logoUri' => \App\Models\EntrepriseInfo::logoDataUri(\App\Models\EntrepriseInfo::forFiliale((int) $bon['filiale_id'])),
             'emetteur' => Auth::user()['nom'] ?? '',
         ]);
     }

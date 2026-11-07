@@ -1,4 +1,4 @@
-<?php use App\Core\Auth; use App\Core\View; use App\Models\Demande; ?>
+<?php use App\Core\Auth; use App\Core\View; use App\Models\Demande; $avecRemise = \App\Core\Schema::colonne('cotation_items', 'remise_pct'); ?>
 <?php
 // [ajouté 06/10, étape 3] Nouvelle version d'une cotation : mêmes champs,
 // pré-remplis depuis $cotationPrecedente (null = création normale).
@@ -121,6 +121,16 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       <input type="hidden" name="achat_origine" id="achat_origine" value="<?= View::e($achatOrigine) ?>">
     <?php endif; ?>
 
+    <?php if ($avecRemise): ?>
+    <div class="rem-bloc">
+      <div class="form-row">
+        <div class="form-group"><label>Remise globale (%)</label><input type="number" step="0.01" min="0" max="100" name="remise_globale_pct" id="remise_globale_pct" value="<?= $vNum('remise_globale_pct') ?>" placeholder="ex. 2"></div>
+        <div class="form-group"><label>Motif de la remise globale</label><input type="text" name="remise_motif" maxlength="255" value="<?= View::e($v('remise_motif')) ?>" placeholder="Fidélité, volume…"></div>
+      </div>
+      <div class="hint" style="font-size:11.5px;color:#667">Les remises par ligne se saisissent dans les articles. Le montant HT ci-dessous est le <strong>net après remises</strong> ; la marge est calculée après remises et n'apparaît jamais sur le devis.</div>
+      <div id="rem-recap"></div>
+    </div>
+    <?php endif; ?>
     <div class="tot-bloc">
       <div class="form-row">
         <div class="form-group"><label>Montant HT (hors taxe)</label><input type="number" step="0.01" name="montant_ht" id="montant_ht" value="<?= $cotationPrecedente ? $vNum('montant_ht') : '' ?>"></div>
@@ -165,6 +175,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       </tbody></table>
     </div>
 
+    <div class="form-group"><label>Adresse de livraison (si différente de celle du client)</label><textarea name="adresse_livraison" rows="2" placeholder="Laisser vide pour reprendre l'adresse de livraison de la fiche client"><?= View::e($v('adresse_livraison')) ?></textarea></div>
     <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e($v('notes')) ?></textarea></div>
 
     <button type="submit" class="btn"><?= $cotationPrecedente ? 'Créer la nouvelle version' : 'Créer la cotation' ?></button>
@@ -205,13 +216,26 @@ document.getElementById('items-body').addEventListener('click', function (e) {
     if (!memeDevise() && !tauxManuel) { var t = (T[dOffre.value] || {})[dv.value]; taux.value = t ? String(Math.round(t * 1000000) / 1000000) : ''; }
   }
   function tauxEff() { return memeDevise() ? 1 : num(taux); }
+  var remL = 0, glob = $('remise_globale_pct');
   function sommeLignes() {
-    var s = 0, n = 0;
+    var s = 0, n = 0; remL = 0;
     body.querySelectorAll('tr').forEach(function (tr) {
-      var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value), m = tr.querySelector('.art-montant');
-      if (!isNaN(q) && !isNaN(p)) { s += q * p; n++; if (m) m.value = r2(q * p); } else if (m) m.value = '';
+      var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value), m = tr.querySelector('.art-montant'),
+          ri = tr.querySelector('[name="item_remise[]"]'), r = ri ? (parseFloat(ri.value) || 0) : 0;
+      if (!isNaN(q) && !isNaN(p)) { s += q * p; remL += q * p * Math.min(100, Math.max(0, r)) / 100; n++; if (m) m.value = r2(q * p * (1 - Math.min(100, Math.max(0, r)) / 100)); } else if (m) m.value = '';
     });
     return n ? s : null;
+  }
+  // Net HT = (brut - remises de lignes) x (1 - remise globale %). Affiche le détail sous le bloc des remises.
+  function net(brut) {
+    var g = glob ? Math.min(100, Math.max(0, parseFloat(glob.value) || 0)) : 0, apres = brut - remL, rg = apres * g / 100, n = apres - rg, rc = $('rem-recap');
+    if (rc) {
+      if (remL > 0.004 || rg > 0.004) {
+        var d = dv.value, L = function (a, b, c) { return '<div class="tl ' + (c || '') + '"><span>' + a + '</span><span>' + b + '</span></div>'; };
+        rc.innerHTML = L('Total brut HT', r2(brut) + ' ' + d) + (remL > 0.004 ? L('Remises sur lignes', '− ' + r2(remL) + ' ' + d, 'o') : '') + (rg > 0.004 ? L('Remise globale ' + g + ' %', '− ' + r2(rg) + ' ' + d, 'o') : '') + L('Total net HT', r2(n) + ' ' + d, 'n');
+      } else { rc.innerHTML = ''; }
+    }
+    return n;
   }
   function affTva() { var h = num(ht), t = num(ttc); $('aff-tva').textContent = (!isNaN(h) && !isNaN(t)) ? r2(t - h) + ' ' + dv.value : '—'; }
   function depuisHt() { var h = num(ht), t = num(tva); if (!isNaN(h)) ttc.value = r2(h * (1 + (isNaN(t) ? 0 : t) / 100)); affTva(); }
@@ -231,20 +255,21 @@ document.getElementById('items-body').addEventListener('click', function (e) {
     }
     var s = sommeLignes();
     if (auto) {
-      if (!isNaN(a) && !isNaN(tx) && tx > 0) ht.value = r2(a * tx * (1 + m / 100));
-      else if (s !== null) ht.value = r2(s);
+      if (!isNaN(a) && !isNaN(tx) && tx > 0) ht.value = r2(net(a * tx * (1 + m / 100)));
+      else if (s !== null) ht.value = r2(net(s));
       depuisHt();
     }
   }
   ht.addEventListener('input', function () { auto = false; depuisHt(); });
   ttc.addEventListener('input', function () { auto = false; var t = num(tva), v = num(ttc); if (!isNaN(v)) ht.value = r2(v / (1 + (isNaN(t) ? 0 : t) / 100)); affTva(); });
   tva.addEventListener('change', depuisHt);
+  if (glob) glob.addEventListener('input', function () { auto = true; recalc(); });
   [achat, marge].forEach(function (el) { if (el) el.addEventListener('input', function () { auto = true; recalc(); }); });
   taux.addEventListener('input', function () { tauxManuel = true; auto = true; recalc(); });
   dv.addEventListener('change', function () { tauxManuel = false; majTaux(); auto = true; recalc(); });
   body.addEventListener('input', function (e) {
     if (e.target.name === 'item_prix_unitaire[]') { e.target.removeAttribute('data-cout'); e.target.dataset.manuel = '1'; }
-    var s = sommeLignes(); if (auto && s !== null && isNaN(num(achat))) { ht.value = r2(s); depuisHt(); }
+    var s = sommeLignes(); if (auto && s !== null && isNaN(num(achat))) { ht.value = r2(net(s)); depuisHt(); } else if (auto && !isNaN(num(achat))) { recalc(); }
   });
   body.addEventListener('click', function () { setTimeout(sommeLignes, 0); });
   majTaux(); prevTx = tauxEff(); prevM = marge ? (parseFloat(marge.value) || 0) : 0; recalc(); affTva();

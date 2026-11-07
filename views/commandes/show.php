@@ -123,6 +123,7 @@
               <div>
                 <strong><?= View::e($f['reference']) ?></strong>
                 <div style="font-size:12px;color:#666"><?= Facture::TYPES[$f['type']] ?? $f['type'] ?> — <?= number_format((float) $f['montant'], 2, ',', ' ') ?> <?= View::e($f['devise']) ?></div>
+                <?php if (!empty($f['numero_officiel']) || !empty($f['fichier'])): ?><div style="font-size:12px;color:#666"><?= !empty($f['numero_officiel']) ? 'Facture officielle n° ' . View::e($f['numero_officiel']) : '' ?><?= !empty($f['numero_officiel']) && !empty($f['fichier']) ? ' · ' : '' ?><?php if (!empty($f['fichier'])): ?><a href="/index.php?r=factures/<?= (int) $f['id'] ?>/fichier">📎 <?= View::e($f['fichier_nom'] ?: 'Pièce jointe') ?></a><?php endif; ?></div><?php endif; ?>
               </div>
               <span class="badge <?= $f['statut'] === 'payee' ? 'badge-green' : ($f['statut'] === 'annulee' ? 'badge-red' : 'badge-blue') ?>"><?= Facture::STATUTS[$f['statut']] ?? $f['statut'] ?></span>
             </div>

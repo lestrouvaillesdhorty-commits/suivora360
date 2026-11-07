@@ -69,7 +69,12 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
       <div class="info-row"><span class="label">Marge</span><span><?= $cotation['marge_montant'] !== null ? number_format((float) $cotation['marge_montant'], 2, ',', ' ') . ' ' . View::e($cotation['devise']) : '—' ?><?= $cotation['marge_pourcentage'] !== null ? ' (' . rtrim(rtrim(number_format((float) $cotation['marge_pourcentage'], 2), '0'), '.') . '%)' : '' ?></span></div>
       <?php endif; ?>
       <?php $tt = \App\Services\DevisPdf::totaux($cotation); ?>
-      <div class="info-row"><span class="label">Montant HT</span><span><?= number_format($tt['ht'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></span></div>
+      <?php if ($tt['brut'] !== null): ?>
+      <div class="info-row"><span class="label">Total brut HT</span><span><?= number_format($tt['brut'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></span></div>
+      <?php if ($tt['remise_lignes'] > 0): ?><div class="info-row"><span class="label">Remises sur lignes</span><span>− <?= number_format($tt['remise_lignes'], 2, ',', ' ') ?></span></div><?php endif; ?>
+      <?php if ($tt['remise_globale'] > 0): ?><div class="info-row"><span class="label">Remise globale <?= rtrim(rtrim(number_format((float) $tt['remise_globale_pct'], 2, ',', ''), '0'), ',') ?> %<?= $tt['remise_motif'] !== '' ? ' (' . View::e($tt['remise_motif']) . ')' : '' ?></span><span>− <?= number_format($tt['remise_globale'], 2, ',', ' ') ?></span></div><?php endif; ?>
+      <?php endif; ?>
+      <div class="info-row"><span class="label">Montant <?= $tt['brut'] !== null ? 'net ' : '' ?>HT</span><span><?= number_format($tt['ht'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></span></div>
       <div class="info-row"><span class="label">TVA<?= $tt['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($tt['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '' ?></span><span><?= number_format($tt['tva'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></span></div>
       <div class="info-row"><span class="label">Total TTC facturé au client</span><span><strong><?= number_format((float) $cotation['montant_total'], 2, ',', ' ') ?> <?= View::e($cotation['devise']) ?></strong></span></div>
       <?php if (!empty($cotation['taux_change']) && (float) $cotation['taux_change'] != 1.0): ?>

@@ -9,6 +9,7 @@ $estModif = $bon !== null;
 $actionUrl = $estModif ? '/index.php?r=bons-commande/' . (int) $bon['id'] . '/modifier' : '/index.php?r=fournisseurs/' . (int) $fournisseur['id'] . '/bons-commande';
 $v = fn(string $k) => (string) ($old[$k] ?? '');
 $err = fn(string $k) => $erreurs[$k] ?? null;
+$avecRemise = \App\Core\Schema::colonne('bon_commande_fournisseur_lignes', 'remise_pct');
 $lignes = array_values((array) ($old['lignes'] ?? []));
 if (empty($lignes)) { $lignes = [['designation' => '', 'quantite' => '', 'unite' => '', 'prix_unitaire' => '']]; }
 $retourUrl = $estModif ? '/index.php?r=bons-commande/' . (int) $bon['id'] : '/index.php?r=fournisseurs/' . (int) $fournisseur['id'] . '&onglet=commandes';
@@ -54,7 +55,7 @@ $messageErreur = fn(?string $m) => $m ? '<div style="color:#991b1b;font-size:12p
     <h2>Lignes commandées</h2>
     <?= $messageErreur($err('lignes')) ?>
     <table class="responsive-cards" id="tableLignes">
-      <thead><tr><th>Désignation</th><th style="width:100px">Quantité</th><th style="width:90px">Unité</th><th style="width:130px">Prix unitaire</th><th style="width:120px" class="num">Montant</th><th style="width:40px"></th></tr></thead>
+      <thead><tr><th>Désignation</th><th style="width:100px">Quantité</th><th style="width:90px">Unité</th><th style="width:130px">Prix unitaire</th><?php if ($avecRemise): ?><th style="width:90px">Remise %</th><?php endif; ?><th style="width:120px" class="num">Montant</th><th style="width:40px"></th></tr></thead>
       <tbody id="lignesCorps">
       <?php foreach ($lignes as $i => $l): ?>
         <tr class="ligne">
@@ -62,6 +63,7 @@ $messageErreur = fn(?string $m) => $m ? '<div style="color:#991b1b;font-size:12p
           <td data-label="Quantité"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][quantite]" value="<?= View::e((string) ($l['quantite'] ?? '')) ?>" class="q"></td>
           <td data-label="Unité"><input type="text" name="lignes[<?= $i ?>][unite]" value="<?= View::e((string) ($l['unite'] ?? '')) ?>" maxlength="20" placeholder="kg, pièce…"></td>
           <td data-label="Prix unitaire"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][prix_unitaire]" value="<?= View::e((string) ($l['prix_unitaire'] ?? '')) ?>" class="pu"></td>
+          <?php if ($avecRemise): ?><td data-label="Remise %"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][remise_pct]" value="<?= View::e((string) ($l['remise_pct'] ?? '')) ?>" class="rem"></td><?php endif; ?>
           <td data-label="Montant" class="num montant" style="white-space:nowrap">—</td>
           <td><button type="button" class="btn btn-sm btn-secondary suppr" title="Retirer la ligne" aria-label="Retirer la ligne">×</button></td>
         </tr>
@@ -122,8 +124,8 @@ $messageErreur = fn(?string $m) => $m ? '<div style="color:#991b1b;font-size:12p
   function recalcul() {
     var total = 0, any = false;
     corps.querySelectorAll('tr.ligne').forEach(function (tr) {
-      var q = num(tr.querySelector('.q').value), p = num(tr.querySelector('.pu').value), cell = tr.querySelector('.montant');
-      if (q !== null && p !== null) { var m = Math.round(q * p * 100) / 100; total += m; any = true; cell.textContent = fmt(m); } else { cell.textContent = '—'; }
+      var q = num(tr.querySelector('.q').value), p = num(tr.querySelector('.pu').value), cell = tr.querySelector('.montant'), ri = tr.querySelector('.rem'), r = ri ? Math.min(100, Math.max(0, num(ri.value) || 0)) : 0;
+      if (q !== null && p !== null) { var m = Math.round(q * p * (1 - r / 100) * 100) / 100; total += m; any = true; cell.textContent = fmt(m); } else { cell.textContent = '—'; }
     });
     document.getElementById('totalBon').textContent = any ? fmt(total) : '—';
     document.getElementById('deviseTotal').textContent = document.getElementById('devise').value;

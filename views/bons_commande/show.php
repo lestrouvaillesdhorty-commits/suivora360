@@ -4,6 +4,7 @@ use App\Models\BonCommandeFournisseur as Bon;
 
 /** Fiche d'un bon de commande fournisseur. Variables : $bon, $lignes, $fournisseur, $accordClient (null = sans dossier), $peutGerer. */
 $fmt = fn($m) => number_format((float) $m, 2, ',', ' ');
+$avecRem = false; foreach ($lignes as $l0) { if ((float) ($l0['remise_pct'] ?? 0) > 0) { $avecRem = true; } }
 $base = '/index.php?r=bons-commande/' . (int) $bon['id'];
 $st = $bon['statut'];
 $corps = "Bonjour" . ($bon['destinataire_nom'] !== '' ? ' ' . $bon['destinataire_nom'] : '') . ",\n\n"
@@ -68,7 +69,7 @@ $mailto = $bon['destinataire_email'] !== ''
     <div class="card">
       <h2>Lignes commandées</h2>
       <table class="responsive-cards">
-        <thead><tr><th>Désignation</th><th class="num">Quantité</th><th>Unité</th><th class="num">Prix unitaire</th><th class="num">Montant</th></tr></thead>
+        <thead><tr><th>Désignation</th><th class="num">Quantité</th><th>Unité</th><th class="num">Prix unitaire</th><?= $avecRem ? '<th class="num">Remise</th>' : '' ?><th class="num">Montant</th></tr></thead>
         <tbody>
         <?php foreach ($lignes as $l): ?>
           <tr>
@@ -76,11 +77,12 @@ $mailto = $bon['destinataire_email'] !== ''
             <td data-label="Quantité" class="num"><?= $l['quantite'] !== null ? View::e(rtrim(rtrim(number_format((float) $l['quantite'], 2, ',', ' '), '0'), ',')) : '—' ?></td>
             <td data-label="Unité"><?= View::e($l['unite']) ?: '—' ?></td>
             <td data-label="Prix unitaire" class="num"><?= $l['prix_unitaire'] !== null ? $fmt($l['prix_unitaire']) : '—' ?></td>
+            <?= $avecRem ? '<td data-label="Remise" class="num">' . ((float) ($l['remise_pct'] ?? 0) > 0 ? View::e(rtrim(rtrim(number_format((float) $l['remise_pct'], 2, ',', ''), '0'), ',')) . ' %' : '') . '</td>' : '' ?>
             <td data-label="Montant" class="num"><?= $l['montant'] !== null ? $fmt($l['montant']) : '—' ?></td>
           </tr>
         <?php endforeach; ?>
         </tbody>
-        <tfoot><tr><td colspan="4" style="text-align:right;font-weight:700">Total (<?= View::e($bon['devise']) ?>)</td><td class="num" style="font-weight:700"><?= $fmt($bon['montant_total']) ?></td></tr></tfoot>
+        <tfoot><tr><td colspan="<?= $avecRem ? 5 : 4 ?>" style="text-align:right;font-weight:700">Total (<?= View::e($bon['devise']) ?>)</td><td class="num" style="font-weight:700"><?= $fmt($bon['montant_total']) ?></td></tr></tfoot>
       </table>
       <?php if (!empty($bon['notes'])): ?><div style="margin-top:12px"><strong style="font-size:13px">Instructions pour le fournisseur</strong><div style="white-space:pre-wrap;font-size:14px"><?= View::e($bon['notes']) ?></div></div><?php endif; ?>
     </div>

@@ -185,12 +185,14 @@ class BonCommandeFournisseur
             }
             $q = self::nombre($l['quantite'] ?? null);
             $pu = self::nombre($l['prix_unitaire'] ?? null);
-            $montant = ($q !== null && $pu !== null) ? round($q * $pu, 2) : null;
+            $rem = self::nombre($l['remise_pct'] ?? null);
+            $rem = ($rem !== null && $rem > 0) ? min(100.0, $rem) : null;
+            $montant = ($q !== null && $pu !== null) ? round($q * $pu * (1 - ($rem ?? 0) / 100), 2) : null;
             if ($montant !== null) {
                 $total += $montant;
             }
             $lignes[] = ['designation' => mb_substr($des, 0, 255), 'quantite' => $q, 'unite' => mb_substr(trim((string) ($l['unite'] ?? '')), 0, 20),
-                'prix_unitaire' => $pu, 'montant' => $montant, 'ordre' => $ordre++];
+                'prix_unitaire' => $pu, 'montant' => $montant, 'remise_pct' => $rem, 'ordre' => $ordre++];
         }
         return [$lignes, round($total, 2)];
     }
@@ -199,9 +201,10 @@ class BonCommandeFournisseur
     {
         $pdo = Database::connection();
         $pdo->prepare('DELETE FROM bon_commande_fournisseur_lignes WHERE bon_id = ?')->execute([$bonId]);
-        $ins = $pdo->prepare('INSERT INTO bon_commande_fournisseur_lignes (bon_id, designation, quantite, unite, prix_unitaire, montant, ordre) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $avecRemise = \App\Core\Schema::colonne('bon_commande_fournisseur_lignes', 'remise_pct');
+        $ins = $pdo->prepare('INSERT INTO bon_commande_fournisseur_lignes (bon_id, designation, quantite, unite, prix_unitaire, montant, ordre' . ($avecRemise ? ', remise_pct' : '') . ') VALUES (?, ?, ?, ?, ?, ?, ?' . ($avecRemise ? ', ?' : '') . ')');
         foreach ($lignes as $l) {
-            $ins->execute([$bonId, $l['designation'], $l['quantite'], $l['unite'], $l['prix_unitaire'], $l['montant'], $l['ordre']]);
+            $ins->execute(array_merge([$bonId, $l['designation'], $l['quantite'], $l['unite'], $l['prix_unitaire'], $l['montant'], $l['ordre']], $avecRemise ? [$l['remise_pct'] ?? null] : []));
         }
     }
 

@@ -757,6 +757,10 @@ $router->post('/dossiers/{id}/factures', function ($params) {
     Auth::requireLogin();
     (new FactureController())->store($params);
 });
+$router->get('/factures/{id}/fichier', function ($params) {
+    Auth::requireLogin();
+    (new FactureController())->fichier($params);
+});
 $router->post('/factures/{id}/statut', function ($params) {
     Auth::requireLogin();
     (new FactureController())->updateStatut($params);

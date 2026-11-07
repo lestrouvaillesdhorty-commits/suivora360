@@ -150,6 +150,7 @@ class CotationController
                 'reference' => $_POST['item_reference'][$i] ?? '',
                 'marque' => $_POST['item_marque'][$i] ?? '',
                 'caracteristiques' => $_POST['item_caracteristiques'][$i] ?? '',
+                'remise_pct' => $_POST['item_remise'][$i] ?? '',
             ];
         }
 
