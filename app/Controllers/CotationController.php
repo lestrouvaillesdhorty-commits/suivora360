@@ -171,6 +171,9 @@ class CotationController
         }
         $_POST['offre_id'] = \App\Core\Tenant::offreDuDossier($_POST['offre_id'] ?? 0, (int) $dossier['id']);
         $cotationId = Cotation::create((int) $dossier['id'], (int) $dossier['filiale_id'], $_POST, $items, $cotationPrecedente);
+        if (Dossier::rouvrirSiPerdu((int) $dossier['id'])) {
+            AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'dossier_rouvert', 'dossier', (int) $dossier['id'], 'Nouvelle cotation');
+        }
 
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], $cotationPrecedente ? 'revision_cotation' : 'creation_cotation', 'cotation', $cotationId);
         View::flash('succes', $cotationPrecedente ? 'Nouvelle version de la cotation créée.' : 'Cotation créée.');
@@ -234,6 +237,14 @@ class CotationController
         Cotation::updateStatut((int) $cotation['id'], $nouveauStatut);
         if ($nouveauStatut === 'refusee') {
             Cotation::enregistrerPerte((int) $cotation['id'], $motifPerte, (string) ($_POST['motif_perte_detail'] ?? ''));
+            // Plus aucune cotation en jeu : le dossier est perdu (il sort des dossiers actifs et des retards).
+            if (!Dossier::aCotationEnJeu((int) $cotation['dossier_id']) && Dossier::marquerPerdu((int) $cotation['dossier_id'])) {
+                AuditLog::log((int) $cotation['filiale_id'], (int) $user['id'], 'dossier_perdu', 'dossier', (int) $cotation['dossier_id'], 'Cotation refusée');
+                View::flash('succes', 'Dossier passé en « perdu ». Il se rouvre si le client revient (nouvelle cotation ou cotation rouverte).');
+            }
+        } elseif (Dossier::rouvrirSiPerdu((int) $cotation['dossier_id'])) {
+            AuditLog::log((int) $cotation['filiale_id'], (int) $user['id'], 'dossier_rouvert', 'dossier', (int) $cotation['dossier_id'], 'Cotation rouverte');
+            View::flash('succes', 'Dossier rouvert : le client est revenu.');
         }
         if ($nouveauStatut === 'acceptee') {
             Dossier::avancerA((int) $cotation['dossier_id'], 'commande'); // parcours guidé : cotation acceptée → étape Commande

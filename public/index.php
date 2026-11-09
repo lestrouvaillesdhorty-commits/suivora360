@@ -445,6 +445,10 @@ $router->post('/dossiers/{id}/annuler', function ($params) {
     Auth::requireLogin();
     (new DossierController())->annuler($params);
 });
+$router->post('/dossiers/{id}/rouvrir', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->rouvrir($params);
+});
 $router->post('/dossiers/{id}/reactiver', function ($params) {
     Auth::requireLogin();
     (new DossierController())->reactiver($params);

@@ -296,6 +296,37 @@ class Dossier
         }
     }
 
+    // ----- Dossier perdu : toutes les cotations sont refusées ; il se rouvre si le client revient -----
+
+    public static function estPerdu(array $dossier): bool
+    {
+        return ($dossier['statut'] ?? '') === 'perdu';
+    }
+
+    /** Passe un dossier actif en « perdu » (vrai si le statut a changé). */
+    public static function marquerPerdu(int $id): bool
+    {
+        $stmt = Database::connection()->prepare("UPDATE dossiers SET statut = 'perdu', updated_at = ? WHERE id = ? AND statut = 'actif'");
+        $stmt->execute([date('Y-m-d H:i:s'), $id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /** Rouvre un dossier perdu (le client est revenu) : redevient actif, à l'étape où il était. */
+    public static function rouvrirSiPerdu(int $id): bool
+    {
+        $stmt = Database::connection()->prepare("UPDATE dossiers SET statut = 'actif', updated_at = ? WHERE id = ? AND statut = 'perdu'");
+        $stmt->execute([date('Y-m-d H:i:s'), $id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /** Reste-t-il une cotation encore en jeu (brouillon, envoyée, acceptée) sur ce dossier ? */
+    public static function aCotationEnJeu(int $id): bool
+    {
+        $stmt = Database::connection()->prepare("SELECT COUNT(*) FROM cotations WHERE dossier_id = ? AND statut IN ('brouillon', 'envoyee', 'acceptee')");
+        $stmt->execute([$id]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     // ----- [ajouté 08/10, demande de Marie Laure] Annulation d'un dossier (avec motif) -----
 
     public static function estAnnule(array $dossier): bool

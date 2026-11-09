@@ -42,7 +42,7 @@ $badgeTypeDossier = match ($typeDossier) {
     <?php if ($typeDossier === 'prestation_entreprise' && !empty($dossier['type_prestation'])): ?>
       <span class="badge badge-green"><?= View::e(Dossier::TYPES_PRESTATION_LABELS[$dossier['type_prestation']] ?? ucfirst($dossier['type_prestation'])) ?></span>
     <?php endif; ?>
-    <span class="badge <?= $dossier['statut'] === 'actif' ? 'badge-green' : 'badge-red' ?>"><?= $dossier['statut'] === 'annule' ? 'Annulé' : ($dossier['statut'] === 'cloture' ? 'Clôturé' : 'Actif') ?></span>
+    <span class="badge <?= $dossier['statut'] === 'actif' ? 'badge-green' : 'badge-red' ?>"><?= $dossier['statut'] === 'annule' ? 'Annulé' : ($dossier['statut'] === 'perdu' ? 'Perdu' : ($dossier['statut'] === 'cloture' ? 'Clôturé' : 'Actif')) ?></span>
     <?php if ($enRetard): ?><span class="badge badge-red">En retard</span><?php endif; ?>
   </div>
 </div>
@@ -53,6 +53,18 @@ $peutAnnuler = !$estAnnule && \App\Core\Auth::canWrite()
     && (\App\Core\Auth::isAdmin() || (int) $dossier['responsable_id'] === (int) (\App\Core\Auth::user()['id'] ?? 0));
 $csrfEntete = \App\Core\Auth::csrfToken();
 ?>
+<?php if (Dossier::estPerdu($dossier)): ?>
+<div class="alert" style="margin-top:12px;background:#fef3c7;color:#92400e">
+  <strong>Dossier perdu</strong> : toutes les cotations ont été refusées. Il n'est plus compté parmi les dossiers actifs ni en retard.
+  <br><span style="font-size:12.5px">Si le client revient, créez une nouvelle cotation ou rouvrez une cotation refusée : le dossier se rouvre tout seul. Vous pouvez aussi le rouvrir directement.</span>
+  <?php if (\App\Core\Auth::canWrite()): ?>
+  <form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/rouvrir" style="margin-top:8px">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfEntete) ?>">
+    <button type="submit" class="btn btn-sm btn-secondary">Rouvrir le dossier</button>
+  </form>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 <?php if ($estAnnule): ?>
 <div class="alert alert-erreur" style="margin-top:12px">
   <strong>Dossier annulé</strong><?php if (!empty($dossier['annule_le'])): ?> le <?= date('d/m/Y', strtotime($dossier['annule_le'])) ?><?php endif; ?><?php if (!empty($dossier['annule_par'])): ?> par <?= View::e(\App\Models\Utilisateur::nameOf((int) $dossier['annule_par'])) ?><?php endif; ?>.

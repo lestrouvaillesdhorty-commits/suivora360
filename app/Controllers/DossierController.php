@@ -67,7 +67,7 @@ class DossierController
         $base['statut'] = null;
         $base['mes_dossiers'] = null;
         $aujourdhui = date('Y-m-d');
-        $compteurs = ['tous' => 0, 'mes' => 0, 'actifs' => 0, 'en_retard' => 0, 'a_cloturer' => 0, 'clotures' => 0, 'annules' => 0];
+        $compteurs = ['tous' => 0, 'mes' => 0, 'actifs' => 0, 'en_retard' => 0, 'a_cloturer' => 0, 'clotures' => 0, 'annules' => 0, 'perdus' => 0];
         $base['inclure_annules'] = 1;
         $tous = Dossier::visibleFor($user, $base);
         foreach ($tous as $d) {
@@ -78,6 +78,10 @@ class DossierController
             $compteurs['tous']++;
             if ((int) $d['responsable_id'] === (int) $user['id']) {
                 $compteurs['mes']++;
+            }
+            if ($d['statut'] === 'perdu') {
+                $compteurs['perdus']++;
+                continue;
             }
             if ($d['statut'] === 'cloture') {
                 $compteurs['clotures']++;
@@ -556,6 +560,29 @@ class DossierController
         Dossier::annuler((int) $dossier['id'], $motif, (int) $user['id']);
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'annulation_dossier', 'dossier', (int) $dossier['id'], $motif);
         View::flash('succes', 'Dossier annulé. Il reste consultable dans l\'onglet « Annulés ».');
+        header('Location: /index.php?r=dossiers/' . $dossier['id']);
+        exit;
+    }
+
+    /** Le client est revenu : rouvre un dossier perdu. */
+    public function rouvrir(array $params): void
+    {
+        Auth::requireWrite();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: /index.php?r=dossiers/' . $params['id']);
+            exit;
+        }
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        if (Dossier::rouvrirSiPerdu((int) $dossier['id'])) {
+            AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'dossier_rouvert', 'dossier', (int) $dossier['id'], 'Réouverture manuelle');
+            View::flash('succes', 'Dossier rouvert.');
+        }
         header('Location: /index.php?r=dossiers/' . $dossier['id']);
         exit;
     }

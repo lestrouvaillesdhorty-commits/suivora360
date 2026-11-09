@@ -111,6 +111,9 @@ $tuiles = [
     <a href="<?= View::e($ongletLien(null, true)) ?>" class="<?= $ongletActif === 'mes' ? 'actif' : '' ?>">Mes dossiers (<?= (int) $compteurs['mes'] ?>)</a>
     <a href="<?= View::e($ongletLien('en_retard')) ?>" class="<?= $ongletActif === 'en_retard' ? 'actif' : '' ?>">En retard (<?= (int) $compteurs['en_retard'] ?>)</a>
     <a href="<?= View::e($ongletLien('cloture')) ?>" class="<?= $ongletActif === 'cloture' ? 'actif' : '' ?>">Clôturés (<?= (int) $compteurs['clotures'] ?>)</a>
+    <?php if (!empty($compteurs['perdus']) || $ongletActif === 'perdu'): ?>
+    <a href="<?= View::e($ongletLien('perdu')) ?>" class="<?= $ongletActif === 'perdu' ? 'actif' : '' ?>">Perdus (<?= (int) $compteurs['perdus'] ?>)</a>
+    <?php endif; ?>
     <?php if (!empty($compteurs['annules']) || $ongletActif === 'annule'): ?>
     <a href="<?= View::e($ongletLien('annule')) ?>" class="<?= $ongletActif === 'annule' ? 'actif' : '' ?>">Annulés (<?= (int) $compteurs['annules'] ?>)</a>
     <?php endif; ?>
@@ -187,6 +190,7 @@ $tuiles = [
         </td>
         <td data-label="Statut">
           <?php if ($d['statut'] === 'annule'): ?><span class="badge badge-red">Annulé</span>
+          <?php elseif ($d['statut'] === 'perdu'): ?><span class="badge badge-red">Perdu</span>
           <?php elseif ($d['statut'] === 'cloture'): ?><span class="badge badge-green">Clôturé</span>
           <?php elseif ($enRetard): ?><span class="badge badge-orange">En retard</span>
           <?php elseif ($aCloturer): ?><span class="badge badge-yellow">À clôturer</span>
