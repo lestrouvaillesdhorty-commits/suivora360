@@ -839,7 +839,7 @@ class Demande
     /**
      * Dernières demandes reçues (bloc "action rapide" du tableau de bord).
      */
-    public static function recentesFor(array $user, int $limite = 5, ?array $filialeIds = null, ?string $activite = null): array
+    public static function recentesFor(array $user, int $limite = 5, ?array $filialeIds = null, ?string $activite = null, ?array $statuts = null): array
     {
         $filialeIds = $filialeIds ?? Filiale::visibleIdsFor($user);
         if (empty($filialeIds)) {
@@ -850,6 +850,10 @@ class Demande
                 INNER JOIN filiales f ON f.id = d.filiale_id
                 WHERE d.filiale_id IN ($placeholders)";
         $params = $filialeIds;
+        if ($statuts) {
+            $sql .= ' AND d.statut IN (' . implode(',', array_fill(0, count($statuts), '?')) . ')';
+            $params = array_merge($params, array_values($statuts));
+        }
         if ($activite) {
             $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
             $params[] = $activite;

@@ -238,7 +238,7 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
     <?php $nbAQualifier = 0; foreach ($dernieresDemandes as $dd) { if (($dd['statut'] ?? '') === 'a_qualifier') { $nbAQualifier++; } } ?>
     <h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('inbox', 'icon', 17) ?> Nouvelles demandes <?php if ($nbAQualifier > 0): ?><span class="badge badge-blue"><?= $nbAQualifier ?> à qualifier</span><?php endif; ?></span><a href="/index.php?r=demandes" style="font-size:13px;font-weight:600">Toutes les demandes</a></h2>
     <?php if (empty($dernieresDemandes)): ?>
-      <div class="empty-state">Aucune demande pour le moment.</div>
+      <div class="empty-state">Aucune demande à traiter pour le moment.</div>
     <?php else: ?>
       <ul class="feed-list nd-list">
       <?php foreach (array_slice($dernieresDemandes, 0, 4) as $d): $aQ = ($d['statut'] ?? '') === 'a_qualifier'; ?>

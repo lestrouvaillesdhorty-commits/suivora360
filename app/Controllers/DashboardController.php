@@ -97,7 +97,7 @@ class DashboardController
         $livraisonsEnCours = Commande::livraisonsEnCoursFor($user, 10, $filialeIds, $activite ?: null);
         $livraisonsEnCoursCount = Commande::livraisonsEnCoursCount($user, $filialeIds, $activite ?: null);
 
-        $dernieresDemandes = Demande::recentesFor($user, 10, $filialeIds, $activite ?: null);
+        $dernieresDemandes = Demande::recentesFor($user, 10, $filialeIds, $activite ?: null, ['a_qualifier', 'en_attente_info']); // seulement les demandes encore à traiter
 
         $echeancesDemandes = array_map(
             fn($d) => ['type' => 'demande', 'reference' => $d['reference'], 'objet' => $d['objet'], 'echeance' => $d['echeance'], 'id' => $d['id']],
