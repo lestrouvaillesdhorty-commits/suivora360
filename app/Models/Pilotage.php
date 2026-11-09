@@ -403,6 +403,8 @@ class Pilotage
             'base' => $base,
             'devise' => $devise,
             'role' => in_array($input['role'] ?? '', array_keys(self::ROLES_COLLABORATEUR), true) ? $input['role'] : 'commercial',
+            // Onglet Collaborateurs : sélection de personnes à afficher (vide = tous ceux qui ont des ventes).
+            'collab_ids' => array_values(array_unique(array_filter(array_map('intval', is_array($input['collab'] ?? null) ? $input['collab'] : []), fn($i) => $i > 0))),
         ];
     }
 
@@ -1476,6 +1478,14 @@ class Pilotage
         $totalCouts = 0.0;
         $coutsConnus = false;
         $fraisParCollab = \App\Models\DossierFraisPro::parCollaborateur($user, $filters);
+        // Sélection manuelle : seules les personnes cochées, y compris celles sans vente sur la période (affichées à zéro).
+        $choisis = array_map('intval', (array) ($filters['collab_ids'] ?? []));
+        if ($choisis) {
+            $parResponsable = array_intersect_key($parResponsable, array_flip($choisis));
+            foreach ($choisis as $cid) {
+                $parResponsable[$cid] = $parResponsable[$cid] ?? ['ventes' => [], 'marges' => [], 'dossiers' => []];
+            }
+        }
         foreach ($parResponsable as $rid => $data) {
             $aggVentes = self::agregerMontants($data['ventes'], $filters['devise'], $filialeIds);
             $aggMarge = self::agregerMontants($data['marges'], $filters['devise'], $filialeIds);

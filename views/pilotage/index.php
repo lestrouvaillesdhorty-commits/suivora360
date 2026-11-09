@@ -127,6 +127,21 @@ function pilotageExportUrl(string $format, string $onglet, string $qs): string {
 
     <?php if ($onglet === 'collaborateurs'): ?>
     <div class="f-group">
+      <label>Collaborateurs affichés</label>
+      <details class="collab-pick">
+        <summary><?= $filters['collab_ids'] ? count($filters['collab_ids']) . ' choisi(s)' : 'Tous (avec ventes)' ?></summary>
+        <div class="collab-pick-box">
+          <div class="collab-pick-actions"><a href="#" id="cpTout">Tout cocher</a><a href="#" id="cpRien">Tout décocher</a></div>
+          <?php foreach ($utilisateurs as $u): if (isset($u['actif']) && !(int) $u['actif']) { continue; } ?>
+            <label class="collab-pick-ligne"><input type="checkbox" name="collab[]" value="<?= (int) $u['id'] ?>" <?= in_array((int) $u['id'], $filters['collab_ids'], true) ? 'checked' : '' ?>> <?= View::e($u['nom']) ?></label>
+          <?php endforeach; ?>
+          <button type="submit" class="btn btn-sm">Appliquer</button>
+          <div class="hint" style="font-size:11px;color:#667;margin-top:6px">Rien de coché = toutes les personnes qui ont des ventes. Coché = seulement ces personnes, même sans vente.</div>
+        </div>
+      </details>
+    </div>
+    <script>(function(){var c=function(v){document.querySelectorAll('.collab-pick input[type=checkbox]').forEach(function(i){i.checked=v;});};document.getElementById('cpTout').onclick=function(e){e.preventDefault();c(true);};document.getElementById('cpRien').onclick=function(e){e.preventDefault();c(false);};})();</script>
+    <div class="f-group">
       <label for="fRole">Rôle</label>
       <div class="f-input-wrap"><?= Icon::svg('briefcase', 'icon', 14) ?>
       <select name="role" id="fRole" onchange="this.form.submit()">
