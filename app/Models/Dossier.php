@@ -423,6 +423,33 @@ class Dossier
         }
     }
 
+    public static function colonnesMotifCloture(): bool
+    {
+        return \App\Core\Schema::colonne('dossiers', 'motif_cloture') && MotifPerte::disponible();
+    }
+
+    /** Le dossier a-t-il une commande ? (sinon sa clôture est une perte : motif obligatoire) */
+    public static function aCommande(int $id): bool
+    {
+        try {
+            $st = Database::connection()->prepare('SELECT COUNT(*) FROM commandes WHERE dossier_id = ?');
+            $st->execute([$id]);
+            return (int) $st->fetchColumn() > 0;
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    public static function enregistrerMotifCloture(int $id, int $filialeId, string $code, string $detail = ''): bool
+    {
+        if (!self::colonnesMotifCloture() || !MotifPerte::valide($filialeId, $code)) {
+            return false;
+        }
+        Database::connection()->prepare('UPDATE dossiers SET motif_cloture = ?, motif_cloture_detail = ?, motif_cloture_le = COALESCE(motif_cloture_le, ?) WHERE id = ?')
+            ->execute([$code, mb_substr(trim($detail), 0, 300) ?: null, date('Y-m-d H:i:s'), $id]);
+        return true;
+    }
+
     public static function updateEtape(int $id, string $etape): void
     {
         if (!in_array($etape, self::ETAPES, true)) {

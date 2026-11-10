@@ -40,7 +40,9 @@ class Cotation
         if (!self::colonnesPerte()) {
             return;
         }
-        $motif = isset(self::MOTIFS_PERTE[(string) $motif]) ? $motif : null;
+        $st = Database::connection()->prepare('SELECT filiale_id FROM cotations WHERE id = ?');
+        $st->execute([$id]);
+        $motif = MotifPerte::valide((int) $st->fetchColumn(), (string) $motif) ? $motif : null;
         Database::connection()->prepare('UPDATE cotations SET motif_perte = ?, motif_perte_detail = ? WHERE id = ?')
             ->execute([$motif, $motif ? mb_substr(trim($detail), 0, 300) : null, $id]);
     }

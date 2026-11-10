@@ -30,16 +30,61 @@ use App\Core\Auth;
 //    puisque le sélecteur réel est déjà vivant) reste volontairement non
 //    codée — choix délibéré, pas un oubli.
 ?>
+<?php
+// Clôture sans commande : un motif est obligatoire (liste modifiable dans Paramètres → Sous-activités et catégories).
+$sansCommande = empty($commande) && \App\Models\MotifPerte::disponible() && \App\Core\Schema::colonne('dossiers', 'motif_cloture');
+$motifsCloture = $sansCommande ? \App\Models\MotifPerte::actifs((int) $dossier['filiale_id']) : [];
+$motifDefaut = '';
+if ($sansCommande) {
+    $motifDefaut = (string) ($dossier['motif_cloture'] ?? '');
+    if ($motifDefaut === '') {
+        $st = \App\Core\Database::connection()->prepare("SELECT motif_perte FROM cotations WHERE dossier_id = ? AND statut = 'refusee' AND motif_perte IS NOT NULL AND motif_perte <> '' ORDER BY id DESC LIMIT 1");
+        try { $st->execute([(int) $dossier['id']]); $motifDefaut = (string) $st->fetchColumn(); } catch (\Throwable $e) { $motifDefaut = ''; }
+    }
+}
+?>
 <div class="card">
   <h2>Étape et suivi</h2>
-  <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/etape">
+  <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/etape" id="formEtape">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <label>Étape</label>
-    <select name="etape" class="stage-select" onchange="this.form.submit()">
+    <select name="etape" class="stage-select" id="selEtape" onchange="if (!window.etapeCloture || !window.etapeCloture(this)) this.form.submit()">
       <?php foreach (Dossier::ETAPES as $etape): ?>
         <option value="<?= $etape ?>" <?= $dossier['etape'] === $etape ? 'selected' : '' ?>><?= Dossier::ETAPES_LABELS[$etape] ?></option>
       <?php endforeach; ?>
     </select>
+    <?php if ($sansCommande && $dossier['etape'] !== 'cloture'): ?>
+    <div id="blocMotifCloture" style="display:none;margin-top:12px;padding:12px;border:1px solid #F3D98B;background:#FFF8E1;border-radius:10px">
+      <strong>Clôturer sans commande</strong>
+      <div class="hint" style="margin:4px 0 10px">Aucune commande n'est liée à ce dossier. Indiquez pourquoi il est clôturé : cela alimente l'indicateur Pertes du Pilotage.</div>
+      <label>Motif <span style="color:#C0392B">*</span></label>
+      <select name="motif_cloture" id="motifCloture">
+        <option value="">— Choisir un motif —</option>
+        <?php foreach ($motifsCloture as $k => $lb): ?><option value="<?= View::e($k) ?>" <?= $motifDefaut === $k ? 'selected' : '' ?>><?= View::e($lb) ?></option><?php endforeach; ?>
+      </select>
+      <label style="margin-top:8px">Précisions (facultatif)</label>
+      <input type="text" name="motif_cloture_detail" maxlength="300" placeholder="ex. le client a trouvé moins cher">
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button type="submit" class="btn btn-sm" id="btnCloture" disabled>Clôturer le dossier</button>
+        <button type="button" class="btn btn-sm btn-secondary" id="annulCloture">Annuler</button>
+      </div>
+    </div>
+    <script>
+    (function () {
+      var sel = document.getElementById('selEtape'), bloc = document.getElementById('blocMotifCloture');
+      var motif = document.getElementById('motifCloture'), btn = document.getElementById('btnCloture');
+      var initiale = <?= json_encode($dossier['etape']) ?>;
+      function maj() { btn.disabled = motif.value === ''; }
+      motif.addEventListener('change', maj); maj();
+      window.etapeCloture = function (s) {
+        if (s.value === 'cloture') { bloc.style.display = 'block'; return true; }
+        bloc.style.display = 'none'; return false;
+      };
+      sel.addEventListener('change', function () { if (sel.value === 'cloture') { bloc.style.display = 'block'; } });
+      document.getElementById('annulCloture').addEventListener('click', function () { sel.value = initiale; bloc.style.display = 'none'; });
+    })();
+    </script>
+    <?php endif; ?>
   </form>
 </div>
 

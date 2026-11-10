@@ -72,4 +72,51 @@ $ligne = function (string $prefixe, array $r, string $libelle, int $usage) use (
     <button class="btn btn-sm" type="submit">Ajouter</button>
   </form>
 </div>
+
+<div class="card">
+  <h2>Motifs de perte</h2>
+  <div style="font-size:13px;color:#666;margin-bottom:6px">Proposés quand un devis est refusé et quand un dossier est clôturé sans commande. Renommer change le libellé partout, y compris dans l'historique. Un motif déjà utilisé ne peut pas être supprimé : désactivez-le. « Autre (préciser) » reste toujours disponible.</div>
+  <?php if (!$motifsDispo): ?>
+    <div style="color:#888;font-size:14px;padding:6px 0">Cette fonction demande la dernière mise à jour de la base : lancez <strong>migrate_v51.php</strong>.</div>
+  <?php else: ?>
+  <?php foreach ($motifs as $r): $estAutre = $r['code'] === 'autre'; $ajoute = str_starts_with((string) $r['code'], 'm'); ?>
+  <div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #eee;flex-wrap:wrap">
+    <form method="post" action="/index.php?r=parametres/listes" style="display:flex;gap:8px;align-items:center;flex:1;min-width:240px;margin:0">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
+      <input type="hidden" name="action" value="mp_renommer">
+      <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+      <input type="text" name="nom" value="<?= View::e($r['libelle']) ?>" maxlength="120" style="flex:1;<?= $r['actif'] ? '' : 'opacity:.55' ?>" aria-label="Motif">
+      <button class="btn btn-sm btn-secondary" type="submit">Renommer</button>
+    </form>
+    <span style="font-size:12px;color:#666"><?= (int) $r['usages'] ?> utilisation<?= $r['usages'] > 1 ? 's' : '' ?><?= $ajoute ? ' · ajouté par vous' : '' ?></span>
+    <?php if (!$estAutre): ?>
+    <form method="post" action="/index.php?r=parametres/listes" style="margin:0">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
+      <input type="hidden" name="action" value="mp_basculer">
+      <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+      <button class="btn btn-sm btn-secondary" type="submit"><?= $r['actif'] ? 'Désactiver' : 'Réactiver' ?></button>
+    </form>
+    <?php endif; ?>
+    <?php if ($ajoute && (int) $r['usages'] === 0): ?>
+    <form method="post" action="/index.php?r=parametres/listes" style="margin:0" onsubmit="return confirm('Supprimer ce motif ?')">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
+      <input type="hidden" name="action" value="mp_supprimer">
+      <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+      <button class="btn btn-sm btn-secondary" type="submit">Supprimer</button>
+    </form>
+    <?php endif; ?>
+  </div>
+  <?php endforeach; ?>
+  <form method="post" action="/index.php?r=parametres/listes" style="display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
+    <input type="hidden" name="action" value="mp_ajouter">
+    <input type="text" name="nom" maxlength="120" placeholder="Nouveau motif (ex. Pas de fournisseur trouvé)" style="flex:1;min-width:200px" aria-label="Nouveau motif">
+    <button class="btn btn-sm" type="submit">Ajouter</button>
+  </form>
+  <?php endif; ?>
+</div>
 <?php endif; ?>

@@ -39,7 +39,7 @@ $bg = $badges[$cotation['statut']];
       <?php if (\App\Models\Cotation::colonnesPerte()): ?>
       <label for="motif" style="margin-top:10px">Si vous refusez, quelle en est la raison ? (facultatif)</label>
       <select id="motif" name="motif"><option value="">—</option>
-        <?php foreach (\App\Models\Cotation::MOTIFS_PERTE as $k => $lb): if ($k === 'sans_reponse') { continue; } ?><option value="<?= $k ?>"><?= View::e($lb) ?></option><?php endforeach; ?>
+        <?php foreach (\App\Models\MotifPerte::actifs((int) ($cotation['filiale_id'] ?? 0)) as $k => $lb): if ($k === 'sans_reponse') { continue; } ?><option value="<?= $k ?>"><?= View::e($lb) ?></option><?php endforeach; ?>
       </select>
       <?php endif; ?>
       <div class="act">

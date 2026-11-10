@@ -1830,8 +1830,14 @@ class Pilotage
         $pdo = Database::connection();
         $stmt = $pdo->prepare("SELECT co.id, co.reference, co.montant_total, co.devise, $sel, $dateExpr AS perdu_le, cl.nom AS client_nom,
                 d.id AS dossier_id, d.reference AS dossier_reference, d.responsable_id, d.filiale_id" . $base . $filtre . " ORDER BY $dateExpr DESC");
-        $stmt->execute(array_merge($params('refusee'), $extra));
-        $lignes = $stmt->fetchAll();
+        $type = (string) ($filters['type_perte'] ?? '');
+        if ($type === 'dossiers') {
+            $lignes = [];
+        } else {
+            $stmt->execute(array_merge($params('refusee'), $extra));
+            $lignes = $stmt->fetchAll();
+        }
+        $dossiersSansCommande = $type === 'devis' ? [] : self::dossiersClotures($filialeIds, $filters, $filtre, $extra);
 
         $stmt = $pdo->prepare('SELECT COUNT(*)' . $base . $filtre);
         $stmt->execute(array_merge($params('acceptee'), $extra));
@@ -1850,6 +1856,15 @@ class Pilotage
             $parMotif[$m]['ventes'][] = ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
             $montants[] = ['montant' => $l['montant_total'], 'devise' => $l['devise'], 'filiale_id' => $l['filiale_id']];
         }
+        // Dossiers clôturés sans commande (et sans devis refusé déjà compté ci-dessus) : même classement par motif, sans montant.
+        foreach ($dossiersSansCommande as $dc) {
+            $m = $dc['motif_cloture'] ?: '';
+            if ($m === '') {
+                $sansMotif++;
+            }
+            $parMotif[$m] = $parMotif[$m] ?? ['nb' => 0, 'ventes' => []];
+            $parMotif[$m]['nb']++;
+        }
         foreach ($parMotif as $k => $v) {
             $agg = self::agregerMontants($v['ventes'], $filters['devise'], $filialeIds);
             $parMotif[$k] = ['nb' => $v['nb'], 'montant' => (float) $agg['total']];
@@ -1859,6 +1874,8 @@ class Pilotage
         $nb = count($lignes);
         return [
             'lignes' => $lignes,
+            'dossiers_sans_commande' => $dossiersSansCommande,
+            'type_perte' => $type,
             'par_motif' => $parMotif,
             'nb' => $nb,
             'montant' => (float) $agg['total'],
@@ -1867,6 +1884,34 @@ class Pilotage
             'taux_perte' => ($nb + $acceptes) > 0 ? round($nb / ($nb + $acceptes) * 100, 1) : null,
             'acceptes' => $acceptes,
         ];
+    }
+
+    /**
+     * Dossiers clôturés sans commande dont la perte n'est pas déjà portée par un devis refusé
+     * (un dossier n'est compté qu'une fois). Vide tant que migrate_v51.php n'a pas été lancée.
+     */
+    private static function dossiersClotures(array $filialeIds, array $filters, string $filtre, array $extra): array
+    {
+        if (!Dossier::colonnesMotifCloture() || !$filialeIds) {
+            return [];
+        }
+        $ph = implode(',', array_fill(0, count($filialeIds), '?'));
+        $dateExpr = 'COALESCE(d.motif_cloture_le, d.updated_at)';
+        $sql = "SELECT d.id, d.reference, d.filiale_id, d.responsable_id, d.motif_cloture, d.motif_cloture_detail, $dateExpr AS cloture_le, cl.nom AS client_nom
+                FROM dossiers d
+                INNER JOIN demandes dm ON dm.id = d.demande_id
+                INNER JOIN clients cl ON cl.id = dm.client_id
+                WHERE d.filiale_id IN ($ph) AND d.etape = 'cloture' AND d.statut <> 'annule'
+                  AND NOT EXISTS (SELECT 1 FROM commandes c WHERE c.dossier_id = d.id)
+                  AND NOT EXISTS (SELECT 1 FROM cotations co WHERE co.dossier_id = d.id AND co.statut = 'refusee')
+                  AND $dateExpr >= ? AND $dateExpr <= ?" . $filtre . " ORDER BY $dateExpr DESC";
+        try {
+            $st = Database::connection()->prepare($sql);
+            $st->execute(array_merge($filialeIds, [$filters['date_debut'] . ' 00:00:00', $filters['date_fin'] . ' 23:59:59'], $extra));
+            return $st->fetchAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     public const TYPES_A_TRAITER = [

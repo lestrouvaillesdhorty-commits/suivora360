@@ -104,6 +104,8 @@ class ParametresController
             'usages' => \App\Models\SousActivite::usages($filialeId),
             'categories' => \App\Models\CategorieFournisseur::lignes($filialeId),
             'disponible' => \App\Models\SousActivite::disponible(),
+            'motifs' => \App\Models\MotifPerte::lignes($filialeId),
+            'motifsDispo' => \App\Models\MotifPerte::disponible(),
         ]);
     }
 
@@ -144,6 +146,18 @@ class ParametresController
                 break;
             case 'cat_basculer':
                 \App\Models\CategorieFournisseur::basculer($filialeId, $id);
+                break;
+            case 'mp_ajouter':
+                $ok = \App\Models\MotifPerte::ajouter($filialeId, $nom);
+                break;
+            case 'mp_renommer':
+                $ok = \App\Models\MotifPerte::renommer($filialeId, $id, $nom);
+                break;
+            case 'mp_basculer':
+                \App\Models\MotifPerte::basculer($filialeId, $id);
+                break;
+            case 'mp_supprimer':
+                $ok = \App\Models\MotifPerte::supprimer($filialeId, $id);
                 break;
             default:
                 $ok = false;

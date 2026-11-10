@@ -508,7 +508,20 @@ class DossierController
         }
         Dossier::refuserSiAnnule($dossier);
 
+        // Clôture sans commande = dossier perdu : un motif est obligatoire.
+        $motifCloture = '';
+        if (($_POST['etape'] ?? '') === 'cloture' && $dossier['etape'] !== 'cloture' && Dossier::colonnesMotifCloture() && !Dossier::aCommande((int) $dossier['id'])) {
+            $motifCloture = (string) ($_POST['motif_cloture'] ?? '');
+            if (!\App\Models\MotifPerte::valide((int) $dossier['filiale_id'], $motifCloture)) {
+                View::flash('erreur', 'Ce dossier n\'a pas de commande : indiquez le motif de la clôture avant de continuer.');
+                header('Location: /index.php?r=dossiers/' . $dossier['id']);
+                exit;
+            }
+        }
         Dossier::updateEtape((int) $dossier['id'], $_POST['etape'] ?? '');
+        if ($motifCloture !== '') {
+            Dossier::enregistrerMotifCloture((int) $dossier['id'], (int) $dossier['filiale_id'], $motifCloture, (string) ($_POST['motif_cloture_detail'] ?? ''));
+        }
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'maj_etape_dossier', 'dossier', (int) $dossier['id'], $_POST['etape'] ?? '');
         View::flash('succes', 'Étape mise à jour.');
         header('Location: /index.php?r=dossiers/' . $dossier['id']);
@@ -565,6 +578,23 @@ class DossierController
     }
 
     /** Le client est revenu : rouvre un dossier perdu. */
+    /** Renseigne (ou corrige) le motif d'un dossier clôturé sans commande — depuis l'onglet Pertes du Pilotage. */
+    public function motifCloture(array $params): void
+    {
+        Auth::requireWrite();
+        $user = Auth::user();
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess($user, $dossier) || !Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $ok = $dossier['etape'] === 'cloture' && Dossier::enregistrerMotifCloture((int) $dossier['id'], (int) $dossier['filiale_id'], (string) ($_POST['motif_cloture'] ?? ''), (string) ($_POST['motif_cloture_detail'] ?? ''));
+        View::flash($ok ? 'succes' : 'erreur', $ok ? 'Motif enregistré.' : 'Motif non enregistré : choisissez un motif de la liste.');
+        header('Location: ' . (str_starts_with((string) ($_POST['retour'] ?? ''), '/index.php?r=pilotage') ? $_POST['retour'] : '/index.php?r=dossiers/' . $dossier['id']));
+        exit;
+    }
+
     public function rouvrir(array $params): void
     {
         Auth::requireWrite();

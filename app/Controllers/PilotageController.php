@@ -49,7 +49,7 @@ class PilotageController
         } elseif ($onglet === 'activites') {
             $data['activitesData'] = Pilotage::activites($user, $filters);
         } elseif ($onglet === 'pertes') {
-            $data['pertesData'] = Pilotage::pertes($user, $filters);
+            $data['pertesData'] = Pilotage::pertes($user, $filters + ['type_perte' => in_array($_GET['type_perte'] ?? '', ['devis', 'dossiers'], true) ? $_GET['type_perte'] : '']);
         } elseif ($onglet === 'atraiter') {
             $seuil = max(1, min(90, (int) ($_GET['seuil'] ?? 3)));
             $type = array_key_exists($_GET['type'] ?? '', Pilotage::TYPES_A_TRAITER) ? $_GET['type'] : '';
@@ -269,13 +269,19 @@ class PilotageController
             $t = $vue['resultats_activite']['total'];
             fputcsv($out, ['Total', $t['commandes'], $t['ventes_ht'], $t['marge'], $t['marge_pct']], ';', '"', '\\');
         } elseif ($onglet === 'pertes') {
-            $d = Pilotage::pertes($user, $filters);
+            $d = Pilotage::pertes($user, $filters + ['type_perte' => in_array($_GET['type_perte'] ?? '', ['devis', 'dossiers'], true) ? $_GET['type_perte'] : '']);
             fputcsv($out, ['Devis', 'Client', 'Dossier', 'Responsable', 'Date de perte', 'Montant', 'Devise', 'Motif', 'Précision'], ';', '"', '\\');
             foreach ($d['lignes'] as $l) {
                 fputcsv($out, \App\Core\Csv::row([
                     $l['reference'], $l['client_nom'], $l['dossier_reference'], $l['responsable_id'] ? Utilisateur::nameOf((int) $l['responsable_id']) : 'Non assigné',
                     date('d/m/Y', strtotime((string) $l['perdu_le'])), $l['montant_total'], $l['devise'],
-                    \App\Models\Cotation::MOTIFS_PERTE[$l['motif_perte'] ?? ''] ?? 'Motif non renseigné', $l['motif_perte_detail'] ?? '',
+                    \App\Models\MotifPerte::libelle($l['motif_perte'] ?? '', (int) $l['filiale_id']), $l['motif_perte_detail'] ?? '',
+                ]), ';', '"', '\\');
+            }
+            foreach ($d['dossiers_sans_commande'] as $dc) {
+                fputcsv($out, \App\Core\Csv::row([
+                    '(sans devis)', $dc['client_nom'], $dc['reference'], $dc['responsable_id'] ? Utilisateur::nameOf((int) $dc['responsable_id']) : 'Non assigné',
+                    date('d/m/Y', strtotime((string) $dc['cloture_le'])), '', '', \App\Models\MotifPerte::libelle($dc['motif_cloture'] ?? '', (int) $dc['filiale_id']), $dc['motif_cloture_detail'] ?? '',
                 ]), ';', '"', '\\');
             }
         } elseif ($onglet === 'atraiter') {

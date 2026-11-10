@@ -400,6 +400,9 @@ CREATE TABLE IF NOT EXISTS dossiers (
     annule_motif VARCHAR(255) NULL,
     annule_le DATETIME NULL,
     annule_par INT NULL,
+    motif_cloture VARCHAR(30) NULL, -- migrate_v51.php : motif de clôture sans commande
+    motif_cloture_detail VARCHAR(300) NULL,
+    motif_cloture_le DATETIME NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -752,6 +755,16 @@ CREATE TABLE IF NOT EXISTS categories_fournisseur ( -- migrate_v37.php : catégo
     id INT AUTO_INCREMENT PRIMARY KEY,
     filiale_id INT NOT NULL,
     libelle VARCHAR(120) NOT NULL,
+    actif TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS motifs_perte ( -- migrate_v51.php : motifs de perte modifiables par filiale
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filiale_id INT NOT NULL,
+    code VARCHAR(30) NOT NULL,
+    libelle VARCHAR(120) NOT NULL,
+    ordre INT NOT NULL DEFAULT 0,
     actif TINYINT NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

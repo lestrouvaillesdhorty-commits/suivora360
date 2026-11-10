@@ -104,7 +104,7 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
           <label>Pourquoi ce devis est-il perdu ?</label>
           <select name="motif_perte" id="motifPerte">
             <option value="">— Choisir le motif —</option>
-            <?php foreach (Cotation::MOTIFS_PERTE as $k => $lb): ?><option value="<?= $k ?>" <?= ($cotation['motif_perte'] ?? '') === $k ? 'selected' : '' ?>><?= View::e($lb) ?></option><?php endforeach; ?>
+            <?php foreach (\App\Models\MotifPerte::actifs((int) $cotation['filiale_id']) + (($cotation['motif_perte'] ?? '') !== '' ? [$cotation['motif_perte'] => \App\Models\MotifPerte::libelle($cotation['motif_perte'], (int) $cotation['filiale_id'])] : []) as $k => $lb): ?><option value="<?= $k ?>" <?= ($cotation['motif_perte'] ?? '') === $k ? 'selected' : '' ?>><?= View::e($lb) ?></option><?php endforeach; ?>
           </select>
           <label style="margin-top:8px">Précision (facultatif)</label>
           <input type="text" name="motif_perte_detail" maxlength="300" value="<?= View::e((string) ($cotation['motif_perte_detail'] ?? '')) ?>" placeholder="ex. concurrent 8 % moins cher">

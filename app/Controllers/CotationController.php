@@ -229,7 +229,7 @@ class CotationController
         }
 
         $motifPerte = (string) ($_POST['motif_perte'] ?? '');
-        if ($nouveauStatut === 'refusee' && Cotation::colonnesPerte() && !isset(Cotation::MOTIFS_PERTE[$motifPerte])) {
+        if ($nouveauStatut === 'refusee' && Cotation::colonnesPerte() && !\App\Models\MotifPerte::valide((int) $cotation['filiale_id'], $motifPerte)) {
             View::flash('erreur', 'Indiquez le motif du refus avant d\'enregistrer ce statut.');
             header('Location: /index.php?r=cotations/' . $cotation['id']);
             exit;

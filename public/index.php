@@ -449,6 +449,10 @@ $router->post('/dossiers/{id}/rouvrir', function ($params) {
     Auth::requireLogin();
     (new DossierController())->rouvrir($params);
 });
+$router->post('/dossiers/{id}/motif-cloture', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->motifCloture($params);
+});
 $router->post('/dossiers/{id}/reactiver', function ($params) {
     Auth::requireLogin();
     (new DossierController())->reactiver($params);
