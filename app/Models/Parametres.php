@@ -34,7 +34,7 @@ class Parametres
         'commercial_peut_modifier_marge' => false,
     ];
 
-    public const TVA_OPTIONS = [0, 5.5, 10, 20];
+    public const TVA_OPTIONS = [0, 5.5, 10, 19.25, 20]; // 19,25 % : taux du Cameroun
 
     public static function forFiliale(int $filialeId): array
     {
