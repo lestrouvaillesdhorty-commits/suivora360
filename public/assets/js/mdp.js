@@ -39,3 +39,25 @@
     champ.parentNode.insertBefore(barre, champ.nextSibling);
   });
 })();
+
+/*
+ * [10/11] Bouton « Afficher / Masquer » sur TOUS les autres champs mot de passe
+ * (connexion, changement de mot de passe, confirmation). Masqué par défaut.
+ */
+(function () {
+  'use strict';
+  document.querySelectorAll('input[type="password"]').forEach(function (champ) {
+    if (champ.name === 'mot_de_passe') { return; } // déjà géré (Afficher + Générer)
+    var voir = document.createElement('button');
+    voir.type = 'button';
+    voir.className = 'btn btn-secondary btn-sm';
+    voir.style.marginTop = '6px';
+    voir.textContent = 'Afficher';
+    voir.addEventListener('click', function () {
+      var cache = champ.type === 'password';
+      champ.type = cache ? 'text' : 'password';
+      voir.textContent = cache ? 'Masquer' : 'Afficher';
+    });
+    champ.parentNode.insertBefore(voir, champ.nextSibling);
+  });
+})();
