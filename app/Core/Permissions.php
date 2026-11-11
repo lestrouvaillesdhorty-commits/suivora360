@@ -140,7 +140,7 @@ class Permissions
 
     public static function canValiderOffres(string $role): bool
     {
-        return in_array($role, self::ROLES_VALIDATION_OFFRES, true);
+        return AccesModules::permission('valider_offres', $role, self::ROLES_VALIDATION_OFFRES);
     }
 
     public static function canGererCotations(string $role): bool
@@ -160,12 +160,12 @@ class Permissions
 
     public static function canGererBonCommandeFournisseur(string $role): bool
     {
-        return in_array($role, self::ROLES_BON_COMMANDE_FOURNISSEUR, true);
+        return AccesModules::permission('bon_commande_fournisseur', $role, self::ROLES_BON_COMMANDE_FOURNISSEUR);
     }
 
     public static function canQualifierFournisseur(string $role): bool
     {
-        return in_array($role, self::ROLES_QUALIFICATION_FOURNISSEUR, true);
+        return AccesModules::permission('qualifier_fournisseur', $role, self::ROLES_QUALIFICATION_FOURNISSEUR);
     }
 
     public static function canVoirPilotage(string $role): bool

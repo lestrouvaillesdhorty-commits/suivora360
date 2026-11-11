@@ -26,6 +26,13 @@ class AccesModules
         'Administration' => ['pilotage' => 'Pilotage (chiffres)', 'parametres' => 'Paramètres'],
     ];
 
+    /** Actions sensibles réglables par rôle (case à cocher dans la grille). [code => [libellé, rôles par défaut]] */
+    public const PERMISSIONS = [
+        'qualifier_fournisseur' => ['Qualifier un fournisseur', ['achats']],
+        'bon_commande_fournisseur' => ['Établir et envoyer un bon de commande fournisseur', ['achats']],
+        'valider_offres' => ['Retenir une offre au Comparateur', ['achats']],
+    ];
+
     /** Rôles réglables (les administrateurs ont toujours tout). */
     public const ROLES_REGLABLES = ['achats', 'commercial', 'finance', 'lecture_seule'];
 
@@ -63,6 +70,68 @@ class AccesModules
             }
         }
         return $ok;
+    }
+
+    /**
+     * Une action sensible est-elle permise à ce rôle ? Réglage de l'entreprise (module « perm_… », niveau oui/non),
+     * sinon règle de départ. Propriétaire et Admin d'organisation : toujours oui. Le réglage ne s'applique qu'au
+     * rôle de la personne connectée (les contrôles de rôle ne concernent qu'elle).
+     */
+    public static function permission(string $code, string $role, array $rolesDepart): bool
+    {
+        if (in_array($role, self::ROLES_TOUT, true)) {
+            return true;
+        }
+        $defaut = in_array($role, $rolesDepart, true);
+        $user = Auth::user();
+        if (!$user || $user['role'] !== $role || !self::disponible() || !isset(self::PERMISSIONS[$code]) || !in_array($role, self::ROLES_REGLABLES, true)) {
+            return $defaut;
+        }
+        self::charger((int) $user['organisation_id'], (int) $user['id']);
+        $v = self::$reglagesOrg[$role]['perm_' . $code] ?? null;
+        return $v === 'oui' ? true : ($v === 'non' ? false : $defaut);
+    }
+
+    public static function permissionRole(int $orgId, string $role, string $code): bool
+    {
+        $st = Database::connection()->prepare('SELECT niveau FROM acces_modules WHERE organisation_id = ? AND role = ? AND module = ?');
+        $st->execute([$orgId, $role, 'perm_' . $code]);
+        $v = $st->fetchColumn();
+        return $v === 'oui' ? true : ($v === 'non' ? false : in_array($role, self::PERMISSIONS[$code][1], true));
+    }
+
+    public static function enregistrerPermission(int $orgId, string $role, string $code, bool $oui): void
+    {
+        if (!in_array($role, self::ROLES_REGLABLES, true) || !isset(self::PERMISSIONS[$code])) {
+            return;
+        }
+        $pdo = Database::connection();
+        $pdo->prepare('DELETE FROM acces_modules WHERE organisation_id = ? AND role = ? AND module = ?')->execute([$orgId, $role, 'perm_' . $code]);
+        if ($oui !== in_array($role, self::PERMISSIONS[$code][1], true)) {
+            $pdo->prepare('INSERT INTO acces_modules (organisation_id, role, module, niveau) VALUES (?,?,?,?)')->execute([$orgId, $role, 'perm_' . $code, $oui ? 'oui' : 'non']);
+        }
+    }
+
+    /** Préréglage : « petite » = tout le monde fait tout (hors Pilotage/Paramètres réservés à la Finance) ; « structuree » = réglages de départ. */
+    public static function appliquerPrereglage(int $orgId, string $nom): void
+    {
+        self::reinitialiser($orgId);
+        if ($nom !== 'petite') {
+            return;
+        }
+        foreach (self::GROUPES as $mods) {
+            foreach (array_keys($mods) as $mod) {
+                foreach (['achats', 'commercial', 'finance'] as $role) {
+                    $n = in_array($mod, ['pilotage', 'parametres'], true) ? ($role === 'finance' ? self::COMPLET : self::CACHE) : self::COMPLET;
+                    self::enregistrerRole($orgId, $role, $mod, $n);
+                }
+            }
+        }
+        foreach (array_keys(self::PERMISSIONS) as $code) {
+            foreach (['achats', 'commercial', 'finance'] as $role) {
+                self::enregistrerPermission($orgId, $role, $code, true);
+            }
+        }
     }
 
     private static function lettre(string $l): string

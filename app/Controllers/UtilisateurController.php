@@ -37,7 +37,16 @@ class UtilisateurController
                 }
             }
         }
+        $perms = [];
+        if ($dispo) {
+            foreach (array_keys(\App\Core\AccesModules::PERMISSIONS) as $code) {
+                foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
+                    $perms[$code][$role] = \App\Core\AccesModules::permissionRole($orgId, $role, $code);
+                }
+            }
+        }
         View::render('users/acces_modules', [
+            'perms' => $perms,
             'dispo' => $dispo,
             'niveaux' => $niveaux,
             'exceptions' => $dispo ? \App\Core\AccesModules::exceptionsOrganisation($orgId) : [],
@@ -68,8 +77,22 @@ class UtilisateurController
                         }
                     }
                 }
+                foreach (array_keys(\App\Core\AccesModules::PERMISSIONS) as $code) {
+                    foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
+                        if ($role === 'lecture_seule') {
+                            continue;
+                        }
+                        \App\Core\AccesModules::enregistrerPermission($orgId, $role, $code, !empty($_POST['p'][$code][$role]));
+                    }
+                }
                 AuditLog::logAdmin($user, 'acces_modules_grille', 'organisation', $orgId, 'Grille mise à jour');
                 View::flash('succes', 'Accès aux modules enregistrés.');
+                break;
+            case 'prereglage':
+                $nom = ($_POST['prereglage'] ?? '') === 'petite' ? 'petite' : 'structuree';
+                \App\Core\AccesModules::appliquerPrereglage($orgId, $nom);
+                AuditLog::logAdmin($user, 'acces_modules_prereglage', 'organisation', $orgId, $nom);
+                View::flash('succes', $nom === 'petite' ? 'Préréglage « Petite équipe » appliqué : tout le monde fait tout. Ajustez ensuite case par case.' : 'Préréglage « Équipe structurée » appliqué (réglages de départ).');
                 break;
             case 'reinit':
                 \App\Core\AccesModules::reinitialiser($orgId);

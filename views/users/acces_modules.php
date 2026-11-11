@@ -12,6 +12,21 @@ $roles = AccesModules::ROLES_REGLABLES;
   <div class="card"><div class="empty-state">Cette fonction demande la dernière mise à jour de la base : lancez <strong>migrate_v52.php</strong>.</div></div>
 <?php else: ?>
 <div class="card">
+  <h2>Préréglages</h2>
+  <div style="font-size:13px;color:#666;margin-bottom:10px">Un point de départ à ajuster ensuite. <strong>Petite équipe</strong> : tout le monde fait tout, seuls Pilotage et Paramètres restent réservés à la Finance et aux administrateurs. <strong>Équipe structurée</strong> : chaque métier voit surtout ses modules. Appliquer un préréglage remplace vos réglages actuels de la grille et des actions sensibles (les cas particuliers par personne sont conservés).</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <?php foreach (['petite' => 'Petite équipe : tout le monde fait tout', 'structuree' => 'Équipe structurée'] as $code => $lib): ?>
+    <form method="post" action="/index.php?r=utilisateurs/acces-modules" style="margin:0" onsubmit="return confirm('Appliquer ce préréglage ? Vos réglages actuels seront remplacés.')">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <input type="hidden" name="action" value="prereglage">
+      <input type="hidden" name="prereglage" value="<?= $code ?>">
+      <button class="btn btn-secondary btn-sm" type="submit"><?= View::e($lib) ?></button>
+    </form>
+    <?php endforeach; ?>
+  </div>
+</div>
+
+<div class="card">
   <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-bottom:10px">
     <span><strong>Complet</strong> : voir et modifier</span><span><strong>Lecture</strong> : voir seulement, sans pouvoir modifier</span><span><strong>Caché</strong> : absent du menu, adresse refusée</span>
   </div>
@@ -34,6 +49,20 @@ $roles = AccesModules::ROLES_REGLABLES;
           <?php endforeach; ?>
         </tr>
         <?php endforeach; ?>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+    <h2 style="margin-top:22px">Actions sensibles</h2>
+    <div style="font-size:13px;color:#666;margin-bottom:8px">Décisions qui engagent l'entreprise. Cochez les rôles autorisés (Propriétaire et Admin d'organisation le sont toujours).</div>
+    <div class="table-scroll"><table class="pilotage-table">
+      <thead><tr><th>Action</th><?php foreach ($roles as $r): if ($r === 'lecture_seule') { continue; } ?><th><?= View::e(Permissions::label($r)) ?></th><?php endforeach; ?></tr></thead>
+      <tbody>
+      <?php foreach (AccesModules::PERMISSIONS as $code => $def): ?>
+        <tr><td><?= View::e($def[0]) ?></td>
+        <?php foreach ($roles as $r): if ($r === 'lecture_seule') { continue; } ?>
+          <td style="text-align:center"><input type="checkbox" name="p[<?= $code ?>][<?= $r ?>]" value="1" <?= !empty($perms[$code][$r]) ? 'checked' : '' ?> aria-label="<?= View::e($def[0] . ' — ' . Permissions::label($r)) ?>"></td>
+        <?php endforeach; ?>
+        </tr>
       <?php endforeach; ?>
       </tbody>
     </table></div>
