@@ -896,7 +896,15 @@ $router->post('/utilisateurs/{id}/mot-de-passe', function ($params) {
 // Paramètres de calcul (Propriétaire / Admin d'organisation / Finance)
 $router->get('/parametres', function () {
     Auth::requireLogin();
+    (new ParametresController())->accueil();
+});
+$router->get('/parametres/calcul', function () {
+    Auth::requireLogin();
     (new ParametresController())->index();
+});
+$router->post('/parametres/calcul', function () {
+    Auth::requireLogin();
+    (new ParametresController())->update();
 });
 $router->get('/parametres/entreprise', function () {
     Auth::requireLogin();

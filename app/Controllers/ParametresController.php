@@ -18,6 +18,20 @@ use App\Models\Parametres;
  */
 class ParametresController
 {
+    /** Sommaire des Paramètres : une carte par sujet. */
+    public function accueil(): void
+    {
+        Auth::requireParametres();
+        $user = Auth::user();
+        $filiales = Filiale::visibleFor($user);
+        $filialeId = (int) ($_GET['filiale_id'] ?? ($filiales[0]['id'] ?? 0));
+        if (!$filialeId || !Filiale::userCanAccess($user, $filialeId)) {
+            $filialeId = (int) ($filiales[0]['id'] ?? 0);
+        }
+        View::render('parametres/accueil', ['filialeId' => $filialeId]);
+    }
+
+    /** Page « Calcul des prix ». */
     public function index(): void
     {
         Auth::requireParametres();
@@ -41,7 +55,7 @@ class ParametresController
         Auth::requireParametres();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             View::flash('erreur', 'Session expirée, merci de réessayer.');
-            header('Location: /index.php?r=parametres');
+            header('Location: /index.php?r=parametres/calcul');
             exit;
         }
 
@@ -49,14 +63,14 @@ class ParametresController
         $filialeId = (int) ($_POST['filiale_id'] ?? 0);
         if (!$filialeId || !Filiale::userCanAccess($user, $filialeId)) {
             View::flash('erreur', "Vous n'avez pas accès à cette filiale.");
-            header('Location: /index.php?r=parametres');
+            header('Location: /index.php?r=parametres/calcul');
             exit;
         }
 
         $taux = (float) ($_POST['taux_eur_fcfa'] ?? 0);
         if ($taux <= 0) {
             View::flash('erreur', 'Le taux de conversion doit être strictement positif.');
-            header('Location: /index.php?r=parametres&filiale_id=' . $filialeId);
+            header('Location: /index.php?r=parametres/calcul&filiale_id=' . $filialeId);
             exit;
         }
 
@@ -83,7 +97,7 @@ class ParametresController
 
         AuditLog::log((int) $filialeId, (int) Auth::user()['id'], 'maj_parametres', 'parametres', (int) $filialeId, 'Paramètres de calcul enregistrés');
         View::flash('succes', 'Paramètres enregistrés. Les simulations, offres et commandes déjà enregistrées ne sont jamais recalculées.');
-        header('Location: /index.php?r=parametres&filiale_id=' . $filialeId);
+        header('Location: /index.php?r=parametres/calcul&filiale_id=' . $filialeId);
         exit;
     }
 

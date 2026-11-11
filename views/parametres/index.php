@@ -1,11 +1,10 @@
 <?php use App\Core\View; use App\Models\Parametres; ?>
-<h1>Paramètres de calcul</h1>
-<div class="subtitle">Valeurs par défaut utilisées pour préremplir le Simulateur de prix</div>
-<p style="margin:10px 0 14px"><a class="btn btn-sm btn-secondary" href="/index.php?r=parametres/entreprise<?= !empty($filialeId) ? '&filiale_id=' . (int) $filialeId : '' ?>">Mon entreprise : logo, adresse et conditions des devis</a> <a class="btn btn-sm btn-secondary" href="/index.php?r=parametres/listes<?= !empty($filialeId) ? '&filiale_id=' . (int) $filialeId : '' ?>">Sous-activités et catégories de fournisseur</a> <a class="btn btn-sm btn-secondary" href="/index.php?r=parametres/ia">Lectures par l'IA : compteur et plafond</a></p>
+<h1>Calcul des prix</h1>
+<div class="subtitle">Valeurs par défaut utilisées pour préremplir le Simulateur de prix. <a href="/index.php?r=parametres<?= !empty($filialeId) ? '&filiale_id=' . (int) $filialeId : '' ?>">← Paramètres</a></div>
 
 <?php if (count($filiales) > 1): ?>
 <form method="get" action="/index.php" style="margin-bottom:16px">
-  <input type="hidden" name="r" value="parametres">
+  <input type="hidden" name="r" value="parametres/calcul">
   <div class="form-group" style="max-width:280px">
     <label>Filiale</label>
     <select name="filiale_id" onchange="this.form.submit()">
@@ -21,7 +20,7 @@
   <div class="card"><div class="empty-state">Aucune filiale disponible.</div></div>
 <?php else: ?>
 <div class="card">
-<form method="post" action="/index.php?r=parametres">
+<form method="post" action="/index.php?r=parametres/calcul">
   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
   <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
 

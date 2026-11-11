@@ -1,6 +1,6 @@
 <?php use App\Core\View; ?>
 <h1>Lectures par l'IA</h1>
-<div class="subtitle">Chaque lecture de message, de fichier d'offre ou de recherche fournisseur est comptée par filiale et par mois. Un contenu déjà lu n'est ni relu ni recompté. <a href="/index.php?r=parametres">← Paramètres de calcul</a></div>
+<div class="subtitle">Chaque lecture de message, de fichier d'offre ou de recherche fournisseur est comptée par filiale et par mois. Un contenu déjà lu n'est ni relu ni recompté. <a href="/index.php?r=parametres">← Paramètres</a></div>
 
 <?php if (!$disponible): ?>
   <div class="card"><div class="empty-state">Cette fonction demande la dernière mise à jour de la base : lancez <strong>migrate_v39.php</strong>. En attendant, aucune limite n'est appliquée.</div></div>

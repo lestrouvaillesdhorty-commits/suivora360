@@ -2,7 +2,7 @@
 $pays = (string) ($info['pays'] ?? ''); $couleur = EntrepriseInfo::couleurEffective($info); $mep = EntrepriseInfo::miseEnPage($info);
 $v50 = \App\Core\Schema::colonne('entreprise_infos', 'pays'); ?>
 <h1>Mon entreprise</h1>
-<div class="subtitle">Ces informations figurent sur vos devis : en-tête, pied de page, conditions et zone de signature. <a href="/index.php?r=parametres">← Paramètres de calcul</a></div>
+<div class="subtitle">Ces informations figurent sur vos devis : en-tête, pied de page, conditions et zone de signature. <a href="/index.php?r=parametres">← Paramètres</a></div>
 
 <?php if (count($filiales) > 1): ?>
 <form method="get" action="/index.php" style="margin:14px 0">

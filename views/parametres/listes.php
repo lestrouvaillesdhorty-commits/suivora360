@@ -1,6 +1,6 @@
 <?php use App\Core\View; ?>
 <h1>Sous-activités et catégories</h1>
-<div class="subtitle">Ces listes alimentent les formulaires (demande, fournisseur). Désactiver une valeur la retire des listes sans toucher à l'existant. <a href="/index.php?r=parametres">← Paramètres de calcul</a></div>
+<div class="subtitle">Ces listes alimentent les formulaires (demande, fournisseur). Désactiver une valeur la retire des listes sans toucher à l'existant. <a href="/index.php?r=parametres">← Paramètres</a></div>
 
 <?php if (count($filiales) > 1): ?>
 <form method="get" action="/index.php" style="margin:14px 0">
