@@ -44,6 +44,9 @@ class Utilisateur
             date('Y-m-d H:i:s'),
         ]);
         $id = (int) Database::connection()->lastInsertId();
+        if (!empty($data['role_perso_id'])) {
+            self::definirRolePerso($id, (int) $data['role_perso_id']);
+        }
         if (!empty($data['doit_changer_mdp'])) {
             self::definirChangementObligatoire($id, true);
         }
@@ -64,10 +67,20 @@ class Utilisateur
         }
     }
 
-    public static function updateRole(int $id, string $role): void
+    public static function updateRole(int $id, string $role, ?int $rolePersoId = null): void
     {
         $stmt = Database::connection()->prepare('UPDATE utilisateurs SET role = ? WHERE id = ?');
         $stmt->execute([$role, $id]);
+        self::definirRolePerso($id, $rolePersoId);
+    }
+
+    /** Rôle personnalisé du compte (null = rôle fourni). Sans effet avant migrate_v55. */
+    public static function definirRolePerso(int $id, ?int $rolePersoId): void
+    {
+        try {
+            Database::connection()->prepare('UPDATE utilisateurs SET role_perso_id = ? WHERE id = ?')->execute([$rolePersoId ?: null, $id]);
+        } catch (\Throwable $e) {
+        }
     }
 
     public static function updateInfo(int $id, string $nom, string $email): void

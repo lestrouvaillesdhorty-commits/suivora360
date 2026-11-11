@@ -21,6 +21,7 @@
             <?php if ($code === 'proprietaire' && !Auth::isProprietaire()) continue; ?>
             <option value="<?= $code ?>" <?= $code === 'lecture_seule' ? 'selected' : '' ?>><?= View::e($label) ?></option>
           <?php endforeach; ?>
+          <?php if (!empty($rolesPerso)): ?><optgroup label="Rôles de l'entreprise"><?php foreach ($rolesPerso as $rp): ?><option value="p<?= (int) $rp['id'] ?>"><?= View::e($rp['nom']) ?></option><?php endforeach; ?></optgroup><?php endif; ?>
         </select>
       </div>
     </div>
@@ -71,8 +72,9 @@
           <select name="role" onchange="this.form.submit()" style="font-size:12px">
             <?php foreach (Permissions::ROLES as $code => $label): ?>
               <?php if ($code === 'proprietaire' && !Auth::isProprietaire() && $u['role'] !== 'proprietaire') continue; ?>
-              <option value="<?= $code ?>" <?= $u['role'] === $code ? 'selected' : '' ?>><?= View::e($label) ?></option>
+              <option value="<?= $code ?>" <?= ($u['role'] === $code && empty($u['role_perso_id'])) ? 'selected' : '' ?>><?= View::e($label) ?></option>
             <?php endforeach; ?>
+            <?php if (!empty($rolesPerso)): ?><optgroup label="Rôles de l'entreprise"><?php foreach ($rolesPerso as $rp): ?><option value="p<?= (int) $rp['id'] ?>" <?= (int) ($u['role_perso_id'] ?? 0) === (int) $rp['id'] ? 'selected' : '' ?>><?= View::e($rp['nom']) ?></option><?php endforeach; ?></optgroup><?php endif; ?>
           </select>
         </form>
       </td>

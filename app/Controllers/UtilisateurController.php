@@ -27,11 +27,12 @@ class UtilisateurController
         $user = Auth::user();
         $orgId = (int) $user['organisation_id'];
         $dispo = \App\Core\AccesModules::disponible();
+        $cles = \App\Models\RolePerso::clesReglables($orgId);
         $niveaux = [];
         if ($dispo) {
             foreach (\App\Core\AccesModules::GROUPES as $mods) {
                 foreach (array_keys($mods) as $mod) {
-                    foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
+                    foreach ($cles as $role) {
                         $niveaux[$mod][$role] = \App\Core\AccesModules::niveauRole($orgId, $role, $mod);
                     }
                 }
@@ -40,12 +41,20 @@ class UtilisateurController
         $perms = [];
         if ($dispo) {
             foreach (array_keys(\App\Core\AccesModules::PERMISSIONS) as $code) {
-                foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
+                foreach ($cles as $role) {
                     $perms[$code][$role] = \App\Core\AccesModules::permissionRole($orgId, $role, $code);
                 }
             }
         }
+        $libelles = [];
+        foreach ($cles as $c) {
+            $libelles[$c] = \App\Models\RolePerso::libelleCle($c);
+        }
         View::render('users/acces_modules', [
+            'cles' => $cles,
+            'libelles' => $libelles,
+            'rolesPerso' => \App\Models\RolePerso::allForOrganisation($orgId),
+            'rolePersoDispo' => \App\Models\RolePerso::disponible(),
             'perms' => $perms,
             'dispo' => $dispo,
             'niveaux' => $niveaux,
@@ -69,7 +78,7 @@ class UtilisateurController
             case 'grille':
                 foreach (\App\Core\AccesModules::GROUPES as $mods) {
                     foreach (array_keys($mods) as $mod) {
-                        foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
+                        foreach (\App\Models\RolePerso::clesReglables($orgId) as $role) {
                             $n = (string) ($_POST['n'][$mod][$role] ?? '');
                             if ($n !== '') {
                                 \App\Core\AccesModules::enregistrerRole($orgId, $role, $mod, $n);
@@ -78,8 +87,8 @@ class UtilisateurController
                     }
                 }
                 foreach (array_keys(\App\Core\AccesModules::PERMISSIONS) as $code) {
-                    foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
-                        if ($role === 'lecture_seule') {
+                    foreach (\App\Models\RolePerso::clesReglables($orgId) as $role) {
+                        if (\App\Models\RolePerso::baseDeCle($role) === 'lecture_seule') {
                             continue;
                         }
                         \App\Core\AccesModules::enregistrerPermission($orgId, $role, $code, !empty($_POST['p'][$code][$role]));
@@ -87,6 +96,26 @@ class UtilisateurController
                 }
                 AuditLog::logAdmin($user, 'acces_modules_grille', 'organisation', $orgId, 'Grille mise à jour');
                 View::flash('succes', 'Accès aux modules enregistrés.');
+                break;
+            case 'role_creer':
+                $err = \App\Models\RolePerso::creer($orgId, (string) ($_POST['nom'] ?? ''), (string) ($_POST['base'] ?? ''), (string) ($_POST['copie'] ?? ''));
+                if ($err) {
+                    View::flash('erreur', $err);
+                } else {
+                    AuditLog::logAdmin($user, 'role_perso_cree', 'organisation', $orgId, trim((string) $_POST['nom']));
+                    View::flash('succes', 'Rôle créé. Réglez ses accès dans la grille ci-dessous, puis attribuez-le dans Utilisateurs.');
+                }
+                break;
+            case 'role_renommer':
+                $err = \App\Models\RolePerso::renommer($orgId, (int) ($_POST['id'] ?? 0), (string) ($_POST['nom'] ?? ''));
+                $err ? View::flash('erreur', $err) : View::flash('succes', 'Rôle renommé.');
+                break;
+            case 'role_supprimer':
+                $err = \App\Models\RolePerso::supprimer($orgId, (int) ($_POST['id'] ?? 0));
+                if (!$err) {
+                    AuditLog::logAdmin($user, 'role_perso_supprime', 'organisation', $orgId, 'Rôle personnalisé supprimé');
+                }
+                $err ? View::flash('erreur', $err) : View::flash('succes', 'Rôle supprimé.');
                 break;
             case 'prereglage':
                 $nom = ($_POST['prereglage'] ?? '') === 'petite' ? 'petite' : 'structuree';
@@ -129,6 +158,7 @@ class UtilisateurController
             'filiales' => $filiales,
             'accesParUtilisateur' => $accesParUtilisateur,
             'currentUserId' => (int) $user['id'],
+            'rolesPerso' => \App\Models\RolePerso::allForOrganisation((int) $user['organisation_id']),
         ]);
     }
 
@@ -148,9 +178,8 @@ class UtilisateurController
         $role = $_POST['role'] ?? 'lecture_seule';
         $filialeIds = $_POST['filiale_ids'] ?? [];
 
-        if (!Permissions::isValidRole($role)) {
-            $role = 'lecture_seule';
-        }
+        $res = \App\Models\RolePerso::resoudre((int) $user['organisation_id'], (string) $role) ?? ['lecture_seule', null];
+        [$role, $rolePersoId] = $res;
         if (!Permissions::canAssignRole(Auth::role(), $role)) {
             View::flash('erreur', "Seul un Propriétaire peut attribuer le rôle Propriétaire.");
             header('Location: /index.php?r=utilisateurs');
@@ -175,6 +204,7 @@ class UtilisateurController
             'email' => $email,
             'mot_de_passe' => $motDePasse,
             'role' => $role,
+            'role_perso_id' => $rolePersoId,
             'doit_changer_mdp' => 1,
         ]);
 
@@ -182,7 +212,7 @@ class UtilisateurController
             Utilisateur::setFiliales($newId, Filiale::filterIdsForOrganisation($filialeIds, (int) $user['organisation_id']));
         }
 
-        AuditLog::logAdmin($user, 'creation_utilisateur', 'utilisateur', (int) $newId, $nom . ' — ' . (Permissions::label($role)));
+        AuditLog::logAdmin($user, 'creation_utilisateur', 'utilisateur', (int) $newId, $nom . ' — ' . ($rolePersoId ? \App\Models\RolePerso::libelleCle(\App\Models\RolePerso::cle($rolePersoId)) : Permissions::label($role)));
         View::flash('succes', 'Utilisateur créé. Il devra changer son mot de passe à sa première connexion.');
         header('Location: /index.php?r=utilisateurs');
         exit;
@@ -261,12 +291,13 @@ class UtilisateurController
             return;
         }
 
-        $role = $_POST['role'] ?? '';
-        if (!Permissions::isValidRole($role)) {
+        $res = \App\Models\RolePerso::resoudre((int) $user['organisation_id'], (string) ($_POST['role'] ?? ''));
+        if ($res === null) {
             View::flash('erreur', 'Rôle invalide.');
             header('Location: /index.php?r=utilisateurs');
             exit;
         }
+        [$role, $rolePersoId] = $res;
         if (!Permissions::canAssignRole(Auth::role(), $role)) {
             View::flash('erreur', "Seul un Propriétaire peut attribuer le rôle Propriétaire.");
             header('Location: /index.php?r=utilisateurs');
@@ -295,12 +326,12 @@ class UtilisateurController
             exit;
         }
 
-        Utilisateur::updateRole((int) $cible['id'], $role);
+        Utilisateur::updateRole((int) $cible['id'], $role, $rolePersoId);
         if (Permissions::seesAllFiliales($role)) {
             Utilisateur::setFiliales((int) $cible['id'], []);
         }
 
-        AuditLog::logAdmin($user, 'changement_role_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom'] . ' : ' . Permissions::label($cible['role']) . ' → ' . Permissions::label($role));
+        AuditLog::logAdmin($user, 'changement_role_utilisateur', 'utilisateur', (int) $cible['id'], $cible['nom'] . ' : ' . \App\Models\RolePerso::libelle($cible) . ' → ' . ($rolePersoId ? \App\Models\RolePerso::libelleCle(\App\Models\RolePerso::cle($rolePersoId)) : Permissions::label($role)));
         View::flash('succes', 'Rôle mis à jour.');
         header('Location: /index.php?r=utilisateurs');
         exit;

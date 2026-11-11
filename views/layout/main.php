@@ -107,7 +107,7 @@ $modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($module
       <div class="ub-avatar"><?= View::e(strtoupper(mb_substr($currentUser['nom'], 0, 1))) ?></div>
       <div>
         <div class="ub-name"><?= View::e($currentUser['nom']) ?></div>
-        <div class="role"><?= View::e(Permissions::label($currentUser['role'])) ?></div>
+        <div class="role"><?= View::e(\App\Models\RolePerso::libelle($currentUser)) ?></div>
         <a href="/index.php?r=mon-mot-de-passe" style="font-size:11.5px;color:#aab0c6;text-decoration:underline">Mon mot de passe</a>
       </div>
     </div>

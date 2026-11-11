@@ -817,3 +817,13 @@ CREATE TABLE IF NOT EXISTS reinit_mdp (
 
 -- migrate_v54 : support Suivora (le Propriétaire peut retirer l'accès du support aux utilisateurs)
 -- ALTER TABLE organisations ADD COLUMN support_autorise TINYINT(1) NOT NULL DEFAULT 1;
+
+-- migrate_v55 : rôles personnalisés (« fonctionne comme » un rôle de base)
+CREATE TABLE IF NOT EXISTS roles_perso (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    organisation_id INT NOT NULL,
+    nom VARCHAR(60) NOT NULL,
+    base_role VARCHAR(20) NOT NULL,
+    created_at VARCHAR(19) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- ALTER TABLE utilisateurs ADD COLUMN role_perso_id INT NULL;

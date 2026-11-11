@@ -2,6 +2,8 @@
 
 namespace App\Core;
 
+use App\Models\RolePerso;
+
 /**
  * Accès aux modules par rôle (et par personne), à trois niveaux :
  *   complet = voir et modifier · lecture = voir seulement · cache = absent du menu, adresse refusée.
@@ -55,6 +57,32 @@ class AccesModules
         'parametres' => 'hhch',
     ];
 
+    /** Clé de grille d'un compte : son rôle personnalisé (p3) s'il en a un, sinon son rôle. */
+    public static function cleDe(array $user): string
+    {
+        $id = (int) ($user['role_perso_id'] ?? 0);
+        return $id > 0 ? RolePerso::cle($id) : (string) $user['role'];
+    }
+
+    /** Clé réglable pour cette entreprise : rôle fourni réglable, ou rôle personnalisé de l'entreprise. */
+    public static function cleValide(int $orgId, string $cle): bool
+    {
+        return in_array($cle, self::ROLES_REGLABLES, true) || RolePerso::appartient($orgId, $cle);
+    }
+
+    /** Copie les réglages (niveaux et actions sensibles) d'une clé vers une autre. */
+    public static function copierReglages(int $orgId, string $source, string $cible): void
+    {
+        foreach (self::GROUPES as $mods) {
+            foreach (array_keys($mods) as $mod) {
+                self::enregistrerRole($orgId, $cible, $mod, self::niveauRole($orgId, $source, $mod));
+            }
+        }
+        foreach (array_keys(self::PERMISSIONS) as $code) {
+            self::enregistrerPermission($orgId, $cible, $code, self::permissionRole($orgId, $source, $code));
+        }
+    }
+
     private static ?array $reglagesOrg = null;
     private static ?array $exceptions = null;
 
@@ -88,7 +116,7 @@ class AccesModules
             return $defaut;
         }
         self::charger((int) $user['organisation_id'], (int) $user['id']);
-        $v = self::$reglagesOrg[$role]['perm_' . $code] ?? null;
+        $v = self::$reglagesOrg[self::cleDe($user)]['perm_' . $code] ?? null;
         return $v === 'oui' ? true : ($v === 'non' ? false : $defaut);
     }
 
@@ -97,17 +125,17 @@ class AccesModules
         $st = Database::connection()->prepare('SELECT niveau FROM acces_modules WHERE organisation_id = ? AND role = ? AND module = ?');
         $st->execute([$orgId, $role, 'perm_' . $code]);
         $v = $st->fetchColumn();
-        return $v === 'oui' ? true : ($v === 'non' ? false : in_array($role, self::PERMISSIONS[$code][1], true));
+        return $v === 'oui' ? true : ($v === 'non' ? false : in_array(RolePerso::baseDeCle($role), self::PERMISSIONS[$code][1], true));
     }
 
     public static function enregistrerPermission(int $orgId, string $role, string $code, bool $oui): void
     {
-        if (!in_array($role, self::ROLES_REGLABLES, true) || !isset(self::PERMISSIONS[$code])) {
+        if (!self::cleValide($orgId, $role) || !isset(self::PERMISSIONS[$code])) {
             return;
         }
         $pdo = Database::connection();
         $pdo->prepare('DELETE FROM acces_modules WHERE organisation_id = ? AND role = ? AND module = ?')->execute([$orgId, $role, 'perm_' . $code]);
-        if ($oui !== in_array($role, self::PERMISSIONS[$code][1], true)) {
+        if ($oui !== in_array(RolePerso::baseDeCle($role), self::PERMISSIONS[$code][1], true)) {
             $pdo->prepare('INSERT INTO acces_modules (organisation_id, role, module, niveau) VALUES (?,?,?,?)')->execute([$orgId, $role, 'perm_' . $code, $oui ? 'oui' : 'non']);
         }
     }
@@ -119,16 +147,22 @@ class AccesModules
         if ($nom !== 'petite') {
             return;
         }
+        $roles = [];
+        foreach (RolePerso::clesReglables($orgId) as $cle) {
+            if (in_array(RolePerso::baseDeCle($cle), ['achats', 'commercial', 'finance'], true)) {
+                $roles[] = $cle;
+            }
+        }
         foreach (self::GROUPES as $mods) {
             foreach (array_keys($mods) as $mod) {
-                foreach (['achats', 'commercial', 'finance'] as $role) {
-                    $n = in_array($mod, ['pilotage', 'parametres'], true) ? ($role === 'finance' ? self::COMPLET : self::CACHE) : self::COMPLET;
+                foreach ($roles as $role) {
+                    $n = in_array($mod, ['pilotage', 'parametres'], true) ? (RolePerso::baseDeCle($role) === 'finance' ? self::COMPLET : self::CACHE) : self::COMPLET;
                     self::enregistrerRole($orgId, $role, $mod, $n);
                 }
             }
         }
         foreach (array_keys(self::PERMISSIONS) as $code) {
-            foreach (['achats', 'commercial', 'finance'] as $role) {
+            foreach ($roles as $role) {
                 self::enregistrerPermission($orgId, $role, $code, true);
             }
         }
@@ -142,6 +176,7 @@ class AccesModules
     /** Niveau de départ d'un rôle pour un module. */
     public static function depart(string $role, string $module): string
     {
+        $role = RolePerso::baseDeCle($role);
         if (in_array($role, self::ROLES_TOUT, true)) {
             return self::COMPLET;
         }
@@ -184,7 +219,8 @@ class AccesModules
             return self::COMPLET;
         }
         self::charger((int) $user['organisation_id'], (int) $user['id']);
-        $n = self::$exceptions[$module] ?? self::$reglagesOrg[$user['role']][$module] ?? self::depart($user['role'], $module);
+        $cle = self::cleDe($user);
+        $n = self::$exceptions[$module] ?? self::$reglagesOrg[$cle][$module] ?? self::depart($cle, $module);
         return isset(self::NIVEAUX[$n]) ? $n : self::COMPLET;
     }
 
@@ -251,7 +287,7 @@ class AccesModules
 
     public static function enregistrerRole(int $orgId, string $role, string $module, string $niveau): void
     {
-        if (!in_array($role, self::ROLES_REGLABLES, true) || !isset(self::DEPART[$module]) || !isset(self::NIVEAUX[$niveau])) {
+        if (!self::cleValide($orgId, $role) || !isset(self::DEPART[$module]) || !isset(self::NIVEAUX[$niveau])) {
             return;
         }
         $pdo = Database::connection();
@@ -268,9 +304,15 @@ class AccesModules
 
     public static function exceptionsOrganisation(int $orgId): array
     {
-        $st = Database::connection()->prepare('SELECT x.id, x.utilisateur_id, x.module, x.niveau, u.nom, u.role FROM acces_modules_user x INNER JOIN utilisateurs u ON u.id = x.utilisateur_id WHERE u.organisation_id = ? ORDER BY u.nom, x.module');
-        $st->execute([$orgId]);
-        return $st->fetchAll();
+        foreach (['u.role, u.role_perso_id', 'u.role'] as $cols) {
+            try {
+                $st = Database::connection()->prepare('SELECT x.id, x.utilisateur_id, x.module, x.niveau, u.nom, ' . $cols . ' FROM acces_modules_user x INNER JOIN utilisateurs u ON u.id = x.utilisateur_id WHERE u.organisation_id = ? ORDER BY u.nom, x.module');
+                $st->execute([$orgId]);
+                return $st->fetchAll();
+            } catch (\Throwable $e) {
+            }
+        }
+        return [];
     }
 
     public static function ajouterException(int $orgId, int $userId, string $module, string $niveau): bool
