@@ -12,8 +12,8 @@ use App\Core\Database;
 class ObjectifCollaborateur
 {
     public const BASES = [
-        'responsable' => 'Responsable du dossier',
-        'offres' => 'Auteur de l\'offre retenue',
+        'responsable' => 'Resp. dossier',
+        'offres' => 'Auteur offre',
     ];
 
     /** Indicateurs d'objectif : clé => [libellé, type] (money = montant, count = nombre). */
