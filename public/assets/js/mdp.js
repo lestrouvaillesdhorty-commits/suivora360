@@ -1,69 +1,63 @@
 /*
- * [08/10] Mots de passe provisoires : boutons « Afficher » et « Générer » à côté des champs
- * de création / modification, pour pouvoir noter le mot de passe avant d'enregistrer.
- * Le mot de passe n'est jamais stocké en clair : il n'est visible que dans le champ, à l'écran.
+ * Mots de passe : œil « afficher / masquer » DANS chaque champ (connexion, création, changement, confirmation),
+ * et bouton « Générer un mot de passe » sous les champs de création / modification d'un utilisateur.
+ * Le mot de passe n'est jamais stocké en clair : il n'est visible que dans le champ, à l'écran, quand on le demande.
  */
 (function () {
   'use strict';
-  document.querySelectorAll('input[type="password"][name="mot_de_passe"]').forEach(function (champ) {
-    if (champ.closest('form[action*="login"]')) { return; }
-    var barre = document.createElement('div');
-    barre.style.cssText = 'display:flex;gap:8px;margin-top:6px;flex-wrap:wrap';
-    function bouton(texte) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'btn btn-secondary btn-sm';
-      b.textContent = texte;
-      return b;
-    }
-    var voir = bouton('Afficher');
-    var gen = bouton('Générer un mot de passe');
-    voir.addEventListener('click', function () {
-      var cache = champ.type === 'password';
-      champ.type = cache ? 'text' : 'password';
-      voir.textContent = cache ? 'Masquer' : 'Afficher';
-    });
-    gen.addEventListener('click', function () {
-      var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-      var tirage = new Uint32Array(12);
-      (window.crypto || window.msCrypto).getRandomValues(tirage);
-      var mdp = '';
-      for (var i = 0; i < tirage.length; i++) { mdp += alphabet.charAt(tirage[i] % alphabet.length); }
-      champ.value = mdp;
-      champ.type = 'text';
-      voir.textContent = 'Masquer';
-      champ.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    barre.appendChild(voir);
-    barre.appendChild(gen);
-    champ.parentNode.insertBefore(barre, champ.nextSibling);
-  });
-})();
+  var OEIL = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var OEIL_BARRE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5.6 19 2 12 2 12a18.7 18.7 0 0 1 5.1-5.9"/><path d="M9.9 5.2A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg>';
 
-/*
- * [10/11] Bouton « Afficher / Masquer » sur TOUS les autres champs mot de passe
- * (connexion, changement de mot de passe, confirmation). Masqué par défaut.
- */
-(function () {
-  'use strict';
-  document.querySelectorAll('input[type="password"]').forEach(function (champ) {
-    if (champ.name === 'mot_de_passe') { return; } // déjà géré (Afficher + Générer)
-    // Le bouton se place DANS le champ, à droite (pas en dessous).
+  /* Place l'œil dans le champ, à droite. Retourne une fonction pour forcer l'état « visible ». */
+  function ajouterOeil(champ) {
     var enveloppe = document.createElement('div');
     enveloppe.style.cssText = 'position:relative';
-    var voir = document.createElement('button');
-    voir.type = 'button';
-    voir.textContent = 'Afficher';
-    voir.setAttribute('aria-label', 'Afficher ou masquer le mot de passe');
-    voir.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#0B7C8A;font-weight:600;font-size:13px;cursor:pointer;padding:6px 8px;border-radius:6px';
-    voir.addEventListener('click', function () {
-      var cache = champ.type === 'password';
-      champ.type = cache ? 'text' : 'password';
-      voir.textContent = cache ? 'Masquer' : 'Afficher';
+    var bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.style.cssText = 'position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:0;background:transparent;color:#6b7a88;cursor:pointer;border-radius:8px;padding:0';
+    function maj() {
+      var visible = champ.type === 'text';
+      bouton.innerHTML = visible ? OEIL_BARRE : OEIL;
+      bouton.setAttribute('aria-label', visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      bouton.setAttribute('title', visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      bouton.setAttribute('aria-pressed', visible ? 'true' : 'false');
+    }
+    bouton.addEventListener('click', function () {
+      champ.type = champ.type === 'password' ? 'text' : 'password';
+      maj();
     });
+    bouton.addEventListener('mouseenter', function () { bouton.style.color = '#0B7C8A'; });
+    bouton.addEventListener('mouseleave', function () { bouton.style.color = '#6b7a88'; });
     champ.parentNode.insertBefore(enveloppe, champ);
     enveloppe.appendChild(champ);
-    enveloppe.appendChild(voir);
-    champ.style.paddingRight = '84px';
+    enveloppe.appendChild(bouton);
+    champ.style.paddingRight = '48px';
+    maj();
+    return maj;
+  }
+
+  document.querySelectorAll('input[type="password"]').forEach(function (champ) {
+    var maj = ajouterOeil(champ);
+
+    // Création / modification d'un utilisateur : en plus, « Générer un mot de passe ».
+    if (champ.name === 'mot_de_passe' && !champ.closest('form[action*="login"]')) {
+      var gen = document.createElement('button');
+      gen.type = 'button';
+      gen.className = 'btn btn-secondary btn-sm';
+      gen.style.marginTop = '6px';
+      gen.textContent = 'Générer un mot de passe';
+      gen.addEventListener('click', function () {
+        var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+        var tirage = new Uint32Array(12);
+        (window.crypto || window.msCrypto).getRandomValues(tirage);
+        var mdp = '';
+        for (var i = 0; i < tirage.length; i++) { mdp += alphabet.charAt(tirage[i] % alphabet.length); }
+        champ.value = mdp;
+        champ.type = 'text'; // visible, pour pouvoir le noter avant d'enregistrer
+        maj();
+        champ.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      champ.parentNode.parentNode.insertBefore(gen, champ.parentNode.nextSibling);
+    }
   });
 })();
