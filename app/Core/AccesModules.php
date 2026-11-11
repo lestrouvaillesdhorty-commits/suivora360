@@ -35,7 +35,7 @@ class AccesModules
     private const DEPART = [
         'demandes' => 'lclL',
         'dossiers' => 'cccl',
-        'fournisseurs' => 'clll',
+        'fournisseurs' => 'ccll',
         'offres' => 'chhl',
         'comparateur' => 'chhl',
         'simulateur' => 'chhl',
