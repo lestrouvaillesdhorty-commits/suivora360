@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
     doit_changer_mdp TINYINT(1) NOT NULL DEFAULT 0,
     filiale_active_id INT NULL,
     created_at DATETIME NOT NULL,
-    derniere_activite VARCHAR(100) -- migrate_v35.php : dernière activité du tableau de bord
+    derniere_activite VARCHAR(100), -- migrate_v35.php : dernière activité du tableau de bord
+    mdp_modifie_le VARCHAR(19) NULL -- migrate_v53.php : sert à fermer les anciennes sessions après un changement de mot de passe
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS utilisateur_filiales (
@@ -800,4 +801,16 @@ CREATE TABLE IF NOT EXISTS ia_reglages ( -- migrate_v39.php : plafond mensuel pa
     filiale_id INT NOT NULL UNIQUE,
     plafond_mensuel INT NOT NULL DEFAULT 100,
     updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- migrate_v53 : mot de passe oublié (liens à usage unique)
+CREATE TABLE IF NOT EXISTS reinit_mdp (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    jeton_hash VARCHAR(64) NOT NULL,
+    ip VARCHAR(45) NOT NULL DEFAULT '',
+    expire_le VARCHAR(19) NOT NULL,
+    utilise_le VARCHAR(19) NULL,
+    created_at VARCHAR(19) NOT NULL,
+    INDEX idx_reinit_jeton (jeton_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

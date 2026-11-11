@@ -58,6 +58,75 @@ class AuthController
         exit;
     }
 
+    private function organisationCourante(): ?array
+    {
+        $sub = \App\Core\Tenant::sousDomaineCourant();
+        return $sub !== null ? \App\Models\Organisation::findBySousDomaine($sub) : null;
+    }
+
+    /** « Mot de passe oublié » : saisie de l'adresse e-mail. */
+    public function showOubli(): void
+    {
+        if (Auth::check()) {
+            header('Location: /index.php');
+            exit;
+        }
+        View::renderPlain('auth/mdp_oublie', ['csrfToken' => Auth::csrfToken(), 'organisation' => $this->organisationCourante(), 'envoye' => false, 'disponible' => \App\Models\ReinitMdp::disponible()]);
+    }
+
+    public function envoyerOubli(): void
+    {
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: /index.php?r=mot-de-passe-oublie');
+            exit;
+        }
+        \App\Models\ReinitMdp::demander((string) ($_POST['email'] ?? ''));
+        View::renderPlain('auth/mdp_oublie', ['csrfToken' => Auth::csrfToken(), 'organisation' => $this->organisationCourante(), 'envoye' => true, 'disponible' => true]);
+    }
+
+    /** Page ouverte depuis le lien reçu par e-mail. */
+    public function showReinit(): void
+    {
+        $jeton = (string) ($_GET['jeton'] ?? '');
+        $ligne = \App\Models\ReinitMdp::trouver($jeton);
+        $user = $ligne ? \App\Models\Utilisateur::find((int) $ligne['utilisateur_id']) : null;
+        View::renderPlain('auth/mdp_reinit', ['csrfToken' => Auth::csrfToken(), 'organisation' => $this->organisationCourante(), 'jeton' => $jeton, 'valide' => (bool) $ligne, 'email' => $user['email'] ?? '']);
+    }
+
+    public function appliquerReinit(): void
+    {
+        $jeton = (string) ($_POST['jeton'] ?? '');
+        $retour = '/index.php?r=mot-de-passe/reinitialiser&jeton=' . rawurlencode($jeton);
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        $ligne = \App\Models\ReinitMdp::trouver($jeton);
+        if (!$ligne) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $nouveau = (string) ($_POST['nouveau_mot_de_passe'] ?? '');
+        $confirmation = (string) ($_POST['confirmation'] ?? '');
+        $erreur = null;
+        if (strlen($nouveau) < 8) {
+            $erreur = 'Le mot de passe doit contenir au moins 8 caractères.';
+        } elseif ($nouveau !== $confirmation) {
+            $erreur = 'La confirmation ne correspond pas au mot de passe.';
+        }
+        if ($erreur !== null) {
+            View::flash('erreur', $erreur);
+            header('Location: ' . $retour);
+            exit;
+        }
+        \App\Models\ReinitMdp::appliquer($ligne, $nouveau);
+        View::flash('succes', 'Mot de passe modifié. Connectez-vous avec le nouveau.');
+        header('Location: /index.php?r=login');
+        exit;
+    }
+
     /** Page « Mon mot de passe » : changement volontaire, ou obligatoire (mot de passe provisoire). */
     public function showChangePassword(): void
     {

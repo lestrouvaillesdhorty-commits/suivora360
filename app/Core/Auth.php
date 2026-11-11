@@ -61,6 +61,7 @@ class Auth
         // Nouvel identifiant de session à chaque connexion (anti-fixation de session).
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
+        $_SESSION['connecte_le'] = date('Y-m-d H:i:s');
         // La filiale active est relue en base (dernière filiale utilisée).
         unset($_SESSION['filiale_active']);
         return true;
@@ -132,6 +133,10 @@ class Auth
             }
             // Défense en profondeur : une session ouverte sur une adresse ne sert jamais sur celle d'une autre entreprise.
             if ($cached && self::refusSousDomaine($cached) !== null) {
+                $cached = null;
+            }
+            // Mot de passe changé (« mot de passe oublié ») depuis l'ouverture de cette session : on la ferme.
+            if ($cached && !empty($cached['mdp_modifie_le']) && (string) ($_SESSION['connecte_le'] ?? '') < (string) $cached['mdp_modifie_le']) {
                 $cached = null;
             }
             $chargeePour = $uid;

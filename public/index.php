@@ -41,6 +41,10 @@ $router = new Router();
 // Authentification
 $router->get('/login', fn() => (new AuthController())->showLogin());
 $router->post('/login', fn() => (new AuthController())->login());
+$router->get('/mot-de-passe-oublie', fn() => (new AuthController())->showOubli());
+$router->post('/mot-de-passe-oublie', fn() => (new AuthController())->envoyerOubli());
+$router->get('/mot-de-passe/reinitialiser', fn() => (new AuthController())->showReinit());
+$router->post('/mot-de-passe/reinitialiser', fn() => (new AuthController())->appliquerReinit());
 $router->post('/logout', fn() => (new AuthController())->logout());
 $router->get('/mon-mot-de-passe', function () {
     Auth::requireLogin();

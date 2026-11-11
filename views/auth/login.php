@@ -46,6 +46,7 @@ body { display:flex; align-items:center; justify-content:center; min-height:100v
     </div>
     <button type="submit" class="btn" style="width:100%;justify-content:center;text-align:center">Se connecter</button>
   </form>
+  <p style="text-align:center;margin:16px 0 0;font-size:14px"><a href="/index.php?r=mot-de-passe-oublie" style="color:#0B7C8A;font-weight:600">Mot de passe oublié ?</a></p>
 </div>
 <script src="/assets/js/mdp.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/mdp.js') ?>"></script>
 <script>if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); }); }</script>
