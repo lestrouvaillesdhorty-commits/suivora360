@@ -32,7 +32,8 @@ $ligne = function (string $prefixe, array $r, string $libelle, int $usage) use (
       <button class="btn btn-sm btn-secondary" type="submit">Renommer</button>
     </form>
     <?php if ($usage > 0): ?><span style="font-size:12px;color:#666"><?= $usage ?> demande<?= $usage > 1 ? 's' : '' ?></span><?php endif; ?>
-    <form method="post" action="/index.php?r=parametres/listes" style="margin:0">
+    <?php $msg = ($r['actif'] && $usage > 0) ? 'Attention : ' . $usage . ' demande' . ($usage > 1 ? 's utilisent' : ' utilise') . ' « ' . $libelle . ' ». Désactiver cette valeur la retire des formulaires et des filtres, mais ' . ($usage > 1 ? 'ces demandes gardent cette valeur et restent consultables' : 'cette demande garde cette valeur et reste consultable') . '. Vous pourrez la réactiver à tout moment. Continuer ?' : ''; ?>
+    <form method="post" action="/index.php?r=parametres/listes" style="margin:0"<?= $msg !== '' ? ' onsubmit="return confirm(' . View::e(json_encode($msg, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT)) . ')"' : '' ?>>
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
       <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
       <input type="hidden" name="action" value="<?= $prefixe ?>_basculer">
