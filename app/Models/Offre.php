@@ -661,13 +661,13 @@ class Offre
             return 0;
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $sql = "SELECT COUNT(*) FROM offres o WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)";
+        $sql = "SELECT COUNT(*) FROM offres o WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('o.dossier_id');
         $params = $filialeIds;
         if ($activite) {
             $sql = "SELECT COUNT(*) FROM offres o
                     INNER JOIN dossiers d ON d.id = o.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
+                    WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm') . \App\Models\ActiviteAcces::sqlDossier('o.dossier_id');
             $params[] = $activite;
         }
         $stmt = Database::connection()->prepare($sql);
@@ -690,7 +690,7 @@ class Offre
         if ($activite) {
             $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
         }
-        $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)";
+        $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('o.dossier_id');
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
@@ -721,7 +721,7 @@ class Offre
         if ($activite) {
             $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
         }
-        $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND o.created_at <= ?";
+        $sql .= " WHERE o.statut = 'recue' AND o.filiale_id IN ($placeholders) AND o.created_at <= ?" . \App\Models\ActiviteAcces::sqlDossier('o.dossier_id');
         $params = array_merge($filialeIds, [$seuilDate]);
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');

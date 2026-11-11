@@ -129,7 +129,7 @@ class Demande
             'SELECT de.*, d.id AS dossier_id, d.reference AS dossier_reference
              FROM demandes de
              LEFT JOIN dossiers d ON d.demande_id = de.id
-             WHERE de.client_id = ?
+             WHERE de.client_id = ?' . \App\Models\ActiviteAcces::sqlActivite('de.activite') . '
              ORDER BY de.created_at DESC'
         );
         $stmt->execute([$clientId]);
@@ -187,7 +187,7 @@ class Demande
         $sql = "FROM demandes d
                 INNER JOIN filiales f ON f.id = d.filiale_id
                 LEFT JOIN clients c ON c.id = d.client_id
-                WHERE d.filiale_id IN ($placeholders)";
+                WHERE d.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlActivite('d.activite');
         $params = $filialeIds;
 
         if (!empty($filters['activite'])) {
@@ -333,7 +333,7 @@ class Demande
                 "SELECT COUNT(*) FROM demandes
                  WHERE filiale_id IN ($placeholders)
                    AND statut IN ('qualifiee', 'rattachee')
-                   AND qualified_at >= ? AND qualified_at <= ?"
+                   AND qualified_at >= ? AND qualified_at <= ?" . \App\Models\ActiviteAcces::sqlActivite('activite')
             );
             $stmt->execute([...$filialeIds, $debutMois . ' 00:00:00', $finMois . ' 23:59:59']);
             $qualifieesCeMois = (int) $stmt->fetchColumn();
@@ -730,7 +730,7 @@ class Demande
         $stmt = Database::connection()->prepare(
             "SELECT id, reference, objet AS libelle, statut, created_at FROM demandes
              WHERE filiale_id IN ($placeholders) AND id != ?
-             AND (reference LIKE ? OR objet LIKE ? OR expediteur_nom LIKE ? OR expediteur_entreprise LIKE ?)
+             AND (reference LIKE ? OR objet LIKE ? OR expediteur_nom LIKE ? OR expediteur_entreprise LIKE ?)" . \App\Models\ActiviteAcces::sqlActivite('activite') . "
              ORDER BY created_at DESC LIMIT 15"
         );
         $stmt->execute([...$filialeIds, $excludeId, $like, $like, $like, $like]);
@@ -742,7 +742,7 @@ class Demande
         $stmt = Database::connection()->prepare(
             "SELECT id, reference, objet AS libelle, statut, created_at FROM dossiers
              WHERE filiale_id IN ($placeholders)
-             AND (reference LIKE ? OR objet LIKE ?)
+             AND (reference LIKE ? OR objet LIKE ?)" . \App\Models\ActiviteAcces::sqlDossier('id') . "
              ORDER BY created_at DESC LIMIT 15"
         );
         $stmt->execute([...$filialeIds, $like, $like]);
@@ -775,7 +775,7 @@ class Demande
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $sql = "SELECT COUNT(*) FROM demandes
-                WHERE statut IN ('a_qualifier','en_attente_info','qualifiee') AND filiale_id IN ($placeholders)";
+                WHERE statut IN ('a_qualifier','en_attente_info','qualifiee') AND filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlActivite('activite');
         $params = $filialeIds;
         if ($activite) {
             $sql .= ' AND activite = ?' . Demande::sousFiltresSql('');
@@ -814,7 +814,7 @@ class Demande
             return ['a_qualifier' => 0, 'en_retard' => 0];
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
-        $clauseActivite = $activite ? ' AND activite = ?' . Demande::sousFiltresSql('') : '';
+        $clauseActivite = ($activite ? ' AND activite = ?' . Demande::sousFiltresSql('') : '') . \App\Models\ActiviteAcces::sqlActivite('activite');
 
         $sql = "SELECT COUNT(*) FROM demandes WHERE statut = 'a_qualifier' AND filiale_id IN ($placeholders)$clauseActivite";
         $params = $activite ? array_merge($filialeIds, [$activite]) : $filialeIds;
@@ -848,7 +848,7 @@ class Demande
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $sql = "SELECT d.*, f.nom AS filiale_nom, (SELECT c.nom FROM clients c WHERE c.id = d.client_id) AS client_nom FROM demandes d
                 INNER JOIN filiales f ON f.id = d.filiale_id
-                WHERE d.filiale_id IN ($placeholders)";
+                WHERE d.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlActivite('d.activite');
         $params = $filialeIds;
         if ($statuts) {
             $sql .= ' AND d.statut IN (' . implode(',', array_fill(0, count($statuts), '?')) . ')';
@@ -881,7 +881,7 @@ class Demande
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $sql = "SELECT d.* FROM demandes d
                 WHERE d.statut IN ('a_qualifier', 'en_attente_info') AND d.echeance IS NOT NULL AND d.echeance < ?
-                AND d.filiale_id IN ($placeholders)";
+                AND d.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlActivite('d.activite');
         $params = array_merge([date('Y-m-d')], $filialeIds);
         if ($activite) {
             $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
@@ -908,7 +908,7 @@ class Demande
                 INNER JOIN filiales f ON f.id = d.filiale_id
                 WHERE d.filiale_id IN ($placeholders)
                 AND d.statut IN ('a_qualifier', 'en_attente_info')
-                AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?";
+                AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?" . \App\Models\ActiviteAcces::sqlActivite('d.activite');
         $params = array_merge($filialeIds, [date('Y-m-d'), date('Y-m-d', strtotime('+' . $jours . ' days'))]);
         if ($activite) {
             $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');

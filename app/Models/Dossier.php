@@ -152,7 +152,7 @@ class Dossier
                 (SELECT c.nom FROM demandes dm INNER JOIN clients c ON c.id = dm.client_id WHERE dm.id = d.demande_id) AS client_nom
                 FROM dossiers d
                 INNER JOIN filiales f ON f.id = d.filiale_id
-                WHERE d.filiale_id IN ($placeholders)";
+                WHERE d.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('d.id');
         $params = $filialeIds;
 
         // [07/10, refonte liste] filtres supplémentaires : type de dossier, filiale, « mes dossiers », « à clôturer » (actif à l'étape Livraison).
@@ -601,7 +601,7 @@ class Dossier
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $join = $activite ? ' INNER JOIN demandes dm ON dm.id = d.demande_id' : '';
-        $clauseActivite = $activite ? ' AND dm.activite = ?' . Demande::sousFiltresSql('dm') : '';
+        $clauseActivite = ($activite ? ' AND dm.activite = ?' . Demande::sousFiltresSql('dm') : '') . \App\Models\ActiviteAcces::sqlDossier('d.id');
 
         $sql = "SELECT COUNT(*) FROM dossiers d$join WHERE d.statut = 'actif' AND d.filiale_id IN ($placeholders)$clauseActivite";
         $params = $activite ? array_merge($filialeIds, [$activite]) : $filialeIds;
@@ -638,7 +638,7 @@ class Dossier
         $sql = "SELECT d.* FROM dossiers d$join
                 WHERE d.filiale_id IN ($placeholders)
                 AND d.statut = 'actif'
-                AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?";
+                AND d.echeance IS NOT NULL AND d.echeance >= ? AND d.echeance <= ?" . \App\Models\ActiviteAcces::sqlDossier('d.id');
         $params = array_merge($filialeIds, [date('Y-m-d'), date('Y-m-d', strtotime('+' . $jours . ' days'))]);
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');

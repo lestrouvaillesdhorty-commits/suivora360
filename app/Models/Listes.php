@@ -67,7 +67,7 @@ class Listes
                 INNER JOIN dossiers d ON d.id = o.dossier_id
                 INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
                 INNER JOIN filiales fi ON fi.id = o.filiale_id
-                WHERE o.filiale_id IN (" . self::dans($ids) . ')';
+                WHERE o.filiale_id IN (" . self::dans($ids) . ')' . \App\Models\ActiviteAcces::sqlDossier('o.dossier_id');
         $params = $ids;
         if (!empty($f['statut']) && isset(Offre::STATUTS[$f['statut']])) {
             $sql .= ' AND o.statut = ?';
@@ -96,7 +96,7 @@ class Listes
                 INNER JOIN dossiers d ON d.id = c.dossier_id
                 INNER JOIN clients cl ON cl.id = c.client_id
                 INNER JOIN filiales fi ON fi.id = c.filiale_id
-                WHERE c.filiale_id IN (" . self::dans($ids) . ')';
+                WHERE c.filiale_id IN (" . self::dans($ids) . ')' . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
         $params = $ids;
         if (!empty($f['statut']) && isset(Cotation::STATUTS[$f['statut']])) {
             $sql .= ' AND c.statut = ?';
@@ -125,7 +125,7 @@ class Listes
                 INNER JOIN cotations c ON c.id = m.cotation_id
                 INNER JOIN clients cl ON cl.id = c.client_id
                 INNER JOIN filiales fi ON fi.id = m.filiale_id
-                WHERE m.filiale_id IN (" . self::dans($ids) . ')';
+                WHERE m.filiale_id IN (" . self::dans($ids) . ')' . \App\Models\ActiviteAcces::sqlDossier('m.dossier_id');
         $params = $ids;
         $statut = $f['statut'] ?? '';
         if ($statut === 'en_cours' || $statut === 'terminee') {
@@ -153,7 +153,7 @@ class Listes
                 FROM factures fa
                 INNER JOIN dossiers d ON d.id = fa.dossier_id
                 INNER JOIN filiales fi ON fi.id = fa.filiale_id
-                WHERE fa.filiale_id IN (" . self::dans($ids) . ')';
+                WHERE fa.filiale_id IN (" . self::dans($ids) . ')' . \App\Models\ActiviteAcces::sqlDossier('fa.dossier_id');
         $params = $ids;
         $statut = $f['statut'] ?? '';
         if ($statut === 'en_retard') {
@@ -189,7 +189,7 @@ class Listes
                          WHERE o.dossier_id = d.id AND o.statut = 'retenue' LIMIT 1) AS retenue_fournisseur
                 FROM dossiers d
                 INNER JOIN filiales fi ON fi.id = d.filiale_id
-                WHERE d.filiale_id IN (" . self::dans($ids) . ")
+                WHERE d.filiale_id IN (" . self::dans($ids) . ")" . \App\Models\ActiviteAcces::sqlDossier('d.id') . "
                   AND EXISTS (SELECT 1 FROM offres o WHERE o.dossier_id = d.id AND o.statut IN ('recue','retenue'))";
         $params = $ids;
         if (($f['decision'] ?? '') === 'a_trancher') {

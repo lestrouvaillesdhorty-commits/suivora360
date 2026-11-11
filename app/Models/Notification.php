@@ -62,6 +62,10 @@ class Notification
         ?string $entiteType = null,
         ?int $entiteId = null
     ): int {
+        // Une personne qui ne voit pas l'activité concernée n'est ni notifiée ni e-mailée.
+        if (!\App\Models\ActiviteAcces::notificationVisible(['entite_type' => $entiteType, 'entite_id' => $entiteId], $utilisateur)) {
+            return 0;
+        }
         $id = self::creer((int) $utilisateur['id'], $filialeId, $type, $titre, $message, $lien, $entiteType, $entiteId);
 
         try {
@@ -139,6 +143,9 @@ class Notification
 
     public static function nonLuesCountFor(int $utilisateurId): int
     {
+        if (\App\Models\ActiviteAcces::restreint()) {
+            return count(array_filter(self::recentesFor($utilisateurId, 200), fn ($n) => (int) $n['lu'] === 0));
+        }
         $stmt = Database::connection()->prepare(
             'SELECT COUNT(*) FROM notifications WHERE utilisateur_id = ? AND lu = 0'
         );
@@ -148,11 +155,16 @@ class Notification
 
     public static function recentesFor(int $utilisateurId, int $limite = 20): array
     {
+        $restreint = \App\Models\ActiviteAcces::restreint();
         $stmt = Database::connection()->prepare(
-            'SELECT * FROM notifications WHERE utilisateur_id = ? ORDER BY created_at DESC, id DESC LIMIT ' . (int) $limite
+            'SELECT * FROM notifications WHERE utilisateur_id = ? ORDER BY created_at DESC, id DESC LIMIT ' . ($restreint ? max((int) $limite, 200) : (int) $limite)
         );
         $stmt->execute([$utilisateurId]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        if ($restreint) {
+            $rows = array_slice(array_values(array_filter($rows, fn ($n) => \App\Models\ActiviteAcces::notificationVisible($n))), 0, (int) $limite);
+        }
+        return $rows;
     }
 
     public static function find(int $id): ?array

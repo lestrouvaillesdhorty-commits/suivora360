@@ -228,7 +228,7 @@ class Commande
             $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
         }
         $sql .= " WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)
-                  AND c.date_relance IS NOT NULL AND c.date_relance < ?";
+                  AND c.date_relance IS NOT NULL AND c.date_relance < ?" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
         $params = array_merge($filialeIds, [date('Y-m-d')]);
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
@@ -260,10 +260,10 @@ class Commande
             $sql = "SELECT COUNT(*) FROM commandes c
                     INNER JOIN dossiers d ON d.id = c.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
+                    WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm') . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
             $params[] = $activite;
         } else {
-            $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND filiale_id IN ($placeholders)";
+            $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('dossier_id');
         }
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
@@ -284,7 +284,7 @@ class Commande
         if ($activite) {
             $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
         }
-        $sql .= " WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)";
+        $sql .= " WHERE c.statut = 'en_cours' AND c.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
@@ -315,10 +315,10 @@ class Commande
             $sql = "SELECT COUNT(*) FROM commandes c
                     INNER JOIN dossiers d ON d.id = c.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
+                    WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm') . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
             $params[] = $activite;
         } else {
-            $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND etape = 'livraison' AND filiale_id IN ($placeholders)";
+            $sql = "SELECT COUNT(*) FROM commandes WHERE statut = 'en_cours' AND etape = 'livraison' AND filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('dossier_id');
         }
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
@@ -338,7 +338,7 @@ class Commande
                 INNER JOIN dossiers d ON d.id = c.dossier_id
                 INNER JOIN demandes dm ON dm.id = d.demande_id
                 LEFT JOIN commande_steps cs ON cs.commande_id = c.id AND cs.libelle = 'livraison'
-                WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders)";
+                WHERE c.statut = 'en_cours' AND c.etape = 'livraison' AND c.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
         $params = $filialeIds;
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
@@ -388,7 +388,7 @@ class Commande
                 INNER JOIN dossiers d ON d.id = c.dossier_id
                 INNER JOIN demandes dm ON dm.id = d.demande_id
                 LEFT JOIN commande_steps cs ON cs.commande_id = c.id AND cs.libelle = 'livraison'
-                WHERE c.statut = 'en_cours' AND c.etape IN ('expedition','douane','livraison') AND c.filiale_id IN ($ph)";
+                WHERE c.statut = 'en_cours' AND c.etape IN ('expedition','douane','livraison') AND c.filiale_id IN ($ph)" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
         $params = $filialeIds;
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
@@ -442,7 +442,7 @@ class Commande
                 INNER JOIN dossiers d ON d.id = c.dossier_id
                 INNER JOIN demandes dm ON dm.id = d.demande_id
                 WHERE c.statut = 'en_cours' AND d.type_dossier = 'prestation_entreprise'
-                  AND (c.livrables IS NULL OR c.livrables = '') AND c.filiale_id IN ($ph)";
+                  AND (c.livrables IS NULL OR c.livrables = '') AND c.filiale_id IN ($ph)" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id');
         $params = $filialeIds;
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');

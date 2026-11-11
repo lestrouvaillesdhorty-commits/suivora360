@@ -50,7 +50,26 @@ class UtilisateurController
         foreach ($cles as $c) {
             $libelles[$c] = \App\Models\RolePerso::libelleCle($c);
         }
+        // Activités visibles : réglage réservé au Propriétaire de l'entreprise.
+        $activites = array_values(array_filter(\App\Models\Activite::toutes($orgId), fn ($a) => $a['actif']));
+        $actNiveaux = [];
+        $actPersonnes = [];
+        if ($dispo && count($activites) > 1) {
+            foreach ($cles as $role) {
+                $actNiveaux[$role] = \App\Models\ActiviteAcces::niveauxRole($orgId, $role);
+            }
+        }
+        $utilisateursReglables = array_values(array_filter(Utilisateur::allForOrganisation($orgId), fn($u) => !in_array($u['role'], ['proprietaire', 'admin_organisation'], true) && empty($u['is_super_admin'])));
+        if ($dispo && count($activites) > 1) {
+            foreach ($utilisateursReglables as $u) {
+                $actPersonnes[(int) $u['id']] = \App\Models\ActiviteAcces::listePersonne((int) $u['id'], $orgId);
+            }
+        }
         View::render('users/acces_modules', [
+            'activites' => $activites,
+            'actNiveaux' => $actNiveaux,
+            'actPersonnes' => $actPersonnes,
+            'estProprietaire' => $user['role'] === 'proprietaire',
             'cles' => $cles,
             'libelles' => $libelles,
             'rolesPerso' => \App\Models\RolePerso::allForOrganisation($orgId),
@@ -96,6 +115,39 @@ class UtilisateurController
                 }
                 AuditLog::logAdmin($user, 'acces_modules_grille', 'organisation', $orgId, 'Grille mise à jour');
                 View::flash('succes', 'Accès aux modules enregistrés.');
+                break;
+            case 'activites_grille':
+            case 'activites_personne':
+                if ($user['role'] !== 'proprietaire') {
+                    View::flash('erreur', "Seul le Propriétaire de l'entreprise décide qui voit quelle activité.");
+                    break;
+                }
+                if (($_POST['action'] ?? '') === 'activites_grille') {
+                    foreach (\App\Models\RolePerso::clesReglables($orgId) as $role) {
+                        foreach (\App\Models\Activite::toutes($orgId) as $a) {
+                            $n = (string) ($_POST['a'][$role][md5($a['nom'])] ?? '');
+                            if ($n !== '') {
+                                \App\Models\ActiviteAcces::enregistrerRole($orgId, $role, $a['nom'], $n);
+                            }
+                        }
+                    }
+                    AuditLog::logAdmin($user, 'activites_visibles_roles', 'organisation', $orgId, 'Activités visibles par rôle mises à jour');
+                    View::flash('succes', 'Activités visibles par rôle enregistrées.');
+                } else {
+                    $cible = (int) ($_POST['utilisateur_id'] ?? 0);
+                    $niv = null;
+                    if (($_POST['mode'] ?? '') === 'perso') {
+                        $niv = [];
+                        foreach (\App\Models\Activite::toutes($orgId) as $a) {
+                            $niv[$a['nom']] = (string) ($_POST['a'][md5($a['nom'])] ?? 'complet');
+                        }
+                    }
+                    $ok = \App\Models\ActiviteAcces::definirPersonne($orgId, $cible, $niv);
+                    if ($ok) {
+                        AuditLog::logAdmin($user, 'activites_visibles_personne', 'utilisateur', $cible, $niv === null ? 'Suit son rôle' : 'Liste propre');
+                    }
+                    View::flash($ok ? 'succes' : 'erreur', $ok ? 'Activités visibles enregistrées pour cette personne.' : 'Personne introuvable.');
+                }
                 break;
             case 'role_creer':
                 $err = \App\Models\RolePerso::creer($orgId, (string) ($_POST['nom'] ?? ''), (string) ($_POST['base'] ?? ''), (string) ($_POST['copie'] ?? ''));

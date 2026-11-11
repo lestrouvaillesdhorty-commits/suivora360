@@ -81,6 +81,7 @@ class AccesModules
         foreach (array_keys(self::PERMISSIONS) as $code) {
             self::enregistrerPermission($orgId, $cible, $code, self::permissionRole($orgId, $source, $code));
         }
+        \App\Models\ActiviteAcces::copierRole($orgId, $source, $cible);
     }
 
     private static ?array $reglagesOrg = null;
@@ -299,14 +300,14 @@ class AccesModules
 
     public static function reinitialiser(int $orgId): void
     {
-        Database::connection()->prepare('DELETE FROM acces_modules WHERE organisation_id = ?')->execute([$orgId]);
+        Database::connection()->prepare("DELETE FROM acces_modules WHERE organisation_id = ? AND module NOT LIKE 'act_%'")->execute([$orgId]);
     }
 
     public static function exceptionsOrganisation(int $orgId): array
     {
         foreach (['u.role, u.role_perso_id', 'u.role'] as $cols) {
             try {
-                $st = Database::connection()->prepare('SELECT x.id, x.utilisateur_id, x.module, x.niveau, u.nom, ' . $cols . ' FROM acces_modules_user x INNER JOIN utilisateurs u ON u.id = x.utilisateur_id WHERE u.organisation_id = ? ORDER BY u.nom, x.module');
+                $st = Database::connection()->prepare('SELECT x.id, x.utilisateur_id, x.module, x.niveau, u.nom, ' . $cols . ' FROM acces_modules_user x INNER JOIN utilisateurs u ON u.id = x.utilisateur_id WHERE u.organisation_id = ? AND x.module NOT LIKE \'act_%\' ORDER BY u.nom, x.module');
                 $st->execute([$orgId]);
                 return $st->fetchAll();
             } catch (\Throwable $e) {

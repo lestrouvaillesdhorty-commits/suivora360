@@ -165,7 +165,7 @@ class ConsultationFournisseur
                     (SELECT COUNT(*) FROM offres o WHERE o.consultation_id = cf.id) AS nb_offres
              FROM consultations_fournisseur cf
              INNER JOIN dossiers d ON d.id = cf.dossier_id
-             WHERE cf.fournisseur_id = ?
+             WHERE cf.fournisseur_id = ?' . \App\Models\ActiviteAcces::sqlDossier('cf.dossier_id') . '
              ORDER BY cf.created_at DESC'
         );
         $stmt->execute([$fournisseurId]);

@@ -740,7 +740,7 @@ class Client
              FROM demandes de
              LEFT JOIN dossiers d ON d.demande_id = de.id
              LEFT JOIN utilisateurs u ON u.id = COALESCE(d.responsable_id, de.responsable_id)
-             WHERE de.client_id = ?
+             WHERE de.client_id = ?' . \App\Models\ActiviteAcces::sqlActivite('de.activite') . '
              ORDER BY de.created_at DESC'
         );
         $stmt->execute([$clientId]);

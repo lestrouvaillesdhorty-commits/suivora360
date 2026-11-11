@@ -85,7 +85,7 @@ class BonCommandeFournisseur
         $stmt = Database::connection()->prepare(
             'SELECT b.*, d.reference AS dossier_reference FROM bons_commande_fournisseur b
              LEFT JOIN dossiers d ON d.id = b.dossier_id
-             WHERE b.fournisseur_id = ? ORDER BY b.date_emission DESC, b.id DESC'
+             WHERE b.fournisseur_id = ?' . \App\Models\ActiviteAcces::sqlDossier('b.dossier_id') . ' ORDER BY b.date_emission DESC, b.id DESC'
         );
         $stmt->execute([$fournisseurId]);
         return $stmt->fetchAll();
@@ -111,7 +111,7 @@ class BonCommandeFournisseur
         }
         $ph = implode(',', array_fill(0, count($filialeIds), '?'));
         $sql = "SELECT b.*, d.reference AS dossier_reference FROM bons_commande_fournisseur b
-                LEFT JOIN dossiers d ON d.id = b.dossier_id WHERE b.filiale_id IN ($ph)";
+                LEFT JOIN dossiers d ON d.id = b.dossier_id WHERE b.filiale_id IN ($ph)" . \App\Models\ActiviteAcces::sqlDossier('b.dossier_id');
         $params = $filialeIds;
         if (isset(self::STATUTS[$statut])) {
             $sql .= ' AND b.statut = ?';

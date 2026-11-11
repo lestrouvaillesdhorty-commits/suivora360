@@ -291,10 +291,10 @@ class Cotation
             $sql = "SELECT COUNT(*) FROM cotations co
                     INNER JOIN dossiers d ON d.id = co.dossier_id
                     INNER JOIN demandes dm ON dm.id = d.demande_id
-                    WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm');
+                    WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND dm.activite = ?" . Demande::sousFiltresSql('dm') . \App\Models\ActiviteAcces::sqlDossier('co.dossier_id');
             $params[] = $activite;
         } else {
-            $sql = "SELECT COUNT(*) FROM cotations WHERE statut = 'envoyee' AND filiale_id IN ($placeholders)";
+            $sql = "SELECT COUNT(*) FROM cotations WHERE statut = 'envoyee' AND filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('dossier_id');
         }
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
@@ -316,7 +316,7 @@ class Cotation
         if ($activite) {
             $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
         }
-        $sql .= " WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders)";
+        $sql .= " WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlDossier('co.dossier_id');
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
             $params[] = $activite;
@@ -348,7 +348,7 @@ class Cotation
         if ($activite) {
             $sql .= ' INNER JOIN demandes dm ON dm.id = d.demande_id';
         }
-        $sql .= " WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND co.created_at <= ?";
+        $sql .= " WHERE co.statut = 'envoyee' AND co.filiale_id IN ($placeholders) AND co.created_at <= ?" . \App\Models\ActiviteAcces::sqlDossier('co.dossier_id');
         $params = array_merge($filialeIds, [$seuilDate]);
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');

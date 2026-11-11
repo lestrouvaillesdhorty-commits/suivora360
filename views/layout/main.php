@@ -152,6 +152,11 @@ $modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($module
         <div class="alert alert-<?= $flash['type'] === 'erreur' ? 'erreur' : 'succes' ?>"><?= View::e($flash['message']) ?></div>
       <?php endif; ?>
       <?php if ($modeLecture): ?><div class="bandeau-lecture">Ce module est en <strong>lecture seule</strong> pour vous : vous pouvez le consulter, sans le modifier.</div><?php endif; ?>
+      <?php if (\App\Models\ActiviteAcces::restreint()):
+        $nbTot = count(array_filter(\App\Models\Activite::toutes((int) Auth::user()['organisation_id']), fn ($a) => $a['actif']));
+        $nbVu = $nbTot - count(\App\Models\ActiviteAcces::cachees()); ?>
+        <div class="alert" style="background:#EAF5F7;color:#085560;font-size:13px;padding:8px 14px">Vous voyez <?= $nbVu ?> activité<?= $nbVu > 1 ? 's' : '' ?> sur <?= $nbTot ?>.<?php $lec = array_keys(array_filter(\App\Models\ActiviteAcces::niveaux(), fn ($n) => $n === 'lecture')); if ($lec): ?> En lecture seule : <?= View::e(implode(', ', $lec)) ?>.<?php endif; ?></div>
+      <?php endif; ?>
       <?= $content ?>
     </div>
   </div>

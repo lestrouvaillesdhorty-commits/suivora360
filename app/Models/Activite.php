@@ -77,7 +77,9 @@ class Activite
                 $noms[] = $a['nom'];
             }
         }
-        return $noms ?: Demande::ACTIVITES;
+        $noms = $noms ?: Demande::ACTIVITES;
+        $u = Auth::user();
+        return ($u && ($orgId === null || $orgId === (int) $u['organisation_id'])) ? ActiviteAcces::retirerCachees($noms) : $noms;
     }
 
     /** Une activité connue de l'entreprise (même désactivée) : sert à ne pas bloquer la modification d'une demande existante. */

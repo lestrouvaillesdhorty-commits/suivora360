@@ -23,7 +23,7 @@ class Database
                 if (!str_starts_with($path, '/')) {
                     $path = dirname(__DIR__, 2) . '/' . $path;
                 }
-                $pdo = new PDO('sqlite:' . $path);
+                $pdo = new GardePDO('sqlite:' . $path);
                 $pdo->exec('PRAGMA foreign_keys = ON');
             } else {
                 $host = Env::get('DB_HOST', 'localhost');
@@ -32,7 +32,7 @@ class Database
                 $user = Env::get('DB_USERNAME', '');
                 $pass = Env::get('DB_PASSWORD', '');
                 $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-                $pdo = new PDO($dsn, $user, $pass);
+                $pdo = new GardePDO($dsn, $user, $pass);
             }
 
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

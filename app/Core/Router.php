@@ -27,6 +27,7 @@ class Router
         $routes = $this->routes[$method] ?? [];
         // Accès par rôle : caché → 403, lecture seule → modifications refusées (voir AccesModules).
         AccesModules::controler($method, $path);
+        \App\Models\ActiviteAcces::controler($method, $path);
 
         // Correspondance exacte d'abord
         if (isset($routes[$path])) {

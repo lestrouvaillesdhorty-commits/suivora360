@@ -121,6 +121,69 @@ $roles = $cles;
   </form>
 </div>
 
+
+<?php if (count($activites) > 1): ?>
+<div class="card">
+  <h2>Activités visibles</h2>
+  <div style="font-size:13px;color:#666;margin-bottom:10px">Décidez qui voit quelle activité de l'entreprise. <strong>Caché</strong> : les demandes, dossiers, devis, commandes, factures et livraisons de cette activité n'apparaissent nulle part (listes, tableau de bord, Pilotage, exports, notifications). <strong>Lecture</strong> : visibles, sans pouvoir modifier. Par défaut tout est « Complet » : rien ne change tant que vous ne limitez pas. Propriétaire et Admin d'organisation voient toujours tout.</div>
+  <?php if (!$estProprietaire): ?>
+    <div class="alert" style="background:#FFF8E1;border:1px solid #F3D98B;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:10px">Seul le Propriétaire de l'entreprise règle les activités visibles. Vous pouvez les consulter ci-dessous.</div>
+  <?php endif; ?>
+  <form method="post" action="/index.php?r=utilisateurs/acces-modules">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <input type="hidden" name="action" value="activites_grille">
+    <div class="table-scroll"><table class="pilotage-table">
+      <thead><tr><th>Activité</th><?php foreach ($roles as $r): ?><th><?= View::e(($libelles[$r] ?? $r)) ?></th><?php endforeach; ?></tr></thead>
+      <tbody>
+      <?php foreach ($activites as $a): ?>
+        <tr>
+          <td><?= View::e($a['nom']) ?></td>
+          <?php foreach ($roles as $r): $n = $actNiveaux[$r][$a['nom']] ?? 'complet'; ?>
+          <td><select class="niv niv-<?= View::e($n) ?>" name="a[<?= View::e($r) ?>][<?= md5($a['nom']) ?>]" <?= $estProprietaire ? '' : 'disabled' ?> aria-label="<?= View::e($a['nom'] . ' — ' . ($libelles[$r] ?? $r)) ?>">
+            <?php foreach (AccesModules::NIVEAUX as $code => $nom): ?><option value="<?= $code ?>" <?= $n === $code ? 'selected' : '' ?>><?= View::e($nom) ?></option><?php endforeach; ?>
+          </select></td>
+          <?php endforeach; ?>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+    <?php if ($estProprietaire): ?><div style="margin-top:12px"><button class="btn" type="submit">Enregistrer les activités visibles</button></div><?php endif; ?>
+  </form>
+
+  <h3 style="margin:22px 0 6px;font-size:15px">Par personne</h3>
+  <div style="font-size:13px;color:#666;margin-bottom:8px">Par défaut, chaque personne suit la liste de son rôle. « Choisir pour cette personne » remplace la liste du rôle.</div>
+  <?php if (!$utilisateurs): ?><div style="color:#888;font-size:14px;padding:6px 0">Aucune personne à régler.</div><?php endif; ?>
+  <?php foreach ($utilisateurs as $u):
+    $liste = $actPersonnes[(int) $u['id']] ?? null;
+    $cleU = \App\Core\AccesModules::cleDe($u);
+    $base = $liste ?? ($actNiveaux[$cleU] ?? []); ?>
+  <details style="border-top:1px solid #eee;padding:8px 0">
+    <summary style="cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><strong><?= View::e($u['nom']) ?></strong> <span style="color:#666">(<?= View::e(\App\Models\RolePerso::libelle($u)) ?>)</span>
+      <span class="niv-pastille <?= $liste === null ? 'niv-complet' : 'niv-lecture' ?>"><?= $liste === null ? 'Suit son rôle' : 'Liste propre' ?></span></summary>
+    <form method="post" action="/index.php?r=utilisateurs/acces-modules" style="margin:10px 0 4px">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <input type="hidden" name="action" value="activites_personne">
+      <input type="hidden" name="utilisateur_id" value="<?= (int) $u['id'] ?>">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;font-size:13px">
+        <label style="font-weight:normal"><input type="radio" name="mode" value="role" <?= $liste === null ? 'checked' : '' ?> <?= $estProprietaire ? '' : 'disabled' ?>> Suivre le rôle</label>
+        <label style="font-weight:normal"><input type="radio" name="mode" value="perso" <?= $liste !== null ? 'checked' : '' ?> <?= $estProprietaire ? '' : 'disabled' ?>> Choisir pour cette personne</label>
+      </div>
+      <table class="pilotage-table" style="max-width:560px"><thead><tr><th>Activité</th><th>Niveau</th><th>Selon le rôle</th></tr></thead><tbody>
+      <?php foreach ($activites as $a): $n = $base[$a['nom']] ?? 'complet'; $selonRole = $actNiveaux[$cleU][$a['nom']] ?? 'complet'; ?>
+        <tr><td><?= View::e($a['nom']) ?></td>
+        <td><select class="niv niv-<?= View::e($n) ?>" name="a[<?= md5($a['nom']) ?>]" <?= $estProprietaire ? '' : 'disabled' ?> aria-label="<?= View::e($a['nom'] . ' — ' . $u['nom']) ?>">
+          <?php foreach (AccesModules::NIVEAUX as $code => $nom): ?><option value="<?= $code ?>" <?= $n === $code ? 'selected' : '' ?>><?= View::e($nom) ?></option><?php endforeach; ?>
+        </select></td>
+        <td style="color:#888"><?= View::e(AccesModules::NIVEAUX[$selonRole] ?? $selonRole) ?></td></tr>
+      <?php endforeach; ?>
+      </tbody></table>
+      <?php if ($estProprietaire): ?><div style="margin-top:8px"><button class="btn btn-sm" type="submit">Enregistrer pour <?= View::e($u['nom']) ?></button></div><?php endif; ?>
+    </form>
+  </details>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
 <div class="card">
   <h2>Cas particuliers par personne</h2>
   <div style="font-size:13px;color:#666;margin-bottom:8px">Modifie le niveau d'un module pour une seule personne, sans changer son rôle.</div>
