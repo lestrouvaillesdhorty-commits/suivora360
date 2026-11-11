@@ -1375,3 +1375,13 @@ td .btn-sm[title="Récapitulatif"]:hover { background:#5F3FC4; }
 .bandeau-lecture { background: #FFF1E0; border: 1px solid #F3D3A8; color: #8A4A0C; border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; font-size: 13.5px; }
 body.mode-lecture .content form[method="post"]:not(.garder) { display: none !important; }
 body.mode-lecture .content a[href*="/nouvelle"], body.mode-lecture .content a[href*="/nouveau"], body.mode-lecture .content a[href*="/creer"], body.mode-lecture .content a[href*="/modifier"], body.mode-lecture .content a[href*="/importer"] { display: none !important; }
+
+/* ---- Niveaux d'accès aux modules (v134) : mêmes couleurs que la maquette ---- */
+.niv-pastille { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; }
+select.niv { border-radius: 999px; padding: 4px 26px 4px 10px; font-weight: 600; font-size: 12.5px; border: 1px solid transparent; min-width: 96px; cursor: pointer; }
+.niv-complet { background-color: #DDF1F3; color: #0B7C8A; }
+.niv-lecture { background-color: #FFF1E0; color: #B4570F; }
+.niv-cache { background-color: #EEF1F5; color: #6B7A88; }
+select.niv-complet { border-color: #BFE0E5; }
+select.niv-lecture { border-color: #F3D3A8; }
+select.niv-cache { border-color: #D6DCE3; }

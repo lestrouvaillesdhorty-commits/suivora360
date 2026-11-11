@@ -27,8 +27,8 @@ $roles = AccesModules::ROLES_REGLABLES;
 </div>
 
 <div class="card">
-  <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-bottom:10px">
-    <span><strong>Complet</strong> : voir et modifier</span><span><strong>Lecture</strong> : voir seulement, sans pouvoir modifier</span><span><strong>Caché</strong> : absent du menu, adresse refusée</span>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-bottom:10px;align-items:center">
+    <span><span class="niv-pastille niv-complet">Complet</span> voir et modifier</span><span><span class="niv-pastille niv-lecture">Lecture</span> voir seulement, sans pouvoir modifier</span><span><span class="niv-pastille niv-cache">Caché</span> absent du menu, adresse refusée</span>
   </div>
   <div style="font-size:13px;color:#666;margin-bottom:10px">Propriétaire et Admin d'organisation ont toujours tous les accès. Filiales, Utilisateurs et Sécurité restent réservés aux administrateurs.</div>
   <form method="post" action="/index.php?r=utilisateurs/acces-modules">
@@ -43,7 +43,7 @@ $roles = AccesModules::ROLES_REGLABLES;
         <tr>
           <td><?= View::e($lib) ?></td>
           <?php foreach ($roles as $r): ?>
-          <td><select name="n[<?= View::e($mod) ?>][<?= View::e($r) ?>]" aria-label="<?= View::e($lib . ' — ' . Permissions::label($r)) ?>">
+          <td><select class="niv niv-<?= View::e($niveaux[$mod][$r] ?? 'complet') ?>" name="n[<?= View::e($mod) ?>][<?= View::e($r) ?>]" aria-label="<?= View::e($lib . ' — ' . Permissions::label($r)) ?>">
             <?php foreach (AccesModules::NIVEAUX as $code => $nom): ?><option value="<?= $code ?>" <?= ($niveaux[$mod][$r] ?? '') === $code ? 'selected' : '' ?>><?= View::e($nom) ?></option><?php endforeach; ?>
           </select></td>
           <?php endforeach; ?>
@@ -85,7 +85,7 @@ $roles = AccesModules::ROLES_REGLABLES;
     $lib = '';
     foreach (AccesModules::GROUPES as $mods) { if (isset($mods[$x['module']])) { $lib = $mods[$x['module']]; } } ?>
   <div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #eee;flex-wrap:wrap">
-    <span style="flex:1;min-width:200px"><strong><?= View::e($x['nom']) ?></strong> (<?= View::e(Permissions::label($x['role'])) ?>) : <?= View::e($lib ?: $x['module']) ?> → <strong><?= View::e(AccesModules::NIVEAUX[$x['niveau']] ?? $x['niveau']) ?></strong></span>
+    <span style="flex:1;min-width:200px"><strong><?= View::e($x['nom']) ?></strong> (<?= View::e(Permissions::label($x['role'])) ?>) : <?= View::e($lib ?: $x['module']) ?> → <span class="niv-pastille niv-<?= View::e($x['niveau']) ?>"><?= View::e(AccesModules::NIVEAUX[$x['niveau']] ?? $x['niveau']) ?></span></span>
     <form method="post" action="/index.php?r=utilisateurs/acces-modules" style="margin:0">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
       <input type="hidden" name="action" value="exception_supprimer">
@@ -103,8 +103,18 @@ $roles = AccesModules::ROLES_REGLABLES;
     <select name="module" required aria-label="Module"><option value="">— Module —</option>
       <?php foreach (AccesModules::GROUPES as $groupe => $mods): ?><optgroup label="<?= View::e($groupe) ?>"><?php foreach ($mods as $m => $lib): ?><option value="<?= $m ?>"><?= View::e($lib) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?>
     </select>
-    <select name="niveau" required aria-label="Niveau"><?php foreach (AccesModules::NIVEAUX as $code => $nom): ?><option value="<?= $code ?>"><?= View::e($nom) ?></option><?php endforeach; ?></select>
+    <select name="niveau" required aria-label="Niveau" class="niv niv-complet"><?php foreach (AccesModules::NIVEAUX as $code => $nom): ?><option value="<?= $code ?>"><?= View::e($nom) ?></option><?php endforeach; ?></select>
     <button class="btn btn-sm" type="submit">Ajouter</button>
   </form>
 </div>
 <?php endif; ?>
+
+<script>
+(function () {
+  // La couleur de la liste suit le niveau choisi (Complet = turquoise, Lecture = orange, Caché = gris).
+  document.querySelectorAll('select.niv').forEach(function (sel) {
+    function maj() { sel.className = 'niv niv-' + sel.value; }
+    sel.addEventListener('change', maj); maj();
+  });
+})();
+</script>
