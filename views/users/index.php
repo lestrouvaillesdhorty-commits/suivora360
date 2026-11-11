@@ -2,6 +2,8 @@
 <h1>Utilisateurs &amp; accès</h1>
 <div class="subtitle">Propriétaire et Admin d'organisation voient toutes les filiales. Les autres rôles ne voient que les filiales qui leur sont assignées. Le rôle détermine les actions possibles (voir la feuille de route pour le détail).</div>
 
+<p style="margin:10px 0"><a class="btn btn-sm btn-secondary" href="/index.php?r=utilisateurs/acces-modules">Accès aux modules par rôle</a></p>
+
 <div class="card">
   <h2>Ajouter un utilisateur</h2>
   <form method="post" action="/index.php?r=utilisateurs">

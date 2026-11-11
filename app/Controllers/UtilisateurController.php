@@ -20,6 +20,75 @@ use App\Models\Utilisateur;
  */
 class UtilisateurController
 {
+    /** Page « Accès aux modules » : grille rôle × module (Complet / Lecture / Caché) et exceptions par personne. */
+    public function accesModules(): void
+    {
+        Auth::requireAdmin();
+        $user = Auth::user();
+        $orgId = (int) $user['organisation_id'];
+        $dispo = \App\Core\AccesModules::disponible();
+        $niveaux = [];
+        if ($dispo) {
+            foreach (\App\Core\AccesModules::GROUPES as $mods) {
+                foreach (array_keys($mods) as $mod) {
+                    foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
+                        $niveaux[$mod][$role] = \App\Core\AccesModules::niveauRole($orgId, $role, $mod);
+                    }
+                }
+            }
+        }
+        View::render('users/acces_modules', [
+            'dispo' => $dispo,
+            'niveaux' => $niveaux,
+            'exceptions' => $dispo ? \App\Core\AccesModules::exceptionsOrganisation($orgId) : [],
+            'utilisateurs' => array_values(array_filter(Utilisateur::allForOrganisation($orgId), fn($u) => !in_array($u['role'], ['proprietaire', 'admin_organisation'], true) && empty($u['is_super_admin']))),
+        ]);
+    }
+
+    public function accesModulesUpdate(): void
+    {
+        Auth::requireAdmin();
+        $user = Auth::user();
+        $orgId = (int) $user['organisation_id'];
+        $retour = '/index.php?r=utilisateurs/acces-modules';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null) || !\App\Core\AccesModules::disponible()) {
+            View::flash('erreur', 'Session expirée ou migrate_v52.php non lancée.');
+            header('Location: ' . $retour);
+            exit;
+        }
+        switch ($_POST['action'] ?? '') {
+            case 'grille':
+                foreach (\App\Core\AccesModules::GROUPES as $mods) {
+                    foreach (array_keys($mods) as $mod) {
+                        foreach (\App\Core\AccesModules::ROLES_REGLABLES as $role) {
+                            $n = (string) ($_POST['n'][$mod][$role] ?? '');
+                            if ($n !== '') {
+                                \App\Core\AccesModules::enregistrerRole($orgId, $role, $mod, $n);
+                            }
+                        }
+                    }
+                }
+                AuditLog::logAdmin($user, 'acces_modules_grille', 'organisation', $orgId, 'Grille mise à jour');
+                View::flash('succes', 'Accès aux modules enregistrés.');
+                break;
+            case 'reinit':
+                \App\Core\AccesModules::reinitialiser($orgId);
+                AuditLog::logAdmin($user, 'acces_modules_reinit', 'organisation', $orgId, 'Réglages de départ');
+                View::flash('succes', 'Réglages de départ rétablis.');
+                break;
+            case 'exception_ajouter':
+                $ok = \App\Core\AccesModules::ajouterException($orgId, (int) ($_POST['utilisateur_id'] ?? 0), (string) ($_POST['module'] ?? ''), (string) ($_POST['niveau'] ?? ''));
+                View::flash($ok ? 'succes' : 'erreur', $ok ? 'Exception enregistrée.' : 'Exception impossible (choisissez une personne, un module et un niveau).');
+                break;
+            case 'exception_supprimer':
+                \App\Core\AccesModules::supprimerException($orgId, (int) ($_POST['id'] ?? 0));
+                View::flash('succes', 'Exception supprimée.');
+                break;
+        }
+        header('Location: ' . $retour);
+        exit;
+    }
+
     public function index(): void
     {
         Auth::requireAdmin();

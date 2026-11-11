@@ -769,6 +769,21 @@ CREATE TABLE IF NOT EXISTS motifs_perte ( -- migrate_v51.php : motifs de perte m
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS acces_modules ( -- migrate_v52.php : accès aux modules par rôle (complet / lecture / cache)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    organisation_id INT NOT NULL,
+    role VARCHAR(30) NOT NULL,
+    module VARCHAR(30) NOT NULL,
+    niveau VARCHAR(10) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS acces_modules_user ( -- migrate_v52.php : exceptions par personne
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    module VARCHAR(30) NOT NULL,
+    niveau VARCHAR(10) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS ia_usages ( -- migrate_v39.php : compteur d'usage de l'IA et mémoire des résultats
     id INT AUTO_INCREMENT PRIMARY KEY,
     filiale_id INT NOT NULL,

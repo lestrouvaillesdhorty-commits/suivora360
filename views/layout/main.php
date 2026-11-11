@@ -13,7 +13,7 @@ function navActive(string $path, string $prefix): string {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="no-js">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -28,7 +28,13 @@ function navActive(string $path, string $prefix): string {
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="/assets/css/app.css?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/css/app.css') ?>">
 </head>
-<body<?= $currentUser ? ' data-uid="' . (int) $currentUser['id'] . '"' : '' ?>>
+<?php
+// Module en lecture seule pour cette personne : bandeau + boutons de modification masqués.
+$moduleCourant = $currentUser ? \App\Core\AccesModules::moduleDeRoute('GET', $path) : null;
+$modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($moduleCourant, $currentUser) === \App\Core\AccesModules::LECTURE;
+?>
+<body<?= $currentUser ? ' data-uid="' . (int) $currentUser['id'] . '"' : '' ?><?= $modeLecture ? ' class="mode-lecture"' : '' ?>>
+<script>document.documentElement.classList.remove('no-js');</script>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
@@ -45,36 +51,56 @@ function navActive(string $path, string $prefix): string {
         <?php if (!empty($notifNonLues)): ?><span class="badge badge-red"><?= $notifNonLues ?></span><?php endif; ?>
       </a>
       <?php endif; ?>
-      <div class="section-label">Pilotage</div>
-      <a href="/index.php?r=demandes" class="<?= navActive($path, '/demandes') ?>"><?= Icon::svg('inbox') ?><span>Demandes</span></a>
-      <a href="/index.php?r=dossiers" class="<?= navActive($path, '/dossiers') ?>"><?= Icon::svg('folder') ?><span>Dossiers</span></a>
-      <div class="section-label">Achats</div>
-      <a href="/index.php?r=fournisseurs" class="<?= navActive($path, '/fournisseurs') ?>"><?= Icon::svg('truck') ?><span>Fournisseurs</span></a>
-      <a href="/index.php?r=offres" class="<?= navActive($path, '/offres') ?>"><?= Icon::svg('tag') ?><span>Offres</span></a>
-      <a href="/index.php?r=comparateur" class="<?= navActive($path, '/comparateur') ?>"><?= Icon::svg('layers') ?><span>Comparateur</span></a>
-      <a href="/index.php?r=simulateur" class="<?= navActive($path, '/simulateur') ?>"><?= Icon::svg('sliders') ?><span>Simulateur de prix</span></a>
-      <div class="section-label">Ventes</div>
-      <a href="/index.php?r=clients" class="<?= navActive($path, '/clients') ?>"><?= Icon::svg('users') ?><span>Clients</span></a>
-      <a href="/index.php?r=cotations" class="<?= navActive($path, '/cotations') ?>"><?= Icon::svg('file-text') ?><span>Cotations</span></a>
-      <a href="/index.php?r=commandes" class="<?= navActive($path, '/commandes') ?>"><?= Icon::svg('shopping-cart') ?><span>Commandes</span></a>
-      <a href="/index.php?r=factures" class="<?= navActive($path, '/factures') ?>"><?= Icon::svg('dollar-sign') ?><span>Factures</span></a>
-      <?php if ($currentUser && (Permissions::isAdmin($currentUser['role']) || Permissions::canManageParametres($currentUser['role']))): ?>
-      <div class="section-label">Administration</div>
-      <?php if (Permissions::isAdmin($currentUser['role'])): ?>
-      <a href="/index.php?r=filiales" class="<?= navActive($path, '/filiales') ?>"><?= Icon::svg('building') ?><span>Filiales</span></a>
-      <a href="/index.php?r=utilisateurs" class="<?= navActive($path, '/utilisateurs') ?>"><?= Icon::svg('user') ?><span>Utilisateurs &amp; accès</span></a>
-      <a href="/index.php?r=securite" class="<?= navActive($path, '/securite') ?>"><?= Icon::svg('lock') ?><span>Sécurité</span></a>
-      <?php endif; ?>
-      <?php if (!empty($currentUser['is_super_admin'])): ?>
-      <a href="/index.php?r=admin-suivora" class="<?= navActive($path, '/admin-suivora') ?>"><?= Icon::svg('building') ?><span>Administration Suivora</span></a>
-      <?php endif; ?>
-      <?php if (Permissions::canVoirPilotage($currentUser['role'])): ?>
-      <a href="/index.php?r=pilotage" class="<?= navActive($path, '/pilotage') ?>"><?= Icon::svg('bar-chart-2') ?><span>Pilotage</span></a>
-      <?php endif; ?>
-      <?php if (Permissions::canManageParametres($currentUser['role'])): ?>
-      <a href="/index.php?r=parametres" class="<?= navActive($path, '/parametres') ?>"><?= Icon::svg('settings') ?><span>Paramètres</span></a>
-      <?php endif; ?>
-      <?php endif; ?>
+      <?php
+      // Menu en groupes dépliables : le groupe de la page ouverte est déplié, les autres repliés ; l'état choisi est mémorisé (par appareil).
+      $voit = fn(string $m) => !$currentUser || \App\Core\AccesModules::visible($m, $currentUser);
+      $admin = $currentUser && Permissions::isAdmin($currentUser['role']);
+      $gestParam = $currentUser && Permissions::canManageParametres($currentUser['role']);
+      $items = [
+        'Suivi' => [
+          ['demandes', '/demandes', 'inbox', 'Demandes', true],
+          ['dossiers', '/dossiers', 'folder', 'Dossiers', true],
+        ],
+        'Achats' => [
+          ['fournisseurs', '/fournisseurs', 'truck', 'Fournisseurs', true],
+          ['offres', '/offres', 'tag', 'Offres', true],
+          ['comparateur', '/comparateur', 'layers', 'Comparateur', true],
+          ['simulateur', '/simulateur', 'sliders', 'Simulateur de prix', true],
+        ],
+        'Ventes' => [
+          ['clients', '/clients', 'users', 'Clients', true],
+          ['cotations', '/cotations', 'file-text', 'Cotations', true],
+          ['commandes', '/commandes', 'shopping-cart', 'Commandes', true],
+          ['factures', '/factures', 'dollar-sign', 'Factures', true],
+        ],
+        'Administration' => [
+          [null, '/filiales', 'building', 'Filiales', $admin],
+          [null, '/utilisateurs', 'user', 'Utilisateurs & accès', $admin],
+          [null, '/securite', 'lock', 'Sécurité', $admin],
+          [null, '/admin-suivora', 'building', 'Administration Suivora', $currentUser && !empty($currentUser['is_super_admin'])],
+          ['pilotage', '/pilotage', 'bar-chart-2', 'Pilotage', $currentUser && Permissions::canVoirPilotage($currentUser['role'])],
+          ['parametres', '/parametres', 'settings', 'Paramètres', $gestParam],
+        ],
+      ];
+      $pathActif = $path;
+      foreach ($items as $groupe => $liens):
+          $liens = array_values(array_filter($liens, fn($l) => $l[4] && ($l[0] === null || $voit($l[0]))));
+          if (!$liens) { continue; }
+          $actifGroupe = false;
+          foreach ($liens as $l) { if (str_starts_with($pathActif, $l[1])) { $actifGroupe = true; } }
+          $gid = 'g-' . strtolower(preg_replace('/[^a-z]/i', '', $groupe));
+      ?>
+      <div class="nav-group" data-group="<?= $gid ?>" data-actif="<?= $actifGroupe ? '1' : '0' ?>">
+        <button type="button" class="nav-group-head" aria-expanded="<?= $actifGroupe ? 'true' : 'false' ?>">
+          <span><?= View::e($groupe) ?></span><span class="nav-group-meta"><span class="nav-count"><?= count($liens) ?></span><span class="nav-chev">▾</span></span>
+        </button>
+        <div class="nav-group-body">
+          <?php foreach ($liens as $l): ?>
+          <a href="/index.php?r=<?= ltrim($l[1], '/') ?>" class="<?= navActive($path, $l[1]) ?>"><?= Icon::svg($l[2]) ?><span><?= View::e($l[3]) ?></span></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <?php endforeach; ?>
     </nav>
     <?php if ($currentUser): ?>
     <div class="user-box">
@@ -125,6 +151,7 @@ function navActive(string $path, string $prefix): string {
       <?php if (!empty($flash)): ?>
         <div class="alert alert-<?= $flash['type'] === 'erreur' ? 'erreur' : 'succes' ?>"><?= View::e($flash['message']) ?></div>
       <?php endif; ?>
+      <?php if ($modeLecture): ?><div class="bandeau-lecture">Ce module est en <strong>lecture seule</strong> pour vous : vous pouvez le consulter, sans le modifier.</div><?php endif; ?>
       <?= $content ?>
     </div>
   </div>
@@ -181,6 +208,7 @@ function navActive(string $path, string $prefix): string {
 })();
 </script>
 <?php if ($currentUser): ?><script src="/assets/js/mdp.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/mdp.js') ?>"></script><?php endif; ?>
+<script src="/assets/js/menu.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/menu.js') ?>"></script>
 <script src="/assets/js/galerie.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/galerie.js') ?>"></script>
 <script src="/assets/js/mobile.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/mobile.js') ?>"></script>
 <?php if ($currentUser): ?><script src="/assets/js/alertes.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/alertes.js') ?>"></script><?php endif; ?>

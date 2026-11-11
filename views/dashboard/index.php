@@ -1,4 +1,5 @@
 <?php
+$voitLiv = \App\Core\AccesModules::visible('livraisons', \App\Core\Auth::user());
 use App\Core\Auth;
 use App\Core\Icon;
 use App\Core\View;
@@ -121,10 +122,12 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
     <div class="dk-icon" style="background:#DFF3E8;color:#14633C"><?= Icon::svg('truck', 'icon', 21) ?></div>
     <div><div class="dk-value"><?= count($fluxEnCours) ?></div><div class="dk-label">Transports en cours</div><div class="dk-link">Voir les flux <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
+  <?php if ($voitLiv): ?>
   <a href="#livraisons" class="dash-kpi">
     <div class="dk-icon" style="background:#FDE5DF;color:#C8402A"><?= Icon::svg('clock', 'icon', 21) ?></div>
     <div><div class="dk-value"><?= (int) $livraisonsEnCoursCount ?></div><div class="dk-label">Livraisons à suivre</div><div class="dk-link">Voir la liste <?= Icon::svg('arrow-right', 'icon', 13) ?></div></div>
   </a>
+  <?php endif; ?>
 </div>
 <?php elseif (!empty($estPrestation)): ?>
 <div class="dash-kpi-row" style="margin-top:18px">
@@ -254,7 +257,7 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
       </ul>
     <?php endif; ?>
   </div>
-  <?php if (!empty($estTransport)): ?>
+  <?php if (!empty($estTransport) && $voitLiv): ?>
   <div class="card" id="livraisons">
     <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('truck', 'icon', 17) ?> Livraisons à suivre</h2>
     <?php if (empty($livraisonsEnCours)): ?>

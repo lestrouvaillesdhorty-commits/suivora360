@@ -856,6 +856,14 @@ $router->post('/utilisateurs/{id}/activer', function ($params) {
     Auth::requireLogin();
     (new UtilisateurController())->activer($params);
 });
+$router->get('/utilisateurs/acces-modules', function () {
+    Auth::requireLogin();
+    (new UtilisateurController())->accesModules();
+});
+$router->post('/utilisateurs/acces-modules', function () {
+    Auth::requireLogin();
+    (new UtilisateurController())->accesModulesUpdate();
+});
 $router->post('/utilisateurs/{id}/mot-de-passe', function ($params) {
     Auth::requireLogin();
     (new UtilisateurController())->resetPassword($params);
