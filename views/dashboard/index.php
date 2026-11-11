@@ -322,7 +322,7 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
 <div class="card dos-encours" style="margin-top:20px">
   <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('folder', 'icon', 17) ?> Dossiers en cours</span><a href="/index.php?r=dossiers" style="font-size:13px;font-weight:600">Tous les dossiers</a></h2>
   <div style="overflow-x:auto">
-  <table class="table-soft" style="width:100%;min-width:640px">
+  <table class="table-soft" style="width:100%">
     <thead><tr><th>Dossier</th><th>Objet et client</th><th>Étape</th><th style="width:26%">Avancement</th><th>Échéance</th></tr></thead>
     <tbody>
     <?php foreach ($dossiersEnCours as $dc):
