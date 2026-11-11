@@ -89,7 +89,7 @@ $maxNb = $d['par_motif'] ? max(array_column($d['par_motif'], 'nb')) : 1;
         <td>
           <?php if ($k === ''): ?>
           <form method="post" action="/index.php?r=dossiers/<?= (int) $dc['id'] ?>/motif-cloture" style="display:flex;gap:6px;margin:0;flex-wrap:wrap">
-            <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+            <input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>">
             <input type="hidden" name="retour" value="<?= View::e($retourP) ?>">
             <select name="motif_cloture" required aria-label="Motif">
               <option value="">— Motif —</option>
