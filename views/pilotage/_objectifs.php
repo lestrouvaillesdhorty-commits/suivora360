@@ -101,7 +101,7 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
     <input type="hidden" name="csrf_token" value="<?= View::e(Auth::csrfToken()) ?>">
     <input type="hidden" name="mois" value="<?= View::e($mois) ?>"><input type="hidden" name="comp" value="<?= View::e($comp) ?>">
     <input type="hidden" name="devise" value="<?= View::e($devise) ?>">
-    <div style="overflow-x:auto"><style>.tbl-obj select,.tbl-obj input[type=text]{padding:6px 8px;font-size:13px;height:auto}.tbl-obj td,.tbl-obj th{padding-left:8px;padding-right:8px}.tbl-obj .num{white-space:nowrap}.tbl-obj{font-size:13px}.tbl-obj td,.tbl-obj th{padding-left:5px;padding-right:5px}.tbl-obj select{padding:5px 4px;text-overflow:ellipsis}.tbl-obj select[name^=fonction]{width:104px;min-width:0;max-width:104px}.tbl-obj select[name^=indicateur]{width:104px;min-width:0}.tbl-obj select[name^=base]{width:118px;min-width:0;max-width:118px}.tbl-obj input[name^=objectif]{width:68px!important}.tbl-obj input[name^=taux]{width:46px!important}.tbl-obj .badge{white-space:nowrap}.tbl-obj .avatar-with-name{gap:6px;white-space:nowrap}.tbl-obj td:first-child{min-width:150px}</style>
+    <div style="overflow-x:auto"><style>.tbl-obj select,.tbl-obj input[type=text]{padding:6px 8px;font-size:13px;height:auto}.tbl-obj td,.tbl-obj th{padding-left:8px;padding-right:8px}.tbl-obj .num{white-space:nowrap}.tbl-obj{font-size:13px}.tbl-obj td,.tbl-obj th{padding-left:5px;padding-right:5px}.tbl-obj select{padding:5px 4px;text-overflow:ellipsis}.tbl-obj select[name^=fonction]{width:104px;min-width:0;max-width:104px}.tbl-obj select[name^=indicateur]{width:104px;min-width:0}.tbl-obj select[name^=base]{width:118px;min-width:0;max-width:118px}.tbl-obj input[name^=objectif]{width:68px!important}.tbl-obj input[name^=taux]{width:46px!important}.tbl-obj .badge{white-space:nowrap}.tbl-obj .avatar-with-name{gap:6px;white-space:nowrap}.tbl-obj td:first-child{min-width:150px}@media (max-width:1500px){.tbl-obj select,.tbl-obj input[name^=objectif],.tbl-obj input[name^=taux]{width:100%!important;max-width:none!important;min-width:0!important;box-sizing:border-box}.tbl-obj td{text-align:left!important}}@media (min-width:769px) and (max-width:1500px){.tbl-obj thead{display:none}.tbl-obj,.tbl-obj tbody,.tbl-obj tfoot{display:block;width:100%}.tbl-obj tr{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 16px;padding:12px 14px;margin-bottom:10px;border:1px solid #DDE8EA;border-radius:10px;background:#fff}.tbl-obj tr.groupe-fonction{display:block;padding:0;border:0;background:none;margin:12px 0 6px}.tbl-obj td{display:block;padding:0;border:0;min-width:0}.tbl-obj td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;color:#5B6B7B;margin-bottom:3px}.tbl-obj td:not([data-label])::before{display:none}.tbl-obj td:first-child{grid-column:1/-1}.tbl-obj td:first-child::before{display:none}.tbl-obj tfoot td:empty{display:none}}</style>
     <table class="pilotage-table responsive-cards tbl-obj">
       <thead><tr>
         <th>Collaborateur</th><th>Fonction</th><th>Indicateur</th><th>Attribution</th><th class="num">Objectif</th><th class="num">Réalisé<?php if ($compData): ?> <small>(vs <?= View::e($compData['periode']['court']) ?>)</small><?php endif; ?></th><th style="min-width:90px">Avancement / reste</th><th>Statut</th><th class="num">Taux (%)</th><th class="num">Commission</th>
@@ -123,7 +123,7 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
                 <option value="<?= (int) $f['id'] ?>" data-ind="<?= View::e($f['indicateur']) ?>" data-base="<?= View::e($f['base']) ?>" data-taux="<?= (float) $f['taux_commission'] > 0 ? (float) $f['taux_commission'] : '' ?>" <?= (int) ($l['fonction_id'] ?? 0) === (int) $f['id'] ? 'selected' : '' ?>><?= View::e($f['libelle']) ?></option>
               <?php endforeach; ?>
             </select>
-            <?php else: ?><span class="cell-na">—</span><?php endif; ?><br><small style="color:#5B6B7B">reste <?= $l['reste'] !== null ? $fmtVal($l['reste'], $t0) : '—' ?></small>
+            <?php else: ?><span class="cell-na">—</span><?php endif; ?>
           </td>
           <td data-label="Indicateur">
             <select name="indicateur[<?= $uid ?>]">
@@ -145,7 +145,7 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
             <?php if ($l['pct'] !== null): ?>
               <div style="background:#E6EEF0;border-radius:99px;height:12px;overflow:hidden"><div style="width:<?= min(100, $l['pct']) ?>%;background:<?= $coul ?>;height:100%"></div></div>
               <small><?= $l['pct'] ?> %</small>
-            <?php else: ?><span class="cell-na">—</span><?php endif; ?>
+            <?php else: ?><span class="cell-na">—</span><?php endif; ?><br><small style="color:#5B6B7B">reste <?= $l['reste'] !== null ? $fmtVal($l['reste'], $t0) : '—' ?></small>
           </td>
           <td data-label="Statut"><span class="badge" style="background:<?= $coul ?>;color:#fff"><?= View::e($lib) ?></span></td>
           <td data-label="Taux" class="num"><input type="text" inputmode="decimal" name="taux[<?= $uid ?>]" value="<?= $l['taux'] > 0 ? View::e((string) $l['taux']) : '' ?>" placeholder="0" style="width:56px;text-align:right"></td>
@@ -156,10 +156,10 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
       <?php $t = $d['totaux']; ?>
       <tfoot><tr>
         <td><strong>Total équipe</strong><br><small>indicateurs en montant</small></td><td></td><td></td><td></td>
-        <td class="num"><strong><?= Pilotage::fmt($t['objectif'], $devise) ?></strong></td>
-        <td class="num"><strong><?= Pilotage::fmt($t['realise'], $devise) ?></strong></td>
-        <td><?= $t['pct'] !== null ? '<small>' . $t['pct'] . ' %</small><br>' : '' ?><small>reste <?= Pilotage::fmt($t['reste'], $devise) ?></small></td><td></td><td></td>
-        <td class="num"><strong><?= Pilotage::fmt($t['commission'], $devise) ?></strong></td>
+        <td data-label="Total objectif" class="num"><strong><?= Pilotage::fmt($t['objectif'], $devise) ?></strong></td>
+        <td data-label="Total réalisé" class="num"><strong><?= Pilotage::fmt($t['realise'], $devise) ?></strong></td>
+        <td data-label="Avancement"><?= $t['pct'] !== null ? '<small>' . $t['pct'] . ' %</small><br>' : '' ?><small>reste <?= Pilotage::fmt($t['reste'], $devise) ?></small></td><td></td><td></td>
+        <td data-label="Total commission" class="num"><strong><?= Pilotage::fmt($t['commission'], $devise) ?></strong></td>
       </tr></tfoot>
     </table></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
