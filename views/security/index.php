@@ -23,6 +23,21 @@ $lienEntite = function (array $l): ?string {
   </div>
 </div>
 
+<div class="card" style="margin:14px 0">
+  <h2 style="margin-top:0">Support Suivora</h2>
+  <p style="font-size:13px;color:#555;margin:0 0 10px">Le support Suivora peut voir la liste de vos utilisateurs (nom, e-mail, rôle, état) et réinitialiser un mot de passe ou désactiver un compte. Il ne voit jamais vos demandes, dossiers, prix ni documents. Chaque action est inscrite dans ce journal et le Propriétaire reçoit un e-mail à chaque réinitialisation.</p>
+  <?php if (\App\Core\Auth::role() === 'proprietaire'): ?>
+  <form method="post" action="/index.php?r=securite/support" style="margin:0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <span class="badge <?= $supportAutorise ? 'badge-green' : 'badge-red' ?>"><?= $supportAutorise ? 'Accès autorisé' : 'Accès retiré' ?></span>
+    <input type="hidden" name="support_autorise" value="<?= $supportAutorise ? '0' : '1' ?>">
+    <button type="submit" class="btn btn-sm btn-secondary"><?= $supportAutorise ? "Retirer l'accès du support" : "Autoriser le support" ?></button>
+  </form>
+  <?php else: ?>
+    <span class="badge <?= $supportAutorise ? 'badge-green' : 'badge-red' ?>"><?= $supportAutorise ? 'Accès autorisé' : 'Accès retiré' ?></span> <span style="font-size:12px;color:#888">Seul le Propriétaire peut modifier ce réglage.</span>
+  <?php endif; ?>
+</div>
+
 <form method="get" class="card filtres-securite" style="margin-top:14px">
   <input type="hidden" name="r" value="securite">
   <select name="utilisateur_id">

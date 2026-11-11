@@ -814,3 +814,6 @@ CREATE TABLE IF NOT EXISTS reinit_mdp (
     created_at VARCHAR(19) NOT NULL,
     INDEX idx_reinit_jeton (jeton_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- migrate_v54 : support Suivora (le Propriétaire peut retirer l'accès du support aux utilisateurs)
+-- ALTER TABLE organisations ADD COLUMN support_autorise TINYINT(1) NOT NULL DEFAULT 1;

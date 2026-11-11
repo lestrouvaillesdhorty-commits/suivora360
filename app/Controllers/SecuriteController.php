@@ -37,6 +37,8 @@ class SecuriteController
         $evenements = AuditLog::recherche($filialeIds, $filters, self::PAR_PAGE, ($page - 1) * self::PAR_PAGE);
 
         View::render('security/index', [
+            'supportAutorise' => \App\Models\Organisation::supportAutorise((int) $user['organisation_id']),
+            'csrfToken' => Auth::csrfToken(),
             'evenements' => $evenements,
             'filters' => $filters,
             'total' => $total,
@@ -45,6 +47,27 @@ class SecuriteController
             'utilisateurs' => AuditLog::utilisateursDuJournal($filialeIds),
             'filiales' => Filiale::visibleFor($user),
         ]);
+    }
+
+    /** Le Propriétaire autorise ou retire l'accès du support Suivora aux utilisateurs de son entreprise. */
+    public function support(): void
+    {
+        Auth::requireAdmin();
+        $user = Auth::user();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null) || Auth::role() !== 'proprietaire') {
+            View::flash('erreur', "Seul un Propriétaire peut modifier ce réglage.");
+            header('Location: /index.php?r=securite');
+            exit;
+        }
+        $oui = ($_POST['support_autorise'] ?? '') === '1';
+        if (\App\Models\Organisation::definirSupport((int) $user['organisation_id'], $oui)) {
+            AuditLog::logAdmin($user, 'support_autorisation', 'organisation', (int) $user['organisation_id'], $oui ? 'Accès du support autorisé' : 'Accès du support retiré');
+            View::flash('succes', $oui ? 'Le support Suivora peut de nouveau voir vos utilisateurs.' : 'Accès du support Suivora retiré.');
+        } else {
+            View::flash('erreur', "Réglage indisponible : la migration n'a pas encore été lancée.");
+        }
+        header('Location: /index.php?r=securite');
+        exit;
     }
 
     public function exportCsv(): void

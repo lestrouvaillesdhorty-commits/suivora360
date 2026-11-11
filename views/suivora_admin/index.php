@@ -29,7 +29,7 @@ $aRelancer = array_filter($organisations, fn($o) => !empty($o['abonnement_echean
     <div class="empty-state">Aucune entreprise.</div>
   <?php else: ?>
   <table class="responsive-cards">
-    <thead><tr><th>Entreprise</th><th>Adresse (sous-domaine)</th><th class="num">Filiales</th><th class="num">Utilisateurs actifs</th><th class="num">Demandes</th><th class="num">Dossiers</th><th>Dernière activité</th><th>Accès</th><th></th></tr></thead>
+    <thead><tr><th>Entreprise</th><th>Adresse (sous-domaine)</th><th class="num">Filiales</th><th class="num">Utilisateurs actifs</th><th class="num">Demandes</th><th class="num">Dossiers</th><th>Dernière activité</th><th>Accès</th><th>Accès support</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($organisations as $o): $active = !isset($o['actif']) || (int) $o['actif'] === 1; ?>
       <tr>
@@ -51,8 +51,11 @@ $aRelancer = array_filter($organisations, fn($o) => !empty($o['abonnement_echean
         <td data-label="Dossiers" class="num"><?= (int) $o['nb_dossiers'] ?></td>
         <td data-label="Dernière activité"><?= $o['derniere_activite'] ? date('d/m/Y H:i', strtotime($o['derniere_activite'])) : '—' ?></td>
         <td data-label="Accès"><span class="badge <?= $active ? 'badge-green' : 'badge-red' ?>"><?= $active ? 'Actif' : 'Suspendu' ?></span></td>
+        <?php $supOk = \App\Models\Organisation::supportAutorise((int) $o['id']); ?>
+        <td data-label="Accès support"><?= $supOk ? '<span class="badge badge-green">Autorisé</span>' : '<span class="badge badge-orange">Retiré par l\'entreprise</span>' ?></td>
         <td>
           <?php if ((int) $o['id'] !== $monOrganisationId): ?>
+          <?php if ($supOk): ?><a class="btn btn-sm" style="color:#fff" href="/index.php?r=admin-suivora/<?= (int) $o['id'] ?>/utilisateurs">Utilisateurs</a><?php endif; ?>
           <form method="post" action="/index.php?r=admin-suivora/<?= (int) $o['id'] ?>/basculer" style="margin:0" onsubmit="return confirm('<?= $active ? 'Suspendre' : 'Rétablir' ?> l\'accès de « <?= View::e(addslashes($o['nom'])) ?> » ?');">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
             <button type="submit" class="btn btn-sm btn-secondary"><?= $active ? 'Suspendre' : 'Rétablir' ?></button>

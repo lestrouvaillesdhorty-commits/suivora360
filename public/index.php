@@ -783,6 +783,10 @@ $router->get('/securite', function () {
     Auth::requireLogin();
     (new SecuriteController())->index();
 });
+$router->post('/securite/support', function () {
+    Auth::requireLogin();
+    (new SecuriteController())->support();
+});
 $router->get('/securite/export', function () {
     Auth::requireLogin();
     (new SecuriteController())->exportCsv();
@@ -807,6 +811,14 @@ $router->post('/admin-suivora/{id}/basculer', function ($params) {
 });
 $router->post('/admin-suivora/{id}/sous-domaine', function ($params) {
     (new SuivoraAdminController())->sousDomaine($params);
+});
+$router->get('/admin-suivora/{id}/utilisateurs', function ($params) {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->utilisateurs($params);
+});
+$router->post('/admin-suivora/{id}/utilisateurs/{uid}', function ($params) {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->actionUtilisateur($params);
 });
 $router->post('/admin-suivora/{id}/abonnement', function ($params) {
     Auth::requireLogin();

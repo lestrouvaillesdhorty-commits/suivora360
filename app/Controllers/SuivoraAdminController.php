@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Auth;
+use App\Core\Database;
 use App\Core\View;
 use App\Models\AuditLog;
 use App\Models\Filiale;
@@ -235,5 +236,105 @@ class SuivoraAdminController
             : "L'accès de « {$org['nom']} » est rétabli.");
         header('Location: /index.php?r=admin-suivora');
         exit;
+    }
+
+    /**
+     * Support Suivora : liste des PERSONNES d'une entreprise (nom, e-mail, rôle, état) — jamais ses données métier.
+     * Possible tant que le Propriétaire n'a pas retiré l'accès (Paramètres → Sécurité). Votre propre entreprise
+     * se gère par « Utilisateurs & accès ».
+     */
+    private function orgSupport(array $params): array
+    {
+        Auth::requireSuperAdmin();
+        $org = Organisation::find((int) $params['id']);
+        if (!$org || (int) $org['id'] === (int) Auth::user()['organisation_id']) {
+            http_response_code(404);
+            View::render('errors/404');
+            exit;
+        }
+        return $org;
+    }
+
+    public function utilisateurs(array $params): void
+    {
+        $org = $this->orgSupport($params);
+        $autorise = Organisation::supportAutorise((int) $org['id']);
+        View::render('suivora_admin/utilisateurs', [
+            'org' => $org,
+            'autorise' => $autorise,
+            'utilisateurs' => $autorise ? Utilisateur::allForOrganisation((int) $org['id']) : [],
+            'csrfToken' => Auth::csrfToken(),
+        ]);
+    }
+
+    /** Action du support sur un compte : reinit | desactiver | activer. */
+    public function actionUtilisateur(array $params): void
+    {
+        $org = $this->orgSupport($params);
+        $retour = '/index.php?r=admin-suivora/' . (int) $org['id'] . '/utilisateurs';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        if (!Organisation::supportAutorise((int) $org['id'])) {
+            View::flash('erreur', "Cette entreprise a retiré l'accès du support Suivora.");
+            header('Location: ' . $retour);
+            exit;
+        }
+        $cible = Utilisateur::find((int) $params['uid']);
+        if (!$cible || (int) $cible['organisation_id'] !== (int) $org['id'] || !empty($cible['is_super_admin'])) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $acteur = Auth::user();
+        $action = (string) ($_POST['action'] ?? '');
+        $filiales = Filiale::allForOrganisation((int) $org['id']);
+        $filialeId = (int) ($filiales[0]['id'] ?? 0);
+        if ($action === 'reinit') {
+            $alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            $mdp = '';
+            for ($k = 0; $k < 10; $k++) {
+                $mdp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+            Utilisateur::updatePassword((int) $cible['id'], $mdp, true);
+            try {
+                Database::connection()->prepare('UPDATE utilisateurs SET mdp_modifie_le = ? WHERE id = ?')->execute([date('Y-m-d H:i:s'), (int) $cible['id']]);
+            } catch (\Throwable $e) {
+            }
+            $this->prevenirProprietaires((int) $org['id'], 'Le support Suivora a réinitialisé le mot de passe de ' . $cible['nom'] . ' (' . $cible['email'] . ').');
+            $this->journal($filialeId, $acteur, 'support_reset_mdp', $cible);
+            View::flash('succes', 'Mot de passe provisoire de ' . $cible['nom'] . ' : ' . $mdp . ' — note-le maintenant, il ne sera plus affiché. La personne devra le changer à sa première connexion.');
+        } elseif ($action === 'desactiver') {
+            if ($cible['role'] === 'proprietaire' && Utilisateur::countProprietairesActifs((int) $org['id'], (int) $cible['id']) < 1) {
+                View::flash('erreur', 'Impossible : c\'est le dernier Propriétaire actif de cette entreprise.');
+            } else {
+                Utilisateur::setActive((int) $cible['id'], false);
+                $this->journal($filialeId, $acteur, 'support_desactivation', $cible);
+                View::flash('succes', 'Compte désactivé.');
+            }
+        } elseif ($action === 'activer') {
+            Utilisateur::setActive((int) $cible['id'], true);
+            $this->journal($filialeId, $acteur, 'support_reactivation', $cible);
+            View::flash('succes', 'Compte réactivé.');
+        }
+        header('Location: ' . $retour);
+        exit;
+    }
+
+    private function journal(int $filialeId, array $acteur, string $action, array $cible): void
+    {
+        if ($filialeId > 0) {
+            AuditLog::log($filialeId, (int) $acteur['id'], $action, 'utilisateur', (int) $cible['id'], $cible['nom'] . ' (' . $cible['email'] . ')');
+        }
+    }
+
+    private function prevenirProprietaires(int $orgId, string $message): void
+    {
+        foreach (Utilisateur::allForOrganisation($orgId) as $u) {
+            if ($u['role'] === 'proprietaire' && !empty($u['actif'])) {
+                \App\Services\Mailer::envoyer($u['email'], 'Action du support Suivora', "Bonjour " . $u['nom'] . ",\n\n" . $message . "\n\nVous pouvez retirer l'accès du support dans Sécurité.\n\nSuivora360\n");
+            }
+        }
     }
 }

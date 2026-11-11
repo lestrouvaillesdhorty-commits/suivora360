@@ -166,4 +166,27 @@ class Organisation
         $stmt = Database::connection()->prepare('UPDATE organisations SET actif = ? WHERE id = ?');
         $stmt->execute([$actif ? 1 : 0, $id]);
     }
+
+    /** Le Propriétaire autorise-t-il le support Suivora à voir ses utilisateurs ? (oui par défaut, et tant que migrate_v54 n'est pas lancée) */
+    public static function supportAutorise(int $id): bool
+    {
+        try {
+            $stmt = Database::connection()->prepare('SELECT support_autorise FROM organisations WHERE id = ?');
+            $stmt->execute([$id]);
+            $v = $stmt->fetchColumn();
+            return ($v === false || $v === null) ? true : ((int) $v === 1);
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    public static function definirSupport(int $id, bool $oui): bool
+    {
+        try {
+            Database::connection()->prepare('UPDATE organisations SET support_autorise = ? WHERE id = ?')->execute([$oui ? 1 : 0, $id]);
+            return true;
+        } catch (\Throwable $e) {
+            return false; // migrate_v54 pas encore lancée
+        }
+    }
 }
