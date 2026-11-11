@@ -101,10 +101,10 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
     <input type="hidden" name="csrf_token" value="<?= View::e(Auth::csrfToken()) ?>">
     <input type="hidden" name="mois" value="<?= View::e($mois) ?>"><input type="hidden" name="comp" value="<?= View::e($comp) ?>">
     <input type="hidden" name="devise" value="<?= View::e($devise) ?>">
-    <div style="overflow-x:auto"><style>.tbl-obj select,.tbl-obj input[type=text]{padding:6px 8px;font-size:13px;height:auto}.tbl-obj td,.tbl-obj th{padding-left:8px;padding-right:8px}.tbl-obj .num{white-space:nowrap}</style>
+    <div style="overflow-x:auto"><style>.tbl-obj select,.tbl-obj input[type=text]{padding:6px 8px;font-size:13px;height:auto}.tbl-obj td,.tbl-obj th{padding-left:8px;padding-right:8px}.tbl-obj .num{white-space:nowrap}.tbl-obj{font-size:13px}.tbl-obj td,.tbl-obj th{padding-left:5px;padding-right:5px}.tbl-obj select{padding:5px 4px;text-overflow:ellipsis}.tbl-obj select[name^=fonction]{width:112px;min-width:0;max-width:112px}.tbl-obj select[name^=indicateur]{width:112px;min-width:0}.tbl-obj select[name^=base]{width:150px;min-width:0;max-width:150px}.tbl-obj input[name^=objectif]{width:68px!important}.tbl-obj input[name^=taux]{width:46px!important}.tbl-obj .badge{white-space:nowrap}.tbl-obj .avatar-with-name{gap:6px}</style>
     <table class="pilotage-table responsive-cards tbl-obj">
       <thead><tr>
-        <th>Collaborateur</th><th>Fonction</th><th>Indicateur</th><th>Attribution</th><th class="num">Objectif</th><th class="num">Réalisé</th><th style="min-width:90px">Avancement</th><?php if ($compData): ?><th class="num">Réalisé <?= View::e($compData['periode']['court']) ?></th><?php endif; ?><th class="num">Reste à faire</th><th>Statut</th><th class="num">Taux (%)</th><th class="num">Commission</th>
+        <th>Collaborateur</th><th>Fonction</th><th>Indicateur</th><th>Attribution</th><th class="num">Objectif</th><th class="num">Réalisé</th><th style="min-width:70px">Avancement</th><?php if ($compData): ?><th class="num">Réalisé <?= View::e($compData['periode']['court']) ?></th><?php endif; ?><th class="num">Reste à faire</th><th>Statut</th><th class="num">Taux (%)</th><th class="num">Commission</th>
       </tr></thead>
       <tbody>
       <?php foreach ($d['lignes'] as $l):
@@ -117,7 +117,7 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
           <td data-label="Collaborateur"><span class="avatar-with-name"><?= Icon::avatar($l['nom'], 32) ?><?= View::e($l['nom']) ?></span></td>
           <td data-label="Fonction">
             <?php if ($fonctionsDispo): ?>
-            <select name="fonction[<?= $uid ?>]" class="sel-fonction" style="min-width:110px;max-width:130px" data-uid="<?= $uid ?>">
+            <select name="fonction[<?= $uid ?>]" class="sel-fonction" data-uid="<?= $uid ?>">
               <option value="">— Aucune —</option>
               <?php foreach ($fonctions as $f): ?>
                 <option value="<?= (int) $f['id'] ?>" data-ind="<?= View::e($f['indicateur']) ?>" data-base="<?= View::e($f['base']) ?>" data-taux="<?= (float) $f['taux_commission'] > 0 ? (float) $f['taux_commission'] : '' ?>" <?= (int) ($l['fonction_id'] ?? 0) === (int) $f['id'] ? 'selected' : '' ?>><?= View::e($f['libelle']) ?></option>
@@ -126,14 +126,14 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
             <?php else: ?><span class="cell-na">—</span><?php endif; ?>
           </td>
           <td data-label="Indicateur">
-            <select name="indicateur[<?= $uid ?>]" style="min-width:130px">
+            <select name="indicateur[<?= $uid ?>]">
               <?php foreach (ObjectifCollaborateur::INDICATEURS as $k => $ii): ?>
                 <option value="<?= $k ?>" <?= $l['indicateur'] === $k ? 'selected' : '' ?>><?= View::e($ii[0]) ?></option>
               <?php endforeach; ?>
             </select>
           </td>
           <td data-label="Attribution">
-            <select name="base[<?= $uid ?>]" style="min-width:120px;max-width:135px">
+            <select name="base[<?= $uid ?>]">
               <?php foreach (ObjectifCollaborateur::BASES as $k => $lb): ?>
                 <option value="<?= $k ?>" <?= $l['base'] === $k ? 'selected' : '' ?>><?= View::e($lb) ?></option>
               <?php endforeach; ?>
