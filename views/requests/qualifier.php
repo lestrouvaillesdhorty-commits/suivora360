@@ -2,7 +2,8 @@
 use App\Core\View;
 use App\Models\Demande;
 use App\Models\Dossier;
-$activiteListe = Demande::ACTIVITES;
+$activiteListe = \App\Models\Activite::liste();
+if (!empty($demande['activite']) && !in_array($demande['activite'], $activiteListe, true)) { $activiteListe[] = $demande['activite']; }
 $typeDeduit = Dossier::deduireType($demande['activite'] ?? null);
 ?>
 <a href="/index.php?r=demandes/<?= $demande['id'] ?>" style="font-size:13px;color:#666">&larr; Retour à la demande</a>

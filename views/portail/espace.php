@@ -78,7 +78,7 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
     <?php if (!empty($erreurs['objet'])): ?><div class="err"><?= View::e($erreurs['objet']) ?></div><?php endif; ?>
     <label for="activite">Type de besoin</label>
     <select id="activite" name="activite"><option value="">— Je ne sais pas —</option>
-      <?php foreach (Demande::ACTIVITES as $a): ?><option <?= ($old['activite'] ?? '') === $a ? 'selected' : '' ?>><?= View::e($a) ?></option><?php endforeach; ?></select>
+      <?php foreach (\App\Models\Activite::liste((int) (\App\Models\Filiale::find((int) $client['filiale_id'])['organisation_id'] ?? 0)) as $a): ?><option <?= ($old['activite'] ?? '') === $a ? 'selected' : '' ?>><?= View::e($a) ?></option><?php endforeach; ?></select>
     <label for="message">Votre besoin *</label>
     <textarea id="message" name="message" rows="6" maxlength="5000" placeholder="Produits, quantités, destination, contraintes…"><?= $valeur('message') ?></textarea>
     <?php if (!empty($erreurs['message'])): ?><div class="err"><?= View::e($erreurs['message']) ?></div><?php endif; ?>

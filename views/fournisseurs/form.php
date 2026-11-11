@@ -124,7 +124,7 @@ $ouvrirNotes = $estModif && array_filter(array_map(fn($c) => $fournisseur[$c] ??
         <div class="form-group">
           <label>Activités couvertes</label>
           <div style="display:flex;gap:6px 16px;flex-wrap:wrap">
-            <?php foreach (Demande::ACTIVITES as $a): ?>
+            <?php foreach (\App\Models\Activite::liste() as $a): ?>
               <label style="font-weight:400;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" name="activites[]" value="<?= View::e($a) ?>" <?= in_array($a, $activitesCochees, true) ? 'checked' : '' ?>> <?= View::e($a) ?></label>
             <?php endforeach; ?>
           </div>

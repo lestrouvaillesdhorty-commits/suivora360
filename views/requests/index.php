@@ -102,7 +102,7 @@ $showFiliale = count($filiales) > 1 && empty($filters['filiale_id']);
       <label for="fActivite">Activité</label>
       <select id="fActivite" name="activite">
         <option value="">Toutes</option>
-        <?php foreach (Demande::ACTIVITES as $a): ?>
+        <?php foreach (\App\Models\Activite::liste() as $a): ?>
           <option <?= ($filters['activite'] ?? '') === $a ? 'selected' : '' ?>><?= View::e($a) ?></option>
         <?php endforeach; ?>
       </select>

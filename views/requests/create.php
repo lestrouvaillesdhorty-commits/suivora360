@@ -12,7 +12,8 @@ use App\Models\Demande;
  * .form-tabs dans app.css).
  */
 $estModification = $demande !== null;
-$activiteListe = Demande::ACTIVITES;
+$activiteListe = \App\Models\Activite::liste();
+if ($estModification && !empty($demande['activite']) && !in_array($demande['activite'], $activiteListe, true)) { $activiteListe[] = $demande['activite']; }
 $actionUrl = $estModification ? "/index.php?r=demandes/{$demande['id']}/modifier" : '/index.php?r=demandes';
 $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
 ?>

@@ -820,6 +820,14 @@ $router->post('/admin-suivora/{id}/utilisateurs/{uid}', function ($params) {
     Auth::requireLogin();
     (new SuivoraAdminController())->actionUtilisateur($params);
 });
+$router->get('/admin-suivora/{id}/activites', function ($params) {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->activites($params);
+});
+$router->post('/admin-suivora/{id}/activites', function ($params) {
+    Auth::requireLogin();
+    (new SuivoraAdminController())->actionActivite($params);
+});
 $router->post('/admin-suivora/{id}/abonnement', function ($params) {
     Auth::requireLogin();
     (new SuivoraAdminController())->abonnement($params);

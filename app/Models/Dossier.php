@@ -52,7 +52,12 @@ class Dossier
 
     public static function deduireType(?string $activite): string
     {
-        return self::ACTIVITE_TO_TYPE[$activite ?? ''] ?? 'autre';
+        $type = self::ACTIVITE_TO_TYPE[$activite ?? ''] ?? null;
+        if ($type === null && $activite) {
+            $comme = Activite::comme($activite);
+            $type = $comme !== null ? (self::ACTIVITE_TO_TYPE[$comme] ?? null) : null;
+        }
+        return $type ?? 'autre';
     }
 
     /**

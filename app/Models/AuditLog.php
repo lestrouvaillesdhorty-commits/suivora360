@@ -89,6 +89,7 @@ class AuditLog
         'acces_filiales_utilisateur' => 'Accès aux filiales modifiés',
         'reset_mot_de_passe_utilisateur' => 'Mot de passe réinitialisé',
         'desactivation_utilisateur' => 'Compte désactivé',
+        'activites_modifiees' => 'Activités de l\'entreprise modifiées (administrateur Suivora)',
         'role_perso_cree' => 'Rôle personnalisé créé',
         'role_perso_supprime' => 'Rôle personnalisé supprimé',
         'support_reset_mdp' => 'Support Suivora : mot de passe réinitialisé',

@@ -183,7 +183,7 @@ class FournisseurController
             'nom_commercial' => $p('nom_commercial'),
             'types_partenaire' => Fournisseur::typesStockes($typesChoisis),
             'specialites' => $specialites,
-            'activites' => implode(',', $liste('activites', \App\Models\Demande::ACTIVITES)),
+            'activites' => implode(',', $liste('activites', \App\Models\Activite::liste())),
             'secteur' => $p('secteur'),
             'categories_produits' => $specialites,
             'marques' => $p('marques'),

@@ -827,3 +827,14 @@ CREATE TABLE IF NOT EXISTS roles_perso (
     created_at VARCHAR(19) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- ALTER TABLE utilisateurs ADD COLUMN role_perso_id INT NULL;
+
+-- migrate_v56 : activités par entreprise (réglées par l'administrateur Suivora)
+CREATE TABLE IF NOT EXISTS activites_org (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    organisation_id INT NOT NULL,
+    nom VARCHAR(60) NOT NULL,
+    comme VARCHAR(60) NOT NULL,
+    actif TINYINT(1) NOT NULL DEFAULT 1,
+    fournie TINYINT(1) NOT NULL DEFAULT 0,
+    created_at VARCHAR(19) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

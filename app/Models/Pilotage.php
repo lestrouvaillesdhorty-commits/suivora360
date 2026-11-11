@@ -1416,7 +1416,7 @@ class Pilotage
     /** Liste des activités réellement configurées/présentes — jamais les exemples des maquettes. */
     public static function activitesConfigurees(array $lignesCommandes = []): array
     {
-        $activites = Demande::ACTIVITES;
+        $activites = Activite::liste();
         foreach ($lignesCommandes as $l) {
             if ($l['activite'] !== '' && !in_array($l['activite'], $activites, true)) {
                 $activites[] = $l['activite'];

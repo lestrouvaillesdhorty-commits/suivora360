@@ -43,7 +43,7 @@ class DashboardController
         $colonneActivite = \App\Core\Schema::colonne('utilisateurs', 'derniere_activite');
         if (array_key_exists('activite', $_GET)) {
             $activite = trim((string) $_GET['activite']);
-            $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
+            $activite = in_array($activite, \App\Models\Activite::liste(), true) ? $activite : '';
             if ($colonneActivite) {
                 try {
                     \App\Core\Database::connection()->prepare('UPDATE utilisateurs SET derniere_activite = ? WHERE id = ?')->execute([$activite !== '' ? $activite : null, (int) $user['id']]);
@@ -66,7 +66,7 @@ class DashboardController
             } else {
                 $activite = trim((string) ($_COOKIE['suivora_activite'] ?? ''));
             }
-            $activite = in_array($activite, Demande::ACTIVITES, true) ? $activite : '';
+            $activite = in_array($activite, \App\Models\Activite::liste(), true) ? $activite : '';
         }
 
         // Filtres sous-activité et famille de produit (migrate_v37) : possibles seulement une fois l'activité choisie.
@@ -158,7 +158,7 @@ class DashboardController
             'sousSelection' => $sousSelection,
             'familleDispo' => $familleDispo,
             'familleSelection' => $familleSelection,
-            'activites' => Demande::ACTIVITES,
+            'activites' => \App\Models\Activite::liste(),
             'offresAAnalyserCount' => $offresAAnalyserCount,
             'cotationsARelancerCount' => $cotationsARelancerCount,
             'commandesEnCoursCount' => $commandesEnCoursCount,

@@ -54,6 +54,7 @@ $aRelancer = array_filter($organisations, fn($o) => !empty($o['abonnement_echean
         <?php $supOk = \App\Models\Organisation::supportAutorise((int) $o['id']); ?>
         <td data-label="Accès support"><?= $supOk ? '<span class="badge badge-green">Autorisé</span>' : '<span class="badge badge-orange">Retiré par l\'entreprise</span>' ?></td>
         <td>
+          <a class="btn btn-sm btn-secondary" href="/index.php?r=admin-suivora/<?= (int) $o['id'] ?>/activites">Activités</a>
           <?php if ((int) $o['id'] !== $monOrganisationId): ?>
           <?php if ($supOk): ?><a class="btn btn-sm" style="color:#fff" href="/index.php?r=admin-suivora/<?= (int) $o['id'] ?>/utilisateurs">Utilisateurs</a><?php endif; ?>
           <form method="post" action="/index.php?r=admin-suivora/<?= (int) $o['id'] ?>/basculer" style="margin:0" onsubmit="return confirm('<?= $active ? 'Suspendre' : 'Rétablir' ?> l\'accès de « <?= View::e(addslashes($o['nom'])) ?> » ?');">

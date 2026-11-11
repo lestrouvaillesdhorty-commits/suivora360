@@ -226,7 +226,7 @@ class DossierController
         $filialeParDefaut = count($filialesAccessibles) === 1 ? $filialesAccessibles[0] : null;
 
         $activitesValides = [];
-        foreach (Demande::ACTIVITES as $a) {
+        foreach (\App\Models\Activite::liste() as $a) {
             $activitesValides[mb_strtolower($a)] = $a;
         }
 

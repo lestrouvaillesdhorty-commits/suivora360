@@ -34,7 +34,7 @@ class SousActivite
     /** Liste d'une filiale, groupée par activité : [activite => [[id, nom, actif, usage], ...]]. */
     public static function parActivite(int $filialeId, bool $actifsSeulement = false): array
     {
-        $out = array_fill_keys(Demande::ACTIVITES, []);
+        $out = array_fill_keys(Activite::liste(), []);
         if (!self::disponible()) {
             return $out;
         }
@@ -85,7 +85,7 @@ class SousActivite
     public static function ajouter(int $filialeId, string $activite, string $nom): bool
     {
         $nom = trim(mb_substr($nom, 0, 120));
-        if ($nom === '' || !in_array($activite, Demande::ACTIVITES, true) || !self::disponible()) {
+        if ($nom === '' || !in_array($activite, Activite::liste(), true) || !self::disponible()) {
             return false;
         }
         $pdo = Database::connection();

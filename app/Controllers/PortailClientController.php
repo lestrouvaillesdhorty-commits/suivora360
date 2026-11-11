@@ -195,7 +195,7 @@ class PortailClientController
         $message = mb_substr(trim((string) ($_POST['message'] ?? '')), 0, 5000);
         $dateSouhaitee = trim((string) ($_POST['date_souhaitee'] ?? ''));
         $dateOk = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateSouhaitee) && strtotime($dateSouhaitee) !== false ? $dateSouhaitee : null;
-        $activite = in_array($_POST['activite'] ?? '', Demande::ACTIVITES, true) ? $_POST['activite'] : '';
+        $activite = in_array($_POST['activite'] ?? '', \App\Models\Activite::liste((int) (Filiale::find((int) $client['filiale_id'])['organisation_id'] ?? 0)), true) ? $_POST['activite'] : '';
 
         $erreurs = [];
         if ($objet === '') {

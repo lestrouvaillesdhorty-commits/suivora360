@@ -17,7 +17,7 @@ use App\Models\Demande;
     <thead><tr><th>Colonne</th><th>Obligatoire</th><th>Détail</th></tr></thead>
     <tbody>
       <tr><td>objet</td><td>Oui</td><td>Objet de la demande</td></tr>
-      <tr><td>activite</td><td>Oui</td><td>Une des valeurs : <?= View::e(implode(', ', Demande::ACTIVITES)) ?></td></tr>
+      <tr><td>activite</td><td>Oui</td><td>Une des valeurs : <?= View::e(implode(', ', \App\Models\Activite::liste())) ?></td></tr>
       <tr><td>filiale</td><td>Non si une seule filiale</td><td>Nom exact de la filiale (sinon ligne ignorée)</td></tr>
       <tr><td>expediteur_nom, expediteur_entreprise, expediteur_email, expediteur_telephone</td><td>Non</td><td>Coordonnées de l'expéditeur</td></tr>
       <tr><td>canal</td><td>Non</td><td>Par défaut "Import"</td></tr>

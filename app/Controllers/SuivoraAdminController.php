@@ -337,4 +337,71 @@ class SuivoraAdminController
             }
         }
     }
+
+    /** Activités d'une entreprise cliente : activer / désactiver, ajouter (« fonctionne comme » l'une des 3), renommer, supprimer. */
+    public function activites(array $params): void
+    {
+        Auth::requireSuperAdmin();
+        $org = Organisation::find((int) $params['id']);
+        if (!$org) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $liste = \App\Models\Activite::toutes((int) $org['id']);
+        foreach ($liste as &$a) {
+            $a['nb'] = \App\Models\Activite::nbDemandes((int) $org['id'], $a['nom']);
+        }
+        unset($a);
+        View::render('suivora_admin/activites', [
+            'org' => $org,
+            'activites' => $liste,
+            'dispo' => \App\Models\Activite::disponible(),
+            'bases' => \App\Models\Demande::ACTIVITES,
+            'csrfToken' => Auth::csrfToken(),
+        ]);
+    }
+
+    public function actionActivite(array $params): void
+    {
+        Auth::requireSuperAdmin();
+        $org = Organisation::find((int) $params['id']);
+        $retour = '/index.php?r=admin-suivora/' . (int) ($params['id'] ?? 0) . '/activites';
+        if (!$org || !Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $orgId = (int) $org['id'];
+        $nom = (string) ($_POST['nom'] ?? '');
+        switch ($_POST['action'] ?? '') {
+            case 'ajouter':
+                $err = \App\Models\Activite::ajouter($orgId, $nom, (string) ($_POST['comme'] ?? ''));
+                $msg = 'Activité ajoutée.';
+                break;
+            case 'basculer':
+                $err = \App\Models\Activite::basculer($orgId, $nom);
+                $msg = 'Activité mise à jour.';
+                break;
+            case 'renommer':
+                $err = \App\Models\Activite::renommer($orgId, (string) ($_POST['ancien'] ?? ''), $nom);
+                $msg = 'Activité renommée.';
+                break;
+            case 'supprimer':
+                $err = \App\Models\Activite::supprimer($orgId, $nom);
+                $msg = 'Activité supprimée.';
+                break;
+            default:
+                $err = 'Action inconnue.';
+                $msg = '';
+        }
+        if (!$err) {
+            $filiales = Filiale::allForOrganisation($orgId);
+            if (!empty($filiales)) {
+                AuditLog::log((int) $filiales[0]['id'], (int) Auth::user()['id'], 'activites_modifiees', 'organisation', $orgId, (string) ($_POST['action'] ?? '') . ' : ' . trim($nom ?: (string) ($_POST['ancien'] ?? '')));
+            }
+        }
+        View::flash($err ? 'erreur' : 'succes', $err ?: $msg);
+        header('Location: ' . $retour);
+        exit;
+    }
 }

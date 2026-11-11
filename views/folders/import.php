@@ -19,7 +19,7 @@ use App\Models\Demande;
     <thead><tr><th>Colonne</th><th>Obligatoire</th><th>Détail</th></tr></thead>
     <tbody>
       <tr><td>objet</td><td>Oui</td><td>Objet du dossier</td></tr>
-      <tr><td>activite</td><td>Oui</td><td>Une des valeurs : <?= View::e(implode(', ', Demande::ACTIVITES)) ?></td></tr>
+      <tr><td>activite</td><td>Oui</td><td>Une des valeurs : <?= View::e(implode(', ', \App\Models\Activite::liste())) ?></td></tr>
       <tr><td>filiale</td><td>Non si une seule filiale</td><td>Nom exact de la filiale (sinon ligne ignorée)</td></tr>
       <tr><td>takeover_stage</td><td>Non</td><td>Étape actuelle (ex. suivi_operationnel, cotation_envoyee...)</td></tr>
       <tr><td>original_started_at</td><td>Non</td><td>Date réelle de début, format JJ/MM/AAAA</td></tr>
