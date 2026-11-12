@@ -1397,3 +1397,23 @@ select.niv { border-radius: 999px; padding: 4px 26px 4px 10px; font-weight: 600;
 select.niv-complet { border-color: #BFE0E5; }
 select.niv-lecture { border-color: #F3D3A8; }
 select.niv-cache { border-color: #D6DCE3; }
+
+/* Pilotage > Objectifs : filtres repliés sur téléphone */
+.obj-filtres-sum{display:none;list-style:none;cursor:pointer;font-weight:600;font-size:14px;align-items:center;justify-content:space-between;gap:10px}
+.obj-filtres-sum::-webkit-details-marker{display:none}
+.obj-filtres-mod{color:#2F6FED;font-size:13px}
+@media (max-width:768px){
+  .obj-banner{display:none}
+  .obj-filtres-card{margin-top:10px!important;padding:12px 14px}
+  .obj-filtres-sum{display:flex}
+  .obj-filtres[open] .obj-filtres-sum{margin-bottom:12px}
+  .obj-filtres .obj-periode{gap:10px 12px}
+  .obj-filtres .obj-champ{min-width:0;flex:1 1 140px}
+  .obj-note{display:none}
+}
+
+/* Formulaires : une colonne sur téléphone (champs lisibles, plus de texte coupé) */
+@media (max-width:600px){
+  .form-row{grid-template-columns:1fr!important;gap:0}
+  .form-row > .form-group{width:100%}
+}

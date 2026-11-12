@@ -24,7 +24,7 @@ $derniereFct = '__init__';
 $fmtVal = fn($v, $type) => $type === 'money' ? Pilotage::fmt($v, $devise) : (string) (int) round($v);
 $exportUrl = '/index.php?r=pilotage/export.csv&onglet=objectifs&mois=' . rawurlencode($mois) . '&devise=' . rawurlencode($devise);
 ?>
-<div class="direction-banner"><?= Icon::svg('lock', 'icon', 14) ?> <strong>Vue direction</strong> · Objectifs, commissions et marges individuelles réservés aux rôles Propriétaire / Admin d'organisation / Finance.</div>
+<div class="direction-banner obj-banner"><?= Icon::svg('lock', 'icon', 14) ?> <strong>Vue direction</strong> · Objectifs, commissions et marges individuelles réservés aux rôles Propriétaire / Admin d'organisation / Finance.</div>
 
 <?php if (!$objectifsDispo): ?>
   <div class="card" style="margin-top:16px"><div class="empty-state">Cette fonction demande une mise à jour de la base : ouvrez <code>/migrate_v40.php?token=…</code> une fois, puis revenez ici.</div></div>
@@ -39,7 +39,9 @@ $evol = function (?float $r, ?float $p): string {
 };
 $compLabel = $compData ? $compData['periode']['label'] : '';
 ?>
-<div class="card" style="margin-top:16px">
+<div class="card obj-filtres-card" style="margin-top:16px">
+  <details class="obj-filtres" open>
+  <summary class="obj-filtres-sum"><?= View::e($titreMois) ?> · <?= View::e($devise) ?><?= $compData ? ' · vs ' . View::e($compData['periode']['court']) : '' ?> <span class="obj-filtres-mod">Modifier</span></summary>
   <div class="obj-periode">
     <div class="obj-champ"><label>Type de période</label>
       <div class="cc-toggle">
@@ -80,7 +82,8 @@ $compLabel = $compData ? $compData['periode']['label'] : '';
     <div class="obj-champ"><label>&nbsp;</label><button type="submit" class="btn btn-secondary btn-sm">Appliquer</button></div>
   </form>
   <?php endif; ?>
-  <p class="kpi-note" style="margin:10px 0 4px"><?= Icon::svg('info', 'icon', 12) ?> Chaque objectif est comparé au réalisé sur <strong>sa propre période</strong><?= $compData ? ' ; comparaison avec : ' . View::e($compLabel) : '' ?>.</p>
+  </details>
+  <p class="kpi-note obj-note" style="margin:10px 0 4px"><?= Icon::svg('info', 'icon', 12) ?> Chaque objectif est comparé au réalisé sur <strong>sa propre période</strong><?= $compData ? ' ; comparaison avec : ' . View::e($compLabel) : '' ?>.</p>
 </div>
 
 <?php $tt = $d['totaux']; $tc = $compData['totaux'] ?? null; ?>
@@ -237,3 +240,5 @@ document.querySelectorAll('.sel-fonction').forEach(function (sel) {
 });
 </script>
 <?php endif; ?>
+
+<script>(function(){var d=document.querySelector('.obj-filtres');if(!d)return;function m(){if(window.innerWidth>768){d.open=true}}if(window.innerWidth<=768){d.open=false}window.addEventListener('resize',m);})();</script>
