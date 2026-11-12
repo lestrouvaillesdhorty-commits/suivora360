@@ -722,6 +722,10 @@ $router->post('/dossiers/{id}/comparateur/ecarter', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->ecarter($params);
 });
+$router->post('/dossiers/{id}/comparateur/supprimer', function ($params) {
+    Auth::requireLogin();
+    (new ComparateurController())->supprimer($params);
+});
 $router->post('/dossiers/{id}/comparateur/reexaminer', function ($params) {
     Auth::requireLogin();
     (new ComparateurController())->reexaminer($params);

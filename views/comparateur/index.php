@@ -76,6 +76,7 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
             <button type="submit" class="btn btn-sm">Retenir cette offre en entier</button>
           </form>
           <?php endif; ?>
+          <?php if ($peutValider): $o = $x; include __DIR__ . '/_actions_offre.php'; endif; ?>
         </div>
       <?php endforeach; ?>
     </div>
@@ -121,6 +122,7 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
                 <input type="hidden" name="motif_decision" value="Meilleur prix pour cet article">
                 <button type="submit" class="btn btn-sm"><?= count($bloc['lignes']) === 1 ? 'Retenir cette offre' : 'Retenir pour cet article' ?></button>
               </form>
+              <?php include __DIR__ . '/_actions_offre.php'; ?>
             <?php endif; ?>
           </td>
         </tr>
@@ -394,13 +396,13 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
               </details>
               <?php if ($o['statut'] === 'recue'): ?>
               <details style="margin-bottom:6px">
-                <summary style="cursor:pointer" class="btn btn-sm btn-secondary">Écarter…</summary>
+                <summary style="cursor:pointer" class="btn btn-sm btn-secondary">Décliner…</summary>
                 <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/ecarter" style="margin-top:8px;min-width:200px">
                   <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
                   <input type="hidden" name="offre_id" value="<?= $o['id'] ?>">
                   <label style="font-size:12px">Motif (obligatoire)</label>
                   <textarea name="motif_ecart" rows="2" required placeholder="ex: prix trop élevé, délai trop long"></textarea>
-                  <button type="submit" class="btn btn-sm btn-secondary" style="margin-top:6px">Confirmer — écarter cette offre</button>
+                  <button type="submit" class="btn btn-sm btn-secondary" style="margin-top:6px">Confirmer — décliner cette offre</button>
                 </form>
               </details>
               <?php else: ?>
@@ -410,10 +412,16 @@ $libelleFournisseur = Dossier::libelleFournisseur($typeDossier);
                 <button type="submit" class="btn btn-sm btn-secondary">Remettre en comparaison</button>
               </form>
               <?php endif; ?>
+              <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/comparateur/supprimer" style="margin-bottom:6px" onsubmit="return confirm('Cette offre sera retirée du dossier, vous ne pourrez pas la récupérer. Continuer ?')">
+                <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                <input type="hidden" name="offre_id" value="<?= (int) $o['id'] ?>">
+                <button type="submit" class="btn btn-sm btn-secondary" style="color:#B3261E">Supprimer</button>
+              </form>
               <?php elseif ($o['statut'] === 'recue'): ?>
                 <span style="color:#9ca3af;font-style:italic">—</span>
               <?php endif; ?>
 
+              <?php if ($decisionExistante && $peutValider && $o['statut'] !== 'retenue'): $sansBadge = true; include __DIR__ . '/_actions_offre.php'; $sansBadge = false; endif; ?>
               <?php if (\App\Core\Auth::canWrite()): ?>
               <div style="font-size:12px;display:flex;gap:10px;flex-wrap:wrap">
                 <a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier">Modifier</a>

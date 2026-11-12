@@ -621,6 +621,55 @@ class Offre
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Supprime une offre du dossier. Refusée si l'offre est retenue (ou a une ligne retenue),
+     * ou si une cotation / un bon de commande fournisseur s'appuie dessus.
+     * @return array{0:bool,1:string} [réussi, message]
+     */
+    public static function supprimer(int $dossierId, int $offreId): array
+    {
+        $pdo = Database::connection();
+        $st = $pdo->prepare('SELECT * FROM offres WHERE id = ? AND dossier_id = ?');
+        $st->execute([$offreId, $dossierId]);
+        $o = $st->fetch();
+        if (!$o) {
+            return [false, 'Offre introuvable.'];
+        }
+        if ($o['statut'] === 'retenue') {
+            return [false, "Cette offre est retenue : annulez d'abord la décision pour pouvoir la supprimer."];
+        }
+        $liens = [
+            ['SELECT COUNT(*) FROM offre_items WHERE offre_id = ? AND retenu = 1', "Cette offre est retenue pour un ou plusieurs articles : annulez d'abord ce choix."],
+            ['SELECT COUNT(*) FROM cotations WHERE offre_id = ?', 'Une cotation client est liée à cette offre : elle ne peut pas être supprimée.'],
+            ['SELECT COUNT(*) FROM bons_commande_fournisseur WHERE offre_id = ?', 'Un bon de commande fournisseur est lié à cette offre : elle ne peut pas être supprimée.'],
+        ];
+        foreach ($liens as [$sql, $msg]) {
+            try {
+                $c = $pdo->prepare($sql);
+                $c->execute([$offreId]);
+                if ((int) $c->fetchColumn() > 0) {
+                    return [false, $msg];
+                }
+            } catch (\Throwable $e) {
+                // table ou colonne absente (migration non passée) : aucun lien possible
+            }
+        }
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM offre_items WHERE offre_id = ?')->execute([$offreId]);
+            try {
+                $pdo->prepare('UPDATE dossier_pieces_jointes SET offre_id = NULL WHERE offre_id = ?')->execute([$offreId]);
+            } catch (\Throwable $e) {
+            }
+            $pdo->prepare('DELETE FROM offres WHERE id = ? AND dossier_id = ?')->execute([$offreId, $dossierId]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            return [false, "Suppression impossible : " . $e->getMessage()];
+        }
+        return [true, 'Offre ' . ($o['reference'] ?? '') . ' supprimée.'];
+    }
+
     /** Remet UNE offre écartée en comparaison (« reçue »). */
     public static function reexaminer(int $dossierId, int $offreId): bool
     {

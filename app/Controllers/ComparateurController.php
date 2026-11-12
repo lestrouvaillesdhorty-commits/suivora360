@@ -350,6 +350,11 @@ class ComparateurController
         $this->actionOffre($params, 'ecarter');
     }
 
+    public function supprimer(array $params): void
+    {
+        $this->actionOffre($params, 'supprimer');
+    }
+
     public function reexaminer(array $params): void
     {
         $this->actionOffre($params, 'reexaminer');
@@ -380,7 +385,14 @@ class ComparateurController
             header('Location: ' . $retour);
             exit;
         }
-        if ($action === 'ecarter') {
+        if ($action === 'supprimer') {
+            $ref = (string) (Offre::find($offreId)['reference'] ?? '');
+            [$ok, $msg] = Offre::supprimer((int) $dossier['id'], $offreId);
+            if ($ok) {
+                AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'offre_supprimee', 'dossier', (int) $dossier['id'], 'Offre ' . $ref . ' supprimée');
+            }
+            View::flash($ok ? 'succes' : 'erreur', $msg);
+        } elseif ($action === 'ecarter') {
             $motif = trim($_POST['motif_ecart'] ?? '');
             if ($motif === '') {
                 View::flash('erreur', "Merci d'indiquer un motif avant d'écarter une offre.");
