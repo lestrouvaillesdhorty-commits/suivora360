@@ -61,6 +61,7 @@ $modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($module
           ['demandes', '/demandes', 'inbox', 'Demandes', true],
           ['demandes', '/a-valider', 'check-circle', 'À valider', $currentUser && Permissions::canWrite($currentUser['role'])],
           ['dossiers', '/dossiers', 'folder', 'Dossiers', true],
+          ['dossiers', '/expeditions', 'truck', 'Expéditions', true],
         ],
         'Achats' => [
           ['fournisseurs', '/fournisseurs', 'truck', 'Fournisseurs', true],

@@ -735,6 +735,17 @@ $router->post('/dossiers/{id}/comparateur/revenir', function ($params) {
     (new ComparateurController())->revenir($params);
 });
 
+// Expéditions (groupage / conteneur complet) et réservations
+$router->get('/expeditions', function () { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->index(); });
+$router->get('/expeditions/nouvelle', function () { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->create(); });
+$router->post('/expeditions', function () { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->store(); });
+$router->get('/expeditions/{id}', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->show($params); });
+$router->get('/expeditions/{id}/modifier', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->edit($params); });
+$router->post('/expeditions/{id}/modifier', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->update($params); });
+$router->post('/expeditions/{id}/statut', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->statut($params); });
+$router->post('/expeditions/{id}/reserver', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->reserver($params); });
+$router->post('/expeditions/{id}/supprimer-reservation', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->supprimerReservation($params); });
+
 // Cotations client
 $router->get('/dossiers/{id}/cotations/nouvelle', function ($params) {
     Auth::requireLogin();

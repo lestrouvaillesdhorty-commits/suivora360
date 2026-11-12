@@ -240,7 +240,7 @@ class AccesModules
             return 'livraisons';
         }
         $map = [
-            'demandes' => 'demandes', 'a-valider' => 'demandes', 'dossiers' => 'dossiers', 'fournisseurs' => 'fournisseurs',
+            'demandes' => 'demandes', 'a-valider' => 'demandes', 'expeditions' => 'dossiers', 'dossiers' => 'dossiers', 'fournisseurs' => 'fournisseurs',
             'offres' => 'offres', 'consultations' => 'offres', 'bons-commande' => 'offres',
             'comparateur' => 'comparateur', 'simulateur' => 'simulateur',
             'clients' => 'clients', 'cotations' => 'cotations', 'commandes' => 'commandes', 'factures' => 'factures',

@@ -233,3 +233,4 @@ if ($sansCommande) {
 
 <?php if ($typeDossier === 'transport_logistique') { include __DIR__ . '/_tab_execution_transport.php'; } ?>
 <?php if ($typeDossier === 'achat_sourcing') { include __DIR__ . '/_tab_execution_sourcing.php'; } ?>
+<?php if (in_array($typeDossier, ['transport_logistique', 'achat_sourcing'], true)) { try { include __DIR__ . '/_card_expedition.php'; } catch (\Throwable $eExp) { } } ?>
