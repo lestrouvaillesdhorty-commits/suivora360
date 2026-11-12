@@ -9,6 +9,19 @@
   "background_color": "#0E3A4A",
   "theme_color": "#0E3A4A",
   "lang": "fr",
+  "share_target": {
+    "action": "/index.php?r=a-valider/partage",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        { "name": "fichiers", "accept": ["image/*", "application/pdf", ".pdf", ".docx", ".xlsx", ".txt", ".eml", "message/rfc822"] }
+      ]
+    }
+  },
   "icons": [
     { "src": "/assets/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/assets/img/logo-icon-512.png", "sizes": "512x512", "type": "image/png" },

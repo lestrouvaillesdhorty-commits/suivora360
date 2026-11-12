@@ -10,6 +10,7 @@ use App\Controllers\ConsultationController;
 use App\Controllers\CotationController;
 use App\Controllers\DashboardController;
 use App\Controllers\DemandeController;
+use App\Controllers\EntrantController;
 use App\Controllers\DossierController;
 use App\Controllers\FactureController;
 use App\Controllers\FilialeController;
@@ -78,6 +79,36 @@ $router->post('/filiale-active', function () {
 $router->get('/', function () {
     Auth::requireLogin();
     (new DashboardController())->index();
+});
+
+// Boîte « À valider » (messages, photos, PDF, mails reçus avant de devenir des demandes)
+$router->get('/a-valider', function () {
+    Auth::requireLogin();
+    (new EntrantController())->index();
+});
+$router->post('/a-valider/deposer', function () {
+    Auth::requireLogin();
+    (new EntrantController())->deposer();
+});
+$router->post('/a-valider/partage', function () {
+    Auth::requireLogin();
+    (new EntrantController())->partage();
+});
+$router->get('/a-valider/{id}', function ($params) {
+    Auth::requireLogin();
+    (new EntrantController())->show($params);
+});
+$router->get('/a-valider/{id}/fichier', function ($params) {
+    Auth::requireLogin();
+    (new EntrantController())->fichier($params);
+});
+$router->post('/a-valider/{id}/valider', function ($params) {
+    Auth::requireLogin();
+    (new EntrantController())->valider($params);
+});
+$router->post('/a-valider/{id}/ignorer', function ($params) {
+    Auth::requireLogin();
+    (new EntrantController())->ignorer($params);
 });
 
 // Demandes

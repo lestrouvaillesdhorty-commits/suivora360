@@ -59,6 +59,7 @@ $modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($module
       $items = [
         'Suivi' => [
           ['demandes', '/demandes', 'inbox', 'Demandes', true],
+          ['demandes', '/a-valider', 'check-circle', 'À valider', $currentUser && Permissions::canWrite($currentUser['role'])],
           ['dossiers', '/dossiers', 'folder', 'Dossiers', true],
         ],
         'Achats' => [
@@ -96,7 +97,7 @@ $modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($module
         </button>
         <div class="nav-group-body">
           <?php foreach ($liens as $l): ?>
-          <a href="/index.php?r=<?= ltrim($l[1], '/') ?>" class="<?= navActive($path, $l[1]) ?>"><?= Icon::svg($l[2]) ?><span><?= View::e($l[3]) ?></span></a>
+          <a href="/index.php?r=<?= ltrim($l[1], '/') ?>" class="<?= navActive($path, $l[1]) ?>"><?= Icon::svg($l[2]) ?><span><?= View::e($l[3]) ?></span><?php if ($l[1] === '/a-valider' && $currentUser): $nbAv = \App\Models\EntrantDemande::compter(\App\Models\Filiale::visibleIdsFor($currentUser)); if ($nbAv > 0): ?><span class="badge badge-red" style="margin-left:auto"><?= $nbAv ?></span><?php endif; endif; ?></a>
           <?php endforeach; ?>
         </div>
       </div>

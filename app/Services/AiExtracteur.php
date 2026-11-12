@@ -286,7 +286,7 @@ PROMPT;
     /** Formats lisibles par l'IA : extension => type. */
     public const FORMATS_LISIBLES = [
         'pdf' => 'pdf', 'jpg' => 'image', 'jpeg' => 'image', 'png' => 'image', 'gif' => 'image', 'webp' => 'image',
-        'xlsx' => 'texte', 'docx' => 'texte', 'txt' => 'texte', 'csv' => 'texte',
+        'xlsx' => 'texte', 'docx' => 'texte', 'txt' => 'texte', 'csv' => 'texte', 'eml' => 'texte',
     ];
     private const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 
