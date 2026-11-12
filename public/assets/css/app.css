@@ -1417,3 +1417,10 @@ select.niv-cache { border-color: #D6DCE3; }
   .form-row{grid-template-columns:1fr!important;gap:0}
   .form-row > .form-group{width:100%}
 }
+
+/* Pilotage : tous les onglets visibles sur téléphone/tablette (plus de défilement caché) */
+@media (max-width:900px){
+  .pilotage-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow:visible;border-bottom:none;margin:12px 0 14px}
+  .pilotage-tabs a{white-space:normal;text-align:center;padding:9px 6px;font-size:13px;line-height:1.2;border:1px solid #DDE8EA;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center}
+  .pilotage-tabs a.active{border-color:var(--pilotage-violet);background:#F3EFFD}
+}
