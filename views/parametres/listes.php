@@ -89,7 +89,6 @@ $ligne = function (string $prefixe, array $r, string $libelle, int $usage) use (
       <input type="text" name="nom" value="<?= View::e($r['libelle']) ?>" maxlength="120" style="flex:1;<?= $r['actif'] ? '' : 'opacity:.55' ?>" aria-label="Motif">
       <button class="btn btn-sm btn-secondary" type="submit">Renommer</button>
     </form>
-    <span style="font-size:12px;color:#666"><?= (int) $r['usages'] ?> utilisation<?= $r['usages'] > 1 ? 's' : '' ?><?= $ajoute ? ' · ajouté par vous' : '' ?></span>
     <?php if (!$estAutre): ?>
     <form method="post" action="/index.php?r=parametres/listes" style="margin:0">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
