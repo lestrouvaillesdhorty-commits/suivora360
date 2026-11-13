@@ -110,6 +110,48 @@ class CotationController
         ]);
     }
 
+    /**
+     * Transport d'une réservation d'expédition du dossier : « facturé à part » ajoute une ligne Transport (HT et total augmentés),
+     * « inclus » garde le prix et mémorise le coût imputé pour réduire la marge. Sans effet si le module expéditions est absent.
+     */
+    private function appliquerTransport(array $dossier, array &$items): void
+    {
+        $mode = (string) ($_POST['transport_mode'] ?? '');
+        $_POST['transport_mode'] = '';
+        if (!in_array($mode, ['inclus', 'a_part'], true) || !class_exists(\App\Models\Expedition::class) || !\App\Models\Expedition::disponible()) {
+            return;
+        }
+        $rid = (int) ($_POST['transport_reservation_id'] ?? 0);
+        $res = $rid ? \App\Models\Expedition::findReservation($rid) : null;
+        if (!$res || (int) $res['dossier_id'] !== (int) $dossier['id']) {
+            return;
+        }
+        $exp = \App\Models\Expedition::find((int) $res['expedition_id']);
+        if (!$exp) {
+            return;
+        }
+        $bilan = \App\Models\Expedition::bilan($exp);
+        $cout = (float) ($bilan['lignes'][$rid]['cout'] ?? 0);
+        $prix = (float) $res['prix_vente'];
+        $_POST['transport_mode'] = $mode;
+        $_POST['transport_reservation_id'] = $rid;
+        $_POST['transport_devise'] = $exp['devise'];
+        if ($mode === 'inclus') {
+            $_POST['transport_cout'] = $cout;
+            return;
+        }
+        $_POST['transport_prix'] = $prix;
+        $items[] = ['designation' => 'Transport ' . $exp['origine'] . ' → ' . $exp['destination'] . ' (' . $exp['reference'] . ')', 'quantite' => 1, 'unite' => 'forfait', 'prix_unitaire' => $prix,
+            'conditionnement' => '', 'reference' => '', 'marque' => '', 'caracteristiques' => '', 'remise_pct' => ''];
+        $tva = (float) str_replace(',', '.', (string) ($_POST['tva_taux'] ?? 0));
+        $ht = (float) str_replace(',', '.', (string) ($_POST['montant_ht'] ?? 0));
+        $tot = (float) str_replace(',', '.', (string) ($_POST['montant_total'] ?? 0));
+        if (($_POST['montant_ht'] ?? '') !== '') {
+            $_POST['montant_ht'] = round($ht + $prix, 2);
+        }
+        $_POST['montant_total'] = round($tot + $prix * (1 + $tva / 100), 2);
+    }
+
     public function store(array $params): void
     {
         if (!Auth::canGererCotations()) {
@@ -153,6 +195,8 @@ class CotationController
                 'remise_pct' => $_POST['item_remise'][$i] ?? '',
             ];
         }
+
+        $this->appliquerTransport($dossier, $items);
 
         $cotationPrecedente = null;
         $precedenteId = (int) ($_POST['cotation_precedente_id'] ?? 0);

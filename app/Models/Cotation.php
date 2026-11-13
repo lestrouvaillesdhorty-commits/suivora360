@@ -30,6 +30,11 @@ class Cotation
         'autre' => 'Autre (préciser)',
     ];
 
+    public static function colonnesTransport(): bool
+    {
+        return \App\Core\Schema::colonne('cotations', 'transport_mode');
+    }
+
     public static function colonnesPerte(): bool
     {
         return \App\Core\Schema::colonne('cotations', 'motif_perte');
@@ -180,7 +185,10 @@ class Cotation
             $remiseGlobaleMontant = round($apresLignes - $montantHt, 2);
             $montantBrut = round($apresLignes + $remiseLignes, 2);
         }
-        $margeMontant = ($montantAchat !== null) ? round(($montantHt ?? $montantTotal) - $montantAchat, 2) : null;
+        // Transport « inclus dans le prix » : le coût imputé de la réservation d'expédition réduit la marge (coût rendu).
+        $transportMode = in_array($data['transport_mode'] ?? '', ['inclus', 'a_part'], true) ? $data['transport_mode'] : null;
+        $transportCout = $transportMode === 'inclus' && ($data['transport_cout'] ?? '') !== '' ? (float) $data['transport_cout'] : null;
+        $margeMontant = ($montantAchat !== null) ? round(($montantHt ?? $montantTotal) - $montantAchat - ($transportCout ?? 0), 2) : null;
 
         // [ajouté 06/10, étape 3] Nouvelle version : même référence que la
         // version remplacée, numéro de version incrémenté, ancienne ligne
@@ -224,6 +232,11 @@ class Cotation
                 'remise_globale_montant' => $remiseGlobaleMontant,
                 'remise_motif' => $remiseGlobalePct > 0 ? mb_substr(trim((string) ($data['remise_motif'] ?? '')), 0, 255) : null,
                 'adresse_livraison' => trim((string) ($data['adresse_livraison'] ?? '')) ?: null,
+                'transport_mode' => $transportMode,
+                'transport_reservation_id' => $transportMode && (int) ($data['transport_reservation_id'] ?? 0) > 0 ? (int) $data['transport_reservation_id'] : null,
+                'transport_prix' => $transportMode === 'a_part' && ($data['transport_prix'] ?? '') !== '' ? (float) $data['transport_prix'] : null,
+                'transport_cout' => $transportCout,
+                'transport_devise' => $transportMode ? (trim((string) ($data['transport_devise'] ?? '')) ?: null) : null,
             ]);
 
             if ($precedente) {

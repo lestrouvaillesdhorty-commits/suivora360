@@ -162,6 +162,24 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
         </select>
       </div>
     </div>
+    <?php
+    $resTransport = [];
+    try { if (class_exists(\App\Models\Expedition::class) && \App\Models\Expedition::disponible() && \App\Models\Cotation::colonnesTransport()) { $resTransport = \App\Models\Expedition::reservationsDuDossier((int) $dossier['id']); } } catch (\Throwable $eT) { $resTransport = []; }
+    if ($resTransport): ?>
+    <div class="form-row">
+      <div class="form-group"><label>Transport (expédition)</label>
+        <select name="transport_mode">
+          <option value="">— Non concerné —</option>
+          <option value="inclus" <?= (($cotationPrecedente['transport_mode'] ?? '') === 'inclus') ? 'selected' : '' ?>>Inclus dans le prix</option>
+          <option value="a_part" <?= (($cotationPrecedente['transport_mode'] ?? '') === 'a_part') ? 'selected' : '' ?>>Facturé à part (ligne Transport ajoutée)</option>
+        </select></div>
+      <div class="form-group"><label>Réservation</label>
+        <select name="transport_reservation_id">
+          <?php foreach ($resTransport as $rt): ?><option value="<?= (int) $rt['id'] ?>"><?= View::e(($rt['expedition_reference'] ?? '') . ' · ' . ($rt['origine'] ?? '') . ' → ' . ($rt['destination'] ?? '') . ' · ' . number_format((float) $rt['prix_vente'], 0, ',', ' ') . ' ' . ($rt['devise'] ?? '')) ?></option><?php endforeach; ?>
+        </select></div>
+    </div>
+    <div class="hint" style="margin:-6px 0 10px">Facturé à part : le prix de la réservation s'ajoute au total du devis à l'enregistrement. Inclus : le coût imputé est déduit de la marge.</div>
+    <?php endif; ?>
     <div class="form-group"><label>Validité du devis</label><input type="date" name="validite_devis" value="<?= View::e($v('validite_devis')) ?>"></div>
 
     <div class="form-group">

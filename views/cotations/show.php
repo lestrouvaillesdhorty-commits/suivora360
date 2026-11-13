@@ -81,6 +81,7 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
       <div class="info-row"><span class="label">Taux de change</span><span>1 <?= View::e((string) ($cotation['devise_achat'] ?? '')) ?> = <?= rtrim(rtrim(number_format((float) $cotation['taux_change'], 6, ',', ' '), '0'), ',') ?> <?= View::e($cotation['devise']) ?></span></div>
       <?php endif; ?>
       <div class="info-row"><span class="label">Mode de paiement négocié</span><span><?= View::e(Demande::MODES_PAIEMENT[$cotation['mode_paiement_negocie']] ?? $cotation['mode_paiement_negocie']) ?: '—' ?></span></div>
+      <?php if (!empty($cotation['transport_mode'])): ?><div class="info-row"><span class="label">Transport</span><span><?= $cotation['transport_mode'] === 'inclus' ? 'Inclus dans le prix' . (isset($cotation['transport_cout']) ? ' — coût imputé ' . number_format((float) $cotation['transport_cout'], 2, ',', ' ') . ' ' . View::e((string) $cotation['transport_devise']) . ' déduit de la marge' : '') : 'Facturé à part — ' . number_format((float) $cotation['transport_prix'], 2, ',', ' ') . ' ' . View::e((string) $cotation['transport_devise']) ?></span></div><?php endif; ?>
       <div class="info-row"><span class="label">Incoterm client</span><span><?= View::e(Demande::INCOTERMS[$cotation['incoterm_client']] ?? $cotation['incoterm_client']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Validité</span><span><?= $cotation['validite_devis'] ? date('d/m/Y', strtotime($cotation['validite_devis'])) : '—' ?></span></div>
     </div>
