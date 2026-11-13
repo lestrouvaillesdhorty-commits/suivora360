@@ -166,6 +166,12 @@ class EntrantController
                 $infoIa = "Lecture automatique non disponible (clé IA non configurée). Saisissez les articles à la main.";
             }
         }
+        if (!$articles && trim((string) $e['texte']) !== '') {
+            $articles = $this->lectureSimple((string) $e['texte']);
+            if ($articles && $infoIa !== '') {
+                $infoIa .= ' Une première ligne a été pré-remplie à partir du texte : vérifiez-la.';
+            }
+        }
         $filiale = Filiale::find((int) $e['filiale_id']);
         $designation = $articles[0]['designation'] ?? '';
         $objet = $designation !== '' ? 'Demande : ' . $designation . (count($articles) > 1 ? ' et ' . (count($articles) - 1) . ' autre(s)' : '') : '';
@@ -177,6 +183,30 @@ class EntrantController
             'clients' => Client::allForFiliale((int) $e['filiale_id']),
             'activites' => Activite::liste((int) ($filiale['organisation_id'] ?? 0)),
         ]);
+    }
+
+    /** Lecture sans IA : une seule ligne pré-remplie (première ligne du texte, quantité et référence si repérées). À vérifier par la personne. */
+    private function lectureSimple(string $texte): array
+    {
+        $lignes = preg_split('/\R/u', trim($texte));
+        $l = trim((string) ($lignes[0] ?? ''));
+        if ($l === '') {
+            return [];
+        }
+        $qte = 1;
+        if (preg_match('/(\d+(?:[.,]\d+)?)\s*(pi[èe]ces?|pcs?|unit[ée]s?|u)\b/iu', $l, $m)) {
+            $qte = (float) str_replace(',', '.', $m[1]);
+            $l = trim(preg_replace('/[:\-–]?\s*' . preg_quote($m[0], '/') . '/iu', '', $l, 1), " :-–\t");
+        }
+        $ref = '';
+        if (preg_match('/R[ée]f(?:[ée]rence)?\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9 \-\.\/]{2,30})/u', $l, $m)) {
+            $ref = trim($m[1], ' .)');
+        }
+        $designation = trim(preg_replace('/\s*R[ée]f(?:[ée]rence)?\.?\s*:?\s*' . preg_quote($m[1] ?? '', '/') . '/u', '', $l), " ():-–");
+        return [[
+            'designation' => mb_substr($designation !== '' ? $designation : $l, 0, 200),
+            'quantite' => $qte, 'unite' => 'pièce', 'conditionnement' => '', 'reference' => mb_substr($ref, 0, 60), 'marque' => '',
+        ]];
     }
 
     public function fichier(array $params): void
