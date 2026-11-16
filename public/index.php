@@ -35,6 +35,17 @@ Env::load(__DIR__ . '/../.env');
 error_reporting(E_ALL);
 ini_set('display_errors', Env::bool('APP_DEBUG', false) ? '1' : '0');
 
+// En-têtes de sécurité (sans CSP : les pages utilisent des scripts intégrés). HSTS seulement en HTTPS, sans les sous-domaines.
+if (!headers_sent()) {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), payment=(), usb=()');
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        header('Strict-Transport-Security: max-age=31536000');
+    }
+}
+
 Auth::start();
 
 $router = new Router();
@@ -828,6 +839,10 @@ $router->post('/factures/{id}/statut', function ($params) {
 $router->get('/securite', function () {
     Auth::requireLogin();
     (new SecuriteController())->index();
+});
+$router->post('/securite/fichiers/supprimer', function () {
+    Auth::requireLogin();
+    (new SecuriteController())->supprimerFichiers();
 });
 $router->post('/securite/support', function () {
     Auth::requireLogin();
