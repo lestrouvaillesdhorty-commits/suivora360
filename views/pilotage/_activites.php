@@ -164,3 +164,35 @@ foreach ($lignes as $r) {
     <a href="<?= paDetailUrl('activite', $ligneDetail['activite'], $filters, $qs) ?>" class="btn btn-pilotage" style="margin-top:16px;display:flex;justify-content:center">Ouvrir les opérations <?= Icon::svg('arrow-right', 'icon', 15) ?></a>
   <?php endif; ?>
 </div>
+
+<?php
+$ficheExp = null;
+try {
+    if ($activiteDetail && \App\Models\Dossier::deduireType((string) $activiteDetail) === 'transport_logistique' && class_exists(\App\Models\Expedition::class) && \App\Models\Expedition::disponible()) {
+        $ficheExp = \App\Models\Expedition::fiche(\App\Core\Auth::user(), $filters['date_debut'] ?? null, $filters['date_fin'] ?? null, !empty($filters['filiale_id']) ? (int) $filters['filiale_id'] : null);
+    }
+} catch (\Throwable $eFx) { $ficheExp = null; }
+if ($ficheExp):
+    $parDev = function (array $m) { $o = []; foreach ($m as $dv => $v) { $o[] = number_format((float) $v, 0, ',', ' ') . ' ' . View::e($dv); } return $o ? implode(' + ', $o) : '—'; };
+    $voitM = \App\Core\Permissions::canSeeMarges(\App\Core\Auth::user()['role']);
+?>
+<div class="card">
+  <h2>Groupage et transport : expéditions de la période</h2>
+  <?php if ($ficheExp['nb'] === 0): ?>
+    <div class="empty-state">Aucune expédition sur cette période.</div>
+  <?php else: ?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+    <div><div class="hint">Expéditions</div><strong style="font-size:1.4em"><?= (int) $ficheExp['nb'] ?></strong></div>
+    <div><div class="hint">Remplissage moyen</div><strong style="font-size:1.4em"><?= $ficheExp['remplissage'] !== null ? (int) $ficheExp['remplissage'] . ' %' : '—' ?></strong></div>
+    <div><div class="hint">m³ vendus</div><strong style="font-size:1.4em"><?= number_format($ficheExp['m3'], 1, ',', ' ') ?></strong></div>
+    <div><div class="hint">Expéditions en retard</div><strong style="font-size:1.4em"><?= (int) $ficheExp['retard'] ?></strong></div>
+    <?php if ($voitM): ?>
+    <div><div class="hint">Résultat des expéditions</div><strong style="font-size:1.2em"><?= $parDev($ficheExp['marge']) ?></strong></div>
+    <div><div class="hint">Marge par expédition</div><strong style="font-size:1.2em"><?= $parDev($ficheExp['marge_moy']) ?></strong></div>
+    <div><div class="hint">Coût de la place libre</div><strong style="font-size:1.2em"><?= $parDev($ficheExp['libre']) ?></strong></div>
+    <?php endif; ?>
+  </div>
+  <div class="hint" style="margin-top:10px">Chaque devise est comptée à part. <a href="/index.php?r=expeditions&statut=toutes">Voir les expéditions</a></div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>

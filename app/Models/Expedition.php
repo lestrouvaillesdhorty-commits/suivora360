@@ -188,6 +188,49 @@ class Expedition
         return $r;
     }
 
+    /** Fiche Pilotage « Groupage et transport » sur une période (départ ou, à défaut, création). Montants ventilés par devise, jamais additionnés entre devises. */
+    public static function fiche(array $user, ?string $debut, ?string $fin, ?int $filialeId = null): array
+    {
+        $r = ['nb' => 0, 'remplissage' => null, 'm3' => 0.0, 'kg' => 0.0, 'marge' => [], 'marge_moy' => [], 'libre' => [], 'retard' => 0];
+        if (!self::disponible()) {
+            return $r;
+        }
+        $ids = Filiale::visibleIdsFor($user);
+        if ($filialeId) {
+            $ids = array_values(array_intersect($ids, [$filialeId]));
+        }
+        if (!$ids) {
+            return $r;
+        }
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT * FROM expeditions WHERE filiale_id IN ($in)";
+        $p = $ids;
+        $dateExpr = 'COALESCE(date_depart, SUBSTR(created_at, 1, 10))';
+        if ($debut) { $sql .= " AND $dateExpr >= ?"; $p[] = $debut; }
+        if ($fin) { $sql .= " AND $dateExpr <= ?"; $p[] = $fin; }
+        $st = Database::connection()->prepare($sql);
+        $st->execute($p);
+        $somme = 0;
+        $nbRemp = 0;
+        $parDevise = [];
+        $aujourdhui = date('Y-m-d');
+        foreach ($st->fetchAll() as $e) {
+            $b = self::bilan($e);
+            $r['nb']++;
+            $r['m3'] += $b['volume'];
+            $r['kg'] += $b['poids'];
+            if ($b['remplissage'] !== null) { $somme += $b['remplissage']; $nbRemp++; }
+            $d = $e['devise'];
+            $parDevise[$d] = ($parDevise[$d] ?? 0) + 1;
+            $r['marge'][$d] = ($r['marge'][$d] ?? 0) + $b['resultat'];
+            $r['libre'][$d] = ($r['libre'][$d] ?? 0) + $b['libre'];
+            if ($e['statut'] === 'partie' && $e['date_arrivee'] && $e['date_arrivee'] < $aujourdhui) { $r['retard']++; }
+        }
+        foreach ($parDevise as $d => $n) { $r['marge_moy'][$d] = $r['marge'][$d] / $n; }
+        $r['remplissage'] = $nbRemp ? (int) round($somme / $nbRemp) : null;
+        return $r;
+    }
+
     public static function reservations(int $expeditionId): array
     {
         $st = Database::connection()->prepare(
