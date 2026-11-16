@@ -153,6 +153,9 @@ $modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($module
       <?php if (!empty($flash)): ?>
         <div class="alert alert-<?= $flash['type'] === 'erreur' ? 'erreur' : 'succes' ?>"><?= View::e($flash['message']) ?></div>
       <?php endif; ?>
+      <?php if ($currentUser && Permissions::isAdmin($currentUser['role']) && class_exists(\App\Core\FichiersARisque::class)): try { $nbFr = count(\App\Core\FichiersARisque::lister()); } catch (\Throwable $eFr) { $nbFr = 0; } if ($nbFr > 0 && ($_GET['r'] ?? '') !== 'securite'): ?>
+        <div class="alert" style="background:#FFF7E6;color:#8a4b00;font-size:13px;padding:8px 14px"><?= $nbFr ?> fichier(s) d'installation sont encore en ligne. <a href="/index.php?r=securite" style="font-weight:600">Les supprimer</a></div>
+      <?php endif; endif; ?>
       <?php if ($modeLecture): ?><div class="bandeau-lecture">Ce module est en <strong>lecture seule</strong> pour vous : vous pouvez le consulter, sans le modifier.</div><?php endif; ?>
       <?php if (class_exists(\App\Models\ActiviteAcces::class) && \App\Models\ActiviteAcces::restreint()):
         $nbTot = count(array_filter(\App\Models\Activite::toutes((int) Auth::user()['organisation_id']), fn ($a) => $a['actif']));

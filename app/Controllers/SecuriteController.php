@@ -37,6 +37,8 @@ class SecuriteController
         $evenements = AuditLog::recherche($filialeIds, $filters, self::PAR_PAGE, ($page - 1) * self::PAR_PAGE);
 
         View::render('security/index', [
+            'fichiersARisque' => \App\Core\FichiersARisque::lister(),
+            'echecsConnexion' => $this->echecsConnexion((int) $user['organisation_id']),
             'supportAutorise' => \App\Models\Organisation::supportAutorise((int) $user['organisation_id']),
             'csrfToken' => Auth::csrfToken(),
             'evenements' => $evenements,
@@ -47,6 +49,44 @@ class SecuriteController
             'utilisateurs' => AuditLog::utilisateursDuJournal($filialeIds),
             'filiales' => Filiale::visibleFor($user),
         ]);
+    }
+
+    /** Échecs de connexion des dernières 24 h pour les adresses e-mail des utilisateurs de l'organisation (jamais les mots de passe). */
+    private function echecsConnexion(int $orgId): array
+    {
+        try {
+            $st = \App\Core\Database::connection()->prepare(
+                'SELECT t.email, COUNT(*) AS nb, MAX(t.created_at) AS derniere, MAX(t.ip) AS ip
+                 FROM tentatives_connexion t INNER JOIN utilisateurs u ON LOWER(u.email) = t.email
+                 WHERE u.organisation_id = ? GROUP BY t.email ORDER BY derniere DESC LIMIT 20'
+            );
+            $st->execute([$orgId]);
+            return $st->fetchAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /** Le Propriétaire supprime lui-même les fichiers d'installation / de migration restés dans public/. */
+    public function supprimerFichiers(): void
+    {
+        Auth::requireAdmin();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null) || Auth::role() !== 'proprietaire') {
+            View::flash('erreur', 'Seul un Propriétaire peut supprimer ces fichiers.');
+            header('Location: /index.php?r=securite');
+            exit;
+        }
+        $noms = isset($_POST['tous']) ? \App\Core\FichiersARisque::lister() : (array) ($_POST['fichiers'] ?? []);
+        [$ok, $ko] = \App\Core\FichiersARisque::supprimer($noms);
+        if ($ok) {
+            try {
+                AuditLog::logAdmin(Auth::user(), 'suppression_fichiers_install', 'securite', null, count($ok) . ' fichier(s) : ' . implode(', ', array_slice($ok, 0, 20)));
+            } catch (\Throwable $e) {
+            }
+        }
+        View::flash($ko ? 'erreur' : 'succes', ($ok ? count($ok) . ' fichier(s) supprimé(s). ' : '') . ($ko ? 'Impossible de supprimer : ' . implode(', ', $ko) . ' (à supprimer depuis votre hébergement).' : ''));
+        header('Location: /index.php?r=securite');
+        exit;
     }
 
     /** Le Propriétaire autorise ou retire l'accès du support Suivora aux utilisateurs de son entreprise. */

@@ -23,6 +23,31 @@ $lienEntite = function (array $l): ?string {
   </div>
 </div>
 
+<?php if (!empty($fichiersARisque)): ?>
+<div class="card" style="margin:14px 0;border-left:4px solid #d97706">
+  <h2 style="margin-top:0">Fichiers d'installation à supprimer</h2>
+  <p style="font-size:13px;color:#555;margin:0 0 10px">Ces fichiers ne servent qu'une fois (installation ou mise à jour de la base). Les laisser en ligne est un risque : supprimez ceux que vous avez déjà utilisés. Ils sont inclus dans les zips de mise à jour, vous pourrez les redéposer au besoin.</p>
+  <p style="font-size:13px;margin:0 0 10px"><?= View::e(implode(', ', $fichiersARisque)) ?></p>
+  <?php if (\App\Core\Auth::role() === 'proprietaire'): ?>
+  <form method="post" action="/index.php?r=securite/fichiers/supprimer" onsubmit="return confirm('Supprimer définitivement ces <?= count($fichiersARisque) ?> fichier(s) du site ? Cette action est irréversible.')" style="margin:0">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="tous" value="1">
+    <button type="submit" class="btn btn-sm btn-secondary">Supprimer ces <?= count($fichiersARisque) ?> fichier(s)</button>
+  </form>
+  <?php else: ?><span style="font-size:12px;color:#888">Seul un Propriétaire peut les supprimer ici.</span><?php endif; ?>
+</div>
+<?php endif; ?>
+<?php if (!empty($echecsConnexion)): ?>
+<div class="card" style="margin:14px 0">
+  <h2 style="margin-top:0">Connexions refusées (24 dernières heures)</h2>
+  <table class="table responsive-cards"><thead><tr><th>Adresse e-mail</th><th>Échecs</th><th>Dernier essai</th><th>IP</th></tr></thead><tbody>
+  <?php foreach ($echecsConnexion as $ec): ?>
+    <tr><td data-label="E-mail"><?= View::e($ec['email']) ?></td><td data-label="Échecs"><?= (int) $ec['nb'] ?></td><td data-label="Dernier essai"><?= View::e(date('d/m/Y H:i', strtotime($ec['derniere']))) ?></td><td data-label="IP"><?= View::e($ec['ip']) ?></td></tr>
+  <?php endforeach; ?>
+  </tbody></table>
+  <div class="hint">Au-delà de 5 échecs en 15 minutes pour une adresse, la connexion est bloquée automatiquement. Les connexions réussies apparaissent dans le journal ci-dessous (« Connexion »).</div>
+</div>
+<?php endif; ?>
+
 <div class="card" style="margin:14px 0">
   <h2 style="margin-top:0">Support Suivora</h2>
   <p style="font-size:13px;color:#555;margin:0 0 10px">Le support Suivora peut voir la liste de vos utilisateurs (nom, e-mail, rôle, état) et réinitialiser un mot de passe ou désactiver un compte. Il ne voit jamais vos demandes, dossiers, prix ni documents. Chaque action est inscrite dans ce journal et le Propriétaire reçoit un e-mail à chaque réinitialisation.</p>

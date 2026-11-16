@@ -12,6 +12,8 @@ class AuditLog
 {
     /** Libellés lisibles des actions (page Sécurité). Un code inconnu est affiché tel quel. */
     public const LIBELLES = [
+        'connexion' => 'Connexion',
+        'suppression_fichiers_install' => "Fichiers d'installation supprimés",
         'creation' => 'Création',
         'modification' => 'Modification',
         'import' => 'Import',

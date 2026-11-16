@@ -38,6 +38,11 @@ class AuthController
         $password = $_POST['password'] ?? '';
 
         if (Auth::attempt($email, $password)) {
+            try {
+                $u = Auth::user();
+                \App\Models\AuditLog::logAdmin($u, 'connexion', 'utilisateur', (int) $u['id'], 'IP ' . substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45));
+            } catch (\Throwable $e) {
+            }
             header('Location: /index.php');
             exit;
         }
