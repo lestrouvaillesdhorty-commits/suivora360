@@ -45,10 +45,12 @@ class Expedition
     public static function coutTarif(array $exp, array $res): float
     {
         $taux = (float) ($exp['tarif_achat'] ?? 0);
+        $unite = $exp['tarif_achat_type'] ?? '';
         if (($res['type_marchandise'] ?? '') === 'alimentaire' && ($exp['tarif_achat_alim'] ?? '') !== '' && $exp['tarif_achat_alim'] !== null) {
             $taux = (float) $exp['tarif_achat_alim'];
+            $unite = ($exp['tarif_achat_alim_type'] ?? '') ?: $unite;
         }
-        $base = match ($exp['tarif_achat_type'] ?? '') {
+        $base = match ($unite) {
             'm3' => (float) ($res['volume'] ?? 0) * $taux,
             'kg' => (float) ($res['poids'] ?? 0) * $taux,
             'colis' => (float) ($res['colis'] ?? 0) * $taux,
@@ -65,8 +67,9 @@ class Expedition
             return;
         }
         $type = isset(self::TARIFS_ACHAT[$d['tarif_achat_type'] ?? '']) ? $d['tarif_achat_type'] : null;
-        Database::connection()->prepare('UPDATE expeditions SET mode_achat = ?, tarif_achat_type = ?, tarif_achat = ?, tarif_achat_alim = ? WHERE id = ?')
-            ->execute([($d['mode_achat'] ?? '') === 'tarif' ? 'tarif' : 'capacite', $type, ($d['tarif_achat'] ?? '') !== '' ? $d['tarif_achat'] : null, ($d['tarif_achat_alim'] ?? '') !== '' ? $d['tarif_achat_alim'] : null, $id]);
+        $typeAlim = isset(self::TARIFS_ACHAT[$d['tarif_achat_alim_type'] ?? '']) ? $d['tarif_achat_alim_type'] : null;
+        Database::connection()->prepare('UPDATE expeditions SET mode_achat = ?, tarif_achat_type = ?, tarif_achat = ?, tarif_achat_alim = ?, tarif_achat_alim_type = ? WHERE id = ?')
+            ->execute([($d['mode_achat'] ?? '') === 'tarif' ? 'tarif' : 'capacite', $type, ($d['tarif_achat'] ?? '') !== '' ? $d['tarif_achat'] : null, ($d['tarif_achat_alim'] ?? '') !== '' ? $d['tarif_achat_alim'] : null, $typeAlim, $id]);
     }
 
     public static function disponible(): bool

@@ -85,6 +85,7 @@ class ExpeditionController
             'mode_achat' => ($_POST['mode_achat'] ?? '') === 'tarif' ? 'tarif' : 'capacite',
             'tarif_achat_type' => isset(Expedition::TARIFS_ACHAT[$_POST['tarif_achat_type'] ?? '']) ? $_POST['tarif_achat_type'] : '',
             'tarif_achat' => ($v = $this->numerique($_POST['tarif_achat'] ?? '')) !== null ? max(0, $v) : '',
+            'tarif_achat_alim_type' => isset(Expedition::TARIFS_ACHAT[$_POST['tarif_achat_alim_type'] ?? '']) ? $_POST['tarif_achat_alim_type'] : '',
             'tarif_achat_alim' => ($v = $this->numerique($_POST['tarif_achat_alim'] ?? '')) !== null ? max(0, $v) : '',
         ];
     }

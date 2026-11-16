@@ -60,7 +60,7 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['action'] ?? '') === 'mig
         $id = Database::idColumnType();
         $engine = $driver === 'mysql' ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : '';
         $ajouts = [
-            'expeditions' => [['mode_achat', "VARCHAR(10) NOT NULL DEFAULT 'capacite'"], ['tarif_achat_type', 'VARCHAR(10) NULL'], ['tarif_achat', 'DECIMAL(14,4) NULL'], ['tarif_achat_alim', 'DECIMAL(14,4) NULL']],
+            'expeditions' => [['mode_achat', "VARCHAR(10) NOT NULL DEFAULT 'capacite'"], ['tarif_achat_type', 'VARCHAR(10) NULL'], ['tarif_achat', 'DECIMAL(14,4) NULL'], ['tarif_achat_alim', 'DECIMAL(14,4) NULL'], ['tarif_achat_alim_type', 'VARCHAR(10) NULL']],
             'expedition_reservations' => [['supplement_cout', 'DECIMAL(14,2) NOT NULL DEFAULT 0'], ['supplement_vente', 'DECIMAL(14,2) NOT NULL DEFAULT 0'], ['supplement_motif', "VARCHAR(100) NOT NULL DEFAULT ''"]],
         ];
         foreach ($ajouts as $table => $cols) {

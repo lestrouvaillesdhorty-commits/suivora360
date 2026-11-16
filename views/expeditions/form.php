@@ -40,10 +40,14 @@ $action = $exp ? '/index.php?r=expeditions/' . (int) $exp['id'] . '/modifier' : 
   <div class="form-group"><label>Coût d'achat du transport</label><input type="text" name="cout_achat" inputmode="decimal" value="<?= $v('cout_achat', '0') ?>"></div>
   </div>
   <div id="bloc-tarif" style="display:none">
+    <div class="hint" style="margin-bottom:8px">Votre tarif d'achat auprès du transitaire. Laissez vide ce qui ne s'applique pas.</div>
     <div class="form-row">
-      <div class="form-group"><label>Tarif d'achat du transitaire</label><select name="tarif_achat_type"><option value="">— Choisir —</option><?php foreach (Expedition::TARIFS_ACHAT as $k => $l): ?><option value="<?= $k ?>" <?= (($e['tarif_achat_type'] ?? '') === $k) ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select></div>
-      <div class="form-group"><label>Montant (non alimentaire)</label><input type="text" name="tarif_achat" inputmode="decimal" value="<?= $v('tarif_achat') ?>"></div>
-      <div class="form-group"><label>Montant alimentaire (si différent)</label><input type="text" name="tarif_achat_alim" inputmode="decimal" value="<?= $v('tarif_achat_alim') ?>"></div>
+      <div class="form-group"><label>Non alimentaire : unité</label><select name="tarif_achat_type"><option value="">— Choisir —</option><?php foreach (Expedition::TARIFS_ACHAT as $k => $l): ?><option value="<?= $k ?>" <?= (($e['tarif_achat_type'] ?? '') === $k) ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select></div>
+      <div class="form-group"><label>Non alimentaire : montant</label><input type="text" name="tarif_achat" inputmode="decimal" value="<?= $v('tarif_achat') ?>"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Alimentaire : unité</label><select name="tarif_achat_alim_type"><option value="">— Choisir —</option><?php foreach (Expedition::TARIFS_ACHAT as $k => $l): ?><option value="<?= $k ?>" <?= (($e['tarif_achat_alim_type'] ?? '') === $k) ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select></div>
+      <div class="form-group"><label>Alimentaire : montant</label><input type="text" name="tarif_achat_alim" inputmode="decimal" value="<?= $v('tarif_achat_alim') ?>"></div>
     </div>
   </div>
   <div class="form-row">
