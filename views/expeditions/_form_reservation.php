@@ -32,5 +32,12 @@ $retourDossier = $retourDossier ?? 0;
     <div class="form-group"><label>Tarification</label><select name="tarification"><?php foreach (Expedition::TARIFICATIONS as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
     <div class="form-group"><label>Tarif (forfait total ou prix unitaire)</label><input type="text" name="tarif_unitaire" inputmode="decimal"></div>
   </div>
+  <?php if (\App\Models\Expedition::v60() && \App\Models\Expedition::modeAchat($exp) === 'tarif'): ?>
+  <div class="form-row">
+    <div class="form-group"><label>Supplément de coût (hors format, alcool…)</label><input type="text" name="supplement_cout" inputmode="decimal" placeholder="0"></div>
+    <div class="form-group"><label>Supplément refacturé au client</label><input type="text" name="supplement_vente" inputmode="decimal" placeholder="0"></div>
+    <div class="form-group"><label>Motif du supplément</label><input type="text" name="supplement_motif" placeholder="Ex. hors format"></div>
+  </div>
+  <?php endif; ?>
   <button class="btn btn-primary" type="submit">Réserver</button>
 </form>

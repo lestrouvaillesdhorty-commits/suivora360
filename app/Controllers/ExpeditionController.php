@@ -82,6 +82,10 @@ class ExpeditionController
             'devise' => mb_substr(trim((string) ($_POST['devise'] ?? 'EUR')) ?: 'EUR', 0, 10),
             'numero_suivi' => mb_substr(trim((string) ($_POST['numero_suivi'] ?? '')), 0, 80),
             'notes' => trim((string) ($_POST['notes'] ?? '')),
+            'mode_achat' => ($_POST['mode_achat'] ?? '') === 'tarif' ? 'tarif' : 'capacite',
+            'tarif_achat_type' => isset(Expedition::TARIFS_ACHAT[$_POST['tarif_achat_type'] ?? '']) ? $_POST['tarif_achat_type'] : '',
+            'tarif_achat' => ($v = $this->numerique($_POST['tarif_achat'] ?? '')) !== null ? max(0, $v) : '',
+            'tarif_achat_alim' => ($v = $this->numerique($_POST['tarif_achat_alim'] ?? '')) !== null ? max(0, $v) : '',
         ];
     }
 
@@ -109,6 +113,7 @@ class ExpeditionController
         $d['filiale_id'] = $filialeId;
         $d['created_by'] = (int) $user['id'];
         $id = Expedition::create($d);
+        Expedition::majTarif($id, $d);
         AuditLog::log($filialeId, (int) $user['id'], 'creation', 'expedition', $id, $d['origine'] . ' → ' . $d['destination']);
         View::flash('succes', 'Expédition créée.');
         header('Location: /index.php?r=expeditions/' . $id);
@@ -160,6 +165,7 @@ class ExpeditionController
             exit;
         }
         Expedition::modifier((int) $exp['id'], $d);
+        Expedition::majTarif((int) $exp['id'], $d);
         AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'modification', 'expedition', (int) $exp['id'], 'Expédition modifiée');
         View::flash('succes', 'Expédition enregistrée. Les prix déjà fixés des réservations ne changent pas.');
         header('Location: /index.php?r=expeditions/' . $exp['id']);
@@ -235,6 +241,9 @@ class ExpeditionController
             'colis' => $this->entier($_POST['colis'] ?? ''), 'palettes' => $this->entier($_POST['palettes'] ?? ''),
             'tarification' => $tarif, 'tarif_unitaire' => max(0, $this->numerique($_POST['tarif_unitaire'] ?? '') ?? 0),
             'created_by' => (int) $user['id'],
+            'supplement_cout' => max(0, $this->numerique($_POST['supplement_cout'] ?? '') ?? 0),
+            'supplement_vente' => max(0, $this->numerique($_POST['supplement_vente'] ?? '') ?? 0),
+            'supplement_motif' => trim((string) ($_POST['supplement_motif'] ?? '')),
         ];
         $id = Expedition::ajouterReservation($exp, $d);
         AuditLog::log((int) $exp['filiale_id'], (int) $user['id'], 'reservation_expedition', 'expedition', (int) $exp['id'], ($clientNom ?: 'Dossier ' . $dossierId));

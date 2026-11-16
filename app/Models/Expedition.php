@@ -18,6 +18,57 @@ class Expedition
     public const MARCHANDISES = ['alimentaire' => 'Alimentaire', 'non_alimentaire' => 'Non alimentaire'];
     public const TARIFICATIONS = ['forfait' => 'Forfait', 'm3' => 'Au m³', 'kg' => 'Au kilo', 'colis' => 'Par colis', 'palette' => 'Par palette'];
 
+    public const MODES_ACHAT = ['capacite' => "Capacité achetée d'avance", 'tarif' => 'À la demande, au tarif du transitaire'];
+    public const TARIFS_ACHAT = ['m3' => 'au m³', 'kg' => 'au kilo', 'colis' => 'par colis', 'palette' => 'par palette'];
+
+    public static function v60(): bool
+    {
+        return \App\Core\Schema::colonne('expeditions', 'mode_achat') && \App\Core\Schema::colonne('expedition_reservations', 'supplement_cout');
+    }
+
+    public static function modeAchat(array $exp): string
+    {
+        return ($exp['mode_achat'] ?? 'capacite') === 'tarif' ? 'tarif' : 'capacite';
+    }
+
+    /** Libellé du statut ; « Ouverte » devient « En regroupement » pour une expédition à la demande. */
+    public static function libelleStatut(array $exp, ?string $statut = null): string
+    {
+        $statut ??= $exp['statut'];
+        if ($statut === 'ouverte' && self::modeAchat($exp) === 'tarif') {
+            return 'En regroupement';
+        }
+        return self::STATUTS[$statut] ?? $statut;
+    }
+
+    /** Coût d'achat d'une réservation d'une expédition à la demande : tarif du transitaire x quantité, plus supplément. */
+    public static function coutTarif(array $exp, array $res): float
+    {
+        $taux = (float) ($exp['tarif_achat'] ?? 0);
+        if (($res['type_marchandise'] ?? '') === 'alimentaire' && ($exp['tarif_achat_alim'] ?? '') !== '' && $exp['tarif_achat_alim'] !== null) {
+            $taux = (float) $exp['tarif_achat_alim'];
+        }
+        $base = match ($exp['tarif_achat_type'] ?? '') {
+            'm3' => (float) ($res['volume'] ?? 0) * $taux,
+            'kg' => (float) ($res['poids'] ?? 0) * $taux,
+            'colis' => (float) ($res['colis'] ?? 0) * $taux,
+            'palette' => (float) ($res['palettes'] ?? 0) * $taux,
+            default => 0.0,
+        };
+        return round($base + (float) ($res['supplement_cout'] ?? 0), 2);
+    }
+
+    /** Enregistre les champs du mode « à la demande » (ignoré avant migrate_v60). */
+    public static function majTarif(int $id, array $d): void
+    {
+        if (!self::v60()) {
+            return;
+        }
+        $type = isset(self::TARIFS_ACHAT[$d['tarif_achat_type'] ?? '']) ? $d['tarif_achat_type'] : null;
+        Database::connection()->prepare('UPDATE expeditions SET mode_achat = ?, tarif_achat_type = ?, tarif_achat = ?, tarif_achat_alim = ? WHERE id = ?')
+            ->execute([($d['mode_achat'] ?? '') === 'tarif' ? 'tarif' : 'capacite', $type, ($d['tarif_achat'] ?? '') !== '' ? $d['tarif_achat'] : null, ($d['tarif_achat_alim'] ?? '') !== '' ? $d['tarif_achat_alim'] : null, $id]);
+    }
+
     public static function disponible(): bool
     {
         try {
@@ -274,14 +325,20 @@ class Expedition
     public static function ajouterReservation(array $exp, array $d): int
     {
         $pdo = Database::connection();
-        $prix = self::prix($d['tarification'], (float) $d['tarif_unitaire'], $d['volume'], $d['poids'], $d['colis'], $d['palettes']);
+        $suppV = self::v60() ? max(0.0, (float) ($d['supplement_vente'] ?? 0)) : 0.0;
+        $prix = round(self::prix($d['tarification'], (float) $d['tarif_unitaire'], $d['volume'], $d['poids'], $d['colis'], $d['palettes']) + $suppV, 2);
         $pdo->prepare('INSERT INTO expedition_reservations (expedition_id, filiale_id, dossier_id, client_id, client_nom, type_marchandise, description, volume, poids, colis, palettes, tarification, tarif_unitaire, prix_vente, created_by, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
             ->execute([
                 (int) $exp['id'], (int) $exp['filiale_id'], $d['dossier_id'] ?: null, $d['client_id'] ?: null, $d['client_nom'],
                 $d['type_marchandise'], $d['description'], $d['volume'], $d['poids'], $d['colis'], $d['palettes'],
                 $d['tarification'], (float) $d['tarif_unitaire'], $prix, $d['created_by'] ?? null, date('Y-m-d H:i:s'),
             ]);
-        return (int) $pdo->lastInsertId();
+        $rid = (int) $pdo->lastInsertId();
+        if (self::v60()) {
+            $pdo->prepare('UPDATE expedition_reservations SET supplement_cout = ?, supplement_vente = ?, supplement_motif = ? WHERE id = ?')
+                ->execute([max(0.0, (float) ($d['supplement_cout'] ?? 0)), $suppV, mb_substr((string) ($d['supplement_motif'] ?? ''), 0, 100), $rid]);
+        }
+        return $rid;
     }
 
     public static function supprimerReservation(int $id): void
@@ -316,6 +373,19 @@ class Expedition
             $poids += (float) ($r['poids'] ?? 0);
             $vente += (float) $r['prix_vente'];
         }
+        if (self::modeAchat($exp) === 'tarif') {
+            $lignes = [];
+            foreach ($reservations as $r) {
+                $c = self::coutTarif($exp, $r);
+                $imputes += $c;
+                $lignes[(int) $r['id']] = ['cout' => $c, 'marge' => round((float) $r['prix_vente'] - $c, 2)];
+            }
+            return [
+                'volume' => $volume, 'poids' => $poids, 'vente' => round($vente, 2), 'imputes' => round($imputes, 2), 'cout' => round($imputes, 2),
+                'libre' => 0.0, 'resultat' => round($vente - $imputes, 2), 'remplissage' => null, 'surcharge' => false,
+                'lignes' => $lignes, 'nb' => count($reservations),
+            ];
+        }
         $lignes = [];
         foreach ($reservations as $r) {
             $c = self::coutImpute($exp, $r, $volume, $poids);
@@ -330,7 +400,7 @@ class Expedition
         $cout = (float) $exp['cout_achat'];
         $libre = $exp['type'] === 'conteneur_complet' ? 0.0 : max(0.0, round($cout - $imputes, 2));
         return [
-            'volume' => $volume, 'poids' => $poids, 'vente' => round($vente, 2), 'imputes' => round($imputes, 2),
+            'volume' => $volume, 'poids' => $poids, 'vente' => round($vente, 2), 'imputes' => round($imputes, 2), 'cout' => $cout,
             'libre' => $libre, 'resultat' => round($vente - $cout, 2), 'remplissage' => $remplissage,
             'surcharge' => ($capV > 0 && $volume > $capV) || ($capP > 0 && $poids > $capP),
             'lignes' => $lignes, 'nb' => count($reservations),

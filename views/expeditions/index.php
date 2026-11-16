@@ -31,8 +31,8 @@ $onglets = ['en_cours' => 'En cours', 'livree' => 'Livrées', '' => 'Toutes'];
         <td data-label="Trajet"><?= View::e($e['origine']) ?> → <?= View::e($e['destination']) ?></td>
         <td data-label="Type"><?= View::e(Expedition::TYPES[$e['type']] ?? $e['type']) ?> · <?= View::e(Expedition::MODES[$e['mode']] ?? $e['mode']) ?></td>
         <td data-label="Départ"><?= $e['date_depart'] ? date('d/m/Y', strtotime($e['date_depart'])) : '—' ?></td>
-        <td data-label="Remplissage"><?= $b['remplissage'] !== null ? (int) $b['remplissage'] . ' %' : '—' ?> · <?= (int) $b['nb'] ?> réservation(s)</td>
-        <td data-label="Statut"><span class="badge badge-blue"><?= View::e(Expedition::STATUTS[$e['statut']] ?? $e['statut']) ?></span></td>
+        <td data-label="Remplissage"><?= $b['remplissage'] !== null ? (int) $b['remplissage'] . ' % · ' : '' ?><?= (int) $b['nb'] ?> réservation(s)</td>
+        <td data-label="Statut"><span class="badge badge-blue"><?= View::e(Expedition::libelleStatut($e)) ?></span></td>
         <?php if ($voitMarges): ?><td data-label="Résultat"><span style="color:<?= $b['resultat'] < 0 ? '#b3261e' : 'inherit' ?>"><?= $fmt($b['resultat']) ?> <?= View::e($e['devise']) ?></span></td><?php endif; ?>
       </tr>
     <?php endforeach; ?>

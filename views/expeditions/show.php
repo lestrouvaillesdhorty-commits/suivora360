@@ -7,6 +7,7 @@ $dev = View::e($exp['devise']);
 $base = '/index.php?r=expeditions/' . (int) $exp['id'];
 $ouverte = $exp['statut'] === 'ouverte';
 $complet = $exp['type'] === 'conteneur_complet';
+$tarifMode = Expedition::modeAchat($exp) === 'tarif';
 ?>
 <div class="page-header">
   <h1><?= View::e($exp['reference']) ?> · <?= View::e($exp['origine']) ?> → <?= View::e($exp['destination']) ?></h1>
@@ -21,20 +22,24 @@ $complet = $exp['type'] === 'conteneur_complet';
     <?php if ($peutEcrire): ?>
     <form method="post" action="<?= $base ?>/statut" style="display:inline-flex;gap:6px;align-items:center">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-      <select name="statut"><?php foreach (Expedition::STATUTS as $k => $l): ?><option value="<?= $k ?>" <?= $exp['statut'] === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
+      <select name="statut"><?php foreach (Expedition::STATUTS as $k => $l): ?><option value="<?= $k ?>" <?= $exp['statut'] === $k ? 'selected' : '' ?>><?= View::e(Expedition::libelleStatut($exp, $k)) ?></option><?php endforeach; ?></select>
       <button class="btn" type="submit">Changer</button>
     </form>
-    <?php else: ?><?= View::e(Expedition::STATUTS[$exp['statut']]) ?><?php endif; ?>
+    <?php else: ?><?= View::e(Expedition::libelleStatut($exp)) ?><?php endif; ?>
   </span></div>
   <div class="hint">Le statut fait avancer les étapes Expédition, Dédouanement et Livraison des dossiers liés (jamais en arrière).</div>
 </div>
 
 <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0">
+  <?php if ($tarifMode): ?>
+  <div class="card"><div class="label">Volume réservé</div><strong style="font-size:1.4em"><?= $fmt($bilan['volume'], 2) ?> m³</strong><div class="hint"><?= $fmt($bilan['poids']) ?> kg</div></div>
+  <?php else: ?>
   <div class="card"><div class="label">Remplissage</div><strong style="font-size:1.4em"><?= $bilan['remplissage'] !== null ? (int) $bilan['remplissage'] . ' %' : '—' ?></strong><div class="hint"><?= $fmt($bilan['volume'], 2) ?> m³ · <?= $fmt($bilan['poids']) ?> kg</div></div>
+  <?php endif; ?>
   <div class="card"><div class="label">Vendu</div><strong style="font-size:1.4em"><?= $fmt($bilan['vente']) ?> <?= $dev ?></strong><div class="hint"><?= (int) $bilan['nb'] ?> réservation(s)</div></div>
   <?php if ($voitMarges): ?>
-  <div class="card"><div class="label">Coût d'achat</div><strong style="font-size:1.4em"><?= $fmt($exp['cout_achat']) ?> <?= $dev ?></strong></div>
-  <div class="card"><div class="label">Place libre (perte)</div><strong style="font-size:1.4em"><?= $fmt($bilan['libre']) ?> <?= $dev ?></strong></div>
+  <div class="card"><div class="label">Coût d'achat<?= $tarifMode ? ' (selon le tarif)' : '' ?></div><strong style="font-size:1.4em"><?= $fmt($bilan['cout'] ?? $exp['cout_achat']) ?> <?= $dev ?></strong></div>
+  <?php if (!$tarifMode): ?><div class="card"><div class="label">Place libre (perte)</div><strong style="font-size:1.4em"><?= $fmt($bilan['libre']) ?> <?= $dev ?></strong></div><?php endif; ?>
   <div class="card"><div class="label">Résultat</div><strong style="font-size:1.4em;color:<?= $bilan['resultat'] < 0 ? '#b3261e' : '#1e7a3c' ?>"><?= $fmt($bilan['resultat']) ?> <?= $dev ?></strong></div>
   <?php endif; ?>
 </div>
@@ -55,9 +60,9 @@ $complet = $exp['type'] === 'conteneur_complet';
         <td data-label="Volume"><?= $r['volume'] !== null ? $fmt($r['volume'], 2) . ' m³' : '—' ?></td>
         <td data-label="Poids"><?= $r['poids'] !== null ? $fmt($r['poids']) . ' kg' : '—' ?></td>
         <td data-label="Colis / pal."><?= (int) $r['colis'] ?> / <?= (int) $r['palettes'] ?></td>
-        <td data-label="Prix vendu"><?= $fmt($r['prix_vente']) ?> <?= $dev ?><div class="hint"><?= View::e(Expedition::TARIFICATIONS[$r['tarification']] ?? '') ?></div></td>
+        <td data-label="Prix vendu"><?= $fmt($r['prix_vente']) ?> <?= $dev ?><div class="hint"><?= View::e(Expedition::TARIFICATIONS[$r['tarification']] ?? '') ?><?= !empty($r['supplement_vente']) && (float) $r['supplement_vente'] > 0 ? ' · dont supplément ' . $fmt($r['supplement_vente']) : '' ?></div></td>
         <?php if ($voitMarges): ?>
-        <td data-label="Coût imputé"><?= $fmt($l['cout']) ?></td>
+        <td data-label="Coût imputé"><?= $fmt($l['cout']) ?><?php if (!empty($r['supplement_cout']) && (float) $r['supplement_cout'] > 0): ?><div class="hint">dont supplément <?= $fmt($r['supplement_cout']) ?><?= !empty($r['supplement_motif']) ? ' (' . View::e($r['supplement_motif']) . ')' : '' ?></div><?php endif; ?></td>
         <td data-label="Marge" style="color:<?= $l['marge'] < 0 ? '#b3261e' : 'inherit' ?>"><?= $fmt($l['marge']) ?></td>
         <?php endif; ?>
         <td><?php if ($peutEcrire): ?>
@@ -72,6 +77,7 @@ $complet = $exp['type'] === 'conteneur_complet';
   <?php endif; ?>
 </div>
 
+<?php if ($tarifMode && empty($exp['tarif_achat_type'])): ?><div class="alert alert-erreur">Le tarif d'achat du transitaire n'est pas renseigné : les coûts sont à zéro. <a href="<?= $base ?>/modifier">Le renseigner</a></div><?php endif; ?>
 <?php if ($peutEcrire && $ouverte && !($complet && $reservations)): ?>
 <div class="card">
   <h2>Ajouter une réservation</h2>
