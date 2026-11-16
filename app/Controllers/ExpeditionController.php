@@ -180,6 +180,11 @@ class ExpeditionController
             return;
         }
         $s = (string) ($_POST['statut'] ?? '');
+        if (isset(Expedition::STATUTS[$s]) && !in_array($s, ['ouverte', 'cloturee'], true) && ($n = Expedition::nbAValider((int) $exp['id'])) > 0) {
+            View::flash('erreur', $n . " réservation(s) à valider avec le client (hors format, alcool…) : validez-les ou retirez-les avant le départ.");
+            header('Location: /index.php?r=expeditions/' . $exp['id']);
+            exit;
+        }
         if (isset(Expedition::STATUTS[$s])) {
             Expedition::changerStatut((int) $exp['id'], $s);
             AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'statut_expedition', 'expedition', (int) $exp['id'], $exp['statut'] . ' → ' . $s);
@@ -245,12 +250,29 @@ class ExpeditionController
             'supplement_cout' => max(0, $this->numerique($_POST['supplement_cout'] ?? '') ?? 0),
             'supplement_vente' => max(0, $this->numerique($_POST['supplement_vente'] ?? '') ?? 0),
             'supplement_motif' => trim((string) ($_POST['supplement_motif'] ?? '')),
+            'cas_special' => isset(Expedition::CAS_SPECIAUX[$_POST['cas_special'] ?? '']) ? $_POST['cas_special'] : '',
         ];
         $id = Expedition::ajouterReservation($exp, $d);
         AuditLog::log((int) $exp['filiale_id'], (int) $user['id'], 'reservation_expedition', 'expedition', (int) $exp['id'], ($clientNom ?: 'Dossier ' . $dossierId));
         $bilan = Expedition::bilan($exp);
         View::flash($bilan['surcharge'] ? 'erreur' : 'succes', $bilan['surcharge'] ? "Réservation ajoutée, mais la capacité de l'expédition est dépassée." : 'Réservation ajoutée.');
         header('Location: ' . $retour);
+        exit;
+    }
+
+    public function validerReservation(array $params): void
+    {
+        $exp = $this->charger($params, true);
+        if (!$exp) {
+            return;
+        }
+        $r = Expedition::findReservation((int) ($_POST['reservation_id'] ?? 0));
+        if ($r && (int) $r['expedition_id'] === (int) $exp['id']) {
+            Expedition::validerReservation((int) $r['id']);
+            AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'reservation_validee_client', 'expedition', (int) $exp['id'], (string) ($r['client_nom'] ?: 'Dossier ' . $r['dossier_id']));
+            View::flash('succes', 'Réservation validée avec le client.');
+        }
+        header('Location: /index.php?r=expeditions/' . $exp['id']);
         exit;
     }
 

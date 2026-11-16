@@ -21,6 +21,25 @@ class Expedition
     public const MODES_ACHAT = ['capacite' => "Capacité achetée d'avance", 'tarif' => 'À la demande, au tarif du transitaire'];
     public const TARIFS_ACHAT = ['m3' => 'au m³', 'kg' => 'au kilo', 'colis' => 'par colis', 'palette' => 'par palette'];
 
+    public const CAS_SPECIAUX = ['hors_format' => 'Hors format', 'alcool' => 'Alcool', 'dangereux' => 'Produit dangereux', 'autre' => 'Autre cas particulier'];
+
+    public static function nbAValider(int $expeditionId): int
+    {
+        if (!self::v60()) {
+            return 0;
+        }
+        $st = Database::connection()->prepare("SELECT COUNT(*) FROM expedition_reservations WHERE expedition_id = ? AND validation_client = 'a_valider'");
+        $st->execute([$expeditionId]);
+        return (int) $st->fetchColumn();
+    }
+
+    public static function validerReservation(int $id): void
+    {
+        if (self::v60()) {
+            Database::connection()->prepare("UPDATE expedition_reservations SET validation_client = 'ok', valide_le = ? WHERE id = ?")->execute([date('Y-m-d'), $id]);
+        }
+    }
+
     public static function v60(): bool
     {
         return \App\Core\Schema::colonne('expeditions', 'mode_achat') && \App\Core\Schema::colonne('expedition_reservations', 'supplement_cout');
@@ -338,8 +357,9 @@ class Expedition
             ]);
         $rid = (int) $pdo->lastInsertId();
         if (self::v60()) {
-            $pdo->prepare('UPDATE expedition_reservations SET supplement_cout = ?, supplement_vente = ?, supplement_motif = ? WHERE id = ?')
-                ->execute([max(0.0, (float) ($d['supplement_cout'] ?? 0)), $suppV, mb_substr((string) ($d['supplement_motif'] ?? ''), 0, 100), $rid]);
+            $cas = isset(self::CAS_SPECIAUX[$d['cas_special'] ?? '']) ? $d['cas_special'] : null;
+            $pdo->prepare('UPDATE expedition_reservations SET supplement_cout = ?, supplement_vente = ?, supplement_motif = ?, cas_special = ?, validation_client = ? WHERE id = ?')
+                ->execute([max(0.0, (float) ($d['supplement_cout'] ?? 0)), $suppV, mb_substr((string) ($d['supplement_motif'] ?? ''), 0, 100), $cas, $cas ? 'a_valider' : 'ok', $rid]);
         }
         return $rid;
     }

@@ -3,7 +3,7 @@
 /**
  * Migration V60 — Suivora360
  * ---------------------------------------------------------------
- * Expéditions « à la demande » : tarif d'achat du transitaire et suppléments par réservation.
+ * Expéditions « à la demande » : tarif d'achat du transitaire, suppléments et validation client des cas particuliers.
  * Strictement additive et idempotente. Protégée par INSTALL_TOKEN (.env). Après usage, supprimez ce fichier.
  */
 
@@ -61,7 +61,7 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['action'] ?? '') === 'mig
         $engine = $driver === 'mysql' ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : '';
         $ajouts = [
             'expeditions' => [['mode_achat', "VARCHAR(10) NOT NULL DEFAULT 'capacite'"], ['tarif_achat_type', 'VARCHAR(10) NULL'], ['tarif_achat', 'DECIMAL(14,4) NULL'], ['tarif_achat_alim', 'DECIMAL(14,4) NULL'], ['tarif_achat_alim_type', 'VARCHAR(10) NULL']],
-            'expedition_reservations' => [['supplement_cout', 'DECIMAL(14,2) NOT NULL DEFAULT 0'], ['supplement_vente', 'DECIMAL(14,2) NOT NULL DEFAULT 0'], ['supplement_motif', "VARCHAR(100) NOT NULL DEFAULT ''"]],
+            'expedition_reservations' => [['supplement_cout', 'DECIMAL(14,2) NOT NULL DEFAULT 0'], ['supplement_vente', 'DECIMAL(14,2) NOT NULL DEFAULT 0'], ['supplement_motif', "VARCHAR(100) NOT NULL DEFAULT ''"], ['cas_special', 'VARCHAR(15) NULL'], ['validation_client', "VARCHAR(10) NOT NULL DEFAULT 'ok'"], ['valide_le', 'VARCHAR(10) NULL']],
         ];
         foreach ($ajouts as $table => $cols) {
             foreach ($cols as [$col, $def]) {

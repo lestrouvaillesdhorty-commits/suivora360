@@ -55,7 +55,11 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
     <tbody>
     <?php foreach ($reservations as $r): $l = $bilan['lignes'][(int) $r['id']] ?? ['cout' => 0, 'marge' => 0]; ?>
       <tr>
-        <td data-label="Client"><?= View::e($r['client_nom'] ?: '—') ?><?php if (!empty($r['dossier_id'])): ?> · <a href="/index.php?r=dossiers/<?= (int) $r['dossier_id'] ?>">dossier</a><?php endif; ?><?php if ($r['description']): ?><div class="hint"><?= View::e($r['description']) ?></div><?php endif; ?></td>
+        <td data-label="Client"><?= View::e($r['client_nom'] ?: '—') ?><?php if (!empty($r['dossier_id'])): ?> · <a href="/index.php?r=dossiers/<?= (int) $r['dossier_id'] ?>">dossier</a><?php endif; ?><?php if ($r['description']): ?><div class="hint"><?= View::e($r['description']) ?></div><?php endif; ?>
+          <?php if (!empty($r['cas_special'])): ?><div><span class="badge <?= ($r['validation_client'] ?? 'ok') === 'a_valider' ? 'badge-orange' : 'badge-green' ?>"><?= View::e(Expedition::CAS_SPECIAUX[$r['cas_special']] ?? $r['cas_special']) ?> · <?= ($r['validation_client'] ?? 'ok') === 'a_valider' ? 'à valider avec le client' : 'validé' . (!empty($r['valide_le']) ? ' le ' . date('d/m/Y', strtotime($r['valide_le'])) : '') ?></span>
+          <?php if (($r['validation_client'] ?? 'ok') === 'a_valider' && $peutEcrire): ?>
+            <form method="post" action="<?= $base ?>/valider-reservation" style="display:inline"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>"><button class="btn btn-sm btn-secondary" type="submit">Marquer validé</button></form>
+          <?php endif; ?></div><?php endif; ?></td>
         <td data-label="Marchandise"><?= View::e(Expedition::MARCHANDISES[$r['type_marchandise']] ?? '') ?></td>
         <td data-label="Volume"><?= $r['volume'] !== null ? $fmt($r['volume'], 2) . ' m³' : '—' ?></td>
         <td data-label="Poids"><?= $r['poids'] !== null ? $fmt($r['poids']) . ' kg' : '—' ?></td>
@@ -77,6 +81,8 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
   <?php endif; ?>
 </div>
 
+<?php $nbAV = 0; foreach ($reservations as $rv) { if (($rv['validation_client'] ?? 'ok') === 'a_valider') { $nbAV++; } } ?>
+<?php if ($nbAV > 0): ?><div class="alert alert-erreur"><?= $nbAV ?> réservation(s) à valider avec le client avant le départ (cas particuliers).</div><?php endif; ?>
 <?php if ($tarifMode && empty($exp['tarif_achat_type'])): ?><div class="alert alert-erreur">Le tarif d'achat du transitaire n'est pas renseigné : les coûts sont à zéro. <a href="<?= $base ?>/modifier">Le renseigner</a></div><?php endif; ?>
 <?php if ($peutEcrire && $ouverte && !($complet && $reservations)): ?>
 <div class="card">

@@ -755,6 +755,7 @@ $router->get('/expeditions/{id}/modifier', function ($params) { Auth::requireLog
 $router->post('/expeditions/{id}/modifier', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->update($params); });
 $router->post('/expeditions/{id}/statut', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->statut($params); });
 $router->post('/expeditions/{id}/reserver', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->reserver($params); });
+$router->post('/expeditions/{id}/valider-reservation', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->validerReservation($params); });
 $router->post('/expeditions/{id}/supprimer-reservation', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->supprimerReservation($params); });
 
 // Cotations client

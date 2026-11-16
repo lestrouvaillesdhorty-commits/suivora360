@@ -32,6 +32,10 @@ $retourDossier = $retourDossier ?? 0;
     <div class="form-group"><label>Tarification</label><select name="tarification"><?php foreach (Expedition::TARIFICATIONS as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
     <div class="form-group"><label>Tarif (forfait total ou prix unitaire)</label><input type="text" name="tarif_unitaire" inputmode="decimal"></div>
   </div>
+  <?php if (\App\Models\Expedition::v60()): ?>
+  <div class="form-group"><label>Cas particulier (à valider avec le client avant le départ)</label>
+    <select name="cas_special"><option value="">— Aucun —</option><?php foreach (\App\Models\Expedition::CAS_SPECIAUX as $k => $l): ?><option value="<?= $k ?>"><?= View::e($l) ?></option><?php endforeach; ?></select></div>
+  <?php endif; ?>
   <?php if (\App\Models\Expedition::v60() && \App\Models\Expedition::modeAchat($exp) === 'tarif'): ?>
   <div class="form-row">
     <div class="form-group"><label>Supplément de coût (hors format, alcool…)</label><input type="text" name="supplement_cout" inputmode="decimal" placeholder="0"></div>
