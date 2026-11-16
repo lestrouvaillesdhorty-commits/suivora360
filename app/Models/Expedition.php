@@ -102,6 +102,56 @@ class Expedition
         }
     }
 
+    /**
+     * Fait avancer les commandes des dossiers liés (étapes Expédition / Dédouanement / Livraison) selon le statut de l'expédition.
+     * N'avance que : une étape déjà plus loin n'est jamais ramenée en arrière. Retourne le nombre de dossiers mis à jour.
+     */
+    public static function propager(array $exp, string $statut): int
+    {
+        $cible = [
+            'ouverte' => ['expedition' => 'en_cours'],
+            'cloturee' => ['expedition' => 'en_cours'],
+            'partie' => ['expedition' => 'termine', 'livraison' => 'en_cours'],
+            'arrivee' => ['expedition' => 'termine', 'douane' => 'en_cours', 'livraison' => 'en_cours'],
+            'dedouanee' => ['expedition' => 'termine', 'douane' => 'termine', 'livraison' => 'en_cours'],
+            'livree' => ['expedition' => 'termine', 'douane' => 'termine', 'livraison' => 'termine'],
+        ][$statut] ?? [];
+        if (!$cible || !class_exists(Commande::class)) {
+            return 0;
+        }
+        $rang = ['a_faire' => 0, 'en_cours' => 1, 'termine' => 2];
+        $date = $statut === 'partie' ? ($exp['date_depart'] ?: date('Y-m-d')) : date('Y-m-d');
+        $nb = 0;
+        $vus = [];
+        foreach (self::reservations((int) $exp['id']) as $r) {
+            $did = (int) ($r['dossier_id'] ?? 0);
+            if (!$did || isset($vus[$did])) {
+                continue;
+            }
+            $vus[$did] = true;
+            $cmd = Commande::findByDossier($did);
+            if (!$cmd) {
+                continue;
+            }
+            $change = false;
+            foreach (Commande::steps((int) $cmd['id']) as $step) {
+                $nouveau = $cible[$step['libelle']] ?? null;
+                if ($nouveau === null || ($rang[$nouveau] ?? 0) <= ($rang[$step['statut']] ?? 0)) {
+                    continue;
+                }
+                $note = (string) ($step['notes'] ?? '');
+                $tag = 'Via expédition ' . $exp['reference'];
+                Commande::updateStep((int) $step['id'], (int) $cmd['id'], $nouveau, $nouveau === 'termine' ? ($step['date_reelle'] ?: $date) : ($step['date_reelle'] ?: null), strpos($note, $tag) === false ? trim($note . ' ' . $tag) : $note);
+                $change = true;
+            }
+            if (empty($cmd['mode_transport']) && empty($cmd['port_depart'])) {
+                Commande::updateTrajet((int) $cmd['id'], $exp['mode'], $exp['origine'], $exp['destination'], $exp['date_arrivee'] ?: null);
+            }
+            $nb += $change ? 1 : 0;
+        }
+        return $nb;
+    }
+
     public static function reservations(int $expeditionId): array
     {
         $st = Database::connection()->prepare(

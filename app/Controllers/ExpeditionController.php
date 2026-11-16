@@ -176,7 +176,13 @@ class ExpeditionController
         if (isset(Expedition::STATUTS[$s])) {
             Expedition::changerStatut((int) $exp['id'], $s);
             AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'statut_expedition', 'expedition', (int) $exp['id'], $exp['statut'] . ' → ' . $s);
-            View::flash('succes', 'Statut : ' . Expedition::STATUTS[$s] . '.');
+            $nb = 0;
+            try {
+                $nb = Expedition::propager($exp, $s);
+            } catch (\Throwable $e) {
+                $nb = 0;
+            }
+            View::flash('succes', 'Statut : ' . Expedition::STATUTS[$s] . '.' . ($nb > 0 ? ' ' . $nb . ' dossier(s) lié(s) mis à jour.' : ''));
         }
         header('Location: /index.php?r=expeditions/' . $exp['id']);
         exit;

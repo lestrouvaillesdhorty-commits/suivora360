@@ -26,6 +26,7 @@ $complet = $exp['type'] === 'conteneur_complet';
     </form>
     <?php else: ?><?= View::e(Expedition::STATUTS[$exp['statut']]) ?><?php endif; ?>
   </span></div>
+  <div class="hint">Le statut fait avancer les étapes Expédition, Dédouanement et Livraison des dossiers liés (jamais en arrière).</div>
 </div>
 
 <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0">
