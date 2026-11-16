@@ -152,6 +152,42 @@ class Expedition
         return $nb;
     }
 
+    /** Indicateurs du tableau de bord Groupage et transport (jamais d'addition entre devises : la place libre est ventilée par devise). */
+    public static function resume(array $filialeIds): array
+    {
+        $r = ['ouvertes' => 0, 'transit' => 0, 'remplissage' => null, 'libre' => [], 'surveiller' => []];
+        if (!$filialeIds || !self::disponible()) {
+            return $r;
+        }
+        $in = implode(',', array_fill(0, count($filialeIds), '?'));
+        $st = Database::connection()->prepare("SELECT * FROM expeditions WHERE filiale_id IN ($in) AND statut IN ('ouverte','cloturee','partie') ORDER BY cloture_reservations IS NULL, cloture_reservations, id DESC");
+        $st->execute(array_values($filialeIds));
+        $somme = 0;
+        $nbRemp = 0;
+        $aujourdhui = strtotime(date('Y-m-d'));
+        foreach ($st->fetchAll() as $e) {
+            if ($e['statut'] === 'partie') {
+                $r['transit']++;
+                continue;
+            }
+            $b = self::bilan($e);
+            if ($e['statut'] === 'ouverte') {
+                $r['ouvertes']++;
+                $r['libre'][$e['devise']] = ($r['libre'][$e['devise']] ?? 0) + $b['libre'];
+            }
+            if ($b['remplissage'] !== null) {
+                $somme += $b['remplissage'];
+                $nbRemp++;
+            }
+            if ($e['statut'] === 'ouverte' && count($r['surveiller']) < 5) {
+                $jours = $e['cloture_reservations'] ? (int) round((strtotime($e['cloture_reservations']) - $aujourdhui) / 86400) : null;
+                $r['surveiller'][] = ['id' => (int) $e['id'], 'reference' => $e['reference'], 'trajet' => $e['origine'] . ' → ' . $e['destination'], 'remplissage' => $b['remplissage'], 'jours' => $jours];
+            }
+        }
+        $r['remplissage'] = $nbRemp ? (int) round($somme / $nbRemp) : null;
+        return $r;
+    }
+
     public static function reservations(int $expeditionId): array
     {
         $st = Database::connection()->prepare(

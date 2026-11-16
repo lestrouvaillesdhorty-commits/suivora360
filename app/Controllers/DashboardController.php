@@ -148,7 +148,17 @@ class DashboardController
         $actionsPrioritaires = $this->construireActionsPrioritaires($user, $filialeIds, $activite ?: null);
         $actionsEnRetardCount = count($actionsPrioritaires['retard']);
 
+        $expeditionsResume = null;
+        if ($estTransport && class_exists(\App\Models\Expedition::class)) {
+            try {
+                $expeditionsResume = \App\Models\Expedition::resume($filialeIds ?: \App\Models\Filiale::visibleIdsFor($user));
+            } catch (\Throwable $eExp) {
+                $expeditionsResume = null;
+            }
+        }
         View::render('dashboard/index', [
+            'expeditionsResume' => $expeditionsResume,
+            'voitMargesExp' => \App\Core\Permissions::canSeeMarges($user['role']),
             'demandeCounts' => $demandeCounts,
             'dossierCounts' => $dossierCounts,
             'filiales' => $filiales,

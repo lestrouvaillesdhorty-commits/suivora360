@@ -257,6 +257,29 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
       </ul>
     <?php endif; ?>
   </div>
+  <?php if (!empty($estTransport) && !empty($expeditionsResume)): $xr = $expeditionsResume; ?>
+  <div class="card" id="expeditions">
+    <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('truck', 'icon', 17) ?> Expéditions</span><a href="/index.php?r=expeditions" style="font-size:13px;font-weight:600">Toutes les expéditions</a></h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
+      <div><div class="hint">Ouvertes aux réservations</div><strong style="font-size:1.4em"><?= (int) $xr['ouvertes'] ?></strong></div>
+      <div><div class="hint">En transit</div><strong style="font-size:1.4em"><?= (int) $xr['transit'] ?></strong></div>
+      <div><div class="hint">Remplissage moyen</div><strong style="font-size:1.4em"><?= $xr['remplissage'] !== null ? (int) $xr['remplissage'] . ' %' : '—' ?></strong></div>
+      <?php if (!empty($voitMargesExp)): ?><div><div class="hint">Place libre à vendre</div><strong style="font-size:1.4em"><?php $pl = []; foreach ($xr['libre'] as $dv => $m) { $pl[] = number_format((float) $m, 0, ',', ' ') . ' ' . View::e($dv); } echo $pl ? implode(' + ', $pl) : '—'; ?></strong></div><?php endif; ?>
+    </div>
+    <?php if (empty($xr['surveiller'])): ?>
+      <div class="empty-state">Aucune expédition ouverte.</div>
+    <?php else: ?>
+      <ul class="ac-list">
+      <?php foreach ($xr['surveiller'] as $x): ?>
+        <li class="ac-row">
+          <div class="ac-main"><div class="ac-title"><?= View::e($x['trajet']) ?> · <?= $x['remplissage'] !== null ? (int) $x['remplissage'] . ' %' : '—' ?></div><div class="ac-sub"><?= View::e($x['reference']) ?><?= $x['jours'] !== null ? ' · clôture ' . ($x['jours'] < 0 ? 'dépassée' : ($x['jours'] === 0 ? "aujourd'hui" : 'dans ' . $x['jours'] . ' j')) : '' ?></div></div>
+          <a href="/index.php?r=expeditions/<?= (int) $x['id'] ?>" class="btn btn-sm btn-secondary">Ouvrir</a>
+        </li>
+      <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
   <?php if (!empty($estTransport) && $voitLiv): ?>
   <div class="card" id="livraisons">
     <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('truck', 'icon', 17) ?> Livraisons à suivre</h2>
