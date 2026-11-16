@@ -33,6 +33,19 @@ class Expedition
         return (int) $st->fetchColumn();
     }
 
+    /** Corrige les quantités d'une réservation (poids confirmé par le transitaire, etc.) et recalcule son prix vendu ; le coût se recalcule à l'affichage. */
+    public static function modifierReservation(array $r, array $d): void
+    {
+        $suppV = self::v60() ? (float) ($r['supplement_vente'] ?? 0) : 0.0;
+        $prix = round(self::prix((string) $r['tarification'], (float) $r['tarif_unitaire'], $d['volume'], $d['poids'], $d['colis'], $d['palettes']) + $suppV, 2);
+        $pdo = Database::connection();
+        $pdo->prepare('UPDATE expedition_reservations SET volume = ?, poids = ?, colis = ?, palettes = ?, prix_vente = ? WHERE id = ?')
+            ->execute([$d['volume'], $d['poids'], $d['colis'], $d['palettes'], $prix, (int) $r['id']]);
+        if (self::v60()) {
+            $pdo->prepare('UPDATE expedition_reservations SET poids_confirme = ? WHERE id = ?')->execute([!empty($d['poids_confirme']) ? 1 : 0, (int) $r['id']]);
+        }
+    }
+
     public static function validerReservation(int $id): void
     {
         if (self::v60()) {

@@ -13,6 +13,7 @@ class AuditLog
     /** Libellés lisibles des actions (page Sécurité). Un code inconnu est affiché tel quel. */
     public const LIBELLES = [
         'connexion' => 'Connexion',
+        'reservation_modifiee' => 'Réservation d\'expédition modifiée',
         'reservation_validee_client' => 'Réservation validée avec le client',
         'suppression_fichiers_install' => "Fichiers d'installation supprimés",
         'creation' => 'Création',

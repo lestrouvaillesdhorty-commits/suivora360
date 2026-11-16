@@ -62,7 +62,7 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
           <?php endif; ?></div><?php endif; ?></td>
         <td data-label="Marchandise"><?= View::e(Expedition::MARCHANDISES[$r['type_marchandise']] ?? '') ?></td>
         <td data-label="Volume"><?= $r['volume'] !== null ? $fmt($r['volume'], 2) . ' m³' : '—' ?></td>
-        <td data-label="Poids"><?= $r['poids'] !== null ? $fmt($r['poids']) . ' kg' : '—' ?></td>
+        <td data-label="Poids"><?= $r['poids'] !== null ? $fmt($r['poids']) . ' kg' : '—' ?><?php if ($r['poids'] !== null && Expedition::v60()): ?><div class="hint"><?= !empty($r['poids_confirme']) ? 'confirmé' : 'estimé' ?></div><?php endif; ?></td>
         <td data-label="Colis / pal."><?= (int) $r['colis'] ?> / <?= (int) $r['palettes'] ?></td>
         <td data-label="Prix vendu"><?= $fmt($r['prix_vente']) ?> <?= $dev ?><div class="hint"><?= View::e(Expedition::TARIFICATIONS[$r['tarification']] ?? '') ?><?= !empty($r['supplement_vente']) && (float) $r['supplement_vente'] > 0 ? ' · dont supplément ' . $fmt($r['supplement_vente']) : '' ?></div></td>
         <?php if ($voitMarges): ?>
@@ -70,6 +70,18 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
         <td data-label="Marge" style="color:<?= $l['marge'] < 0 ? '#b3261e' : 'inherit' ?>"><?= $fmt($l['marge']) ?></td>
         <?php endif; ?>
         <td><?php if ($peutEcrire): ?>
+          <details style="margin-bottom:6px"><summary class="btn btn-sm btn-secondary" style="display:inline-block;cursor:pointer">Modifier</summary>
+            <form method="post" action="<?= $base ?>/modifier-reservation" style="margin-top:6px;min-width:190px">
+              <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>">
+              <div class="form-group"><label>Volume (m³)</label><input type="text" name="volume" inputmode="decimal" value="<?= $r['volume'] !== null ? View::e((string) $r['volume']) : '' ?>"></div>
+              <div class="form-group"><label>Poids (kg)</label><input type="text" name="poids" inputmode="decimal" value="<?= $r['poids'] !== null ? View::e((string) $r['poids']) : '' ?>"></div>
+              <div class="form-group"><label>Colis</label><input type="text" name="colis" inputmode="numeric" value="<?= $r['colis'] !== null ? (int) $r['colis'] : '' ?>"></div>
+              <div class="form-group"><label>Palettes</label><input type="text" name="palettes" inputmode="numeric" value="<?= $r['palettes'] !== null ? (int) $r['palettes'] : '' ?>"></div>
+              <?php if (Expedition::v60()): ?><label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" name="poids_confirme" value="1" <?= !empty($r['poids_confirme']) ? 'checked' : '' ?>> Poids confirmé par le transitaire</label><?php endif; ?>
+              <div class="hint">Le prix vendu et le coût sont recalculés.</div>
+              <button class="btn btn-sm btn-primary" type="submit">Enregistrer</button>
+            </form>
+          </details>
           <form method="post" action="<?= $base ?>/supprimer-reservation" onsubmit="return confirm('Retirer cette réservation ?')">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>">
             <button class="btn btn-sm" type="submit">Retirer</button></form>

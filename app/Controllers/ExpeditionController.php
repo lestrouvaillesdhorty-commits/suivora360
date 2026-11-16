@@ -260,6 +260,26 @@ class ExpeditionController
         exit;
     }
 
+    public function modifierReservation(array $params): void
+    {
+        $exp = $this->charger($params, true);
+        if (!$exp) {
+            return;
+        }
+        $r = Expedition::findReservation((int) ($_POST['reservation_id'] ?? 0));
+        if ($r && (int) $r['expedition_id'] === (int) $exp['id']) {
+            Expedition::modifierReservation($r, [
+                'volume' => $this->numerique($_POST['volume'] ?? ''), 'poids' => $this->numerique($_POST['poids'] ?? ''),
+                'colis' => $this->entier($_POST['colis'] ?? ''), 'palettes' => $this->entier($_POST['palettes'] ?? ''),
+                'poids_confirme' => !empty($_POST['poids_confirme']),
+            ]);
+            AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'reservation_modifiee', 'expedition', (int) $exp['id'], (string) ($r['client_nom'] ?: 'Dossier ' . $r['dossier_id']));
+            View::flash('succes', 'Réservation mise à jour : prix et coût recalculés.');
+        }
+        header('Location: /index.php?r=expeditions/' . $exp['id']);
+        exit;
+    }
+
     public function validerReservation(array $params): void
     {
         $exp = $this->charger($params, true);
