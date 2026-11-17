@@ -94,6 +94,7 @@ ob_start(); ?>
       <?php if ($mailServeurPret): ?>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" name="joindre_pdf" value="1" checked style="width:auto"> Joindre le récapitulatif en PDF (envoi depuis Suivora uniquement)</label>
       <?php endif; ?>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" id="dlPdfAvec" checked style="width:auto"> Télécharger aussi le PDF en ouvrant la messagerie (à glisser dans le message pour le joindre)</label>
       <?php $libMess = ['gmail' => 'Gmail', 'outlook' => 'Outlook', 'mailto' => 'ma messagerie']; ?>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button type="button" class="btn" id="btnMessagerie" data-type="<?= View::e($messagerie) ?>">Ouvrir dans <?= View::e($libMess[$messagerie] ?? 'ma messagerie') ?></button>
@@ -121,7 +122,12 @@ ob_start(); ?>
         if (type === 'office') return 'https://outlook.office.com/mail/deeplink/compose?to=' + e(to) + '&subject=' + e(su) + '&body=' + e(bo);
         return 'mailto:' + e(to) + '?subject=' + e(su) + '&body=' + e(bo);
       }
+      function telechargerPdf() {
+        var c = document.getElementById('dlPdfAvec'), l = document.getElementById('lienPdf');
+        if (c && c.checked && l) { var a = document.createElement('a'); a.href = l.href; a.download = ''; document.body.appendChild(a); a.click(); a.remove(); }
+      }
       function ouvrir(type) {
+        telechargerPdf();
         if (type === 'mailto') { window.location.href = url(type); return true; }
         return !!window.open(url(type), '_blank');
       }
