@@ -218,8 +218,22 @@ class ParametresController
             'lignes' => $lignes,
             'disponible' => \App\Services\IaQuota::disponible(),
             'cleIa' => \App\Services\AiExtracteur::estDisponible(),
+            'problemeCle' => \App\Services\AiExtracteur::problemeCle(),
             'modele' => trim((string) \App\Core\Env::get('ANTHROPIC_MODEL_EXTRACTION', '')),
         ]);
+    }
+
+    public function iaTest(): void
+    {
+        Auth::requireParametres();
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+        } else {
+            [$ok, $msg] = \App\Services\AiExtracteur::tester();
+            View::flash($ok ? 'succes' : 'erreur', $msg);
+        }
+        header('Location: /index.php?r=parametres/ia');
+        exit;
     }
 
     public function iaUpdate(): void

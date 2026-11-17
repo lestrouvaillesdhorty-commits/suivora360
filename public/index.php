@@ -993,6 +993,10 @@ $router->get('/parametres/ia', function () {
     Auth::requireLogin();
     (new ParametresController())->ia();
 });
+$router->post('/parametres/ia-test', function () {
+    Auth::requireLogin();
+    (new ParametresController())->iaTest();
+});
 $router->post('/parametres/ia', function () {
     Auth::requireLogin();
     (new ParametresController())->iaUpdate();

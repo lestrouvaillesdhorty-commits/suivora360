@@ -2,6 +2,14 @@
 <h1>Lectures par l'IA</h1>
 <div class="subtitle">Chaque lecture de message, de fichier d'offre ou de recherche fournisseur est comptée par filiale et par mois. Un contenu déjà lu n'est ni relu ni recompté. <a href="/index.php?r=parametres">← Paramètres</a></div>
 
+<?php if (!empty($problemeCle)): ?>
+  <div class="alert alert-erreur"><strong>Clé IA refusée.</strong> <?= View::e($problemeCle['message']) ?> <span style="font-size:12px">(constaté le <?= date('d/m/Y à H:i', strtotime($problemeCle['le'])) ?>)</span></div>
+<?php endif; ?>
+<div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+  <div style="font-size:14px"><strong>Tester la clé IA</strong><div style="font-size:12px;color:#666">Un tout petit appel pour vérifier que la clé fonctionne.</div></div>
+  <form method="post" action="/index.php?r=parametres/ia-test" style="margin:0"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><button class="btn btn-secondary" type="submit">Tester la clé</button></form>
+</div>
+
 <?php if (!$disponible): ?>
   <div class="card"><div class="empty-state">Cette fonction demande la dernière mise à jour de la base : lancez <strong>migrate_v39.php</strong>. En attendant, aucune limite n'est appliquée.</div></div>
 <?php else: ?>

@@ -499,6 +499,10 @@ class Pilotage
     {
         $origine = strtoupper(trim($deviseOrigine)) ?: 'EUR';
         $cible = strtoupper(trim($deviseCible)) ?: 'EUR';
+        // XAF (CEMAC), XOF (UEMOA) et CFA sont des francs CFA à parité fixe : même devise pour le calcul.
+        $origineAffichee = $origine;
+        if (in_array($origine, ['XAF', 'XOF', 'CFA'], true)) { $origine = 'FCFA'; }
+        if (in_array($cible, ['XAF', 'XOF', 'CFA'], true)) { $cible = 'FCFA'; }
 
         if ($origine === $cible) {
             return ['montant' => $montant, 'convertible' => true, 'taux' => 1.0, 'taux_date' => null, 'devise_origine' => $origine];

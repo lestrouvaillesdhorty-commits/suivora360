@@ -32,6 +32,79 @@ class AiExtracteur
      * (extraireArticles()) continue de son côté à vérifier la clé lui-même,
      * cette méthode n'est qu'un raccourci d'affichage.
      */
+    /** Message clair selon le code HTTP renvoyé par le service IA ; une clé refusée est mémorisée pour alerter la direction. */
+    private static function erreurHttp(int $code): \RuntimeException
+    {
+        if ($code === 401 || $code === 403) {
+            $msg = "La clé IA est refusée ou expirée (HTTP $code). Créez une nouvelle clé sur console.anthropic.com, puis remplacez-la dans le fichier .env (ANTHROPIC_API_KEY=, sans guillemets ni espaces).";
+            self::noterEtat($code, $msg);
+        } elseif ($code === 429) {
+            $msg = "Le service IA limite temporairement les demandes (HTTP 429) : attendez une minute puis réessayez, ou vérifiez le crédit du compte IA.";
+        } elseif ($code >= 500) {
+            $msg = "Le service IA est momentanément indisponible (HTTP $code) : réessayez dans quelques minutes ou saisissez les articles à la main.";
+        } else {
+            $msg = "Le service IA a répondu une erreur (HTTP $code).";
+        }
+        return new \RuntimeException($msg);
+    }
+
+    private static function fichierEtat(): string
+    {
+        return dirname(__DIR__, 2) . '/storage/ia_etat.json';
+    }
+
+    private static function noterEtat(int $code, string $message): void
+    {
+        @file_put_contents(self::fichierEtat(), json_encode(['code' => $code, 'message' => $message, 'le' => date('Y-m-d H:i:s')]));
+    }
+
+    private static function noterSucces(): void
+    {
+        if (is_file(self::fichierEtat())) {
+            @unlink(self::fichierEtat());
+        }
+    }
+
+    /** Dernier refus de clé non résolu (['code','message','le']) ou null. */
+    public static function problemeCle(): ?array
+    {
+        $f = self::fichierEtat();
+        if (!is_file($f)) {
+            return null;
+        }
+        $d = json_decode((string) @file_get_contents($f), true);
+        return is_array($d) && !empty($d['code']) ? $d : null;
+    }
+
+    /** Test minimal de la clé (un tout petit appel). Retour [ok, message]. */
+    public static function tester(): array
+    {
+        $apiKey = (string) Env::get('ANTHROPIC_API_KEY');
+        if ($apiKey === '') {
+            return [false, "Aucune clé IA : ajoutez ANTHROPIC_API_KEY dans le fichier .env."];
+        }
+        $ch = curl_init((string) Env::get('ANTHROPIC_API_URL', self::API_URL));
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . $apiKey, 'anthropic-version: 2023-06-01'],
+            CURLOPT_POSTFIELDS => json_encode(['model' => self::modele(), 'max_tokens' => 5, 'messages' => [['role' => 'user', 'content' => 'ok']]]),
+        ]);
+        $response = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+        if ($response === false || $response === '') {
+            return [false, 'Impossible de contacter le service IA' . ($err ? " : $err" : '.')];
+        }
+        if ($code !== 200) {
+            return [false, self::erreurHttp($code)->getMessage()];
+        }
+        self::noterSucces();
+        return [true, 'La clé IA fonctionne.'];
+    }
+
     public static function estDisponible(): bool
     {
         return (bool) Env::get('ANTHROPIC_API_KEY');
@@ -127,8 +200,9 @@ PROMPT;
             throw new \RuntimeException("Impossible de contacter le service IA" . ($erreurCurl ? " : $erreurCurl" : '.'));
         }
         if ($httpCode !== 200) {
-            throw new \RuntimeException("Le service IA a répondu une erreur (HTTP $httpCode).");
+            throw self::erreurHttp($httpCode);
         }
+        self::noterSucces();
 
         $data = json_decode($response, true);
         $texte = $data['content'][0]['text'] ?? '';
@@ -232,8 +306,9 @@ PROMPT;
             throw new \RuntimeException('Impossible de contacter le service IA' . ($erreurCurl ? " : $erreurCurl" : '.'));
         }
         if ($httpCode !== 200) {
-            throw new \RuntimeException("Le service IA a répondu une erreur (HTTP $httpCode).");
+            throw self::erreurHttp($httpCode);
         }
+        self::noterSucces();
         $texte = trim((string) (json_decode($response, true)['content'][0]['text'] ?? ''));
         $texte = trim(preg_replace(['/^```(json)?/i', '/```$/'], '', $texte));
         $o = json_decode($texte, true);
