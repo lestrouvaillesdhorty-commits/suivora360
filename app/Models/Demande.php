@@ -492,6 +492,11 @@ class Demande
             $data['client_id'] ?: null,
             $id,
         ]);
+        // Le dossier reprend l'objet de la demande à sa création et ne se modifie pas ailleurs : on le tient à jour.
+        try {
+            Database::connection()->prepare('UPDATE dossiers SET objet = ? WHERE demande_id = ?')->execute([$data['objet'], $id]);
+        } catch (\Throwable $e) {
+        }
     }
 
     public static function markQualifiee(int $id): void
