@@ -101,7 +101,7 @@ class RecapPdf
         $pdf->paires($logi);
 
         if (!empty($d['pieces'])) {
-            $pdf->section('Pièces jointes (disponibles via le lien sécurisé)');
+            $pdf->section(\App\Models\ConsultationPartage::sansLien($partage) || empty($partage['token']) ? 'Pièces jointes' : 'Pièces jointes (disponibles via le lien sécurisé)');
             foreach ($d['pieces'] as $p) {
                 $pdf->paragraphe('• ' . ($p['nom_original'] ?? ''));
             }
