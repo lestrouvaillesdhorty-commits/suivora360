@@ -24,26 +24,46 @@ class RecapPdf
 
         $pdf = new PdfSimple(trim($emetteur . ' - Demande d\'offre ' . ($consultation['reference'] ?? '')));
         $pdf->couleur(\App\Models\EntrepriseInfo::couleurEffective(is_array($em) ? $em : []));
+        $pdf->modele(\App\Models\EntrepriseInfo::miseEnPage(is_array($em) ? $em : []));
         $pdf->piedEntreprise(DevisPdf::ligneEntreprise($em));
-        if ($emetteur !== '') {
-            $pdf->sousTitre($emetteur);
+        $logo = null;
+        if (!empty($em['logo'])) {
+            $chemin = \App\Core\Storage::path('uploads/logos/' . basename((string) $em['logo']));
+            $logo = is_file($chemin) ? PhotoProduit::jpeg($chemin, 400) : null;
         }
-        $infos = trim(implode('   |   ', array_filter([
+        $mode = \App\Models\EntrepriseInfo::enteteMode(is_array($em) ? $em : [], $logo !== null);
+        $coord = array_values(array_filter([
             trim(preg_replace('/\s*\R\s*/u', ', ', (string) ($em['adresse'] ?? ''))),
             !empty($em['telephone']) ? 'Tél. ' . $em['telephone'] : '',
             (string) ($em['email'] ?? ''),
-        ])));
-        if ($infos !== '') {
-            $pdf->paragraphe($infos, 8.5);
-        }
-        $pdf->titre("DEMANDE D'OFFRE " . ($consultation['reference'] ?? ''));
-        $pdf->sousTitre('Objet : ' . ($dossier['objet'] ?? '') . '   |   Date : ' . date('d/m/Y') . '   |   Dossier : ' . ($dossier['reference'] ?? '')
-            . (!empty($partage['echeance_reponse']) ? '   |   Réponse souhaitée avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) : ''));
-
+            (string) ($em['site_web'] ?? ''),
+        ]));
+        $droite = array_values(array_filter([
+            'Date : ' . date('d/m/Y'),
+            !empty($partage['echeance_reponse']) ? 'Réponse avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) : '',
+        ]));
+        $pdf->enteteDevis($mode === 'nom' ? null : $logo, $mode === 'logo' ? '' : $emetteur, $coord, "DEMANDE D'OFFRE " . ($consultation['reference'] ?? ''), $droite);
+        $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande);
+        $adr = $liv['etape_adresse'];
+        $objet = ['Demande : ' . ($dossier['objet'] ?? ''), 'Dossier : ' . ($dossier['reference'] ?? '')];
         if (!$masquer) {
-            $pdf->section('Client');
-            $pdf->paragraphe((string) ($demande['expediteur_entreprise'] ?? $demande['expediteur_nom'] ?? '—'));
+            $objet[] = 'Client : ' . (($demande['expediteur_entreprise'] ?? '') ?: ($demande['expediteur_nom'] ?? '—'));
         }
+        $livL = [];
+        if ($liv['etape']) {
+            $livL[] = 'Livrer à : ' . $liv['etape_pays'];
+            foreach (preg_split('/\R/u', $adr) as $x) { if (trim($x) !== '') { $livL[] = trim($x); } }
+            $livL[] = 'Destination finale : ' . ($liv['finale'] ?: 'Non précisée');
+        } else {
+            $livL[] = 'Destination : ' . ($liv['finale'] ?: 'Non précisée');
+            if ($adr !== '') {
+                foreach (preg_split('/\R/u', $adr) as $x) { if (trim($x) !== '') { $livL[] = trim($x); } }
+            } elseif (!$masquer) {
+                $livL[] = 'Lieu : ' . (($demande['lieu_livraison'] ?? '') ?: 'Non précisé');
+            }
+        }
+        $livL[] = 'Incoterm : ' . ($liv['incoterm'] ?: 'Non précisé');
+        $pdf->blocsInfo([['Objet', $objet], ['Livraison souhaitée', $livL]]);
 
         $besoins = trim((string) ($consultation['articles_demandes'] ?? ''));
         if ($besoins !== '') {
@@ -76,28 +96,8 @@ class RecapPdf
             $pdf->paires($d['detailsDemande']);
         }
 
-        $pdf->section('Spécifications logistiques');
-        $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande);
-        $logi = [];
-        $adr = $liv['etape_adresse'] !== '' ? preg_replace('/\s*\R\s*/u', ', ', $liv['etape_adresse']) : '';
-        if ($liv['etape']) {
-            $logi['Livrer à'] = $liv['etape_pays'];
-            if ($adr !== '') { $logi['Adresse de livraison'] = $adr; }
-            $logi['Destination finale'] = $liv['finale'] ?: 'Non précisée';
-        } else {
-            $logi['Destination'] = $liv['finale'] ?: 'Non précisée';
-            if ($adr !== '') {
-                $logi['Adresse de livraison'] = $adr;
-            } elseif (!$masquer) {
-                $logi['Lieu de livraison'] = ($demande['lieu_livraison'] ?? '') ?: 'Non précisé';
-            }
-        }
-        $logi['Incoterm souhaité'] = $liv['incoterm'] ?: 'Non précisé';
-        $logi['Échéance de réponse souhaitée'] = !empty($partage['echeance_reponse']) ? date('d/m/Y', strtotime($partage['echeance_reponse'])) : 'Non précisée';
-        $pdf->paires($logi);
-
         if (!empty($d['pieces'])) {
-            $pdf->section('Pièces jointes (disponibles via le lien sécurisé)');
+            $pdf->section(\App\Models\ConsultationPartage::sansLien($partage) || empty($partage['token']) ? 'Pièces jointes' : 'Pièces jointes (disponibles via le lien sécurisé)');
             foreach ($d['pieces'] as $p) {
                 $pdf->paragraphe('• ' . ($p['nom_original'] ?? ''));
             }
