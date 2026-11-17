@@ -348,6 +348,25 @@ class ExpeditionController
         exit;
     }
 
+    /** Manifeste imprimable : liste des colis par client, sans aucun prix ni marge (à envoyer au transitaire). */
+    public function manifeste(array $params): void
+    {
+        $exp = $this->charger($params);
+        if (!$exp) {
+            return;
+        }
+        $filiale = Filiale::find((int) $exp['filiale_id']);
+        $info = \App\Models\EntrepriseInfo::forFiliale((int) $exp['filiale_id']);
+        View::renderPlain('expeditions/manifeste', [
+            'exp' => $exp,
+            'reservations' => Expedition::reservations((int) $exp['id']),
+            'filiale' => $filiale,
+            'organisation' => \App\Models\Organisation::find((int) ($filiale['organisation_id'] ?? 0)),
+            'info' => $info,
+            'logoUri' => \App\Models\EntrepriseInfo::logoDataUri($info),
+        ]);
+    }
+
     /** Interrupteur « formalités gérées par le transitaire ». */
     public function formalites(array $params): void
     {

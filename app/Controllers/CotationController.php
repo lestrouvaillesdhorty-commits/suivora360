@@ -133,9 +133,21 @@ class CotationController
         $bilan = \App\Models\Expedition::bilan($exp);
         $cout = (float) ($bilan['lignes'][$rid]['cout'] ?? 0);
         $prix = (float) $res['prix_vente'];
+        // Devise du devis : le transport (calculé dans la devise de l'expédition) est converti pour s'additionner au devis.
+        $deviseDevis = strtoupper(trim((string) ($_POST['devise'] ?? ''))) ?: (string) $exp['devise'];
+        $deviseExp = (string) $exp['devise'];
+        [$cout, $tauxCout] = \App\Models\Expedition::convertir($cout, $deviseExp, $deviseDevis, $dossier);
+        [$prix, $tauxPrix] = \App\Models\Expedition::convertir($prix, $deviseExp, $deviseDevis, $dossier);
+        if ($tauxPrix === null) {
+            // Sans taux, on n'ajoute pas un montant d'une autre devise au devis : le transport est ignoré.
+            View::flash('erreur', 'Transport non ajouté : aucun taux de change ' . $deviseExp . ' → ' . $deviseDevis . ". Renseignez le taux dans le dossier (frais et taux de change), puis recréez le devis.");
+            return;
+        } elseif ($deviseDevis !== strtoupper($deviseExp)) {
+            View::flash('succes', 'Transport converti de ' . $deviseExp . ' en ' . $deviseDevis . ' au taux de ' . rtrim(rtrim(number_format($tauxPrix, 6, ',', ''), '0'), ',') . '.');
+        }
         $_POST['transport_mode'] = $mode;
         $_POST['transport_reservation_id'] = $rid;
-        $_POST['transport_devise'] = $exp['devise'];
+        $_POST['transport_devise'] = $deviseDevis;
         if ($mode === 'inclus') {
             $_POST['transport_cout'] = $cout;
             return;

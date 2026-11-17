@@ -107,6 +107,35 @@ class Expedition
             ->execute([($d['mode_achat'] ?? '') === 'tarif' ? 'tarif' : 'capacite', $type, ($d['tarif_achat'] ?? '') !== '' ? $d['tarif_achat'] : null, ($d['tarif_achat_alim'] ?? '') !== '' ? $d['tarif_achat_alim'] : null, $typeAlim, $id]);
     }
 
+    /**
+     * Convertit un montant d'une devise à une autre pour un dossier : taux enregistré sur le dossier d'abord,
+     * puis parité EUR / franc CFA des paramètres de la filiale. Retour [montant, taux] ; taux null = aucun taux connu.
+     */
+    public static function convertir(float $montant, string $de, string $vers, array $dossier): array
+    {
+        $de = strtoupper(trim($de)) ?: 'EUR';
+        $vers = strtoupper(trim($vers)) ?: $de;
+        if ($de === $vers) {
+            return [$montant, 1.0];
+        }
+        $taux = null;
+        try {
+            $saved = DossierTauxChange::enregistres((int) $dossier['id']);
+            if (isset($saved[$de]) && $saved[$de]['cible'] === $vers && $saved[$de]['taux'] > 0) {
+                $taux = $saved[$de]['taux'];
+            } elseif (isset($saved[$vers]) && $saved[$vers]['cible'] === $de && $saved[$vers]['taux'] > 0) {
+                $taux = 1 / $saved[$vers]['taux'];
+            }
+            if ($taux === null) {
+                $param = Parametres::forFiliale((int) $dossier['filiale_id']);
+                $taux = DossierTauxChange::parDefaut($de, $vers, (float) ($param['taux_eur_fcfa'] ?? 655.957));
+            }
+        } catch (\Throwable $e) {
+            $taux = null;
+        }
+        return $taux === null ? [$montant, null] : [round($montant * $taux, 2), $taux];
+    }
+
     /** Rattache l'expédition à un transitaire de la liste des fournisseurs (0 = nom saisi à la main). */
     public static function definirTransitaire(int $id, int $fournisseurId): void
     {

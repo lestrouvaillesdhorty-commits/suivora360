@@ -11,7 +11,7 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
 ?>
 <div class="page-header">
   <h1><?= View::e($exp['reference']) ?> · <?= View::e($exp['origine']) ?> → <?= View::e($exp['destination']) ?></h1>
-  <?php if ($peutEcrire): ?><a class="btn" href="<?= $base ?>/modifier">Modifier</a><?php endif; ?>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-secondary" href="<?= $base ?>/manifeste" target="_blank" rel="noopener">Manifeste (imprimer)</a><?php if ($peutEcrire): ?><a class="btn" href="<?= $base ?>/modifier">Modifier</a><?php endif; ?></div>
 </div>
 <div class="card">
   <div class="kv-row"><span class="label">Type</span><span class="value"><?= View::e(Expedition::TYPES[$exp['type']]) ?> · <?= View::e(Expedition::MODES[$exp['mode']]) ?></span></div>

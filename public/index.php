@@ -757,6 +757,7 @@ $router->post('/expeditions', function () { Auth::requireLogin(); (new \App\Cont
 $router->get('/expeditions/{id}', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->show($params); });
 $router->get('/expeditions/{id}/modifier', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->edit($params); });
 $router->post('/expeditions/{id}/modifier', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->update($params); });
+$router->get('/expeditions/{id}/manifeste', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->manifeste($params); });
 $router->post('/expeditions/{id}/statut', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->statut($params); });
 $router->post('/expeditions/{id}/reserver', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->reserver($params); });
 $router->post('/expeditions/{id}/modifier-reservation', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->modifierReservation($params); });
