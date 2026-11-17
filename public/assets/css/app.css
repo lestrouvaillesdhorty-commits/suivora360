@@ -1431,3 +1431,10 @@ select.niv-cache { border-color: #D6DCE3; }
 }
 /* Lignes d'articles : sur tablette, 2 colonnes pour ne pas dépasser l'écran */
 @media (min-width:769px) and (max-width:1180px){.artl{grid-template-columns:1fr 1fr}.artl .art-c-cond{grid-column:1/-1}.artl .art-actions{grid-column:1/-1;justify-content:flex-end}}
+
+/* Téléphone : les boutons d'action d'une consultation (Voir, Préparer, Envoyer, Récap, PDF) restent visibles dans la carte */
+@media (max-width: 768px) {
+  table td.col-actions-visibles, table.responsive-cards td.col-actions-visibles[data-label] { display: flex !important; flex-wrap: wrap; gap: 8px; grid-column: 1 / -1; white-space: normal !important; padding-top: 8px; border-top: 1px solid #eef0f4; }
+  td.col-actions-visibles::before { display: none !important; }
+  td.col-actions-visibles .btn { flex: 1 1 auto; justify-content: center; min-height: 40px; }
+}
