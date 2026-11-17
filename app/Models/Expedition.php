@@ -44,6 +44,9 @@ class Expedition
         if (self::v60()) {
             $pdo->prepare('UPDATE expedition_reservations SET poids_confirme = ? WHERE id = ?')->execute([!empty($d['poids_confirme']) ? 1 : 0, (int) $r['id']]);
         }
+        if (!empty($d['type_produit_id']) && (int) $d['type_produit_id'] !== (int) ($r['type_produit_id'] ?? 0)) {
+            self::appliquerType((int) $r['id'], (int) $d['type_produit_id']);
+        }
     }
 
     public static function validerReservation(int $id): void
@@ -319,9 +322,11 @@ class Expedition
 
     public static function reservations(int $expeditionId): array
     {
+        $join = TypeProduit::disponible() ? ', tp.libelle AS type_libelle' : '';
+        $left = TypeProduit::disponible() ? 'LEFT JOIN expedition_types_produit tp ON tp.id = r.type_produit_id' : '';
         $st = Database::connection()->prepare(
-            'SELECT r.*, d.reference AS dossier_reference, c.nom AS client_nom_lie FROM expedition_reservations r
-             LEFT JOIN dossiers d ON d.id = r.dossier_id LEFT JOIN clients c ON c.id = r.client_id
+            'SELECT r.*, d.reference AS dossier_reference, c.nom AS client_nom_lie' . $join . ' FROM expedition_reservations r
+             LEFT JOIN dossiers d ON d.id = r.dossier_id LEFT JOIN clients c ON c.id = r.client_id ' . $left . '
              WHERE r.expedition_id = ? ORDER BY r.id'
         );
         $st->execute([$expeditionId]);
@@ -374,7 +379,29 @@ class Expedition
             $pdo->prepare('UPDATE expedition_reservations SET supplement_cout = ?, supplement_vente = ?, supplement_motif = ?, cas_special = ?, validation_client = ? WHERE id = ?')
                 ->execute([max(0.0, (float) ($d['supplement_cout'] ?? 0)), $suppV, mb_substr((string) ($d['supplement_motif'] ?? ''), 0, 100), $cas, $cas ? 'a_valider' : 'ok', $rid]);
         }
+        self::appliquerType($rid, (int) ($d['type_produit_id'] ?? 0), true);
         return $rid;
+    }
+
+    /** Applique un type de produit à une réservation : famille (tarif), validation client. */
+    public static function appliquerType(int $rid, int $typeId, bool $nouvelle = false): void
+    {
+        $t = $typeId > 0 ? TypeProduit::find($typeId) : null;
+        if (!$t) {
+            return;
+        }
+        $pdo = Database::connection();
+        $pdo->prepare('UPDATE expedition_reservations SET type_produit_id = ?, type_marchandise = ? WHERE id = ?')->execute([$typeId, $t['famille'], $rid]);
+        if (self::v60()) {
+            $cas = (int) $t['validation_client'] === 1 ? (isset(self::CAS_SPECIAUX[$t['code']]) ? $t['code'] : 'autre') : null;
+            if ($nouvelle) {
+                $pdo->prepare('UPDATE expedition_reservations SET cas_special = ?, validation_client = ? WHERE id = ?')->execute([$cas, $cas ? 'a_valider' : 'ok', $rid]);
+            } elseif ($cas) {
+                $pdo->prepare("UPDATE expedition_reservations SET cas_special = ?, validation_client = CASE WHEN cas_special IS NULL OR cas_special = '' THEN 'a_valider' ELSE validation_client END WHERE id = ?")->execute([$cas, $rid]);
+            } else {
+                $pdo->prepare("UPDATE expedition_reservations SET cas_special = NULL, validation_client = 'ok' WHERE id = ?")->execute([$rid]);
+            }
+        }
     }
 
     public static function supprimerReservation(int $id): void

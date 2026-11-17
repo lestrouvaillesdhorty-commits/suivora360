@@ -56,11 +56,11 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
     <?php foreach ($reservations as $r): $l = $bilan['lignes'][(int) $r['id']] ?? ['cout' => 0, 'marge' => 0]; ?>
       <tr>
         <td data-label="Client"><?= View::e($r['client_nom'] ?: '—') ?><?php if (!empty($r['dossier_id'])): ?> · <a href="/index.php?r=dossiers/<?= (int) $r['dossier_id'] ?>">dossier</a><?php endif; ?><?php if ($r['description']): ?><div class="hint"><?= View::e($r['description']) ?></div><?php endif; ?>
-          <?php if (!empty($r['cas_special'])): ?><div><span class="badge <?= ($r['validation_client'] ?? 'ok') === 'a_valider' ? 'badge-orange' : 'badge-green' ?>"><?= View::e(Expedition::CAS_SPECIAUX[$r['cas_special']] ?? $r['cas_special']) ?> · <?= ($r['validation_client'] ?? 'ok') === 'a_valider' ? 'à valider avec le client' : 'validé' . (!empty($r['valide_le']) ? ' le ' . date('d/m/Y', strtotime($r['valide_le'])) : '') ?></span>
+          <?php if (!empty($r['cas_special'])): ?><div><span class="badge <?= ($r['validation_client'] ?? 'ok') === 'a_valider' ? 'badge-orange' : 'badge-green' ?>"><?= View::e($r['type_libelle'] ?? (Expedition::CAS_SPECIAUX[$r['cas_special']] ?? $r['cas_special'])) ?> · <?= ($r['validation_client'] ?? 'ok') === 'a_valider' ? 'à valider avec le client' : 'validé' . (!empty($r['valide_le']) ? ' le ' . date('d/m/Y', strtotime($r['valide_le'])) : '') ?></span>
           <?php if (($r['validation_client'] ?? 'ok') === 'a_valider' && $peutEcrire): ?>
             <form method="post" action="<?= $base ?>/valider-reservation" style="display:inline"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>"><button class="btn btn-sm btn-secondary" type="submit">Marquer validé</button></form>
           <?php endif; ?></div><?php endif; ?></td>
-        <td data-label="Marchandise"><?= View::e(Expedition::MARCHANDISES[$r['type_marchandise']] ?? '') ?></td>
+        <td data-label="Marchandise"><?= View::e(($r['type_libelle'] ?? '') !== '' ? $r['type_libelle'] : (Expedition::MARCHANDISES[$r['type_marchandise']] ?? '')) ?></td>
         <td data-label="Volume"><?= $r['volume'] !== null ? $fmt($r['volume'], 2) . ' m³' : '—' ?></td>
         <td data-label="Poids"><?= $r['poids'] !== null ? $fmt($r['poids']) . ' kg' : '—' ?><?php if ($r['poids'] !== null && Expedition::v60()): ?><div class="hint"><?= !empty($r['poids_confirme']) ? 'confirmé' : 'estimé' ?></div><?php endif; ?></td>
         <td data-label="Colis / pal."><?= (int) $r['colis'] ?> / <?= (int) $r['palettes'] ?></td>
@@ -73,6 +73,7 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
           <details style="margin-bottom:6px"><summary class="btn btn-sm btn-secondary" style="display:inline-block;cursor:pointer">Modifier</summary>
             <form method="post" action="<?= $base ?>/modifier-reservation" style="margin-top:6px;min-width:190px">
               <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>">
+              <?php if (!empty($typesProduit)): ?><div class="form-group"><label>Type de produit</label><select name="type_produit_id"><option value="">Type actuel</option><?php foreach ($typesProduit as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) ($r['type_produit_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= View::e($t['libelle']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
               <div class="form-group"><label>Volume (m³)</label><input type="text" name="volume" inputmode="decimal" value="<?= $r['volume'] !== null ? View::e((string) $r['volume']) : '' ?>"></div>
               <div class="form-group"><label>Poids (kg)</label><input type="text" name="poids" inputmode="decimal" value="<?= $r['poids'] !== null ? View::e((string) $r['poids']) : '' ?>"></div>
               <div class="form-group"><label>Colis</label><input type="text" name="colis" inputmode="numeric" value="<?= $r['colis'] !== null ? (int) $r['colis'] : '' ?>"></div>
@@ -117,7 +118,7 @@ if ($docsOk): ?>
     <?php foreach ($reservations as $r): $lignes = $docs[(int) $r['id']] ?? []; ?>
     <div style="border-top:1px solid #eee;margin-top:10px;padding-top:8px">
       <strong><?= View::e($r['client_nom'] ?: ($r['dossier_reference'] ?? 'Réservation')) ?></strong>
-      <span class="hint"> · <?= View::e(Expedition::MARCHANDISES[$r['type_marchandise']] ?? '') ?><?= !empty($r['cas_special']) ? ' · ' . View::e(Expedition::CAS_SPECIAUX[$r['cas_special']] ?? '') : '' ?></span>
+      <span class="hint"> · <?= View::e(($r['type_libelle'] ?? '') !== '' ? $r['type_libelle'] : ((Expedition::MARCHANDISES[$r['type_marchandise']] ?? '') . (!empty($r['cas_special']) ? ' · ' . (Expedition::CAS_SPECIAUX[$r['cas_special']] ?? '') : ''))) ?></span>
       <?php foreach ($lignes as $d): ?>
       <form method="post" action="<?= $base ?>/documents" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="doc_id" value="<?= (int) $d['id'] ?>">

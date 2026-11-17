@@ -35,6 +35,30 @@ class ExpeditionDocument
         ['Fiche de données de sécurité', 'dangereux'],
     ];
 
+    /** Cibles proposées pour un document : toutes, une famille, ou un type de produit de la filiale. */
+    public static function cibles(int $filialeId): array
+    {
+        if (!TypeProduit::disponible()) {
+            return self::CIBLES;
+        }
+        $c = ['tous' => 'Toutes les marchandises', 'alimentaire' => 'Famille Alimentaire', 'non_alimentaire' => 'Famille Non alimentaire'];
+        foreach (TypeProduit::lignes($filialeId) as $t) {
+            $c['tp' . $t['id']] = $t['libelle'];
+        }
+        return $c;
+    }
+
+    /** Valeur à présélectionner : les anciens codes (hors_format…) pointent vers le type de même code. */
+    public static function cibleAffichee(int $filialeId, string $appliqueA): string
+    {
+        foreach (TypeProduit::lignes($filialeId) as $t) {
+            if ($t['code'] !== '' && $t['code'] === $appliqueA) {
+                return 'tp' . $t['id'];
+            }
+        }
+        return $appliqueA;
+    }
+
     public static function disponible(): bool
     {
         return Schema::colonne('expeditions', 'formalites_transitaire') && Schema::colonne('expedition_docs', 'statut') && Schema::colonne('expedition_doc_types', 'libelle');
@@ -83,7 +107,7 @@ class ExpeditionDocument
     public static function ajouterType(int $filialeId, string $libelle, string $cible): bool
     {
         $libelle = trim(mb_substr($libelle, 0, 150));
-        if ($libelle === '' || !self::disponible() || !isset(self::CIBLES[$cible])) {
+        if ($libelle === '' || !self::disponible() || !isset(self::cibles($filialeId)[$cible])) {
             return false;
         }
         self::assurer($filialeId);
@@ -98,7 +122,7 @@ class ExpeditionDocument
     public static function modifierType(int $filialeId, int $id, string $libelle, string $cible): bool
     {
         $libelle = trim(mb_substr($libelle, 0, 150));
-        if ($libelle === '' || !self::disponible() || !isset(self::CIBLES[$cible])) {
+        if ($libelle === '' || !self::disponible() || !isset(self::cibles($filialeId)[$cible])) {
             return false;
         }
         Database::connection()->prepare('UPDATE expedition_doc_types SET libelle = ?, applique_a = ? WHERE id = ? AND filiale_id = ?')->execute([$libelle, $cible, $id, $filialeId]);
@@ -126,6 +150,9 @@ class ExpeditionDocument
             $ex->execute([(int) $r['id']]);
             $deja = array_map('intval', array_column($ex->fetchAll(), 'type_id'));
             $cibles = ['tous', (string) ($r['type_marchandise'] ?? '')];
+            if (!empty($r['type_produit_id'])) {
+                $cibles[] = 'tp' . (int) $r['type_produit_id'];
+            }
             if (!empty($r['cas_special'])) {
                 $cibles[] = (string) $r['cas_special'];
             }

@@ -19,7 +19,12 @@ $retourDossier = $retourDossier ?? 0;
   </div>
   <?php endif; ?>
   <div class="form-row">
+    <?php $typesP = \App\Models\TypeProduit::disponible() ? \App\Models\TypeProduit::actifs((int) $exp['filiale_id']) : []; ?>
+    <?php if ($typesP): ?>
+    <div class="form-group"><label>Type de produit</label><select name="type_produit_id"><?php foreach ($typesP as $t): ?><option value="<?= (int) $t['id'] ?>"><?= View::e($t['libelle']) ?><?= (int) $t['validation_client'] === 1 ? ' (à valider avec le client)' : '' ?></option><?php endforeach; ?></select></div>
+    <?php else: ?>
     <div class="form-group"><label>Marchandise</label><select name="type_marchandise"><?php foreach (Expedition::MARCHANDISES as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
+    <?php endif; ?>
     <div class="form-group"><label>Description</label><input type="text" name="description"></div>
   </div>
   <div class="form-row">
@@ -32,7 +37,7 @@ $retourDossier = $retourDossier ?? 0;
     <div class="form-group"><label>Tarification</label><select name="tarification"><?php foreach (Expedition::TARIFICATIONS as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
     <div class="form-group"><label>Tarif (forfait total ou prix unitaire)</label><input type="text" name="tarif_unitaire" inputmode="decimal"></div>
   </div>
-  <?php if (\App\Models\Expedition::v60()): ?>
+  <?php if (\App\Models\Expedition::v60() && !$typesP): ?>
   <div class="form-group"><label>Cas particulier (à valider avec le client avant le départ)</label>
     <select name="cas_special"><option value="">— Aucun —</option><?php foreach (\App\Models\Expedition::CAS_SPECIAUX as $k => $l): ?><option value="<?= $k ?>"><?= View::e($l) ?></option><?php endforeach; ?></select></div>
   <?php endif; ?>

@@ -141,6 +141,7 @@ class ExpeditionController
         } catch (\Throwable $e) {
         }
         View::render('expeditions/show', [
+            'typesProduit' => \App\Models\TypeProduit::actifs((int) $exp['filiale_id']),
             'exp' => $exp,
             'docs' => $docs,
             'reservations' => $res,
@@ -259,6 +260,12 @@ class ExpeditionController
             'supplement_motif' => trim((string) ($_POST['supplement_motif'] ?? '')),
             'cas_special' => isset(Expedition::CAS_SPECIAUX[$_POST['cas_special'] ?? '']) ? $_POST['cas_special'] : '',
         ];
+        $typeId = (int) ($_POST['type_produit_id'] ?? 0);
+        $t = $typeId ? \App\Models\TypeProduit::find($typeId) : null;
+        if ($t && (int) $t['filiale_id'] === (int) $exp['filiale_id'] && (int) $t['actif'] === 1) {
+            $d['type_produit_id'] = $typeId;
+            $d['type_marchandise'] = $t['famille'];
+        }
         $id = Expedition::ajouterReservation($exp, $d);
         AuditLog::log((int) $exp['filiale_id'], (int) $user['id'], 'reservation_expedition', 'expedition', (int) $exp['id'], ($clientNom ?: 'Dossier ' . $dossierId));
         $bilan = Expedition::bilan($exp);
@@ -279,6 +286,7 @@ class ExpeditionController
                 'volume' => $this->numerique($_POST['volume'] ?? ''), 'poids' => $this->numerique($_POST['poids'] ?? ''),
                 'colis' => $this->entier($_POST['colis'] ?? ''), 'palettes' => $this->entier($_POST['palettes'] ?? ''),
                 'poids_confirme' => !empty($_POST['poids_confirme']),
+                'type_produit_id' => (($t = \App\Models\TypeProduit::find((int) ($_POST['type_produit_id'] ?? 0))) && (int) $t['filiale_id'] === (int) $exp['filiale_id']) ? (int) $t['id'] : 0,
             ]);
             AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'reservation_modifiee', 'expedition', (int) $exp['id'], (string) ($r['client_nom'] ?: 'Dossier ' . $r['dossier_id']));
             View::flash('succes', 'Réservation mise à jour : prix et coût recalculés.');

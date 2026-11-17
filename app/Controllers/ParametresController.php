@@ -120,6 +120,8 @@ class ParametresController
             'disponible' => \App\Models\SousActivite::disponible(),
             'motifs' => \App\Models\MotifPerte::lignes($filialeId),
             'motifsDispo' => \App\Models\MotifPerte::disponible(),
+            'typesProduit' => \App\Models\TypeProduit::lignes($filialeId),
+            'typesDispo' => \App\Models\TypeProduit::disponible(),
             'docTypes' => \App\Models\ExpeditionDocument::types($filialeId),
             'docsDispo' => \App\Models\ExpeditionDocument::disponible(),
         ]);
@@ -174,6 +176,15 @@ class ParametresController
                 break;
             case 'mp_supprimer':
                 $ok = \App\Models\MotifPerte::supprimer($filialeId, $id);
+                break;
+            case 'tp_ajouter':
+                $ok = \App\Models\TypeProduit::ajouter($filialeId, $nom, (string) ($_POST['famille'] ?? ''), !empty($_POST['validation']));
+                break;
+            case 'tp_modifier':
+                $ok = \App\Models\TypeProduit::modifier($filialeId, $id, $nom, (string) ($_POST['famille'] ?? ''), !empty($_POST['validation']));
+                break;
+            case 'tp_basculer':
+                \App\Models\TypeProduit::basculer($filialeId, $id);
                 break;
             case 'doc_ajouter':
                 $ok = \App\Models\ExpeditionDocument::ajouterType($filialeId, $nom, (string) ($_POST['cible'] ?? ''));

@@ -119,6 +119,45 @@ $ligne = function (string $prefixe, array $r, string $libelle, int $usage) use (
   <?php endif; ?>
 </div>
 
+<div class="card" id="types-produit">
+  <h2>Types de produit des expéditions</h2>
+  <div style="font-size:13px;color:#666;margin-bottom:6px">Le type se choisit dans chaque réservation. La <b>famille</b> décide du tarif d'achat du transitaire (alimentaire ou non alimentaire). La <b>validation client</b> bloque le départ tant que le client n'a pas confirmé. Un type déjà utilisé ne se supprime pas : désactivez-le.</div>
+  <?php if (!$typesDispo): ?>
+    <div style="color:#888;font-size:14px;padding:6px 0">Cette fonction demande la dernière mise à jour de la base : lancez <strong>migrate_v62.php</strong>.</div>
+  <?php else: ?>
+  <?php foreach ($typesProduit as $r): ?>
+  <div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #eee;flex-wrap:wrap">
+    <form method="post" action="/index.php?r=parametres/listes" style="display:flex;gap:8px;align-items:center;flex:1;min-width:260px;margin:0;flex-wrap:wrap">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
+      <input type="hidden" name="action" value="tp_modifier">
+      <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+      <input type="text" name="nom" value="<?= View::e($r['libelle']) ?>" maxlength="120" style="flex:1;min-width:160px;<?= $r['actif'] ? '' : 'opacity:.55' ?>" aria-label="Type de produit">
+      <select name="famille" aria-label="Famille"><option value="alimentaire" <?= $r['famille'] === 'alimentaire' ? 'selected' : '' ?>>Alimentaire</option><option value="non_alimentaire" <?= $r['famille'] !== 'alimentaire' ? 'selected' : '' ?>>Non alimentaire</option></select>
+      <label style="display:flex;gap:5px;align-items:center;font-size:13px"><input type="checkbox" name="validation" value="1" <?= (int) $r['validation_client'] === 1 ? 'checked' : '' ?>> À valider avec le client</label>
+      <button class="btn btn-sm btn-secondary" type="submit">Enregistrer</button>
+    </form>
+    <form method="post" action="/index.php?r=parametres/listes" style="margin:0">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+      <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
+      <input type="hidden" name="action" value="tp_basculer">
+      <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+      <button class="btn btn-sm btn-secondary" type="submit"><?= $r['actif'] ? 'Désactiver' : 'Réactiver' ?></button>
+    </form>
+  </div>
+  <?php endforeach; ?>
+  <form method="post" action="/index.php?r=parametres/listes" style="display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap;align-items:center">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
+    <input type="hidden" name="action" value="tp_ajouter">
+    <input type="text" name="nom" maxlength="120" placeholder="Nouveau type (ex. Cosmétiques)" style="flex:1;min-width:200px" aria-label="Nouveau type de produit">
+    <select name="famille" aria-label="Famille"><option value="non_alimentaire">Non alimentaire</option><option value="alimentaire">Alimentaire</option></select>
+    <label style="display:flex;gap:5px;align-items:center;font-size:13px"><input type="checkbox" name="validation" value="1"> À valider avec le client</label>
+    <button class="btn btn-sm" type="submit">Ajouter</button>
+  </form>
+  <?php endif; ?>
+</div>
+
 <div class="card" id="docs-expedition">
   <h2>Documents à fournir pour les expéditions</h2>
   <div style="font-size:13px;color:#666;margin-bottom:6px">Documents attendus selon le type de marchandise ou le cas particulier. Ils ne sont demandés que sur les expéditions où « Formalités gérées par le transitaire » est désactivé. Jamais bloquant : un compteur de documents manquants s'affiche sur la fiche.</div>
@@ -133,7 +172,7 @@ $ligne = function (string $prefixe, array $r, string $libelle, int $usage) use (
       <input type="hidden" name="action" value="doc_modifier">
       <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
       <input type="text" name="nom" value="<?= View::e($r['libelle']) ?>" maxlength="150" style="flex:1;min-width:180px;<?= $r['actif'] ? '' : 'opacity:.55' ?>" aria-label="Document">
-      <select name="cible" aria-label="S'applique à"><?php foreach (\App\Models\ExpeditionDocument::CIBLES as $k => $l): ?><option value="<?= $k ?>" <?= $r['applique_a'] === $k ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select>
+      <select name="cible" aria-label="S'applique à"><?php foreach (\App\Models\ExpeditionDocument::cibles($filialeId) as $k => $l): ?><option value="<?= $k ?>" <?= \App\Models\ExpeditionDocument::cibleAffichee($filialeId, (string) $r['applique_a']) === $k ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select>
       <button class="btn btn-sm btn-secondary" type="submit">Enregistrer</button>
     </form>
     <form method="post" action="/index.php?r=parametres/listes" style="margin:0">
@@ -150,7 +189,7 @@ $ligne = function (string $prefixe, array $r, string $libelle, int $usage) use (
     <input type="hidden" name="filiale_id" value="<?= $filialeId ?>">
     <input type="hidden" name="action" value="doc_ajouter">
     <input type="text" name="nom" maxlength="150" placeholder="Nouveau document (ex. Certificat de non-radioactivité)" style="flex:1;min-width:200px" aria-label="Nouveau document">
-    <select name="cible" aria-label="S'applique à"><?php foreach (\App\Models\ExpeditionDocument::CIBLES as $k => $l): ?><option value="<?= $k ?>"><?= View::e($l) ?></option><?php endforeach; ?></select>
+    <select name="cible" aria-label="S'applique à"><?php foreach (\App\Models\ExpeditionDocument::cibles($filialeId) as $k => $l): ?><option value="<?= $k ?>"><?= View::e($l) ?></option><?php endforeach; ?></select>
     <button class="btn btn-sm" type="submit">Ajouter</button>
   </form>
   <?php endif; ?>
