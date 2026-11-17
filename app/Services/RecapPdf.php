@@ -25,20 +25,24 @@ class RecapPdf
         $pdf = new PdfSimple(trim($emetteur . ' - Demande d\'offre ' . ($consultation['reference'] ?? '')));
         $pdf->couleur(\App\Models\EntrepriseInfo::couleurEffective(is_array($em) ? $em : []));
         $pdf->piedEntreprise(DevisPdf::ligneEntreprise($em));
-        if ($emetteur !== '') {
-            $pdf->sousTitre($emetteur);
+        $logo = null;
+        if (!empty($em['logo'])) {
+            $chemin = \App\Core\Storage::path('uploads/logos/' . basename((string) $em['logo']));
+            $logo = is_file($chemin) ? PhotoProduit::jpeg($chemin, 400) : null;
         }
-        $infos = trim(implode('   |   ', array_filter([
+        $mode = \App\Models\EntrepriseInfo::enteteMode(is_array($em) ? $em : [], $logo !== null);
+        $coord = array_values(array_filter([
             trim(preg_replace('/\s*\R\s*/u', ', ', (string) ($em['adresse'] ?? ''))),
             !empty($em['telephone']) ? 'Tél. ' . $em['telephone'] : '',
             (string) ($em['email'] ?? ''),
-        ])));
-        if ($infos !== '') {
-            $pdf->paragraphe($infos, 8.5);
-        }
-        $pdf->titre("DEMANDE D'OFFRE " . ($consultation['reference'] ?? ''));
-        $pdf->sousTitre('Objet : ' . ($dossier['objet'] ?? '') . '   |   Date : ' . date('d/m/Y') . '   |   Dossier : ' . ($dossier['reference'] ?? '')
-            . (!empty($partage['echeance_reponse']) ? '   |   Réponse souhaitée avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) : ''));
+            (string) ($em['site_web'] ?? ''),
+        ]));
+        $droite = array_values(array_filter([
+            'Date : ' . date('d/m/Y'),
+            !empty($partage['echeance_reponse']) ? 'Réponse avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) : '',
+        ]));
+        $pdf->enteteDevis($mode === 'nom' ? null : $logo, $mode === 'logo' ? '' : $emetteur, $coord, "DEMANDE D'OFFRE " . ($consultation['reference'] ?? ''), $droite);
+        $pdf->sousTitre('Objet : ' . ($dossier['objet'] ?? '') . '   |   Dossier : ' . ($dossier['reference'] ?? ''));
 
         if (!$masquer) {
             $pdf->section('Client');

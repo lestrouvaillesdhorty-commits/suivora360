@@ -232,7 +232,7 @@ class PdfSimple
             $lh = $logo['h'] * $r;
             $hG += $lh + 6;
         }
-        $lNom = $this->couper($nom, 15, $largG, true);
+        $lNom = $nom === '' ? [] : $this->couper($nom, 15, $largG, true);
         $hG += count($lNom) * 18;
         $lCoord = [];
         foreach ($coord as $c) {
