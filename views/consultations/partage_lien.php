@@ -43,7 +43,19 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
     btn.className = 'btn';
     btn.insertAdjacentHTML('afterbegin', '&#9993; ');
     window.partageDispo = true;
-    document.addEventListener('DOMContentLoaded', function () { var dl = document.getElementById('dlPdfAvec'); if (dl) { dl.checked = false; if (dl.parentNode) { dl.parentNode.style.display = 'none'; } } });
+    document.addEventListener('DOMContentLoaded', function () {
+      var dl = document.getElementById('dlPdfAvec'); if (dl) { dl.checked = false; if (dl.parentNode) { dl.parentNode.style.display = 'none'; } }
+      // Téléphone : « Ouvrir ma messagerie » ne peut pas joindre de fichier. On remplace par le partage avec PDF joint.
+      var bm = document.getElementById('btnMessagerie');
+      if (bm && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) {
+        var mail = (document.querySelector('input[name=destinataire]') || {}).value || '';
+        bm.textContent = '\u2709 Envoyer par e-mail avec le PDF joint';
+        bm.addEventListener('click', function (ev) { ev.stopImmediatePropagation(); ev.preventDefault(); btn.click(); }, true);
+        var n = document.createElement('div'); n.style.cssText = 'font-size:12px;color:#666;margin:6px 0';
+        n.textContent = 'Choisissez Gmail ou Outlook dans le menu : le PDF est déjà joint.' + (mail ? ' Destinataire : ' + mail : '');
+        bm.parentNode.insertBefore(n, bm.nextSibling);
+      }
+    });
     var nom = <?= json_encode(\App\Services\RecapPdf::nomFichier($consultation)) ?>;
     var pieces = <?= json_encode($piecesPartage ?? []) ?>;
     function charger(url, nomFichier, type) {
