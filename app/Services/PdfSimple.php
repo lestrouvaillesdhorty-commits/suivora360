@@ -63,8 +63,8 @@ class PdfSimple
     {
         $this->assurerPlace(46);
         $this->y -= 10;
-        $this->ecrireLignes([$texte], 12, true, [0.16, 0.18, 0.25], 3);
-        $this->ligne(self::MARGE, $this->y + 2, self::W - self::MARGE, [0.85, 0.86, 0.9]);
+        $this->ecrireLignes([$texte], 12, true, $this->accent(), 3);
+        $this->ligne(self::MARGE, $this->y + 2, self::W - self::MARGE, $this->modele === 'sobre' ? [0.11, 0.125, 0.19] : [0.85, 0.89, 0.9]);
         $this->y -= 5;
     }
 
@@ -96,12 +96,12 @@ class PdfSimple
             $this->assurerPlace($hauteur + 4);
             $x = self::MARGE;
             if ($entete) {
-                $this->rect(self::MARGE, $this->y - $hauteur + 2, $utile = array_sum($cols), $hauteur, [0.94, 0.95, 0.97]);
+                $this->rect(self::MARGE, $this->y - $hauteur + 2, $utile = array_sum($cols), $hauteur, $this->modele === 'sobre' ? [0.93, 0.94, 0.96] : $this->teal);
             }
             foreach ($coupees as $i => $lignesCellule) {
                 $yy = $this->y - $taille - 1;
                 foreach ($lignesCellule as $l) {
-                    $this->texte($x + 4, $yy, $l, $taille, $entete, [0.1, 0.1, 0.1]);
+                    $this->texte($x + 4, $yy, $l, $taille, $entete, ($entete && $this->modele !== 'sobre') ? [1, 1, 1] : [0.1, 0.1, 0.1]);
                     $yy -= $taille + 2.5;
                 }
                 $x += $cols[$i];
@@ -206,6 +206,19 @@ class PdfSimple
     // ------------------------------------------- mise en page « devis » (identique à l'aperçu)
 
     private array $teal = [0.043, 0.486, 0.541];
+    /** Modèle choisi dans l'application : classique, moderne (bandeau couleur) ou sobre (noir et blanc). */
+    private string $modele = 'classique';
+
+    public function modele(?string $m): void
+    {
+        $this->modele = in_array($m, ['classique', 'moderne', 'sobre'], true) ? $m : 'classique';
+    }
+
+    /** Couleur d'accent : la couleur choisie, ou un gris foncé en modèle sobre. */
+    private function accent(): array
+    {
+        return $this->modele === 'sobre' ? [0.11, 0.125, 0.19] : $this->teal;
+    }
 
     /** Couleur principale du document (#RRGGBB) : bandeau, tableau, total. */
     public function couleur(?string $hex): void
@@ -247,7 +260,13 @@ class PdfSimple
         $this->assurerPlace($h + 16);
         $haut = $this->y;
         $yy = $haut;
+        $moderne = $this->modele === 'moderne';
+        if ($moderne) {
+            // Bandeau de couleur sur toute la largeur, du haut de la page jusqu'sous l'en-tête.
+            $this->rect(0, $haut - $h - 8, self::W, self::H - ($haut - $h - 8), $this->teal);
+        }
         if ($logo && $lh > 0) {
+            if ($moderne) { $this->rect(self::MARGE - 4, $yy - $lh - 4, $lw + 8, $lh + 8, [1, 1, 1]); }
             $this->imgs[] = $logo;
             $n = count($this->imgs) - 1;
             $this->curImgs[] = $n;
@@ -256,29 +275,31 @@ class PdfSimple
         }
         foreach ($lNom as $l) {
             $yy -= 14;
-            $this->texte(self::MARGE, $yy, $l, 15, true, [0.11, 0.125, 0.19]);
+            $this->texte(self::MARGE, $yy, $l, 15, true, $moderne ? [1, 1, 1] : [0.11, 0.125, 0.19]);
             $yy -= 4;
         }
         $yy -= 2;
         foreach ($lCoord as $l) {
             $yy -= 8.5;
-            $this->texte(self::MARGE, $yy, $l, 8.5, false, [0.33, 0.35, 0.4]);
+            $this->texte(self::MARGE, $yy, $l, 8.5, false, $moderne ? [1, 1, 1] : [0.33, 0.35, 0.4]);
             $yy -= 3;
         }
         $xd = self::W - self::MARGE;
         $yy = $haut;
         foreach ($lTitre as $l) {
             $yy -= 14;
-            $this->texte($xd - $this->largeur($l, 14, true), $yy, $l, 14, true, [0.11, 0.125, 0.19]);
+            $this->texte($xd - $this->largeur($l, 14, true), $yy, $l, 14, true, $moderne ? [1, 1, 1] : [0.11, 0.125, 0.19]);
             $yy -= 3;
         }
         foreach ($droite as $l) {
             $yy -= 9.5;
-            $this->texte($xd - $this->largeur($l, 9.5, false), $yy, $l, 9.5, false, [0.33, 0.35, 0.4]);
+            $this->texte($xd - $this->largeur($l, 9.5, false), $yy, $l, 9.5, false, $moderne ? [1, 1, 1] : [0.33, 0.35, 0.4]);
             $yy -= 3;
         }
         $this->y = $haut - $h - 8;
-        $this->rect(self::MARGE, $this->y, self::W - 2 * self::MARGE, 2.5, $this->teal);
+        if (!$moderne) {
+            $this->rect(self::MARGE, $this->y, self::W - 2 * self::MARGE, $this->modele === 'sobre' ? 1.0 : 2.5, $this->accent());
+        }
         $this->y -= 16;
     }
 
@@ -304,7 +325,7 @@ class PdfSimple
         $haut = $this->y;
         foreach ($rendu as $i => [$titre, $ls]) {
             $x = self::MARGE + $i * ($larg + $gap);
-            $this->rect($x, $haut - $hMax, $larg, $hMax, [0.949, 0.969, 0.973]);
+            $this->rect($x, $haut - $hMax, $larg, $hMax, $this->modele === 'sobre' ? [0.95, 0.95, 0.96] : array_map(fn($v) => $v * 0.08 + 0.92, $this->teal));
             $this->texte($x + 10, $haut - 17, $titre, 8.5, true, [0.4, 0.42, 0.47]);
             $yy = $haut - 17;
             foreach ($ls as [$c, $gras]) {
@@ -339,7 +360,7 @@ class PdfSimple
             $h = $nb * ($taille + 3) + 9;
             $this->assurerPlace($h + 4);
             if ($entete) {
-                $this->rect(self::MARGE, $this->y - $h, $utile, $h, $this->teal);
+                $this->rect(self::MARGE, $this->y - $h, $utile, $h, $this->modele === 'sobre' ? [0.93, 0.94, 0.96] : $this->teal);
             }
             $x = self::MARGE;
             foreach ($pret as $i => [$a, $b]) {
@@ -347,7 +368,7 @@ class PdfSimple
                 foreach ($a as $l) {
                     $yy -= $taille;
                     $px = in_array($i, $droite, true) ? $x + $cols[$i] - 6 - $this->largeur($l, $taille, $entete) : $x + 6;
-                    $this->texte($px, $yy, $l, $taille, $entete, $entete ? [1, 1, 1] : [0.11, 0.125, 0.19]);
+                    $this->texte($px, $yy, $l, $taille, $entete, ($entete && $this->modele !== 'sobre') ? [1, 1, 1] : [0.11, 0.125, 0.19]);
                     $yy -= 3;
                 }
                 foreach ($b as $l) {

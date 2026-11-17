@@ -24,6 +24,7 @@ class RecapPdf
 
         $pdf = new PdfSimple(trim($emetteur . ' - Demande d\'offre ' . ($consultation['reference'] ?? '')));
         $pdf->couleur(\App\Models\EntrepriseInfo::couleurEffective(is_array($em) ? $em : []));
+        $pdf->modele(\App\Models\EntrepriseInfo::miseEnPage(is_array($em) ? $em : []));
         $pdf->piedEntreprise(DevisPdf::ligneEntreprise($em));
         $logo = null;
         if (!empty($em['logo'])) {
