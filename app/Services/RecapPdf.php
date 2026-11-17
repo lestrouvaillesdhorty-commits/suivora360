@@ -108,7 +108,9 @@ class RecapPdf
         foreach (\App\Models\ConsultationFournisseur::infos($consultation) as $inf) {
             $pdf->paragraphe('- ' . $inf, 9);
         }
-        $pdf->paragraphe("Merci de répondre directement par le canal utilisé pour vous transmettre cette demande. Demande émise par " . $emetteur . ".", 8.5);
+        $ex = $d['expediteur'] ?? null;
+        $cont = ($ex && !empty($ex['email'])) ? trim(implode(' - ', array_filter([(string) ($ex['nom'] ?? ''), (string) $ex['email']]))) : '';
+        $pdf->paragraphe(($cont !== '' ? "Merci de répondre directement à " . $cont . ". " : "Merci de répondre directement par le canal utilisé pour vous transmettre cette demande. ") . "Demande émise par " . $emetteur . ".", 8.5);
         return $pdf->rendre();
     }
 

@@ -57,7 +57,12 @@ class PartagePublicController
         $info = \App\Models\EntrepriseInfo::forFiliale((int) ($consultation['filiale_id'] ?? 0));
         $emetteur = ['nom' => trim((string) ($info['raison_sociale'] ?? '')) ?: (string) ($filiale['nom'] ?? '')] + $info;
 
+        $exp = null;
+        try {
+            $exp = $apercu ? \App\Core\Auth::user() : (!empty($partage['cree_par']) ? \App\Models\Utilisateur::find((int) $partage['cree_par']) : null);
+        } catch (\Throwable $e) { $exp = null; }
         return [
+            'expediteur' => $exp ?: null,
             'emetteur' => $emetteur,
             'logoUri' => \App\Models\EntrepriseInfo::logoDataUri($emetteur),
             'partage' => $partage,
