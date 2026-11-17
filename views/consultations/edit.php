@@ -63,6 +63,16 @@
     </div>
     <?php endif; ?>
 
+    <?php $photos = array_filter($pieces ?? [], fn($x) => str_starts_with((string) ($x['type_mime'] ?? ''), 'image/')); if ($photos): ?>
+    <div class="card" style="background:#f8f9fb;box-shadow:none;border:1px solid #e3e6ec">
+      <h2 style="font-size:15px">Photos du dossier</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <?php foreach ($photos as $p): ?><img src="/index.php?r=dossiers/<?= (int) $consultation['dossier_id'] ?>/pieces/<?= (int) $p['id'] ?>/telecharger&amp;apercu=1" alt="" style="width:96px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #e3e6ec"><?php endforeach; ?>
+      </div>
+      <div style="font-size:12px;color:#888;margin-top:6px">Vous choisissez lesquelles envoyer au fournisseur à l'étape « 2. Envoyer ».</div>
+    </div>
+    <?php endif; ?>
+
     <div class="form-group">
       <label>Précisions complémentaires pour le fournisseur</label>
       <textarea name="articles_demandes" rows="12" style="min-height:240px;resize:vertical;line-height:1.5" class="autogrow"><?= View::e($consultation['articles_demandes']) ?></textarea>

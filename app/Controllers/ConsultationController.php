@@ -159,7 +159,9 @@ class ConsultationController
         }
         $dossier = Dossier::find((int) $consultation['dossier_id']);
         $demande = !empty($dossier['demande_id']) ? \App\Models\Demande::find((int) $dossier['demande_id']) : null;
+        DossierPieceJointe::importerDepuisDemande((int) $dossier['id'], $demande ? (int) $demande['id'] : null, (int) Auth::user()['id']);
         View::render('consultations/edit', [
+            'pieces' => DossierPieceJointe::forDossier((int) $dossier['id']),
             'consultation' => $consultation,
             'dossier' => $dossier,
             'fournisseurs' => Fournisseur::allForFiliale((int) $dossier['filiale_id']),
@@ -333,6 +335,7 @@ class ConsultationController
         }
 
         $dossier = Dossier::find((int) $consultation['dossier_id']);
+        DossierPieceJointe::importerDepuisDemande((int) $dossier['id'], !empty($dossier['demande_id']) ? (int) $dossier['demande_id'] : null, (int) Auth::user()['id']);
         $pieces = DossierPieceJointe::forDossier((int) $dossier['id']);
         $partages = ConsultationPartage::forConsultation((int) $consultation['id']);
         $fournisseur = Fournisseur::find((int) $consultation['fournisseur_id']) ?: ['id' => (int) $consultation['fournisseur_id']];

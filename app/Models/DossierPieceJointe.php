@@ -46,6 +46,44 @@ class DossierPieceJointe
         $stmt->execute([self::categorieValide($categorie), self::visibiliteValide($visibilite), $id]);
     }
 
+    /**
+     * Les photos/fichiers reçus avec la demande (téléphone, À valider…) sont repris dans le dossier,
+     * pour pouvoir les joindre à une consultation. Copie unique : déjà présents = ignorés.
+     */
+    public static function importerDepuisDemande(int $dossierId, ?int $demandeId, int $userId): void
+    {
+        if (!$demandeId) {
+            return;
+        }
+        try {
+            $deja = [];
+            foreach (self::forDossier($dossierId) as $p) {
+                $deja[(string) $p['nom_original'] . '|' . (int) $p['taille']] = true;
+            }
+            foreach (DemandePieceJointe::forDemande($demandeId) as $p) {
+                if (isset($deja[(string) $p['nom_original'] . '|' . (int) $p['taille']])) {
+                    continue;
+                }
+                $src = \App\Core\Storage::path('uploads/demandes/' . $demandeId . '/' . $p['nom_fichier']);
+                if (!is_file($src)) {
+                    continue;
+                }
+                $ext = strtolower(pathinfo((string) $p['nom_fichier'], PATHINFO_EXTENSION));
+                $nouveau = bin2hex(random_bytes(16)) . ($ext !== '' ? '.' . $ext : '');
+                if (!@copy($src, \App\Core\Storage::path('uploads/dossiers/' . $dossierId . '/' . $nouveau))) {
+                    continue;
+                }
+                self::create([
+                    'dossier_id' => $dossierId, 'nom_original' => $p['nom_original'], 'nom_fichier' => $nouveau,
+                    'taille' => (int) $p['taille'], 'type_mime' => $p['type_mime'] ?: 'application/octet-stream',
+                    'uploaded_by' => $userId, 'categorie' => 'autre', 'visibilite' => 'interne',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // jamais bloquant
+        }
+    }
+
     public static function forDossier(int $dossierId): array
     {
         $stmt = Database::connection()->prepare(
