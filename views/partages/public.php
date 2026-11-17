@@ -32,7 +32,7 @@ table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
 <body>
 <?php if (!empty($apercu)): ?>
 <div class="no-print" style="max-width:720px;margin:0 auto 16px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;padding:12px 16px;border-radius:8px;font-size:13px">
-  <strong>Aperçu interne</strong> — voici exactement ce que le fournisseur voit. Rien n'a été envoyé et aucun lien n'a été créé par cet aperçu.
+  <a href="#" onclick="history.back();return false" style="display:inline-block;margin-bottom:6px;font-weight:600">&larr; Retour</a><br><strong>Aperçu interne</strong> — voici exactement ce que le fournisseur voit. Rien n'a été envoyé et aucun lien n'a été créé par cet aperçu.
 </div>
 <?php endif; ?>
 <?php $urlPdf = $pdfUrl ?? ('/index.php?r=partage-public/' . View::e($partage['token'] ?? '') . '/pdf'); ?>

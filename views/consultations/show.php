@@ -16,7 +16,7 @@ $badges = [
     <div class="subtitle">Consultation <?= $consultation['statut'] === 'a_envoyer' ? 'à envoyer à' : 'envoyée à' ?> <?= View::e($consultation['fournisseur_nom']) ?></div>
   </div>
   <div>
-    <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/recap" target="_blank" class="btn btn-secondary">Voir le récap</a>
+    <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/recap" class="btn btn-secondary">Voir le récap</a>
     <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/recap/pdf" class="btn btn-secondary">Télécharger le PDF</a>
     <?php if ($consultation['statut'] === 'a_envoyer' && \App\Core\Auth::canWrite()): ?>
       <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/modifier" class="btn btn-secondary">Modifier</a>
