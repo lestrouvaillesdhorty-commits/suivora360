@@ -73,7 +73,6 @@ class DevisPdf
         $t = self::totaux($c);
         $pdf = new PdfSimple(trim(($emetteur['nom'] ?? '') . ' - Devis ' . $c['reference'] . ((int) ($c['version'] ?? 1) > 1 ? ' v' . $c['version'] : '')));
         $pdf->couleur(EntrepriseInfo::couleurEffective($emetteur));
-        $pdf->modele(EntrepriseInfo::miseEnPage($emetteur));
         $pdf->piedEntreprise(self::ligneEntreprise($emetteur));
         $validite = self::validite($c, $emetteur);
         $logo = null;
