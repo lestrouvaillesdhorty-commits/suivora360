@@ -224,6 +224,7 @@ $modeLecture = $moduleCourant !== null && \App\Core\AccesModules::niveau($module
 <script src="/assets/js/menu.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/menu.js') ?>"></script>
 <script src="/assets/js/galerie.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/galerie.js') ?>"></script>
 <script src="/assets/js/mobile.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/mobile.js') ?>"></script>
+<script src="/assets/js/photos.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/photos.js') ?>"></script>
 <?php if ($currentUser): ?><script src="/assets/js/alertes.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/alertes.js') ?>"></script><?php endif; ?>
 <?php if ($currentUser): ?><script src="/assets/js/etapes.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/etapes.js') ?>"></script><?php endif; ?>
 <?php if ($currentUser): ?><script src="/assets/js/brouillon.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/brouillon.js') ?>"></script><?php endif; ?>

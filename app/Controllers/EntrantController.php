@@ -54,8 +54,19 @@ class EntrantController
     }
 
     /** Dépôt depuis la page (fichiers glissés/choisis et/ou texte collé). */
+    /** Envoi plus gros que la limite du serveur : PHP vide alors tout le formulaire, sans erreur. */
+    private function verifierTailleEnvoi(): void
+    {
+        if (empty($_POST) && empty($_FILES) && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+            View::flash('erreur', "Envoi refusé : le fichier est trop volumineux pour le serveur (" . ini_get('post_max_size') . " max). Réduisez la photo ou envoyez-la en capture d'écran.");
+            header('Location: ' . $this->retour());
+            exit;
+        }
+    }
+
     public function deposer(): void
     {
+        $this->verifierTailleEnvoi();
         Auth::requireWrite();
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             View::flash('erreur', 'Session expirée, merci de réessayer.');
@@ -68,6 +79,7 @@ class EntrantController
     /** Cible du « Partager vers Suivora360 » du téléphone (manifest share_target). */
     public function partage(): void
     {
+        $this->verifierTailleEnvoi();
         Auth::requireLogin();
         Auth::requireWrite();
         $texte = trim(implode("\n", array_filter([
@@ -276,7 +288,9 @@ class EntrantController
         if ($e['nom_fichier']) {
             $src = Storage::path('uploads/entrants/' . $e['id'] . '/' . $e['nom_fichier']);
             $dst = Storage::path('uploads/demandes/' . $demandeId . '/' . $e['nom_fichier']);
-            if (is_file($src) && @rename($src, $dst)) {
+            $deplace = is_file($src) && (@rename($src, $dst) || (@copy($src, $dst) && @unlink($src)));
+            if (!$deplace) { View::flash('erreur', "La pièce jointe n'a pas pu être copiée dans la demande : ajoutez-la depuis la demande."); }
+            if ($deplace) {
                 DemandePieceJointe::create([
                     'demande_id' => $demandeId, 'nom_original' => $e['nom_original'], 'nom_fichier' => $e['nom_fichier'],
                     'taille' => (int) $e['taille'], 'type_mime' => $e['type_mime'] ?: 'application/octet-stream', 'uploaded_by' => (int) $user['id'],
