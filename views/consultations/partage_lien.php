@@ -267,6 +267,8 @@ foreach ($ordre as $i => $code):
 // Ouverture automatique, une seule fois, du canal choisi à l'étape précédente.
 (function () {
   var canal = <?= json_encode($canalChoisi) ?>;
+  // Jamais d'ouverture automatique sur téléphone ni pour l'e-mail : on relit le message et on prépare le PDF d'abord.
+  if (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || canal === 'email') { return; }
   setTimeout(function () {
     if (canal === 'email' && typeof window.ouvrirMessagerie === 'function') {
       window.ouvrirMessagerie();
