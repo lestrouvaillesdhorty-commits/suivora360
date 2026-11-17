@@ -70,19 +70,7 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
         <td data-label="Marge" style="color:<?= $l['marge'] < 0 ? '#b3261e' : 'inherit' ?>"><?= $fmt($l['marge']) ?></td>
         <?php endif; ?>
         <td><?php if ($peutEcrire): ?><div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
-          <details style="margin:0"><summary class="btn btn-sm btn-secondary" style="display:inline-block;cursor:pointer;padding:0 12px;height:36px;min-height:36px;line-height:36px;font-size:13px;list-style:none;box-sizing:border-box">Modifier</summary>
-            <form method="post" action="<?= $base ?>/modifier-reservation" style="margin-top:6px;min-width:190px">
-              <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>">
-              <?php if (!empty($typesProduit)): ?><div class="form-group"><label>Type de produit</label><select name="type_produit_id"><option value="">Type actuel</option><?php foreach ($typesProduit as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) ($r['type_produit_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= View::e($t['libelle']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
-              <div class="form-group"><label>Volume (m³)</label><input type="text" name="volume" inputmode="decimal" value="<?= $r['volume'] !== null ? View::e((string) $r['volume']) : '' ?>"></div>
-              <div class="form-group"><label>Poids (kg)</label><input type="text" name="poids" inputmode="decimal" value="<?= $r['poids'] !== null ? View::e((string) $r['poids']) : '' ?>"></div>
-              <div class="form-group"><label>Colis</label><input type="text" name="colis" inputmode="numeric" value="<?= $r['colis'] !== null ? (int) $r['colis'] : '' ?>"></div>
-              <div class="form-group"><label>Palettes</label><input type="text" name="palettes" inputmode="numeric" value="<?= $r['palettes'] !== null ? (int) $r['palettes'] : '' ?>"></div>
-              <?php if (Expedition::v60()): ?><label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" name="poids_confirme" value="1" <?= !empty($r['poids_confirme']) ? 'checked' : '' ?>> Poids confirmé par le transitaire</label><?php endif; ?>
-              <div class="hint">Le prix vendu et le coût sont recalculés.</div>
-              <button class="btn btn-sm btn-primary" type="submit">Enregistrer</button>
-            </form>
-          </details>
+          <a class="btn btn-sm btn-secondary" href="<?= $base ?>&modifier=<?= (int) $r['id'] ?>#modifier" style="display:inline-block;padding:0 12px;height:36px;min-height:36px;line-height:36px;font-size:13px;box-sizing:border-box">Modifier</a>
           <form method="post" action="<?= $base ?>/supprimer-reservation" onsubmit="return confirm('Retirer cette réservation ?')" style="margin:0">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>">
             <button class="btn btn-sm btn-secondary" type="submit" style="color:#b3261e;border-color:#e3b5b1;padding:0 12px;height:36px;min-height:36px;font-size:13px;box-sizing:border-box">Retirer</button></form></div>
@@ -93,6 +81,25 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
   </table>
   <?php endif; ?>
 </div>
+
+<?php $rmId = (int) ($_GET['modifier'] ?? 0); $rm = null; foreach ($reservations as $rr) { if ((int) $rr['id'] === $rmId) { $rm = $rr; } } ?>
+<?php if ($peutEcrire && $rm): ?>
+<div class="card" id="modifier">
+  <h2>Modifier la réservation · <?= View::e($rm['client_nom'] ?: ($rm['dossier_reference'] ?? 'Réservation')) ?></h2>
+  <form method="post" action="<?= $base ?>/modifier-reservation">
+              <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $rm['id'] ?>">
+              <?php if (!empty($typesProduit)): ?><div class="form-group"><label>Type de produit</label><select name="type_produit_id"><option value="">Type actuel</option><?php foreach ($typesProduit as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) ($rm['type_produit_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= View::e($t['libelle']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
+              <div class="form-row"><div class="form-group"><label>Volume (m³)</label><input type="text" name="volume" inputmode="decimal" value="<?= $rm['volume'] !== null ? View::e((string) $rm['volume']) : '' ?>"></div>
+              <div class="form-group"><label>Poids (kg)</label><input type="text" name="poids" inputmode="decimal" value="<?= $rm['poids'] !== null ? View::e((string) $rm['poids']) : '' ?>"></div>
+              <div class="form-group"><label>Colis</label><input type="text" name="colis" inputmode="numeric" value="<?= $rm['colis'] !== null ? (int) $rm['colis'] : '' ?>"></div>
+              <div class="form-group"><label>Palettes</label><input type="text" name="palettes" inputmode="numeric" value="<?= $rm['palettes'] !== null ? (int) $rm['palettes'] : '' ?>"></div>
+              </div>
+<?php if (Expedition::v60()): ?><label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" name="poids_confirme" value="1" <?= !empty($rm['poids_confirme']) ? 'checked' : '' ?>> Poids confirmé par le transitaire</label><?php endif; ?>
+              <div class="hint">Le prix vendu et le coût sont recalculés.</div>
+              <button class="btn btn-primary" type="submit">Enregistrer</button> <a class="btn btn-secondary" href="<?= $base ?>">Annuler</a>
+            </form>
+</div>
+<?php endif; ?>
 
 <?php $nbAV = 0; foreach ($reservations as $rv) { if (($rv['validation_client'] ?? 'ok') === 'a_valider') { $nbAV++; } } ?>
 <?php if ($nbAV > 0): ?><div class="alert alert-erreur"><?= $nbAV ?> réservation(s) à valider avec le client avant le départ (cas particuliers).</div><?php endif; ?>
