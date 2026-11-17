@@ -29,7 +29,7 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
   <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
     <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/apercu" target="_blank" class="btn btn-secondary">Voir ce que le fournisseur reçoit (récapitulatif)</a>
     <a href="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/pdf" class="btn btn-secondary" id="lienPdf">Télécharger le PDF</a>
-    <button type="button" class="btn btn-secondary" id="btnPartagerPdf" style="display:none">Partager le PDF<?= !empty($piecesPartage) ? ' + ' . count($piecesPartage) . ' photo' . (count($piecesPartage) > 1 ? 's' : '') . ' / document' . (count($piecesPartage) > 1 ? 's' : '') : '' ?> (WhatsApp, e-mail…)</button>
+    <button type="button" class="btn btn-secondary" id="btnPartagerPdf" style="display:none">Envoyer le PDF (partager vers e-mail, WhatsApp…)<?= !empty($piecesPartage) ? ' + ' . count($piecesPartage) . ' photo' . (count($piecesPartage) > 1 ? 's' : '') . ' / document' . (count($piecesPartage) > 1 ? 's' : '') : '' ?> (WhatsApp, e-mail…)</button>
   </div>
   <div id="msgPartagePdf" style="display:none;font-size:13px;color:#92400e;margin:-6px 0 12px"></div>
   <script>
@@ -39,6 +39,10 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
     var btn = document.getElementById('btnPartagerPdf'), msg = document.getElementById('msgPartagePdf');
     if (!btn || !window.isSecureContext || !navigator.share || !navigator.canShare || !window.File) return;
     btn.style.display = '';
+    btn.className = 'btn';
+    btn.insertAdjacentHTML('afterbegin', '&#9993; ');
+    window.partageDispo = true;
+    document.addEventListener('DOMContentLoaded', function () { var dl = document.getElementById('dlPdfAvec'); if (dl) { dl.checked = false; if (dl.parentNode) { dl.parentNode.style.display = 'none'; } } });
     var nom = <?= json_encode(\App\Services\RecapPdf::nomFichier($consultation)) ?>;
     var pieces = <?= json_encode($piecesPartage ?? []) ?>;
     function charger(url, nomFichier, type) {
