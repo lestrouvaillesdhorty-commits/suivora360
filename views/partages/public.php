@@ -135,7 +135,7 @@ table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
   <div class="cond">Merci de nous indiquer, pour chaque article :
     <ul class="infos"><?php foreach (\App\Models\ConsultationFournisseur::infos($consultation) as $inf): ?><li><?= View::e($inf) ?></li><?php endforeach; ?></ul>
     <?php if (!empty($partage['echeance_reponse'])): ?><strong>Réponse souhaitée avant le <?= date('d/m/Y', strtotime($partage['echeance_reponse'])) ?>.</strong><?php endif; ?></div>
-  <div class="cond d">Ce lien est temporaire et peut être révoqué à tout moment par l'expéditeur. Merci de répondre directement par le canal utilisé pour vous transmettre ce lien.</div>
+  <div class="cond d">Merci de répondre directement à <?= View::e(trim(implode(' · ', array_filter([(string) ($em['email'] ?? ''), !empty($em['telephone']) ? 'Tél. ' . $em['telephone'] : ''])))) ?: "l'expéditeur" ?>.</div>
   </div>
   <div class="pied">
     <div><strong><?= View::e($em['nom']) ?></strong><?= !empty($em['adresse']) ? ' — ' . View::e(trim(preg_replace('/\s*\R\s*/u', ', ', (string) $em['adresse']))) : '' ?></div>
