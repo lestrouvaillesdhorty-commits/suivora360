@@ -165,7 +165,7 @@ textarea { resize: vertical; }
 .tabs a { padding: 10px 4px; margin-right: 20px; font-size: 14px; color: #666; border-bottom: 2px solid transparent; }
 .tabs a.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
-.detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.detail-grid { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 20px; }
 /* [corrigé 04/10] Ce retour à une seule colonne sous 900px ne s'appliquait
    en réalité jamais : il était défini plus haut dans le fichier (ancienne
    position), et la règle de base ci-dessus (sans condition media), placée
@@ -1424,3 +1424,10 @@ select.niv-cache { border-color: #D6DCE3; }
   .pilotage-tabs a{white-space:normal;text-align:center;padding:9px 6px;font-size:13px;line-height:1.2;border:1px solid #DDE8EA;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center}
   .pilotage-tabs a.active{border-color:var(--pilotage-violet);background:#F3EFFD}
 }
+
+/* Tablette / petit écran : les longs tableaux défilent au lieu d'élargir la page */
+@media (min-width: 769px) and (max-width: 1180px) {
+  .content table.responsive-cards { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+/* Lignes d'articles : sur tablette, 2 colonnes pour ne pas dépasser l'écran */
+@media (min-width:769px) and (max-width:1180px){.artl{grid-template-columns:1fr 1fr}.artl .art-c-cond{grid-column:1/-1}.artl .art-actions{grid-column:1/-1;justify-content:flex-end}}
