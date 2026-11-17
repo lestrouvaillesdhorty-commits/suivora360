@@ -561,7 +561,9 @@ class ConsultationController
                 $variantes[$lg . '_' . $lk] = \App\Services\MessageConsultation::construire($recap, $lg, $lk === 'avec' ? $lienPublic : null, $saluts[$lg], (string) ($user['nom'] ?? ''));
             }
         }
-        $avecLien = !empty(ConsultationPartage::piecesIds($partage));
+        // Le lien en ligne est un CHOIX : jamais ajouté automatiquement au message.
+        $avecLien = false;
+        $piecesEnLigne = !empty(ConsultationPartage::piecesIds($partage));
         $langue = 'fr';
         $vInit = $variantes[$langue . '_' . ($avecLien ? 'avec' : 'sans')];
         $message = $vInit['corps'];
@@ -602,6 +604,7 @@ class ConsultationController
             'messagePrepare' => $message,
             'variantes' => $variantes,
             'avecLienInit' => $avecLien,
+            'piecesEnLigne' => $piecesEnLigne,
             'telWa' => $telephone,
         ]);
     }

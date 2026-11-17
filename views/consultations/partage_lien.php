@@ -69,7 +69,7 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
     <label style="display:flex;align-items:center;gap:6px;margin:0">Langue :
       <select id="msgLangue" style="width:auto"><option value="fr">Français</option><option value="en">English</option></select>
     </label>
-    <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="msgLien" style="width:auto" <?= !empty($avecLienInit) ? 'checked' : '' ?>> Ajouter le lien sécurisé (récapitulatif, photos, PDF)</label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="msgLien" style="width:auto" <?= !empty($avecLienInit) ? 'checked' : '' ?>> Ajouter un lien en ligne (facultatif)<?= !empty($piecesEnLigne) ? ' — utile pour que le fournisseur voie les photos cochées' : '' ?></label>
   </div>
   <div style="font-size:12px;color:#888;margin-top:6px">Le message contient déjà les articles, quantités, détails et conditions demandées : le lien en ligne est facultatif. Vous pouvez modifier le texte dans chaque canal.</div>
 </div>
