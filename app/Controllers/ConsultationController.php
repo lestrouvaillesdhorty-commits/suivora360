@@ -283,6 +283,7 @@ class ConsultationController
             $_POST['date_relance'] ?? null,
             $_POST['canal_envoi'] ?? null
         );
+        \App\Models\Dossier::synchroniserEtape((int) $consultation['dossier_id']);
         View::flash('succes', 'Statut de la consultation mis à jour.');
         header('Location: /index.php?r=consultations/' . $consultation['id']);
         exit;

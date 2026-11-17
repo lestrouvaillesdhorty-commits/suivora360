@@ -419,6 +419,9 @@ class DossierController
             return;
         }
 
+        if (Dossier::synchroniserEtape((int) $dossier['id'])) {
+            $dossier = Dossier::find((int) $dossier['id']) ?: $dossier; // étape rattrapée d'après l'avancement réel
+        }
         $demande = Demande::find((int) $dossier['demande_id']);
         $articles = DemandeArticle::forDemande($dossier['demande_id']);
         $filiale = Filiale::find((int) $dossier['filiale_id']);

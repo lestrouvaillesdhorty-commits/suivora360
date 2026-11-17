@@ -487,6 +487,29 @@ class Dossier
     }
 
     /**
+     * Rattrape l'étape du dossier d'après ce qui a réellement été fait (jamais en arrière) :
+     * une consultation envoyée → Sourcing ; une offre retenue ou une cotation envoyée → Cotation ;
+     * une cotation acceptée ou une commande → Commande. Appelé à l'ouverture du dossier et quand
+     * le statut d'une consultation change à la main. Renvoie true si l'étape a changé.
+     */
+    public static function synchroniserEtape(int $id): bool
+    {
+        try {
+            $cible = null;
+            foreach (ConsultationFournisseur::forDossier($id) as $c) {
+                if (($c['statut'] ?? 'a_envoyer') !== 'a_envoyer') { $cible = 'sourcing'; break; }
+            }
+            if (Offre::retenueForDossier($id)) { $cible = 'cotation'; }
+            $cot = Cotation::latestForDossier($id);
+            if ($cot && in_array($cot['statut'], ['envoyee', 'acceptee'], true)) { $cible = 'cotation'; }
+            if (($cot && $cot['statut'] === 'acceptee') || Commande::findByDossier($id)) { $cible = 'commande'; }
+            return $cible !== null && self::avancerA($id, $cible);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
      * Pourcentage d'avancement dans le pipeline du dossier (qualifié → ...
      * → clôturé), basé sur la position de l'étape courante dans ETAPES.
      * qualifié = 0 %, clôturé = 100 %, les étapes intermédiaires réparties
