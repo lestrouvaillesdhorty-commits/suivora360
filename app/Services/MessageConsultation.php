@@ -71,9 +71,18 @@ class MessageConsultation
         }
 
         $logi = [];
-        if (!empty($demande['destination_pays'])) { $logi[] = $L('Destination', 'Destination') . ' : ' . $demande['destination_pays']; }
-        if (!$masquer && !empty($demande['lieu_livraison'])) { $logi[] = $L('Lieu de livraison', 'Delivery place') . ' : ' . $demande['lieu_livraison']; }
-        if (!empty($demande['incoterm_souhaite'])) { $logi[] = $L('Incoterm souhaité', 'Requested Incoterm') . ' : ' . $demande['incoterm_souhaite']; }
+        $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande ?: null);
+        $adr = $liv['etape_adresse'] !== '' ? preg_replace('/\s*\R\s*/u', ', ', $liv['etape_adresse']) : '';
+        if ($liv['etape']) {
+            $logi[] = $L('Livrer à', 'Deliver to') . ' : ' . $liv['etape_pays'];
+            if ($adr !== '') { $logi[] = $L('Adresse de livraison', 'Delivery address') . ' : ' . $adr; }
+            if ($liv['finale'] !== '') { $logi[] = $L('Destination finale', 'Final destination') . ' : ' . $liv['finale']; }
+        } else {
+            if ($liv['finale'] !== '') { $logi[] = $L('Destination', 'Destination') . ' : ' . $liv['finale']; }
+            if ($adr !== '') { $logi[] = $L('Adresse de livraison', 'Delivery address') . ' : ' . $adr; }
+            elseif (!$masquer && !empty($demande['lieu_livraison'])) { $logi[] = $L('Lieu de livraison', 'Delivery place') . ' : ' . $demande['lieu_livraison']; }
+        }
+        if ($liv['incoterm'] !== '') { $logi[] = $L('Incoterm souhaité', 'Requested Incoterm') . ' : ' . $liv['incoterm']; }
         if (!empty($partage['echeance_reponse'])) { $logi[] = $L('Réponse souhaitée avant le', 'Please reply before') . ' : ' . date('d/m/Y', strtotime($partage['echeance_reponse'])); }
         if ($logi) {
             $t[] = '';
@@ -89,10 +98,11 @@ class MessageConsultation
         }
 
         $t[] = '';
-        $t[] = $L(
-            "Merci d'indiquer pour chaque article : prix unitaire et devise, quantité minimale de commande, délai de production / livraison, conditions de paiement, validité de l'offre et incoterm proposé.",
-            'Please indicate for each item: unit price and currency, minimum order quantity, production / delivery lead time, payment terms, offer validity and proposed Incoterm.'
-        );
+        $t[] = $L("Merci d'indiquer pour chaque article :", 'Please indicate for each item:');
+        $enInfos = ['Prix unitaire et devise' => 'Unit price and currency', 'Délai de production / livraison' => 'Production / delivery lead time', 'Quantité minimale de commande' => 'Minimum order quantity', "Validité de l'offre" => 'Offer validity', 'Conditions de paiement' => 'Payment terms', 'Incoterm proposé' => 'Proposed Incoterm', 'Échantillon possible' => 'Sample availability', 'Emballage export' => 'Export packing', 'Poids et volume par colis' => 'Weight and volume per package', 'Certificats (origine, conformité)' => 'Certificates (origin, conformity)'];
+        foreach (\App\Models\ConsultationFournisseur::infos($consultation) as $inf) {
+            $t[] = '- ' . ($en ? ($enInfos[$inf] ?? $inf) : $inf);
+        }
         if ($lien) {
             $t[] = '';
             $t[] = $L('Récapitulatif en ligne (photos, documents, PDF) : ', 'Online summary (photos, documents, PDF): ') . $lien;
