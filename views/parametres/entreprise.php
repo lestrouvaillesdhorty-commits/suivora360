@@ -67,6 +67,14 @@ $v50 = \App\Core\Schema::colonne('entreprise_infos', 'pays'); ?>
       <?php if ($logoUri): ?><div style="margin:6px 0"><img src="<?= $logoUri ?>" alt="Logo actuel" style="max-height:70px;max-width:260px;border:1px solid #DCE9EC;border-radius:10px;padding:6px;background:#fff"></div>
         <label style="font-weight:500"><input type="checkbox" name="supprimer_logo" value="1"> Retirer le logo actuel</label><?php endif; ?>
       <input type="file" name="logo" accept=".png,.jpg,.jpeg,image/png,image/jpeg">
+      <?php if (\App\Core\Schema::colonne('entreprise_infos', 'entete_mode')): $em0 = \App\Models\EntrepriseInfo::enteteMode($info, (bool) $logoUri); ?>
+      <div class="form-group" style="margin-top:8px"><label>En-tête des documents</label>
+        <select name="entete_mode" style="max-width:300px">
+          <option value="logo" <?= $em0 === 'logo' ? 'selected' : '' ?>>Logo seul</option>
+          <option value="nom" <?= $em0 === 'nom' ? 'selected' : '' ?>>Nom seul</option>
+          <option value="both" <?= $em0 === 'both' ? 'selected' : '' ?>>Logo + nom côte à côte</option>
+        </select></div>
+      <?php endif; ?>
       <div class="hint">Le logo s'affiche sur l'aperçu et l'impression du devis. Le PDF téléchargé reprend le texte de l'en-tête, sans le logo.</div></div>
   </div>
 

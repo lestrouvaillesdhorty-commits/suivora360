@@ -10,7 +10,7 @@ class EntrepriseInfo
 {
     public const CHAMPS = ['raison_sociale', 'adresse', 'telephone', 'email', 'site_web', 'identifiants', 'coordonnees_bancaires', 'devis_conditions'];
     /** Champs ajoutés par la migration V50 (enregistrés seulement si les colonnes existent). */
-    public const CHAMPS_V50 = ['forme_juridique', 'capital', 'pays', 'regime_tva', 'couleur', 'mise_en_page', 'mentions_pied'];
+    public const CHAMPS_V50 = ['forme_juridique', 'capital', 'pays', 'regime_tva', 'couleur', 'mise_en_page', 'mentions_pied', 'entete_mode'];
     public const COULEUR_DEFAUT = '#0B7C8A';
     public const MISES_EN_PAGE = ['classique' => 'Classique', 'moderne' => 'Moderne', 'sobre' => 'Sobre'];
     public const COULEURS_PROPOSEES = ['#0B7C8A', '#2F6FED', '#1B2B3A', '#B4570F', '#6A3FB5'];
@@ -75,6 +75,7 @@ class EntrepriseInfo
                 $val = trim((string) ($d[$c] ?? ''));
                 if ($c === 'couleur') { $val = preg_match('/^#[0-9A-Fa-f]{6}$/', $val) ? strtoupper($val) : ''; }
                 if ($c === 'mise_en_page') { $val = isset(self::MISES_EN_PAGE[$val]) ? $val : 'classique'; }
+                if ($c === 'entete_mode') { $val = in_array($val, ['logo', 'nom', 'both'], true) ? $val : ''; }
                 if ($c === 'pays') { $val = isset(self::PAYS[$val]) ? $val : ''; }
                 $v50[$c] = $val;
             }
@@ -97,6 +98,16 @@ class EntrepriseInfo
     {
         $c = (string) ($info['couleur'] ?? '');
         return preg_match('/^#[0-9A-Fa-f]{6}$/', $c) ? strtoupper($c) : self::COULEUR_DEFAUT;
+    }
+
+    /** En-tête : 'logo' seul, 'nom' seul ou 'both' (logo + nom côte à côte). Défaut : logo seul si logo, sinon nom. */
+    public static function enteteMode(array $info, bool $aLogo): string
+    {
+        $m = (string) ($info['entete_mode'] ?? '');
+        if (!in_array($m, ['logo', 'nom', 'both'], true)) {
+            $m = $aLogo ? 'logo' : 'nom';
+        }
+        return ($m !== 'nom' && !$aLogo) ? 'nom' : $m;
     }
 
     public static function miseEnPage(array $info): string

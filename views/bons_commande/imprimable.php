@@ -51,8 +51,9 @@ $qte = fn($q) => $q === null ? '' : rtrim(rtrim(number_format((float) $q, 2, ','
     <?php if (!empty($bon['reference_offre'])): ?><div>Suite à votre offre : <?= View::e($bon['reference_offre']) ?></div><?php endif; ?>
   </div>
   <div style="text-align:right">
-    <?php if (!empty($logoUri)): ?><img src="<?= $logoUri ?>" alt="" style="max-height:54px;max-width:200px;display:block;margin:0 0 6px auto"><?php endif; ?>
-    <strong><?= View::e($nomEmetteur) ?></strong><br>
+    <?php $mode = \App\Models\EntrepriseInfo::enteteMode($info, !empty($logoUri)); ?>
+    <?php if ($mode !== 'nom'): ?><img src="<?= $logoUri ?>" alt="" style="max-height:54px;max-width:200px;display:block;margin:0 0 6px auto"><?php endif; ?>
+    <?php if ($mode !== 'logo'): ?><strong><?= View::e($nomEmetteur) ?></strong><br><?php endif; ?>
     <?php if (!empty($info['adresse'])): ?><?= nl2br(View::e((string) $info['adresse'])) ?><br><?php endif; ?>
     <?= View::e(implode(' · ', array_filter([!empty($info['telephone']) ? 'Tél. ' . $info['telephone'] : '', $info['email'] ?? '']))) ?>
   </div>

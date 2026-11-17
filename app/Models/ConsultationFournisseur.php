@@ -231,6 +231,59 @@ class ConsultationFournisseur
      * Modifie une consultation PAS ENCORE ENVOYÉE (ce que le fournisseur verra ne change plus une fois envoyée).
      * @param int[]|null $articlesIds null = tous les articles de la demande
      */
+    /** Informations demandées au fournisseur : cochées par défaut, puis propositions supplémentaires. */
+    public const INFOS_DEFAUT = [
+        'Prix unitaire et devise', 'Délai de production / livraison', 'Quantité minimale de commande',
+        "Validité de l'offre", 'Conditions de paiement', 'Incoterm proposé',
+    ];
+    public const INFOS_PROPOSEES = ['Échantillon possible', 'Emballage export', 'Poids et volume par colis', "Certificats (origine, conformité)"];
+
+    public static function prepaDisponible(): bool
+    {
+        return \App\Core\Schema::colonne('consultations_fournisseur', 'infos_demandees');
+    }
+
+    /** Liste des informations à fournir (défaut si rien d'enregistré). */
+    public static function infos(array $c): array
+    {
+        $txt = trim((string) ($c['infos_demandees'] ?? ''));
+        if ($txt === '') {
+            return self::INFOS_DEFAUT;
+        }
+        return array_values(array_filter(array_map('trim', preg_split('/\R/u', $txt))));
+    }
+
+    /** Livraison de la consultation : directe ou avec étape (ex. France puis Cameroun). */
+    public static function livraison(array $c, ?array $demande): array
+    {
+        $etape = (string) ($c['livraison_mode'] ?? '') === 'etape' && trim((string) ($c['livraison_etape_pays'] ?? '')) !== '';
+        $finale = trim((string) ($c['livraison_finale_pays'] ?? '')) ?: trim((string) ($demande['destination_pays'] ?? ''));
+        $inco = trim((string) ($c['incoterm_demande'] ?? '')) ?: trim((string) ($demande['incoterm_souhaite'] ?? ''));
+        return [
+            'etape' => $etape,
+            'etape_pays' => $etape ? trim((string) $c['livraison_etape_pays']) : '',
+            'etape_adresse' => $etape ? trim((string) ($c['livraison_etape_adresse'] ?? '')) : '',
+            'finale' => $finale,
+            'incoterm' => $inco,
+        ];
+    }
+
+    public static function modifierPreparation(int $id, array $d): void
+    {
+        if (!self::prepaDisponible()) {
+            return;
+        }
+        $mode = ($d['livraison_mode'] ?? '') === 'etape' ? 'etape' : 'directe';
+        $infos = array_values(array_unique(array_filter(array_map(static fn($x) => trim((string) $x), (array) ($d['infos'] ?? [])))));
+        $autres = preg_split('/\R/u', (string) ($d['infos_autres'] ?? ''));
+        foreach ($autres as $x) {
+            $x = trim($x);
+            if ($x !== '' && !in_array($x, $infos, true)) { $infos[] = mb_substr($x, 0, 120); }
+        }
+        Database::connection()->prepare("UPDATE consultations_fournisseur SET livraison_mode = ?, livraison_etape_pays = ?, livraison_etape_adresse = ?, livraison_finale_pays = ?, incoterm_demande = ?, infos_demandees = ? WHERE id = ? AND statut = 'a_envoyer'")
+            ->execute([$mode, trim((string) ($d['livraison_etape_pays'] ?? '')), trim((string) ($d['livraison_etape_adresse'] ?? '')), trim((string) ($d['livraison_finale_pays'] ?? '')), trim((string) ($d['incoterm_demande'] ?? '')), $infos ? implode("\n", $infos) : null, $id]);
+    }
+
     public static function modifier(int $id, int $fournisseurId, string $precisions, string $notes, ?array $articlesIds): bool
     {
         $pdo = Database::connection();

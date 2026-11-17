@@ -49,8 +49,11 @@ th{background:var(--c);color:#fff;font-size:12px;text-align:left;padding:8px}td{
 <div class="page">
   <div class="ent">
     <div class="emet">
-      <?php if (!empty($logoUri)): ?><img class="logo" src="<?= $logoUri ?>" alt="<?= View::e($emetteur['nom']) ?>"><?php endif; ?>
-      <div class="nom"><?= View::e($emetteur['nom']) ?></div>
+      <?php $mode = \App\Models\EntrepriseInfo::enteteMode($emetteur, !empty($logoUri)); ?>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <?php if ($mode !== 'nom'): ?><img class="logo" style="margin:0" src="<?= $logoUri ?>" alt="<?= View::e($emetteur['nom']) ?>"><?php endif; ?>
+      <?php if ($mode !== 'logo'): ?><div class="nom"><?= View::e($emetteur['nom']) ?></div><?php endif; ?>
+      </div><div style="height:8px"></div>
       <div class="coord"><?= !empty($emetteur['adresse']) ? nl2br(View::e($emetteur['adresse'])) . '<br>' : '' ?><?= !empty($emetteur['telephone']) ? 'Tél. ' . View::e($emetteur['telephone']) : '' ?><?= !empty($emetteur['telephone']) && !empty($emetteur['email']) ? ' · ' : '' ?><?= View::e((string) ($emetteur['email'] ?? '')) ?></div>
     </div>
     <div class="doc"><b>DEVIS <?= View::e($cotation['reference']) ?></b>

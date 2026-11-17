@@ -77,13 +77,18 @@ class RecapPdf
         }
 
         $pdf->section('Spécifications logistiques');
-        $logi = [
-            'Destination' => ($demande['destination_pays'] ?? '') ?: 'Non précisée',
-        ];
-        if (!$masquer) {
-            $logi['Lieu de livraison'] = ($demande['lieu_livraison'] ?? '') ?: 'Non précisé';
+        $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande);
+        $logi = [];
+        if ($liv['etape']) {
+            $logi['Livrer à'] = $liv['etape_pays'] . (($liv['etape_adresse'] !== '' && !$masquer) ? ' - ' . preg_replace('/\s*\R\s*/u', ', ', $liv['etape_adresse']) : '');
+            $logi['Destination finale'] = $liv['finale'] ?: 'Non précisée';
+        } else {
+            $logi['Destination'] = $liv['finale'] ?: 'Non précisée';
+            if (!$masquer) {
+                $logi['Lieu de livraison'] = ($demande['lieu_livraison'] ?? '') ?: 'Non précisé';
+            }
         }
-        $logi['Incoterm souhaité'] = ($demande['incoterm_souhaite'] ?? '') ?: 'Non précisé';
+        $logi['Incoterm souhaité'] = $liv['incoterm'] ?: 'Non précisé';
         $logi['Échéance de réponse souhaitée'] = !empty($partage['echeance_reponse']) ? date('d/m/Y', strtotime($partage['echeance_reponse'])) : 'Non précisée';
         $pdf->paires($logi);
 
@@ -95,7 +100,10 @@ class RecapPdf
         }
 
         $pdf->section('Votre offre');
-        $pdf->paragraphe("Merci de nous indiquer pour chaque article : prix unitaire et devise, délai de production / livraison, quantité minimale de commande, validité de l'offre, conditions de paiement et Incoterm proposé.", 9);
+        $pdf->paragraphe("Merci de nous indiquer, pour chaque article :", 9);
+        foreach (\App\Models\ConsultationFournisseur::infos($consultation) as $inf) {
+            $pdf->paragraphe('- ' . $inf, 9);
+        }
         $pdf->paragraphe("Merci de répondre directement par le canal utilisé pour vous transmettre cette demande. Demande émise par " . $emetteur . ".", 8.5);
         return $pdf->rendre();
     }

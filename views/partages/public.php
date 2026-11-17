@@ -22,7 +22,7 @@ table{width:100%;border-collapse:collapse;margin-top:6px}
 th{background:var(--c);color:#fff;font-size:12px;text-align:left;padding:8px}td{padding:8px;border-bottom:1px solid #e6e8ef;vertical-align:top}
 table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
 .d{font-size:12px;color:#667}.r{text-align:right;white-space:nowrap}.tw{overflow-x:auto}
-.cond{margin-top:14px;font-size:13px}
+.cond{margin-top:14px;font-size:13px}.infos{margin:6px 0 10px;padding-left:22px;line-height:1.7}
 .piece-link{display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:var(--t);border-radius:6px;text-decoration:none;color:#1c2030;font-size:13px}
 .pied{padding:12px 34px;border-top:1px solid #e0e3ea;font-size:11.5px;color:#667;line-height:1.5}.pied .pr{text-align:right;color:#99a;margin-top:2px}
 @media print{body{background:#fff;padding:0}.no-print{display:none!important}.page{box-shadow:none;margin:0;max-width:none;min-height:0}}
@@ -48,9 +48,12 @@ table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
   <?php $em = $emetteur ?? ['nom' => '']; ?>
   <div class="ent">
     <div class="emet">
-      <?php if (!empty($logoUri)): ?><img class="logo" src="<?= $logoUri ?>" alt="<?= View::e($em['nom']) ?>"><?php endif; ?>
-      <div class="nom"><?= View::e($em['nom']) ?></div>
-      <div class="coord"><?= !empty($em['adresse']) ? nl2br(View::e($em['adresse'])) . '<br>' : '' ?><?= !empty($em['telephone']) ? 'Tél. ' . View::e($em['telephone']) : '' ?><?= !empty($em['telephone']) && !empty($em['email']) ? ' · ' : '' ?><?= View::e((string) ($em['email'] ?? '')) ?></div>
+      <?php $mode = \App\Models\EntrepriseInfo::enteteMode($em, !empty($logoUri)); ?>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <?php if ($mode !== 'nom'): ?><img class="logo" style="margin:0" src="<?= $logoUri ?>" alt="<?= View::e($em['nom']) ?>"><?php endif; ?>
+      <?php if ($mode !== 'logo'): ?><div class="nom"><?= View::e($em['nom']) ?></div><?php endif; ?>
+      </div><div style="height:8px"></div>
+      <div class="coord"><?php foreach (array_filter([!empty($em['adresse']) ? nl2br(View::e(trim((string) $em['adresse']))) : '', !empty($em['telephone']) ? 'Tél. ' . View::e($em['telephone']) : '', !empty($em['email']) ? View::e((string) $em['email']) : '', !empty($em['site_web']) ? View::e((string) $em['site_web']) : '']) as $lg): ?><div style="white-space:normal;overflow-wrap:anywhere"><?= $lg ?></div><?php endforeach; ?></div>
     </div>
     <div class="doc"><b>DEMANDE D'OFFRE <?= View::e($consultation['reference'] ?? '') ?></b>
       Date : <?= date('d/m/Y') ?><br>
@@ -59,9 +62,15 @@ table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
   <div class="corps">
   <div class="bloc">
     <div><h3>Objet</h3><strong><?= View::e($dossier['objet'] ?? '') ?></strong><br>Dossier : <?= View::e($dossier['reference'] ?? '') ?><?php if (!$masquerClient): ?><br>Client : <?= View::e($demande['expediteur_entreprise'] ?? $demande['expediteur_nom'] ?? '—') ?><?php endif; ?></div>
-    <div><h3>Livraison souhaitée</h3>Destination : <?= View::e($demande['destination_pays'] ?? '') ?: 'Non précisée' ?><br>
+    <?php $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande ?? null); ?>
+    <div><h3>Livraison souhaitée</h3>
+      <?php if ($liv['etape']): ?>Livrer à : <?= View::e($liv['etape_pays']) ?><br>
+        <?php if ($liv['etape_adresse'] !== '' && !$masquerClient): ?><?= nl2br(View::e($liv['etape_adresse'])) ?><br><?php endif; ?>
+        Destination finale : <?= View::e($liv['finale']) ?: 'Non précisée' ?><br>
+      <?php else: ?>Destination : <?= View::e($liv['finale']) ?: 'Non précisée' ?><br>
       <?php if (!$masquerClient): ?>Lieu : <?= View::e($demande['lieu_livraison'] ?? '') ?: 'Non précisé' ?><br><?php endif; ?>
-      Incoterm : <?= View::e($demande['incoterm_souhaite'] ?? '') ?: 'Non précisé' ?></div>
+      <?php endif; ?>
+      Incoterm : <?= View::e($liv['incoterm']) ?: 'Non précisé' ?></div>
   </div>
 
   <?php if (trim((string) ($consultation['articles_demandes'] ?? '')) !== ''): ?>
@@ -122,7 +131,9 @@ table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
   <?php endif; ?>
 
   <h2>Votre offre</h2>
-  <div class="cond">Merci de nous indiquer pour chaque article : prix unitaire et devise, délai de production / livraison, quantité minimale de commande, validité de l'offre, conditions de paiement et Incoterm proposé.<?php if (!empty($partage['echeance_reponse'])): ?> <strong>Réponse souhaitée avant le <?= date('d/m/Y', strtotime($partage['echeance_reponse'])) ?>.</strong><?php endif; ?></div>
+  <div class="cond">Merci de nous indiquer, pour chaque article :
+    <ul class="infos"><?php foreach (\App\Models\ConsultationFournisseur::infos($consultation) as $inf): ?><li><?= View::e($inf) ?></li><?php endforeach; ?></ul>
+    <?php if (!empty($partage['echeance_reponse'])): ?><strong>Réponse souhaitée avant le <?= date('d/m/Y', strtotime($partage['echeance_reponse'])) ?>.</strong><?php endif; ?></div>
   <div class="cond d">Ce lien est temporaire et peut être révoqué à tout moment par l'expéditeur. Merci de répondre directement par le canal utilisé pour vous transmettre ce lien.</div>
   </div>
   <div class="pied">

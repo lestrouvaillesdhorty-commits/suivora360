@@ -165,6 +165,7 @@ class ConsultationController
             'fournisseurs' => Fournisseur::allForFiliale((int) $dossier['filiale_id']),
             'articlesDemande' => $demande ? \App\Models\DemandeArticle::forDemande((int) $demande['id']) : [],
             'articlesIds' => ConsultationFournisseur::articlesIds($consultation),
+            'demande' => $demande,
         ]);
     }
 
@@ -200,6 +201,7 @@ class ConsultationController
             }
         }
         ConsultationFournisseur::modifier((int) $consultation['id'], $fid, (string) ($_POST['articles_demandes'] ?? ''), (string) ($_POST['notes'] ?? ''), $articlesIds);
+        ConsultationFournisseur::modifierPreparation((int) $consultation['id'], $_POST);
         AuditLog::log((int) $consultation['filiale_id'], (int) $user['id'], 'modification_consultation', 'consultation_fournisseur', (int) $consultation['id']);
         View::flash('succes', 'Consultation modifiée. Elle reste « À envoyer ».');
         header('Location: ' . $retour);
