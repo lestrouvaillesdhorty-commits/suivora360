@@ -96,6 +96,51 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
 <?php $nbAV = 0; foreach ($reservations as $rv) { if (($rv['validation_client'] ?? 'ok') === 'a_valider') { $nbAV++; } } ?>
 <?php if ($nbAV > 0): ?><div class="alert alert-erreur"><?= $nbAV ?> réservation(s) à valider avec le client avant le départ (cas particuliers).</div><?php endif; ?>
 <?php if ($tarifMode && empty($exp['tarif_achat_type'])): ?><div class="alert alert-erreur">Le tarif d'achat du transitaire n'est pas renseigné : les coûts sont à zéro. <a href="<?= $base ?>/modifier">Le renseigner</a></div><?php endif; ?>
+
+<?php
+$docsOk = \App\Models\ExpeditionDocument::disponible();
+$transitaire = \App\Models\ExpeditionDocument::formalitesTransitaire($exp);
+$nbManq = $docsOk && !$transitaire ? \App\Models\ExpeditionDocument::nbManquants($docs ?? []) : 0;
+if ($docsOk): ?>
+<div class="card" id="docs">
+  <h2>Documents à fournir</h2>
+  <?php if ($peutEcrire): ?>
+  <form method="post" action="<?= $base ?>/formalites" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+    <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="formalites_transitaire" value="1" <?= $transitaire ? 'checked' : '' ?>> Formalités gérées par le transitaire (aucun document demandé)</label>
+    <button class="btn btn-sm btn-secondary" type="submit">Enregistrer</button>
+  </form>
+  <?php else: ?><div class="hint"><?= $transitaire ? 'Formalités gérées par le transitaire.' : 'Documents suivis dans Suivora360.' ?></div><?php endif; ?>
+  <?php if (!$transitaire): ?>
+    <?php if ($nbManq > 0): ?><div class="alert alert-erreur" style="margin-top:10px"><?= $nbManq ?> document(s) manquant(s). Cela ne bloque pas le départ.</div><?php elseif ($reservations): ?><div class="alert alert-succes" style="margin-top:10px">Tous les documents attendus sont reçus.</div><?php endif; ?>
+    <?php if (!$reservations): ?><div class="hint" style="margin-top:8px">Les documents attendus apparaissent dès qu'une réservation est ajoutée.</div><?php endif; ?>
+    <?php foreach ($reservations as $r): $lignes = $docs[(int) $r['id']] ?? []; ?>
+    <div style="border-top:1px solid #eee;margin-top:10px;padding-top:8px">
+      <strong><?= View::e($r['client_nom'] ?: ($r['dossier_reference'] ?? 'Réservation')) ?></strong>
+      <span class="hint"> · <?= View::e(Expedition::MARCHANDISES[$r['type_marchandise']] ?? '') ?><?= !empty($r['cas_special']) ? ' · ' . View::e(Expedition::CAS_SPECIAUX[$r['cas_special']] ?? '') : '' ?></span>
+      <?php foreach ($lignes as $d): ?>
+      <form method="post" action="<?= $base ?>/documents" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="doc_id" value="<?= (int) $d['id'] ?>">
+        <span style="flex:1;min-width:180px"><?= View::e($d['libelle']) ?><?php if ($d['statut'] === 'recu' && $d['recu_le']): ?> <span class="hint">reçu le <?= date('d/m/Y', strtotime($d['recu_le'])) ?></span><?php endif; ?></span>
+        <?php if ($peutEcrire): ?>
+        <select name="statut" aria-label="État"><?php foreach (\App\Models\ExpeditionDocument::STATUTS as $k => $l): ?><option value="<?= $k ?>" <?= $d['statut'] === $k ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select>
+        <input type="text" name="note" value="<?= View::e($d['note']) ?>" maxlength="200" placeholder="Note (n° du certificat…)" style="min-width:160px" aria-label="Note">
+        <button class="btn btn-sm btn-secondary" type="submit">OK</button>
+        <?php else: ?><span><?= View::e(\App\Models\ExpeditionDocument::STATUTS[$d['statut']] ?? '') ?></span><?php endif; ?>
+      </form>
+      <?php endforeach; ?>
+      <?php if ($peutEcrire): ?>
+      <form method="post" action="<?= $base ?>/documents" style="display:flex;gap:8px;margin:6px 0;flex-wrap:wrap">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="action" value="ajouter">
+        <input type="text" name="libelle" maxlength="150" placeholder="Ajouter un document pour cette réservation" style="flex:1;min-width:200px" aria-label="Nouveau document">
+        <button class="btn btn-sm" type="submit">Ajouter</button>
+      </form>
+      <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 <?php if ($peutEcrire && $ouverte && !($complet && $reservations)): ?>
 <div class="card">
   <h2>Ajouter une réservation</h2>

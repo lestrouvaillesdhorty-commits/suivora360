@@ -120,6 +120,8 @@ class ParametresController
             'disponible' => \App\Models\SousActivite::disponible(),
             'motifs' => \App\Models\MotifPerte::lignes($filialeId),
             'motifsDispo' => \App\Models\MotifPerte::disponible(),
+            'docTypes' => \App\Models\ExpeditionDocument::types($filialeId),
+            'docsDispo' => \App\Models\ExpeditionDocument::disponible(),
         ]);
     }
 
@@ -172,6 +174,15 @@ class ParametresController
                 break;
             case 'mp_supprimer':
                 $ok = \App\Models\MotifPerte::supprimer($filialeId, $id);
+                break;
+            case 'doc_ajouter':
+                $ok = \App\Models\ExpeditionDocument::ajouterType($filialeId, $nom, (string) ($_POST['cible'] ?? ''));
+                break;
+            case 'doc_modifier':
+                $ok = \App\Models\ExpeditionDocument::modifierType($filialeId, $id, $nom, (string) ($_POST['cible'] ?? ''));
+                break;
+            case 'doc_basculer':
+                \App\Models\ExpeditionDocument::basculerType($filialeId, $id);
                 break;
             default:
                 $ok = false;

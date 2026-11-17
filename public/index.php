@@ -756,6 +756,8 @@ $router->post('/expeditions/{id}/modifier', function ($params) { Auth::requireLo
 $router->post('/expeditions/{id}/statut', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->statut($params); });
 $router->post('/expeditions/{id}/reserver', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->reserver($params); });
 $router->post('/expeditions/{id}/modifier-reservation', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->modifierReservation($params); });
+$router->post('/expeditions/{id}/formalites', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->formalites($params); });
+$router->post('/expeditions/{id}/documents', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->document($params); });
 $router->post('/expeditions/{id}/valider-reservation', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->validerReservation($params); });
 $router->post('/expeditions/{id}/supprimer-reservation', function ($params) { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->supprimerReservation($params); });
 

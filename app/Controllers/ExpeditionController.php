@@ -134,8 +134,15 @@ class ExpeditionController
             $dossiers = array_slice(Dossier::visibleFor($user, ['statut' => 'actif', 'filiale_id' => (int) $exp['filiale_id']]), 0, 200);
         } catch (\Throwable $e) {
         }
+        $docs = [];
+        try {
+            \App\Models\ExpeditionDocument::synchroniser($exp, $res);
+            $docs = \App\Models\ExpeditionDocument::parReservation($res);
+        } catch (\Throwable $e) {
+        }
         View::render('expeditions/show', [
             'exp' => $exp,
+            'docs' => $docs,
             'reservations' => $res,
             'bilan' => Expedition::bilan($exp, $res),
             'dossiers' => $dossiers,
@@ -293,6 +300,41 @@ class ExpeditionController
             View::flash('succes', 'Réservation validée avec le client.');
         }
         header('Location: /index.php?r=expeditions/' . $exp['id']);
+        exit;
+    }
+
+    /** Interrupteur « formalités gérées par le transitaire ». */
+    public function formalites(array $params): void
+    {
+        $exp = $this->charger($params, true);
+        if (!$exp) {
+            return;
+        }
+        $transitaire = ($_POST['formalites_transitaire'] ?? '') === '1';
+        \App\Models\ExpeditionDocument::definirFormalites((int) $exp['id'], $transitaire);
+        AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'modification', 'expedition', (int) $exp['id'], $transitaire ? 'Formalités gérées par le transitaire' : 'Documents à suivre dans Suivora360');
+        View::flash('succes', $transitaire ? 'Formalités confiées au transitaire : aucun document demandé.' : 'Suivi des documents activé.');
+        header('Location: /index.php?r=expeditions/' . $exp['id']);
+        exit;
+    }
+
+    /** Met à jour l'état d'un document, ou en ajoute un. */
+    public function document(array $params): void
+    {
+        $exp = $this->charger($params, true);
+        if (!$exp) {
+            return;
+        }
+        $r = Expedition::findReservation((int) ($_POST['reservation_id'] ?? 0));
+        if ($r && (int) $r['expedition_id'] === (int) $exp['id']) {
+            if (($_POST['action'] ?? '') === 'ajouter') {
+                \App\Models\ExpeditionDocument::ajouterLibre((int) $r['id'], (string) ($_POST['libelle'] ?? ''));
+            } else {
+                \App\Models\ExpeditionDocument::maj((int) ($_POST['doc_id'] ?? 0), (int) $r['id'], (string) ($_POST['statut'] ?? ''), (string) ($_POST['note'] ?? ''));
+            }
+            View::flash('succes', 'Documents mis à jour.');
+        }
+        header('Location: /index.php?r=expeditions/' . $exp['id'] . '#docs');
         exit;
     }
 
