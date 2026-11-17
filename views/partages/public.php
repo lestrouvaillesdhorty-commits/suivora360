@@ -1,4 +1,6 @@
-<?php use App\Core\View; use App\Services\DevisPdf; ?>
+<?php use App\Core\View; use App\Services\DevisPdf;
+$col = \App\Models\EntrepriseInfo::couleurEffective($emetteur ?? []);
+$rgb = sscanf($col, '#%02x%02x%02x'); $teinte = sprintf('#%02X%02X%02X', ...array_map(fn($v) => (int) round($v * 0.08 + 255 * 0.92), $rgb)); ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,21 +8,22 @@
 <title>Demande d'offre — <?= View::e($consultation['reference'] ?? '') ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
 <style>
+:root{--c:<?= $col ?>;--t:<?= $teinte ?>}
 *{box-sizing:border-box} body{margin:0;background:#eef0f4;font:14px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;color:#1c2030;padding:12px 0}
-.print-btn{background:#0B7C8A;color:#fff;border:0;border-radius:6px;padding:9px 14px;font-size:14px;text-decoration:none;cursor:pointer;display:inline-block}
+.print-btn{background:var(--c);color:#fff;border:0;border-radius:6px;padding:9px 14px;font-size:14px;text-decoration:none;cursor:pointer;display:inline-block}
 .page{max-width:820px;margin:12px auto 24px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;flex-direction:column;min-height:1000px}
-.ent{padding:26px 34px 16px;border-bottom:4px solid #0B7C8A;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ent{padding:26px 34px 16px;border-bottom:4px solid var(--c);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .emet .logo{max-height:64px;max-width:220px;display:block;margin-bottom:8px}.emet .coord{font-size:12.5px;color:#556;margin-top:3px}.ent .nom{font-size:22px;font-weight:700}.ent .doc{text-align:right}.ent .doc b{font-size:20px;letter-spacing:.5px;display:block}
 .corps{padding:18px 34px;flex:1}
-.bloc{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px}.bloc>div{flex:1;min-width:230px;background:#F2F7F8;border-radius:8px;padding:10px 14px}
+.bloc{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px}.bloc>div{flex:1;min-width:230px;background:var(--t);border-radius:8px;padding:10px 14px}
 .bloc h3{margin:0 0 4px;font-size:12px;color:#667;font-weight:600}
-h2{font-size:14px;color:#0B7C8A;margin:20px 0 8px;border-bottom:1px solid #e6eef0;padding-bottom:6px}
+h2{font-size:14px;color:var(--c);margin:20px 0 8px;border-bottom:1px solid #e6eef0;padding-bottom:6px}
 table{width:100%;border-collapse:collapse;margin-top:6px}
-th{background:#0B7C8A;color:#fff;font-size:12px;text-align:left;padding:8px}td{padding:8px;border-bottom:1px solid #e6e8ef;vertical-align:top}
-table.kv th{background:#F2F7F8;color:#334;width:38%;font-weight:600}
+th{background:var(--c);color:#fff;font-size:12px;text-align:left;padding:8px}td{padding:8px;border-bottom:1px solid #e6e8ef;vertical-align:top}
+table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
 .d{font-size:12px;color:#667}.r{text-align:right;white-space:nowrap}.tw{overflow-x:auto}
 .cond{margin-top:14px;font-size:13px}
-.piece-link{display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:#F2F7F8;border-radius:6px;text-decoration:none;color:#1c2030;font-size:13px}
+.piece-link{display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:var(--t);border-radius:6px;text-decoration:none;color:#1c2030;font-size:13px}
 .pied{padding:12px 34px;border-top:1px solid #e0e3ea;font-size:11.5px;color:#667;line-height:1.5}.pied .pr{text-align:right;color:#99a;margin-top:2px}
 @media print{body{background:#fff;padding:0}.no-print{display:none!important}.page{box-shadow:none;margin:0;max-width:none;min-height:0}}
 @media (max-width:600px){.ent,.corps,.pied{padding-left:16px;padding-right:16px}.ent .doc{text-align:left}}

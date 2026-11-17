@@ -23,6 +23,7 @@ class RecapPdf
         $emetteur = (string) ($em['nom'] ?? '');
 
         $pdf = new PdfSimple(trim($emetteur . ' - Demande d\'offre ' . ($consultation['reference'] ?? '')));
+        $pdf->couleur(\App\Models\EntrepriseInfo::couleurEffective(is_array($em) ? $em : []));
         $pdf->piedEntreprise(DevisPdf::ligneEntreprise($em));
         if ($emetteur !== '') {
             $pdf->sousTitre($emetteur);
