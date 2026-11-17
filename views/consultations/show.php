@@ -19,7 +19,7 @@ $badges = [
     <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/recap" class="btn btn-secondary">Voir le récap</a>
     <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/recap/pdf" class="btn btn-secondary">Télécharger le PDF</a>
     <?php if ($consultation['statut'] === 'a_envoyer' && \App\Core\Auth::canWrite()): ?>
-      <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/modifier" class="btn btn-secondary">Modifier</a>
+      <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/modifier" class="btn">Préparer la consultation</a>
     <?php endif; ?>
     <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/nouvelle" class="btn <?= $consultation['statut'] === 'a_envoyer' ? '' : 'btn-secondary' ?>"><?= $consultation['statut'] === 'a_envoyer' ? 'Envoyer la consultation' : 'Renvoyer / nouveau lien' ?></a>
     <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/offres/nouvelle" class="btn">+ Enregistrer une offre reçue</a>

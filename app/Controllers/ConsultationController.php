@@ -122,11 +122,11 @@ class ConsultationController
         }
 
         $n = count($fournisseurIds);
-        View::flash('succes', ($n > 1 ? $n . ' consultations enregistrées' : 'Consultation enregistrée') . ' — pas encore envoyée : préparez le récapitulatif et choisissez le canal d\'envoi.');
+        View::flash('succes', ($n > 1 ? $n . ' consultations enregistrées' : 'Consultation enregistrée') . ' — pas encore envoyée : précisez la livraison et les informations demandées, puis envoyez-la.');
         // On reste sur la consultation créée (ou, pour plusieurs vendeurs, sur la liste des consultations du dossier) :
         // elle ne « disparaît » plus, et on peut la modifier ou l'envoyer tout de suite.
         if ($n === 1 && $dernier > 0) {
-            header('Location: /index.php?r=consultations/' . $dernier);
+            header('Location: /index.php?r=consultations/' . $dernier . (ConsultationFournisseur::prepaDisponible() ? '/modifier' : ''));
         } else {
             header('Location: /index.php?r=dossiers/' . $dossier['id'] . '&onglet=achats&sous=consultations');
         }

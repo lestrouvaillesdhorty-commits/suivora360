@@ -50,7 +50,7 @@ use App\Models\ConsultationPartage;
             <td style="white-space:nowrap"><a href="/index.php?r=consultations/<?= $c['id'] ?>" class="btn btn-sm btn-secondary" title="Voir">Voir</a>
               <?php if ($c['statut'] === 'a_envoyer' && \App\Core\Auth::canWrite()): ?>
                 <a href="/index.php?r=consultations/<?= $c['id'] ?>/partages/nouvelle" class="btn btn-sm">Envoyer</a>
-                <a href="/index.php?r=consultations/<?= $c['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier">Modifier</a>
+                <a href="/index.php?r=consultations/<?= $c['id'] ?>/modifier" class="btn btn-sm" title="Préparer la consultation : livraison et informations demandées">Préparer</a>
               <?php endif; ?>
               <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap" class="btn btn-sm btn-secondary" title="Récapitulatif">Récap</a>
               <a href="/index.php?r=consultations/<?= $c['id'] ?>/recap/pdf" class="btn btn-sm btn-secondary" title="Télécharger le PDF">PDF</a></td>
