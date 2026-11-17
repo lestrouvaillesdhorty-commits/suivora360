@@ -65,10 +65,11 @@ table.kv th{background:var(--t);color:#334;width:38%;font-weight:600}
     <?php $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande ?? null); ?>
     <div><h3>Livraison souhaitée</h3>
       <?php if ($liv['etape']): ?>Livrer à : <?= View::e($liv['etape_pays']) ?><br>
-        <?php if ($liv['etape_adresse'] !== '' && !$masquerClient): ?><?= nl2br(View::e($liv['etape_adresse'])) ?><br><?php endif; ?>
+        <?php if ($liv['etape_adresse'] !== ''): ?><?= nl2br(View::e($liv['etape_adresse'])) ?><br><?php endif; ?>
         Destination finale : <?= View::e($liv['finale']) ?: 'Non précisée' ?><br>
       <?php else: ?>Destination : <?= View::e($liv['finale']) ?: 'Non précisée' ?><br>
-      <?php if (!$masquerClient): ?>Lieu : <?= View::e($demande['lieu_livraison'] ?? '') ?: 'Non précisé' ?><br><?php endif; ?>
+        <?php if ($liv['etape_adresse'] !== ''): ?><?= nl2br(View::e($liv['etape_adresse'])) ?><br>
+        <?php elseif (!$masquerClient): ?>Lieu : <?= View::e($demande['lieu_livraison'] ?? '') ?: 'Non précisé' ?><br><?php endif; ?>
       <?php endif; ?>
       Incoterm : <?= View::e($liv['incoterm']) ?: 'Non précisé' ?></div>
   </div>

@@ -47,8 +47,9 @@
           <div class="form-group"><label>Livrer à (étape)</label><input type="text" name="livraison_etape_pays" value="<?= View::e($liv['etape_pays']) ?>" placeholder="Ex. France"></div>
           <div class="form-group"><label>Destination finale</label><input type="text" name="livraison_finale_pays" value="<?= View::e($liv['finale']) ?>" placeholder="Ex. Cameroun"></div>
         </div>
-        <div class="form-group"><label>Adresse ou entrepôt de réception (étape)</label><textarea name="livraison_etape_adresse" rows="2"><?= View::e($liv['etape_adresse']) ?></textarea></div>
       </div>
+      <div class="form-group"><label>Adresse de livraison complète (nom du destinataire, rue, code postal, ville, contact)</label><textarea name="livraison_etape_adresse" rows="4" placeholder="Ex. LTDH SASU, entrepôt X, 12 rue…, 75000 Paris, tél. …"><?= View::e($liv['etape_adresse']) ?></textarea>
+        <div class="hint" style="font-size:12px;color:#888">Cette adresse est affichée telle quelle au fournisseur, même si le nom du client est masqué.</div></div>
       <div class="form-group"><label>Incoterm demandé</label><input type="text" name="incoterm_demande" value="<?= View::e($liv['incoterm']) ?>" placeholder="Ex. DAP, EXW, FOB" style="max-width:260px">
         <div class="hint" style="font-size:12px;color:#888">Avec étape, il s'applique à la livraison dans le premier pays. Par défaut : celui de la demande.</div></div>
       <script>(function(){var m=document.getElementById('livMode');m.addEventListener('change',function(){document.getElementById('blocEtape').style.display=m.value==='etape'?'':'none';});})();</script>

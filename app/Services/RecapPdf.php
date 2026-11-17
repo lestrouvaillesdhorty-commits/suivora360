@@ -79,12 +79,16 @@ class RecapPdf
         $pdf->section('Spécifications logistiques');
         $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande);
         $logi = [];
+        $adr = $liv['etape_adresse'] !== '' ? preg_replace('/\s*\R\s*/u', ', ', $liv['etape_adresse']) : '';
         if ($liv['etape']) {
-            $logi['Livrer à'] = $liv['etape_pays'] . (($liv['etape_adresse'] !== '' && !$masquer) ? ' - ' . preg_replace('/\s*\R\s*/u', ', ', $liv['etape_adresse']) : '');
+            $logi['Livrer à'] = $liv['etape_pays'];
+            if ($adr !== '') { $logi['Adresse de livraison'] = $adr; }
             $logi['Destination finale'] = $liv['finale'] ?: 'Non précisée';
         } else {
             $logi['Destination'] = $liv['finale'] ?: 'Non précisée';
-            if (!$masquer) {
+            if ($adr !== '') {
+                $logi['Adresse de livraison'] = $adr;
+            } elseif (!$masquer) {
                 $logi['Lieu de livraison'] = ($demande['lieu_livraison'] ?? '') ?: 'Non précisé';
             }
         }

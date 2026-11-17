@@ -262,7 +262,7 @@ class ConsultationFournisseur
         return [
             'etape' => $etape,
             'etape_pays' => $etape ? trim((string) $c['livraison_etape_pays']) : '',
-            'etape_adresse' => $etape ? trim((string) ($c['livraison_etape_adresse'] ?? '')) : '',
+            'etape_adresse' => trim((string) ($c['livraison_etape_adresse'] ?? '')),
             'finale' => $finale,
             'incoterm' => $inco,
         ];
