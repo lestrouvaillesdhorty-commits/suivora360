@@ -28,7 +28,11 @@ $badges = [
 
 <?php if ($consultation['statut'] === 'a_envoyer'): ?>
 <div class="alert" style="background:#fffbeb;color:#92400e;padding:12px 16px;border-radius:8px;font-size:14px;margin-top:12px">
-  Cette consultation n'a pas encore été envoyée. <a href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/nouvelle"><strong>Préparer le récapitulatif et choisir le canal d'envoi</strong></a>.
+  <strong>Cette consultation n'a pas encore été envoyée.</strong>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn btn-sm" href="/index.php?r=consultations/<?= $consultation['id'] ?>/modifier">1. Préparer la consultation</a>
+    <a class="btn btn-sm" href="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/nouvelle">2. Envoyer</a>
+  </div>
 </div>
 <?php endif; ?>
 
