@@ -348,6 +348,25 @@ class ExpeditionController
         exit;
     }
 
+    public function supprimer(array $params): void
+    {
+        $exp = $this->charger($params, true);
+        if (!$exp) {
+            return;
+        }
+        $nb = count(Expedition::reservations((int) $exp['id']));
+        if ($nb > 0) {
+            View::flash('erreur', 'Suppression impossible : retirez d\'abord les ' . $nb . ' réservation(s) de cette expédition.');
+            header('Location: /index.php?r=expeditions/' . $exp['id']);
+            exit;
+        }
+        Expedition::supprimer((int) $exp['id']);
+        AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'suppression', 'expedition', (int) $exp['id'], $exp['reference'] . ' · ' . $exp['origine'] . ' → ' . $exp['destination']);
+        View::flash('succes', 'Expédition ' . $exp['reference'] . ' supprimée.');
+        header('Location: ' . self::LISTE);
+        exit;
+    }
+
     /** Manifeste imprimable : liste des colis par client, sans aucun prix ni marge (à envoyer au transitaire). */
     public function manifeste(array $params): void
     {

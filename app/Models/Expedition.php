@@ -439,6 +439,16 @@ class Expedition
         }
     }
 
+    /** Supprime une expédition sans aucune réservation. Retourne false s'il en reste. */
+    public static function supprimer(int $id): bool
+    {
+        if (self::reservations($id)) {
+            return false;
+        }
+        Database::connection()->prepare('DELETE FROM expeditions WHERE id = ?')->execute([$id]);
+        return true;
+    }
+
     public static function supprimerReservation(int $id): void
     {
         Database::connection()->prepare('DELETE FROM expedition_reservations WHERE id = ?')->execute([$id]);
