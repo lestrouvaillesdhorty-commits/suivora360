@@ -132,7 +132,7 @@ class PartagePublicController
             return null;
         }
         $partage = ConsultationPartage::findByToken($token);
-        if (!$partage || !ConsultationPartage::estValide($partage)) {
+        if (!$partage || ConsultationPartage::sansLien($partage) || !ConsultationPartage::estValide($partage)) {
             return null;
         }
         return $partage;

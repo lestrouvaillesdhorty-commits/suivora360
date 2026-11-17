@@ -526,7 +526,8 @@ class ConsultationController
             return;
         }
 
-        $lienPublic = self::urlPublique($partage['token']);
+        $sansLien = ConsultationPartage::sansLien($partage);
+        $lienPublic = $sansLien ? '' : self::urlPublique($partage['token']);
         $fournisseur = Fournisseur::find((int) $consultation['fournisseur_id']) ?: [];
 
         // Destinataire + canal choisis à l'étape précédente (sinon : contact principal de la fiche).
@@ -558,7 +559,7 @@ class ConsultationController
         $variantes = [];
         foreach (['fr', 'en'] as $lg) {
             foreach (['sans', 'avec'] as $lk) {
-                $variantes[$lg . '_' . $lk] = \App\Services\MessageConsultation::construire($recap, $lg, $lk === 'avec' ? $lienPublic : null, $saluts[$lg], (string) ($user['nom'] ?? ''));
+                $variantes[$lg . '_' . $lk] = \App\Services\MessageConsultation::construire($recap, $lg, ($lk === 'avec' && $lienPublic !== '') ? $lienPublic : null, $saluts[$lg], (string) ($user['nom'] ?? ''));
             }
         }
         // Le lien en ligne est un CHOIX : jamais ajouté automatiquement au message.
@@ -605,6 +606,7 @@ class ConsultationController
             'variantes' => $variantes,
             'avecLienInit' => $avecLien,
             'piecesEnLigne' => $piecesEnLigne,
+            'sansLien' => $sansLien,
             'telWa' => $telephone,
         ]);
     }

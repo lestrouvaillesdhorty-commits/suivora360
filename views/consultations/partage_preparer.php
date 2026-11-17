@@ -57,11 +57,19 @@
       <div style="font-size:12px;color:#888;margin-top:4px">Recommandé : le fournisseur voit l'objet et les articles demandés, pas l'identité de votre client.</div>
     </div>
 
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" name="avec_lien" value="1" id="avecLien" style="width:auto">
+        Créer aussi un lien en ligne pour le fournisseur (facultatif)
+      </label>
+      <div style="font-size:12px;color:#888;margin-top:4px">Sans lien : le fournisseur reçoit uniquement votre message et le PDF. Aucun lien n'est créé.</div>
+    </div>
+
     <div class="form-row">
       <div class="form-group"><label>Échéance de réponse souhaitée</label><input type="date" name="echeance_reponse"></div>
-      <div class="form-group">
+      <div class="form-group" id="blocDuree" style="display:none">
         <label>Durée de validité du lien</label>
-        <select name="duree_jours">
+        <select name="duree_jours" id="dureeLien">
           <?php foreach (ConsultationPartage::DUREES_JOURS as $j): ?>
             <option value="<?= $j ?>" <?= $j === 7 ? 'selected' : '' ?>><?= $j ?> jours</option>
           <?php endforeach; ?>
@@ -135,9 +143,10 @@
   if (c0 && !c0.dataset.email && c0.dataset.tel) document.querySelector('input[name=canal][value=whatsapp]').checked = true;
   maj();
 })();
+document.getElementById('avecLien').addEventListener('change',function(){document.getElementById('blocDuree').style.display=this.checked?'':'none';});
 </script>
 
-<?php if (!empty($partages)): ?>
+<?php $partages = array_values(array_filter($partages ?? [], fn($x) => !ConsultationPartage::sansLien($x))); if (!empty($partages)): ?>
 <div class="card" style="max-width:760px">
   <h2>Liens déjà générés</h2>
   <table>

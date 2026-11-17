@@ -13,6 +13,7 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
 <div class="card" style="max-width:760px">
   <?php if (!empty($partage['revoque_le'])): ?>
     <div class="alert alert-erreur">Ce lien a été révoqué, il n'est plus accessible.</div>
+  <?php elseif (!empty($sansLien)): ?>
   <?php elseif (!$lienActif): ?>
     <div class="alert alert-erreur">Ce lien a expiré (valide jusqu'au <?= date('d/m/Y H:i', strtotime($partage['expire_le'])) ?>).</div>
   <?php else: ?>
@@ -73,9 +74,11 @@ $destTel = trim((string) ($dest['telephone'] ?? ''));
     <label style="display:flex;align-items:center;gap:6px;margin:0">Langue :
       <select id="msgLangue" style="width:auto"><option value="fr">Français</option><option value="en">English</option></select>
     </label>
+    <?php if (empty($sansLien)): ?>
     <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="msgLien" style="width:auto" <?= !empty($avecLienInit) ? 'checked' : '' ?>> Ajouter un lien en ligne (facultatif)<?= !empty($piecesEnLigne) ? ' — utile pour que le fournisseur voie les photos cochées' : '' ?></label>
+    <?php else: ?><input type="checkbox" id="msgLien" style="display:none"><?php endif; ?>
   </div>
-  <div style="font-size:12px;color:#888;margin-top:6px">Le message contient déjà les articles, quantités, détails et conditions demandées : le lien en ligne est facultatif. Vous pouvez modifier le texte dans chaque canal.</div>
+  <div style="font-size:12px;color:#888;margin-top:6px">Le message contient déjà les articles, quantités, détails et conditions demandées.<?= empty($sansLien) ? ' Le lien en ligne est facultatif.' : ' Aucun lien en ligne n\'a été créé.' ?> Vous pouvez modifier le texte dans chaque canal.</div>
 </div>
 
 <?php
@@ -111,7 +114,7 @@ ob_start(); ?>
         <?php endforeach; ?>
       </div>
       <div style="font-size:12px;color:#888;margin-top:8px">
-        Votre messagerie s'ouvre avec le destinataire, l'objet et le message prêts : vous relisez et vous cliquez sur « Envoyer » vous-même, depuis votre adresse. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout manuel. Ajoutez le lien sécurisé (case ci-dessus) pour que le fournisseur puisse télécharger le PDF et les photos. Ensuite, confirmez l'envoi plus bas.
+        Votre messagerie s'ouvre avec le destinataire, l'objet et le message prêts : vous relisez et vous cliquez sur « Envoyer » vous-même, depuis votre adresse. Pour joindre le PDF : « Partager le PDF » (téléphone) ou « Télécharger le PDF » puis ajout manuel. <?= empty($sansLien) ? 'Ajoutez le lien sécurisé (case ci-dessus) pour que le fournisseur puisse télécharger le PDF et les photos. ' : '' ?>Ensuite, confirmez l'envoi plus bas.
         <?php if ($mailServeurPret): ?>« Envoyer directement depuis Suivora » expédie l'e-mail sans passer par votre messagerie, avec le PDF joint.<?php else: ?>L'envoi direct depuis Suivora n'est pas activé sur cette installation (<code>MAIL_FROM_ADDRESS</code> dans le .env).<?php endif; ?>
       </div>
     </form>
@@ -164,10 +167,12 @@ ob_start(); ?>
 
 ob_start(); ?>
     <h2 style="font-size:15px;margin-bottom:8px">Autre canal (téléphone, Alibaba, plateforme…)</h2>
+    <?php if (empty($sansLien)): ?>
     <div class="form-group">
       <label>Lien sécurisé (récapitulatif + pièces sélectionnées)</label>
       <input type="text" readonly value="<?= View::e($lienPublic) ?>" onclick="this.select()" style="font-size:13px">
     </div>
+    <?php endif; ?>
     <div class="form-group">
       <label>Message à copier</label>
       <textarea id="autreMsg" rows="10" style="font-size:13px" onclick="this.select()"><?= View::e($messagePrepare) ?></textarea>
@@ -179,15 +184,17 @@ foreach ($ordre as $i => $code):
   if ($i === 0): ?>
   <div class="card" style="box-shadow:none;border:2px solid #BFE0E5;margin:0 0 14px"><?= $panneaux[$code] ?></div>
 <?php else: ?>
-  <details style="margin:0 0 10px"><summary style="cursor:pointer;font-size:14px;color:#4b5563">Utiliser plutôt : <?= View::e($code === 'autre' ? 'un autre canal (copier le lien)' : ConsultationFournisseur::CANAUX[$code]) ?></summary>
+  <details style="margin:0 0 10px"><summary style="cursor:pointer;font-size:14px;color:#4b5563">Utiliser plutôt : <?= View::e($code === 'autre' ? (empty($sansLien) ? 'un autre canal (copier le lien)' : 'un autre canal (copier le message)') : ConsultationFournisseur::CANAUX[$code]) ?></summary>
     <div class="card" style="box-shadow:none;border:1px solid #e3e6ec;margin:8px 0 0"><?= $panneaux[$code] ?></div>
   </details>
 <?php endif; endforeach; ?>
 
+  <?php if (empty($sansLien)): ?>
   <div class="form-group" style="margin-top:6px">
     <label>Lien sécurisé</label>
     <input type="text" readonly value="<?= View::e($lienPublic) ?>" onclick="this.select()" style="font-size:13px">
   </div>
+  <?php endif; ?>
 
   <?php if (empty($partage['marque_envoye_le'])): ?>
     <div class="alert" style="background:#fffbeb;color:#92400e;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px">
@@ -210,7 +217,7 @@ foreach ($ordre as $i => $code):
     <div style="margin-top:12px;font-size:13px;color:#065f46;font-weight:600">✓ Marqué comme envoyé le <?= date('d/m/Y H:i', strtotime($partage['marque_envoye_le'])) ?><?= !empty($consultation['canal_envoi']) ? ' — canal : ' . View::e(ConsultationFournisseur::CANAUX[$consultation['canal_envoi']] ?? $consultation['canal_envoi']) : '' ?></div>
   <?php endif; ?>
 
-  <?php if (empty($partage['revoque_le'])): ?>
+  <?php if (empty($partage['revoque_le']) && empty($sansLien)): ?>
     <form method="post" action="/index.php?r=consultations/<?= $consultation['id'] ?>/partages/<?= $partage['id'] ?>/revoquer" style="margin-top:16px;padding-top:16px;border-top:1px solid #eef0f4">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
       <button type="submit" class="btn btn-secondary">Révoquer ce lien</button>

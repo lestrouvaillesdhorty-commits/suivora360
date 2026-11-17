@@ -40,6 +40,11 @@ class ConsultationPartage
         return $stmt->fetchAll();
     }
 
+    public static function sansLien(array $partage): bool
+    {
+        return str_starts_with((string) ($partage['token'] ?? ''), 'interne_');
+    }
+
     public static function estValide(array $partage): bool
     {
         if (!empty($partage['revoque_le'])) {
@@ -51,10 +56,15 @@ class ConsultationPartage
     public static function create(int $consultationId, array $data, int $userId): array
     {
         $pdo = Database::connection();
-        $token = bin2hex(random_bytes(24));
+        $sansLien = empty($data['avec_lien']);
+        // Sans lien en ligne : simple fiche interne (réglages d'envoi). Jeton « interne_ » : jamais accessible publiquement.
+        $token = ($sansLien ? 'interne_' : '') . bin2hex(random_bytes($sansLien ? 16 : 24));
         $dureeJours = (int) ($data['duree_jours'] ?? 7);
         if (!in_array($dureeJours, self::DUREES_JOURS, true)) {
             $dureeJours = 7;
+        }
+        if ($sansLien) {
+            $dureeJours = 30;
         }
         $expireLe = date('Y-m-d H:i:s', strtotime("+$dureeJours days"));
         $piecesIds = array_values(array_filter(array_map('intval', $data['pieces_ids'] ?? [])));
