@@ -237,6 +237,7 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
     <?php endif; ?>
   </div>
 
+  <style>.nd-list li .lien-ligne::after { content: ''; position: absolute; inset: 0; }</style>
   <div class="card dg-demandes">
     <?php $nbAQualifier = 0; foreach ($dernieresDemandes as $dd) { if (($dd['statut'] ?? '') === 'a_qualifier') { $nbAQualifier++; } } ?>
     <h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('inbox', 'icon', 17) ?> Nouvelles demandes <?php if ($nbAQualifier > 0): ?><span class="badge badge-blue"><?= $nbAQualifier ?> à qualifier</span><?php endif; ?></span><a href="/index.php?r=demandes" style="font-size:13px;font-weight:600">Toutes les demandes</a></h2>
@@ -245,13 +246,13 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
     <?php else: ?>
       <ul class="feed-list nd-list">
       <?php foreach (array_slice($dernieresDemandes, 0, 4) as $d): $aQ = ($d['statut'] ?? '') === 'a_qualifier'; ?>
-      <li onclick="window.location='/index.php?r=demandes/<?= $d['id'] ?>'">
+      <li onclick="window.location='/index.php?r=demandes/<?= $d['id'] ?>'" style="cursor:pointer;position:relative">
         <div class="fl-body">
-          <div class="fl-title"><?= View::e($d['objet']) ?></div>
+          <div class="fl-title"><a href="/index.php?r=demandes/<?= $d['id'] ?>" class="lien-ligne" style="color:inherit;text-decoration:none"><?= View::e($d['objet']) ?></a></div>
           <div class="fl-sub"><?= View::e(trim((string) ($d['client_nom'] ?? '')) !== '' ? $d['client_nom'] . ' · ' : '') ?><?= View::e($d['filiale_nom'] ?? '') ?> · reçue <?= !empty($d['recue_le']) ? date('d/m/Y', strtotime($d['recue_le'])) : '—' ?></div>
         </div>
         <span class="badge <?= $statutDemandeBadges[$d['statut']][1] ?? 'badge-gray' ?>"><?= $statutDemandeBadges[$d['statut']][0] ?? ucfirst($d['statut']) ?></span>
-        <a href="/index.php?r=demandes/<?= $d['id'] ?>" class="btn btn-sm btn-secondary" onclick="event.stopPropagation()"><?= $aQ ? 'Qualifier' : 'Ouvrir' ?></a>
+        <a href="/index.php?r=demandes/<?= $d['id'] ?>" class="btn btn-sm btn-secondary" style="position:relative;z-index:1" onclick="event.stopPropagation()"><?= $aQ ? 'Qualifier' : 'Ouvrir' ?></a>
       </li>
       <?php endforeach; ?>
       </ul>
