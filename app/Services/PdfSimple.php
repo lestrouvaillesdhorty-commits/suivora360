@@ -117,6 +117,28 @@ class PdfSimple
         $this->y -= 4;
     }
 
+    /** Paires libellé / valeur sans en-tête : libellé sur fond clair teinté (comme la page). */
+    public function pairesTeintees(array $paires): void
+    {
+        $utile = self::W - 2 * self::MARGE;
+        $cL = $utile * 0.3;
+        foreach ($paires as $k => $v) {
+            $lk = $this->couper((string) $k, 8.5, $cL - 12, true);
+            $lv = $this->couper((string) $v, 9.5, $utile - $cL - 12, false);
+            $n = max(count($lk), count($lv));
+            $h = $n * 12.5 + 8;
+            $this->assurerPlace($h + 4);
+            $this->rect(self::MARGE, $this->y - $h + 2, $cL, $h, array_map(fn($x) => $x * 0.08 + 0.92, $this->teal));
+            $yy = $this->y - 11;
+            foreach ($lk as $l) { $this->texte(self::MARGE + 6, $yy, $l, 8.5, true, [0.3, 0.32, 0.38]); $yy -= 12.5; }
+            $yy = $this->y - 11;
+            foreach ($lv as $l) { $this->texte(self::MARGE + $cL + 8, $yy, $l, 9.5, false, [0.1, 0.1, 0.1]); $yy -= 12.5; }
+            $this->y -= $h;
+            $this->ligne(self::MARGE, $this->y + 2, self::W - self::MARGE, [0.88, 0.89, 0.92]);
+        }
+        $this->y -= 4;
+    }
+
     /** Paires libellé / valeur (détails de la demande). */
     public function paires(array $paires): void
     {
@@ -234,9 +256,9 @@ class PdfSimple
     }
 
     /** En-tête : à gauche logo + nom + coordonnées, à droite titre du document ; filet turquoise dessous. */
-    public function enteteDevis(?array $logo, string $nom, array $coord, string $titre, array $droite): void
+    public function enteteDevis(?array $logo, string $nom, array $coord, string $titre, array $droite, float $partTitre = 0.4): void
     {
-        $largG = (self::W - 2 * self::MARGE) * 0.58;
+        $largG = (self::W - 2 * self::MARGE) * (1 - $partTitre - 0.02);
         $hG = 0.0;
         $lh = 0.0;
         if ($logo && $logo['w'] > 0 && $logo['h'] > 0) {
@@ -254,7 +276,7 @@ class PdfSimple
             }
         }
         $hG += count($lCoord) * 11.5 + 2;
-        $lTitre = $this->couper($titre, 14, (self::W - 2 * self::MARGE) * 0.4, true);
+        $lTitre = $this->couper($titre, 14, (self::W - 2 * self::MARGE) * $partTitre, true);
         $hD = count($lTitre) * 17 + count($droite) * 12.5;
         $h = max($hG, $hD);
         $this->assurerPlace($h + 16);
@@ -311,11 +333,13 @@ class PdfSimple
         $larg = (self::W - 2 * self::MARGE - ($n - 1) * $gap) / $n;
         $rendu = [];
         $hMax = 0.0;
-        foreach ($blocs as [$titre, $lignes]) {
+        foreach ($blocs as $bl) {
+            [$titre, $lignes] = $bl;
+            $premierGras = $bl[2] ?? true;
             $ls = [];
             foreach ($lignes as $k => $l) {
-                foreach ($this->couper((string) $l, 9.5, $larg - 20, $k === 0) as $j => $c) {
-                    $ls[] = [$c, $k === 0];
+                foreach ($this->couper((string) $l, 9.5, $larg - 20, $k === 0 && $premierGras) as $j => $c) {
+                    $ls[] = [$c, $k === 0 && $premierGras];
                 }
             }
             $rendu[] = [$titre, $ls];

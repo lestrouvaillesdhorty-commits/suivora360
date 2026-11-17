@@ -24,7 +24,7 @@ class RecapPdf
 
         $pdf = new PdfSimple(trim($emetteur . ' - Demande d\'offre ' . ($consultation['reference'] ?? '')));
         $pdf->couleur(\App\Models\EntrepriseInfo::couleurEffective(is_array($em) ? $em : []));
-        $pdf->modele(\App\Models\EntrepriseInfo::miseEnPage(is_array($em) ? $em : []));
+        $pdf->modele('classique'); // identique à la page vue à l'écran : fond blanc + filet de couleur
         $pdf->piedEntreprise(DevisPdf::ligneEntreprise($em));
         $logo = null;
         if (!empty($em['logo'])) {
@@ -42,10 +42,11 @@ class RecapPdf
             'Date : ' . date('d/m/Y'),
             !empty($partage['echeance_reponse']) ? 'Réponse avant le ' . date('d/m/Y', strtotime($partage['echeance_reponse'])) : '',
         ]));
-        $pdf->enteteDevis($mode === 'nom' ? null : $logo, $mode === 'logo' ? '' : $emetteur, $coord, "DEMANDE D'OFFRE " . ($consultation['reference'] ?? ''), $droite);
+        $pdf->enteteDevis($mode === 'nom' ? null : $logo, $mode === 'logo' ? '' : $emetteur, $coord, "DEMANDE D'OFFRE " . ($consultation['reference'] ?? ''), $droite, 0.52);
         $liv = \App\Models\ConsultationFournisseur::livraison($consultation, $demande);
         $adr = $liv['etape_adresse'];
-        $objet = ['Demande : ' . ($dossier['objet'] ?? ''), 'Dossier : ' . ($dossier['reference'] ?? '')];
+        $objTxt = trim(preg_replace('/^\s*Demande\s*:\s*/iu', '', (string) ($dossier['objet'] ?? '')));
+        $objet = ['Demande : ' . $objTxt, 'Dossier : ' . ($dossier['reference'] ?? '')];
         if (!$masquer) {
             $objet[] = 'Client : ' . (($demande['expediteur_entreprise'] ?? '') ?: ($demande['expediteur_nom'] ?? '—'));
         }
@@ -63,7 +64,7 @@ class RecapPdf
             }
         }
         $livL[] = 'Incoterm : ' . ($liv['incoterm'] ?: 'Non précisé');
-        $pdf->blocsInfo([['Objet', $objet], ['Livraison souhaitée', $livL]]);
+        $pdf->blocsInfo([['Objet', $objet], ['Livraison souhaitée', $livL, false]]);
 
         $besoins = trim((string) ($consultation['articles_demandes'] ?? ''));
         if ($besoins !== '') {
@@ -76,9 +77,12 @@ class RecapPdf
 
         if (!empty($d['articles'])) {
             $lignes = [];
+            $num = 0;
             foreach ($d['articles'] as $a) {
+                $num++;
                 $q = (float) ($a['quantite'] ?? 0);
                 $lignes[] = [
+                    (string) $num,
                     $a['designation'] ?? '',
                     rtrim(rtrim(number_format($q, 2, ',', ''), '0'), ','),
                     $a['unite'] ?? '',
@@ -88,12 +92,12 @@ class RecapPdf
                     $a['caracteristiques'] ?? '',
                 ];
             }
-            $pdf->tableau(['Désignation', 'Qté', 'Unité', 'Conditionnement', 'Référence', 'Marque', 'Caractéristiques'], $lignes, [4.2, 1.1, 1.4, 3.3, 1.8, 1.8, 3.4]);
+            $pdf->tableau(['N°', 'Désignation', 'Qté', 'Unité', 'Conditionnement', 'Référence', 'Marque', 'Caractéristiques'], $lignes, [0.8, 4.0, 1.1, 1.4, 3.2, 1.8, 1.8, 3.2]);
         }
 
         if (!empty($d['detailsDemande'])) {
             $pdf->section('Détails de la demande');
-            $pdf->paires($d['detailsDemande']);
+            $pdf->pairesTeintees($d['detailsDemande']);
         }
 
         if (!empty($d['pieces'])) {
@@ -106,11 +110,11 @@ class RecapPdf
         $pdf->section('Votre offre');
         $pdf->paragraphe("Merci de nous indiquer, pour chaque article :", 9);
         foreach (\App\Models\ConsultationFournisseur::infos($consultation) as $inf) {
-            $pdf->paragraphe('- ' . $inf, 9);
+            $pdf->paragraphe('•  ' . $inf, 9);
         }
         $ex = $d['expediteur'] ?? null;
         $cont = ($ex && !empty($ex['email'])) ? trim(implode(' - ', array_filter([(string) ($ex['nom'] ?? ''), (string) $ex['email']]))) : '';
-        $pdf->paragraphe(($cont !== '' ? "Merci de répondre directement à " . $cont . ". " : "Merci de répondre directement par le canal utilisé pour vous transmettre cette demande. ") . "Demande émise par " . $emetteur . ".", 8.5);
+        $pdf->paragraphe(($cont !== '' ? "Merci de répondre directement à " . $cont . ". " : "Merci de répondre directement par le canal utilisé pour vous transmettre cette demande. "), 8.5);
         return $pdf->rendre();
     }
 
