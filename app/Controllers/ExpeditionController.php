@@ -58,11 +58,17 @@ class ExpeditionController
         ]);
     }
 
+    private function donneesTransitaires(array $user): array
+    {
+        $liste = \App\Models\TransitaireTarif::transitaires($user);
+        return ['transitaires' => $liste, 'tarifsTransitaires' => \App\Models\TransitaireTarif::pourFormulaire(array_column($liste, 'id'))];
+    }
+
     public function create(): void
     {
         Auth::requireWrite();
         $user = Auth::user();
-        View::render('expeditions/form', ['exp' => null, 'filiales' => Filiale::visibleFor($user), 'erreur' => null]);
+        View::render('expeditions/form', ['exp' => null, 'filiales' => Filiale::visibleFor($user), 'erreur' => null] + $this->donneesTransitaires($user));
     }
 
     private function lireFormulaire(): array
@@ -90,6 +96,30 @@ class ExpeditionController
         ];
     }
 
+    /** Transitaire choisi dans la liste (fournisseur de type Transitaire), et tarifs repris de sa fiche si le formulaire est vide. */
+    private function appliquerTransitaire(array $d): array
+    {
+        $fid = (int) ($_POST['fournisseur_id'] ?? 0);
+        $d['fournisseur_id'] = 0;
+        $f = $fid ? \App\Models\Fournisseur::find($fid) : null;
+        if (!$f || !\App\Models\Fournisseur::userCanAccess(Auth::user(), $f) || !in_array('transitaire', \App\Models\Fournisseur::typesDe($f), true)) {
+            return $d;
+        }
+        $d['fournisseur_id'] = $fid;
+        $d['partenaire'] = mb_substr((string) $f['nom'], 0, 150);
+        $nonAlim = \App\Models\TransitaireTarif::trouver($fid, $d['mode'], 'non_alimentaire', $d['destination']);
+        $alim = \App\Models\TransitaireTarif::trouver($fid, $d['mode'], 'alimentaire', $d['destination']);
+        if ($d['tarif_achat'] === '' && $nonAlim) {
+            $d['tarif_achat'] = (float) $nonAlim['montant'];
+            $d['tarif_achat_type'] = $nonAlim['unite'];
+        }
+        if ($d['tarif_achat_alim'] === '' && $alim) {
+            $d['tarif_achat_alim'] = (float) $alim['montant'];
+            $d['tarif_achat_alim_type'] = $alim['unite'];
+        }
+        return $d;
+    }
+
     public function store(): void
     {
         Auth::requireWrite();
@@ -100,7 +130,7 @@ class ExpeditionController
             exit;
         }
         $filialeId = (int) ($_POST['filiale_id'] ?? 0);
-        $d = $this->lireFormulaire();
+        $d = $this->appliquerTransitaire($this->lireFormulaire());
         if (!$filialeId || !Filiale::userCanAccess($user, $filialeId) || !Expedition::disponible()) {
             View::flash('erreur', "Création impossible (accès à la filiale ou migrate_v58.php manquant).");
             header('Location: ' . self::LISTE);
@@ -115,6 +145,7 @@ class ExpeditionController
         $d['created_by'] = (int) $user['id'];
         $id = Expedition::create($d);
         Expedition::majTarif($id, $d);
+        Expedition::definirTransitaire($id, (int) $d['fournisseur_id']);
         AuditLog::log($filialeId, (int) $user['id'], 'creation', 'expedition', $id, $d['origine'] . ' → ' . $d['destination']);
         View::flash('succes', 'Expédition créée.');
         header('Location: /index.php?r=expeditions/' . $id);
@@ -157,7 +188,7 @@ class ExpeditionController
         Auth::requireWrite();
         $exp = $this->charger($params);
         if ($exp) {
-            View::render('expeditions/form', ['exp' => $exp, 'filiales' => [], 'erreur' => null]);
+            View::render('expeditions/form', ['exp' => $exp, 'filiales' => [], 'erreur' => null] + $this->donneesTransitaires(Auth::user()));
         }
     }
 
@@ -168,6 +199,9 @@ class ExpeditionController
             return;
         }
         $d = $this->lireFormulaire();
+        if (isset($_POST['fournisseur_id'])) {
+            $d = $this->appliquerTransitaire($d);
+        }
         if ($d['origine'] === '' || $d['destination'] === '') {
             View::flash('erreur', "L'origine et la destination sont obligatoires.");
             header('Location: /index.php?r=expeditions/' . $exp['id'] . '/modifier');
@@ -175,6 +209,9 @@ class ExpeditionController
         }
         Expedition::modifier((int) $exp['id'], $d);
         Expedition::majTarif((int) $exp['id'], $d);
+        if (isset($_POST['fournisseur_id'])) {
+            Expedition::definirTransitaire((int) $exp['id'], (int) ($d['fournisseur_id'] ?? 0));
+        }
         AuditLog::log((int) $exp['filiale_id'], (int) Auth::user()['id'], 'modification', 'expedition', (int) $exp['id'], 'Expédition modifiée');
         View::flash('succes', 'Expédition enregistrée. Les prix déjà fixés des réservations ne changent pas.');
         header('Location: /index.php?r=expeditions/' . $exp['id']);

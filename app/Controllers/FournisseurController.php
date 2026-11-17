@@ -446,6 +446,23 @@ class FournisseurController
     // Contacts et adresses supplémentaires
     // ------------------------------------------------------------------
 
+    /** Tarifs d'un transitaire (mode, famille, unité, montant, date de début). */
+    public function enregistrerTarif(array $params): void
+    {
+        $f = $this->chargerOu404($params, true);
+        if (!$f) {
+            return;
+        }
+        $id = (int) $f['id'];
+        $this->csrfOuRetour($id, 'vue');
+        $montant = str_replace([' ', ','], ['', '.'], trim((string) ($_POST['montant'] ?? '')));
+        $date = (string) ($_POST['date_debut'] ?? '') ?: date('Y-m-d');
+        $ok = is_numeric($montant) && in_array('transitaire', Fournisseur::typesDe($f), true)
+            && \App\Models\TransitaireTarif::enregistrer($id, (string) ($_POST['mode'] ?? ''), (string) ($_POST['famille'] ?? ''), (string) ($_POST['destination'] ?? ''), (string) ($_POST['unite'] ?? ''), (float) $montant, $date, (int) Auth::user()['id']);
+        View::flash($ok ? 'succes' : 'erreur', $ok ? 'Tarif enregistré.' : "Tarif non enregistré : vérifiez le montant (ou lancez migrate_v63.php).");
+        $this->versFiche($id, 'vue');
+    }
+
     public function enregistrerContact(array $params): void
     {
         $f = $this->chargerOu404($params, true);

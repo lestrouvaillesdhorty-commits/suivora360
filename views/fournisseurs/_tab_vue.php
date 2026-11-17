@@ -122,6 +122,34 @@ $nbConsultEnCours = count(array_filter($consultations, fn($c) => in_array($c['st
       <?php endforeach; ?>
     </div>
 
+    <?php if (in_array('transitaire', Fournisseur::typesDe($fournisseur), true)): $tt = \App\Models\TransitaireTarif::courants((int) $fournisseur['id']); ?>
+    <div class="card" id="tarifs-transitaire">
+      <h2>Tarifs d'achat</h2>
+      <?php if (!\App\Models\TransitaireTarif::disponible()): ?>
+        <div class="empty-state">Cette fonction demande la dernière mise à jour de la base : lancez <strong>migrate_v63.php</strong>.</div>
+      <?php else: ?>
+      <?php $nb = 0; foreach ($tt as $t): $nb++; ?>
+        <div class="info-row"><span><?= View::e(\App\Models\Expedition::MODES[$t['mode']] ?? $t['mode']) ?> · <?= trim((string) ($t['destination'] ?? '')) !== '' ? View::e($t['destination']) : 'toutes destinations' ?> · <?= $t['famille'] === 'alimentaire' ? 'Alimentaire' : 'Non alimentaire' ?></span><span><strong><?= number_format((float) $t['montant'], 2, ',', ' ') ?></strong> <?= View::e(\App\Models\Expedition::TARIFS_ACHAT[$t['unite']] ?? $t['unite']) ?> <span style="font-size:12px;color:#888">depuis le <?= date('d/m/Y', strtotime($t['date_debut'])) ?></span></span></div>
+      <?php endforeach; ?>
+      <?php if (!$nb): ?><div class="empty-state">Aucun tarif enregistré. Ils seront repris automatiquement dans les nouvelles expéditions.</div><?php endif; ?>
+      <?php if (!empty($peutEcrire)): ?>
+      <form method="post" action="/index.php?r=fournisseurs/<?= (int) $fournisseur['id'] ?>/tarifs" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+        <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+        <select name="mode" aria-label="Mode" style="width:auto"><?php foreach (\App\Models\Expedition::MODES as $k => $l): ?><option value="<?= $k ?>"><?= View::e($l) ?></option><?php endforeach; ?></select>
+        <select name="famille" aria-label="Marchandise" style="width:auto"><option value="non_alimentaire">Non alimentaire</option><option value="alimentaire">Alimentaire</option></select>
+        <input type="text" name="destination" list="dest-tarifs" placeholder="Destination (facultatif)" aria-label="Destination" style="width:200px">
+        <datalist id="dest-tarifs"><?php foreach (array_unique(array_filter(array_map(fn($t) => trim((string) ($t['destination'] ?? '')), $tt))) as $dd): ?><option value="<?= View::e($dd) ?>"><?php endforeach; ?></datalist>
+        <input type="text" name="montant" inputmode="decimal" placeholder="Montant" aria-label="Montant" style="width:110px" required>
+        <select name="unite" aria-label="Unité" style="width:auto"><?php foreach (\App\Models\Expedition::TARIFS_ACHAT as $k => $l): ?><option value="<?= $k ?>"><?= View::e($l) ?></option><?php endforeach; ?></select>
+        <input type="date" name="date_debut" value="<?= date('Y-m-d') ?>" aria-label="Valable depuis" style="width:auto">
+        <button class="btn btn-sm btn-primary" type="submit">Enregistrer le tarif</button>
+      </form>
+      <div class="hint">La destination décide du tarif : sans destination, le tarif vaut pour toutes. Un nouveau tarif remplace l'ancien à partir de sa date. Les expéditions déjà créées gardent leurs valeurs.</div>
+      <?php endif; ?>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <div class="card">
       <h2>Gestion</h2>
       <?= $ligne('Responsable interne', $responsableNom) ?>

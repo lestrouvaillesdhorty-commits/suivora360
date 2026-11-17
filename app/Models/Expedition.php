@@ -107,6 +107,12 @@ class Expedition
             ->execute([($d['mode_achat'] ?? '') === 'tarif' ? 'tarif' : 'capacite', $type, ($d['tarif_achat'] ?? '') !== '' ? $d['tarif_achat'] : null, ($d['tarif_achat_alim'] ?? '') !== '' ? $d['tarif_achat_alim'] : null, $typeAlim, $id]);
     }
 
+    /** Rattache l'expédition à un transitaire de la liste des fournisseurs (0 = nom saisi à la main). */
+    public static function definirTransitaire(int $id, int $fournisseurId): void
+    {
+        Database::connection()->prepare('UPDATE expeditions SET fournisseur_id = ? WHERE id = ?')->execute([$fournisseurId ?: null, $id]);
+    }
+
     public static function disponible(): bool
     {
         try {

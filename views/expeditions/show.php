@@ -15,7 +15,7 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
 </div>
 <div class="card">
   <div class="kv-row"><span class="label">Type</span><span class="value"><?= View::e(Expedition::TYPES[$exp['type']]) ?> · <?= View::e(Expedition::MODES[$exp['mode']]) ?></span></div>
-  <?php if ($exp['partenaire']): ?><div class="kv-row"><span class="label">Partenaire</span><span class="value"><?= View::e($exp['partenaire']) ?></span></div><?php endif; ?>
+  <?php if ($exp['partenaire']): ?><div class="kv-row"><span class="label">Partenaire</span><span class="value"><?php if (!empty($exp['fournisseur_id'])): ?><a href="/index.php?r=fournisseurs/<?= (int) $exp['fournisseur_id'] ?>"><?= View::e($exp['partenaire']) ?></a><?php else: ?><?= View::e($exp['partenaire']) ?><?php endif; ?></span></div><?php endif; ?>
   <div class="kv-row"><span class="label">Dates</span><span class="value">Clôture <?= $exp['cloture_reservations'] ? date('d/m/Y', strtotime($exp['cloture_reservations'])) : '—' ?> · Départ <?= $exp['date_depart'] ? date('d/m/Y', strtotime($exp['date_depart'])) : '—' ?> · Arrivée <?= $exp['date_arrivee'] ? date('d/m/Y', strtotime($exp['date_arrivee'])) : '—' ?></span></div>
   <?php if ($exp['numero_suivi']): ?><div class="kv-row"><span class="label">N° de suivi</span><span class="value"><?= View::e($exp['numero_suivi']) ?></span></div><?php endif; ?>
   <div class="kv-row"><span class="label">Statut</span><span class="value">
@@ -69,8 +69,8 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
         <td data-label="Coût imputé"><?= $fmt($l['cout']) ?><?php if (!empty($r['supplement_cout']) && (float) $r['supplement_cout'] > 0): ?><div class="hint">dont supplément <?= $fmt($r['supplement_cout']) ?><?= !empty($r['supplement_motif']) ? ' (' . View::e($r['supplement_motif']) . ')' : '' ?></div><?php endif; ?></td>
         <td data-label="Marge" style="color:<?= $l['marge'] < 0 ? '#b3261e' : 'inherit' ?>"><?= $fmt($l['marge']) ?></td>
         <?php endif; ?>
-        <td style="white-space:nowrap"><?php if ($peutEcrire): ?>
-          <details style="margin-bottom:6px"><summary class="btn btn-sm btn-secondary" style="display:inline-block;cursor:pointer">Modifier</summary>
+        <td><?php if ($peutEcrire): ?><div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <details style="margin:0"><summary class="btn btn-sm btn-secondary" style="display:inline-block;cursor:pointer;padding:0 12px;height:36px;min-height:36px;line-height:36px;font-size:13px;list-style:none;box-sizing:border-box">Modifier</summary>
             <form method="post" action="<?= $base ?>/modifier-reservation" style="margin-top:6px;min-width:190px">
               <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>">
               <?php if (!empty($typesProduit)): ?><div class="form-group"><label>Type de produit</label><select name="type_produit_id"><option value="">Type actuel</option><?php foreach ($typesProduit as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) ($r['type_produit_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= View::e($t['libelle']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
@@ -83,9 +83,9 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
               <button class="btn btn-sm btn-primary" type="submit">Enregistrer</button>
             </form>
           </details>
-          <form method="post" action="<?= $base ?>/supprimer-reservation" onsubmit="return confirm('Retirer cette réservation ?')">
+          <form method="post" action="<?= $base ?>/supprimer-reservation" onsubmit="return confirm('Retirer cette réservation ?')" style="margin:0">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int) $r['id'] ?>">
-            <button class="btn btn-sm btn-secondary" type="submit" style="color:#b3261e;border-color:#e3b5b1">Retirer</button></form>
+            <button class="btn btn-sm btn-secondary" type="submit" style="color:#b3261e;border-color:#e3b5b1;padding:0 12px;height:36px;min-height:36px;font-size:13px;box-sizing:border-box">Retirer</button></form></div>
         <?php endif; ?></td>
       </tr>
     <?php endforeach; ?>

@@ -381,6 +381,10 @@ $router->post('/fournisseurs/{id}/activer', function ($params) {
     (new FournisseurController())->activer($params);
 });
 // Fiche fournisseur : contacts, adresses, qualification, évaluations (07/10)
+$router->post('/fournisseurs/{id}/tarifs', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurController())->enregistrerTarif($params);
+});
 $router->post('/fournisseurs/{id}/contacts', function ($params) {
     Auth::requireLogin();
     (new FournisseurController())->enregistrerContact($params);
