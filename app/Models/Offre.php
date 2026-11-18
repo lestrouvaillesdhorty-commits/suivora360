@@ -360,6 +360,18 @@ class Offre
      * [10/10] Correction d'une offre saisie (erreur de frappe, prix mis à jour…) SANS créer de nouvelle
      * version : mêmes champs que create(), le fournisseur, la consultation et la référence ne changent pas.
      */
+    /** N° et date du devis du fournisseur (migration V65 ; sans effet avant). */
+    public static function enregistrerRefDevis(int $id, array $data): void
+    {
+        if (!\App\Core\Schema::colonne('offres', 'ref_devis_fournisseur')) {
+            return;
+        }
+        $ref = mb_substr(trim((string) ($data['ref_devis_fournisseur'] ?? '')), 0, 80);
+        $dt = trim((string) ($data['date_devis_fournisseur'] ?? ''));
+        $dt = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dt) ? $dt : null;
+        Database::connection()->prepare('UPDATE offres SET ref_devis_fournisseur = ?, date_devis_fournisseur = ? WHERE id = ?')->execute([$ref === '' ? null : $ref, $dt, $id]);
+    }
+
     public static function modifier(int $id, array $data, array $items): void
     {
         $pdo = Database::connection();

@@ -51,6 +51,40 @@ $messageErreur = fn(?string $m) => $m ? '<div style="color:#991b1b;font-size:12p
     <?php endif; ?>
   </div>
 
+  <?php if (\App\Models\BonCommandeFournisseur::extrasPrets()): ?>
+  <div class="card">
+    <h2>Références du fournisseur</h2>
+    <div class="form-row">
+      <div class="form-group"><label for="ref_devis_fournisseur">N° du devis du fournisseur</label>
+        <input type="text" id="ref_devis_fournisseur" name="ref_devis_fournisseur" maxlength="80" value="<?= View::e($v('ref_devis_fournisseur')) ?>" placeholder="ex: DV-48213"></div>
+      <div class="form-group"><label for="date_devis_fournisseur">Date de ce devis</label>
+        <input type="date" id="date_devis_fournisseur" name="date_devis_fournisseur" value="<?= View::e($v('date_devis_fournisseur')) ?>"></div>
+    </div>
+    <div style="font-size:12px;color:#888">Repris de l’offre retenue ; imprimé sur le bon (« Votre devis n° … »).</div>
+  </div>
+  <div class="card">
+    <h2>Livraison</h2>
+    <div class="form-group"><label for="livraison_adresse">Adresse de livraison (une ligne par élément)</label>
+      <textarea id="livraison_adresse" name="livraison_adresse" rows="3" maxlength="600"><?= View::e($v('livraison_adresse')) ?></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label for="livraison_contact_nom">Contact pour la livraison</label>
+        <input type="text" id="livraison_contact_nom" name="livraison_contact_nom" maxlength="190" value="<?= View::e($v('livraison_contact_nom')) ?>"></div>
+      <div class="form-group"><label for="livraison_contact_tel">Téléphone</label>
+        <input type="text" id="livraison_contact_tel" name="livraison_contact_tel" maxlength="190" value="<?= View::e($v('livraison_contact_tel')) ?>"></div>
+      <div class="form-group"><label for="livraison_contact_email">E-mail</label>
+        <input type="email" id="livraison_contact_email" name="livraison_contact_email" maxlength="190" value="<?= View::e($v('livraison_contact_email')) ?>"><?= $messageErreur($err('livraison_contact_email')) ?></div>
+    </div>
+    <div class="form-group"><label for="livraison_horaires">Horaires de réception (facultatif)</label>
+      <input type="text" id="livraison_horaires" name="livraison_horaires" maxlength="190" value="<?= View::e($v('livraison_horaires')) ?>" placeholder="ex: lun-ven 9h-17h"></div>
+  </div>
+  <div class="card">
+    <h2>Facturation</h2>
+    <div class="form-group"><label for="facturation_adresse">Facturer à (nom et adresse)</label>
+      <textarea id="facturation_adresse" name="facturation_adresse" rows="3" maxlength="600"><?= View::e($v('facturation_adresse')) ?></textarea></div>
+    <div style="font-size:12px;color:#888">Proposé avec les coordonnées de votre entreprise ; modifiable.</div>
+  </div>
+  <?php endif; ?>
+
   <div class="card">
     <h2>Lignes commandées</h2>
     <?= $messageErreur($err('lignes')) ?>

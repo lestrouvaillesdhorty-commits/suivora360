@@ -167,6 +167,12 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
     <?php endif; ?>
 
     </div>
+    <?php if (\App\Core\Schema::colonne('offres', 'ref_devis_fournisseur')): ?>
+    <div class="form-row">
+      <div class="form-group"><label>N° du devis du fournisseur</label><input type="text" name="ref_devis_fournisseur" maxlength="80" value="<?= View::e((string) $v('ref_devis_fournisseur')) ?>" placeholder="ex: DV-48213 (repris sur le bon de commande)"></div>
+      <div class="form-group"><label>Date de ce devis</label><input type="date" name="date_devis_fournisseur" value="<?= View::e((string) $v('date_devis_fournisseur')) ?>"></div>
+    </div>
+    <?php endif; ?>
     <div<?= $guide ? ' data-etape="Détails"' : '' ?>>
     <details <?= ($manuel ? '' : 'open') ?> style="margin:16px 0">
       <summary style="cursor:pointer;font-weight:600;color:#374151">Comparaison détaillée : pays, MOQ, poids, frais… (optionnel, utile pour le Comparateur)</summary>

@@ -116,6 +116,7 @@ class OffreController
         }
 
         $offreId = Offre::create($consultation, $_POST, $items, (int) $user['id'], $offrePrecedente);
+        Offre::enregistrerRefDevis((int) $offreId, $_POST);
 
         AuditLog::log(
             (int) $consultation['filiale_id'],
@@ -258,6 +259,7 @@ class OffreController
         $data = $_POST;
         $data['source_type'] = $source;
         $offreId = Offre::create($consultation, $data, $items, (int) $user['id'], null);
+        Offre::enregistrerRefDevis((int) $offreId, $data);
 
         AuditLog::log($filialeId, (int) $user['id'], 'creation_offre', 'offre', $offreId, 'Saisie manuelle (' . Offre::SOURCES[$source] . ')');
         $avertFichier = $this->joindreFichierOffre($dossier, $user, (int) $offreId);
@@ -389,6 +391,7 @@ class OffreController
             $data['source_type'] = 'autre';
         }
         Offre::modifier((int) $offre['id'], $data, $items);
+        Offre::enregistrerRefDevis((int) $offre['id'], $data);
         AuditLog::log((int) $offre['filiale_id'], (int) $user['id'], 'modification_offre', 'offre', (int) $offre['id'], $offre['reference']);
 
         \App\Services\PhotoProduit::miseAJour($ctx['dossier'], (int) $offre['id']);

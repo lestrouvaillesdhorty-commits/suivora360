@@ -119,6 +119,7 @@ class BonCommandeFournisseurController
             }
             $old = array_merge($old, BonCommandeFournisseur::propositionDepuisOffre($offre), ['dossier_id' => (int) $offre['dossier_id'], 'offre_id' => $offreId]);
         }
+        $old = array_merge($old, BonCommandeFournisseur::propositionExtras($offre, $f, Auth::user()));
         // Destinataire par défaut : contact principal de la fiche.
         $old['destinataire_nom'] = trim(($f['contact_prenom'] ?? '') . ' ' . ($f['contact_nom'] ?? ''));
         $old['destinataire_email'] = (string) ($f['email'] ?? '');
@@ -162,6 +163,15 @@ class BonCommandeFournisseurController
             'dossier_id' => (int) ($bon['dossier_id'] ?? 0),
             'offre_id' => (int) ($bon['offre_id'] ?? 0),
         ];
+        foreach (BonCommandeFournisseur::CHAMPS_V65 as $c) {
+            $d[$c] = mb_substr($p($c), 0, in_array($c, ['livraison_adresse', 'facturation_adresse'], true) ? 600 : 190);
+        }
+        if ($d['date_devis_fournisseur'] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d['date_devis_fournisseur'])) {
+            $d['date_devis_fournisseur'] = '';
+        }
+        if ($d['livraison_contact_email'] !== '' && !filter_var($d['livraison_contact_email'], FILTER_VALIDATE_EMAIL)) {
+            $erreurs['livraison_contact_email'] = "L'adresse e-mail du contact n'est pas valide.";
+        }
         if (!$bon) {
             $d['dossier_id'] = (int) ($_POST['dossier_id'] ?? 0);
             $d['offre_id'] = (int) ($_POST['offre_id'] ?? 0);
@@ -236,6 +246,7 @@ class BonCommandeFournisseurController
         }
         $user = Auth::user();
         $id = BonCommandeFournisseur::creer($f, $d, $lignes, $total, (int) $user['id']);
+        BonCommandeFournisseur::enregistrerExtras($id, $d);
         AuditLog::log((int) $f['filiale_id'], (int) $user['id'], 'creation_bon_commande', 'bon_commande_fournisseur', $id, number_format($total, 2, ',', ' ') . ' ' . $d['devise']);
         $this->retour('/index.php?r=bons-commande/' . $id, 'succes', 'Bon de commande créé en brouillon. Vérifiez-le, puis marquez-le « envoyé » une fois transmis au fournisseur.');
     }
@@ -285,6 +296,7 @@ class BonCommandeFournisseurController
             return;
         }
         BonCommandeFournisseur::modifier((int) $bon['id'], $d, $lignes, $total);
+        BonCommandeFournisseur::enregistrerExtras((int) $bon['id'], $d);
         AuditLog::log((int) $bon['filiale_id'], (int) Auth::user()['id'], 'modification_bon_commande', 'bon_commande_fournisseur', (int) $bon['id']);
         $this->retour($url, 'succes', 'Bon de commande mis à jour.');
     }

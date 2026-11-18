@@ -97,7 +97,12 @@ $mailto = $bon['destinataire_email'] !== ''
       <div class="info-row"><span class="label">Livraison souhaitée</span><span><?= $bon['date_livraison_souhaitee'] ? date('d/m/Y', strtotime($bon['date_livraison_souhaitee'])) : '—' ?></span></div>
       <div class="info-row"><span class="label">Incoterm</span><span><?= View::e($bon['incoterm']) ?: '—' ?></span></div>
       <div class="info-row"><span class="label">Paiement</span><span><?= View::e($bon['conditions_paiement']) ?: '—' ?></span></div>
-      <div class="info-row"><span class="label">Lieu de livraison</span><span><?= View::e($bon['lieu_livraison']) ?: '—' ?></span></div>
+      <?php if (!empty($bon['ref_devis_fournisseur'])): ?><div class="info-row"><span class="label">Devis du fournisseur</span><span><strong><?= View::e($bon['ref_devis_fournisseur']) ?></strong><?= !empty($bon['date_devis_fournisseur']) ? ' du ' . date('d/m/Y', strtotime($bon['date_devis_fournisseur'])) : '' ?></span></div><?php endif; ?>
+      <?php if (!empty($bon['livraison_adresse'])): ?><div class="info-row"><span class="label">Livraison</span><span><?= nl2br(View::e($bon['livraison_adresse'])) ?></span></div>
+      <?php else: ?>      <div class="info-row"><span class="label">Lieu de livraison</span><span><?= View::e($bon['lieu_livraison']) ?: '—' ?></span></div>
+      <?php endif; ?>
+      <?php $ctc = array_filter([$bon['livraison_contact_nom'] ?? '', $bon['livraison_contact_tel'] ?? '', $bon['livraison_contact_email'] ?? '']); if ($ctc): ?><div class="info-row"><span class="label">Contact livraison</span><span><?= View::e(implode(' · ', $ctc)) ?><?= !empty($bon['livraison_horaires']) ? ' (' . View::e($bon['livraison_horaires']) . ')' : '' ?></span></div><?php endif; ?>
+      <?php if (!empty($bon['facturation_adresse'])): ?><div class="info-row"><span class="label">Facturation</span><span><?= nl2br(View::e($bon['facturation_adresse'])) ?></span></div><?php endif; ?>
     </div>
     <div class="card">
       <h2>Liens et historique</h2>

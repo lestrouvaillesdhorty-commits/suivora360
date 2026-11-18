@@ -65,6 +65,19 @@ $prochainesActions = [
   <div class="card">
     <h2>Prochaine action</h2>
     <div class="kv-row"><span class="label">Action</span><span class="value"><?= View::e($prochainesActions[$dossier['etape']] ?? 'À déterminer') ?></span></div>
+    <?php
+    $boutonBon = null;
+    if (!in_array($dossier['etape'], ['qualifie', 'sourcing', 'cloture'], true) && $dossier['statut'] === 'actif' && \App\Core\Auth::canWrite() && \App\Core\Auth::canGererBonCommandeFournisseur() && \App\Models\BonCommandeFournisseur::schemaPret()) {
+        $offRet = \App\Models\Offre::retenueForDossier((int) $dossier['id']);
+        if ($offRet) {
+            $bonExist = \App\Models\BonCommandeFournisseur::actifPourOffre((int) $offRet['id']);
+            $boutonBon = $bonExist
+                ? ['Voir le bon ' . $bonExist['reference'], '/index.php?r=bons-commande/' . (int) $bonExist['id'], 'btn-secondary']
+                : ['Créer le bon de commande fournisseur', '/index.php?r=fournisseurs/' . (int) $offRet['fournisseur_id'] . '/bons-commande/nouveau&offre_id=' . (int) $offRet['id'], ''];
+        }
+    }
+    ?>
+    <?php if ($boutonBon): ?><div style="margin:10px 0"><a href="<?= View::e($boutonBon[1]) ?>" class="btn <?= $boutonBon[2] ?>"><?= View::e($boutonBon[0]) ?></a></div><?php endif; ?>
     <div class="kv-row"><span class="label">Responsable</span><span class="value"><?= View::e(\App\Models\Utilisateur::nameOf($dossier['responsable_id'])) ?></span></div>
     <div class="kv-row"><span class="label">Échéance</span><span class="value"><?= $dossier['echeance'] ? date('d/m/Y', strtotime($dossier['echeance'])) : 'À préciser' ?></span></div>
   </div>

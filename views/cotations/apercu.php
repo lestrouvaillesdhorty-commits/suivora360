@@ -23,8 +23,9 @@ $juridique = \App\Models\EntrepriseInfo::ligneJuridique($emetteur);
 .ent{padding:26px 34px 16px;border-bottom:4px solid var(--c);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .emet .logo{max-height:64px;max-width:220px;display:block;margin-bottom:8px}.emet .coord{font-size:12.5px;color:#556;margin-top:3px}.ent .nom{font-size:22px;font-weight:700}.ent .doc{text-align:right}.ent .doc b{font-size:20px;letter-spacing:.5px;display:block}
 .corps{padding:18px 34px;flex:1}
-.bloc{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px}.bloc>div{flex:1;min-width:230px;background:#F2F7F8;border-radius:8px;padding:10px 14px}
+.bloc{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px}.bloc>div{flex:1;min-width:230px;background:#F2F7F8;background:color-mix(in srgb,var(--c) 8%,#fff);border-radius:8px;padding:10px 14px}
 .bloc h3{margin:0 0 4px;font-size:12px;color:#667;font-weight:600}
+.sec{margin:16px 0 6px;font-weight:700;color:var(--c);border-bottom:1px solid #e6e8ef;padding-bottom:4px}
 table{width:100%;border-collapse:collapse;margin-top:6px}
 th{background:var(--c);color:#fff;font-size:12px;text-align:left;padding:8px}td{padding:8px;border-bottom:1px solid #e6e8ef;vertical-align:top}
 .d{font-size:12px;color:#667}.r{text-align:right;white-space:nowrap}
@@ -33,7 +34,11 @@ th{background:var(--c);color:#fff;font-size:12px;text-align:left;padding:8px}td{
 .cond{margin-top:18px;font-size:13px}.pied{padding:12px 34px;border-top:1px solid #e0e3ea;font-size:11.5px;color:#667;line-height:1.5}.pied .pr{text-align:right;color:#99a;margin-top:2px}.sign{display:flex;gap:18px;margin-top:26px;align-items:stretch}.sign>div:first-child{flex:1;font-size:13px}.sign .zone{flex:1;min-height:90px;border:1.5px dashed #BFE0E5;border-radius:10px}
 .tw{overflow-x:auto}
 <?php if ($mep === 'moderne'): ?>
-.ent{background:var(--c);color:#fff;border-bottom:0}.ent .emet .coord,.ent .doc{color:#fff}.ent .emet .logo{background:#fff;border-radius:6px;padding:4px}
+.band{background:var(--c);color:#fff;padding:14px 34px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.band b{font-size:20px;letter-spacing:.02em}.band .meta{text-align:right;font-size:12px;line-height:1.5}
+.ent{border-bottom:0;padding-top:20px}.ent .emet .logo{background:#fff}
+th{background:transparent!important;color:var(--c)!important;border-bottom:2px solid var(--c)}
+.bloc>div{background:#fff;border:1px solid #DDE4EC;border-left:4px solid var(--c);border-radius:6px}
+.tot .ttc{background:var(--c);color:#fff;border-top:0;padding:8px 10px;border-radius:6px;font-size:17px}
 <?php elseif ($mep === 'sobre'): ?>
 .ent{border-bottom:1px solid #1c2030}th{background:#eef0f4;color:#1c2030;border-bottom:2px solid #1c2030}.tot .ttc{border-top:2px solid #1c2030}.bar a,.bar button{background:#1c2030}.bar a.s{color:#1c2030;background:#fff;border-color:#c9ced8}
 <?php endif; ?>
@@ -47,6 +52,9 @@ th{background:var(--c);color:#fff;font-size:12px;text-align:left;padding:8px}td{
   <a class="s" href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>">Retour</a>
 </div>
 <div class="page">
+  <?php $validiteB = DevisPdf::validite($cotation, $emetteur); if ($mep === 'moderne'): ?>
+  <div class="band"><b>DEVIS <?= View::e($cotation['reference']) ?></b><div class="meta"><?= (int) ($cotation['version'] ?? 1) > 1 ? 'Version ' . (int) $cotation['version'] . '<br>' : '' ?>Date : <?= date('d/m/Y', strtotime((string) $cotation['created_at'])) ?><?= $validiteB ? '<br>Valable jusqu\'au ' . date('d/m/Y', strtotime($validiteB)) : '' ?></div></div>
+  <?php endif; ?>
   <div class="ent">
     <div class="emet">
       <?php $mode = \App\Models\EntrepriseInfo::enteteMode($emetteur, !empty($logoUri)); ?>
@@ -56,10 +64,10 @@ th{background:var(--c);color:#fff;font-size:12px;text-align:left;padding:8px}td{
       </div><div style="height:8px"></div>
       <div class="coord"><?= !empty($emetteur['adresse']) ? nl2br(View::e($emetteur['adresse'])) . '<br>' : '' ?><?= !empty($emetteur['telephone']) ? 'Tél. ' . View::e($emetteur['telephone']) : '' ?><?= !empty($emetteur['telephone']) && !empty($emetteur['email']) ? ' · ' : '' ?><?= View::e((string) ($emetteur['email'] ?? '')) ?></div>
     </div>
-    <div class="doc"><b>DEVIS <?= View::e($cotation['reference']) ?></b>
+    <?php if ($mep !== 'moderne'): ?><div class="doc"><b>DEVIS <?= View::e($cotation['reference']) ?></b>
       <?= (int) ($cotation['version'] ?? 1) > 1 ? 'Version ' . (int) $cotation['version'] . '<br>' : '' ?>
       Date : <?= date('d/m/Y', strtotime((string) $cotation['created_at'])) ?><br>
-      <?php $validite = DevisPdf::validite($cotation, $emetteur); ?><?= $validite ? 'Valable jusqu\'au ' . date('d/m/Y', strtotime($validite)) : '' ?></div>
+      <?php $validite = DevisPdf::validite($cotation, $emetteur); ?><?= $validite ? 'Valable jusqu\'au ' . date('d/m/Y', strtotime($validite)) : '' ?></div><?php endif; ?>
   </div>
   <div class="corps">
     <div class="bloc">

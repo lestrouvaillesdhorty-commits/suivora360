@@ -45,6 +45,62 @@ class BonCommandeFournisseur
         return self::$pret;
     }
 
+    /** Champs ajoutés (migration V65) : n° de devis fournisseur, livraison, contact, facturation. */
+    public const CHAMPS_V65 = ['ref_devis_fournisseur', 'date_devis_fournisseur', 'livraison_adresse', 'livraison_contact_nom',
+        'livraison_contact_tel', 'livraison_contact_email', 'livraison_horaires', 'facturation_adresse'];
+
+    public static function extrasPrets(): bool
+    {
+        return self::schemaPret() && \App\Core\Schema::colonne('bons_commande_fournisseur', 'livraison_adresse');
+    }
+
+    /** Enregistre les champs V65 (sans effet tant que la migration n'est pas passée). Un bon non brouillon n'est pas modifié. */
+    public static function enregistrerExtras(int $id, array $d): void
+    {
+        if (!self::extrasPrets()) {
+            return;
+        }
+        $vals = [];
+        foreach (self::CHAMPS_V65 as $c) {
+            $v = trim((string) ($d[$c] ?? ''));
+            $vals[] = $v === '' ? null : $v;
+        }
+        $set = implode(' = ?, ', self::CHAMPS_V65) . ' = ?';
+        Database::connection()->prepare("UPDATE bons_commande_fournisseur SET $set WHERE id = ? AND statut = 'brouillon'")->execute(array_merge($vals, [$id]));
+    }
+
+    /** Proposition de départ pour la livraison, la facturation et le contact, d'après l'offre, la consultation, l'entreprise et l'utilisateur. */
+    public static function propositionExtras(?array $offre, array $fournisseur, ?array $user): array
+    {
+        $out = array_fill_keys(self::CHAMPS_V65, '');
+        $info = EntrepriseInfo::forFiliale((int) $fournisseur['filiale_id']);
+        if ($offre) {
+            $out['ref_devis_fournisseur'] = (string) ($offre['ref_devis_fournisseur'] ?? '');
+            $out['date_devis_fournisseur'] = (string) ($offre['date_devis_fournisseur'] ?? '');
+            $cons = !empty($offre['consultation_id']) ? ConsultationFournisseur::find((int) $offre['consultation_id']) : null;
+            if ($cons) {
+                $liv = ConsultationFournisseur::livraison($cons, !empty($offre['dossier_id']) ? (Demande::find((int) (Dossier::find((int) $offre['dossier_id'])['demande_id'] ?? 0)) ?: []) : []);
+                $adr = trim((string) ($liv['etape_adresse'] ?? ''));
+                if ($adr !== '') {
+                    $pays = trim((string) ($liv['etape'] ? ($liv['etape_pays'] ?? '') : ($liv['finale'] ?? '')));
+                    $out['livraison_adresse'] = $adr . ($pays !== '' && stripos($adr, $pays) === false ? "\n" . $pays : '');
+                }
+            }
+        }
+        $nom = trim((string) ($info['raison_sociale'] ?? '')) ?: '';
+        if ($nom === '') {
+            $f = Filiale::find((int) $fournisseur['filiale_id']);
+            $nom = (string) ($f['nom'] ?? '');
+        }
+        $out['facturation_adresse'] = trim($nom . "\n" . trim((string) ($info['adresse'] ?? '')));
+        if ($user) {
+            $out['livraison_contact_nom'] = (string) ($user['nom'] ?? '');
+            $out['livraison_contact_email'] = (string) ($user['email'] ?? '');
+            $out['livraison_contact_tel'] = (string) ($user['telephone'] ?? '') ?: (string) ($info['telephone'] ?? '');
+        }
+        return $out;
+    }
+
     public static function find(int $id): ?array
     {
         if (!self::schemaPret()) {

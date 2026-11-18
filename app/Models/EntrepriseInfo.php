@@ -113,7 +113,8 @@ class EntrepriseInfo
     public static function miseEnPage(array $info): string
     {
         $m = (string) ($info['mise_en_page'] ?? '');
-        return isset(self::MISES_EN_PAGE[$m]) ? $m : 'classique';
+        // Le bandeau de couleur (ancien « Moderne ») a été refusé : le rendu validé est l'en-tête blanc avec filet de couleur.
+        return ($m === 'sobre') ? 'sobre' : 'classique';
     }
 
     /** « SAS au capital de 10 000 € » + régime de TVA, pour le pied de page. */

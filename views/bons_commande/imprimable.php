@@ -11,64 +11,50 @@ foreach ($lignes as $l0) {
 }
 $fmt = fn($m) => number_format((float) $m, 2, ',', ' ');
 $qte = fn($q) => $q === null ? '' : rtrim(rtrim(number_format((float) $q, 2, ',', ' '), '0'), ',');
+$aLiv = trim((string) ($bon['livraison_adresse'] ?? '')) !== '' ? (string) $bon['livraison_adresse'] : (string) ($bon['lieu_livraison'] ?? '');
+$aFact = trim((string) ($bon['facturation_adresse'] ?? '')) !== '' ? (string) $bon['facturation_adresse'] : ($nomEmetteur . "\n" . trim((string) ($info['adresse'] ?? '')));
+$droite = '<br>Date : ' . date('d/m/Y', strtotime($bon['date_emission']));
+if (!empty($bon['dossier_reference'])) { $droite .= '<br>Notre dossier : ' . View::e($bon['dossier_reference']); }
+$refDevis = trim((string) ($bon['ref_devis_fournisseur'] ?? ''));
+if ($refDevis !== '') {
+    $droite .= '<br><strong>Votre devis n° ' . View::e($refDevis) . '</strong>' . (!empty($bon['date_devis_fournisseur']) ? ' du ' . date('d/m/Y', strtotime($bon['date_devis_fournisseur'])) : '');
+}
+if (!empty($bon['reference_offre'])) { $droite .= '<br>Notre réf. offre : ' . View::e($bon['reference_offre']); }
+$contact = array_filter([(string) ($bon['livraison_contact_nom'] ?? ''), !empty($bon['livraison_contact_tel']) ? 'Tél. ' . $bon['livraison_contact_tel'] : '', (string) ($bon['livraison_contact_email'] ?? '')]);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <title>Bon de commande <?= View::e($bon['reference']) ?></title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  :root { --c: <?= View::e($col) ?>; }
-  <?php if ($mep === 'moderne'): ?>.entete { background: var(--c); color: #fff; padding: 14px 18px; border-bottom: 0; } .entete h1 { color: #fff; }<?php elseif ($mep === 'sobre'): ?>h1 { color: #1f2430; } .entete { border-bottom-color: #1f2430; } th { background: #eef0f4; }<?php endif; ?>
-  body { font-family: -apple-system, Arial, sans-serif; color: #1f2430; margin: 0; padding: 30px; max-width: 820px; margin: 0 auto; font-size: 13px; line-height: 1.5; }
-  h1 { font-size: 22px; margin: 0; color: var(--c); }
-  .entete { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid var(--c); padding-bottom: 12px; margin-bottom: 18px; }
-  .bloc { display: flex; gap: 20px; margin-bottom: 18px; }
-  .bloc > div { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
-  .bloc h2 { font-size: 11px; margin: 0 0 6px; color: #666; text-transform: uppercase; letter-spacing: .04em; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
-  th { background: #f7f8fa; font-size: 11px; }
-  .num { text-align: right; white-space: nowrap; }
-  .total td { font-weight: 700; border-top: 2px solid #1f2430; border-bottom: 0; }
-  .annule { background: #fee2e2; color: #991b1b; padding: 8px 12px; border-radius: 6px; margin-bottom: 14px; font-weight: 700; }
-  .print-btn { margin-bottom: 18px; padding: 8px 14px; cursor: pointer; }
-  .pied { margin-top: 28px; font-size: 11px; color: #777; }
-  @media print { .print-btn { display: none; } body { padding: 0; } tr { page-break-inside: avoid; } }
-  @media (max-width: 600px) { .entete, .bloc { flex-direction: column; } }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
+<?php include __DIR__ . '/../documents/_style.php'; ?>
+<style>.annule{background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:6px;margin-bottom:14px;font-weight:700}.num{text-align:right;white-space:nowrap}.total td{font-weight:700;border-top:2px solid var(--c);border-bottom:0}.pied2{margin-top:22px;font-size:11.5px;color:#667}.corps table th{text-align:left}</style>
 </head>
 <body>
-<button class="print-btn" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+<div class="bar"><button onclick="window.print()">Imprimer / enregistrer en PDF</button><a class="s" href="/index.php?r=bons-commande/<?= (int) $bon['id'] ?>">Retour</a></div>
+<div class="page">
+<?php $titre = 'BON DE COMMANDE ' . $bon['reference']; $droiteLignes = $droite; include __DIR__ . '/../documents/_entete.php'; ?>
+  <div class="corps">
 <?php if ($bon['statut'] === 'annule'): ?><div class="annule">BON ANNULÉ<?= !empty($bon['annule_motif']) ? ' — ' . View::e($bon['annule_motif']) : '' ?></div><?php endif; ?>
-<?php if ($bon['statut'] === 'brouillon'): ?><div class="print-btn" style="cursor:default;color:#92400e">Ce bon est encore un brouillon : vérifiez-le avant de l’envoyer.</div><?php endif; ?>
-<div class="entete">
-  <div>
-    <h1>BON DE COMMANDE</h1>
-    <div><strong><?= View::e($bon['reference']) ?></strong> · Date : <?= date('d/m/Y', strtotime($bon['date_emission'])) ?></div>
-    <?php if (!empty($bon['dossier_reference'])): ?><div>Notre dossier : <?= View::e($bon['dossier_reference']) ?></div><?php endif; ?>
-    <?php if (!empty($bon['reference_offre'])): ?><div>Suite à votre offre : <?= View::e($bon['reference_offre']) ?></div><?php endif; ?>
-  </div>
-  <div style="text-align:right">
-    <?php $mode = \App\Models\EntrepriseInfo::enteteMode($info, !empty($logoUri)); ?>
-    <?php if ($mode !== 'nom'): ?><img src="<?= $logoUri ?>" alt="" style="max-height:54px;max-width:200px;display:block;margin:0 0 6px auto"><?php endif; ?>
-    <?php if ($mode !== 'logo'): ?><strong><?= View::e($nomEmetteur) ?></strong><br><?php endif; ?>
-    <?php if (!empty($info['adresse'])): ?><?= nl2br(View::e((string) $info['adresse'])) ?><br><?php endif; ?>
-    <?= View::e(implode(' · ', array_filter([!empty($info['telephone']) ? 'Tél. ' . $info['telephone'] : '', $info['email'] ?? '']))) ?>
-  </div>
-</div>
-<div class="bloc">
-  <div><h2>Fournisseur</h2><strong><?= View::e($bon['fournisseur_nom']) ?></strong><br><?= View::e($bon['fournisseur_adresse']) ?><br>
-    <?php if ($bon['destinataire_nom'] !== '' || $bon['destinataire_email'] !== ''): ?>À l’attention de : <?= View::e($bon['destinataire_nom']) ?> <?= $bon['destinataire_email'] !== '' ? View::e($bon['destinataire_email']) : '' ?><?php endif; ?></div>
-  <div><h2>Conditions</h2>
-    Devise : <strong><?= View::e($bon['devise']) ?></strong><br>
-    <?php if ($bon['incoterm'] !== ''): ?>Incoterm : <?= View::e($bon['incoterm']) ?><br><?php endif; ?>
-    <?php if ($bon['conditions_paiement'] !== ''): ?>Paiement : <?= View::e($bon['conditions_paiement']) ?><br><?php endif; ?>
-    <?php if ($bon['date_livraison_souhaitee']): ?>Livraison souhaitée : <strong><?= date('d/m/Y', strtotime($bon['date_livraison_souhaitee'])) ?></strong><br><?php endif; ?>
-    <?php if ($bon['lieu_livraison'] !== ''): ?>Livraison à : <?= View::e($bon['lieu_livraison']) ?><br><?php endif; ?>
-    <?php if (!empty($info['adresse'])): ?>Facturation à : <?= View::e($nomEmetteur) ?>, <?= View::e(trim(preg_replace('/\s*\R\s*/u', ', ', (string) $info['adresse']))) ?><?php endif; ?></div>
-</div>
+<?php if ($bon['statut'] === 'brouillon'): ?><div class="noprint" style="color:#92400e;margin-bottom:10px;font-size:13px">Ce bon est encore un brouillon : vérifiez-le avant de l’envoyer.</div><?php endif; ?>
+    <div class="bloc">
+      <div><h3>Fournisseur</h3><strong><?= View::e($bon['fournisseur_nom']) ?></strong><br><?= nl2br(View::e((string) $bon['fournisseur_adresse'])) ?>
+        <?php if ($bon['destinataire_nom'] !== '' || $bon['destinataire_email'] !== ''): ?><br>À l’attention de : <?= View::e($bon['destinataire_nom']) ?> <?= $bon['destinataire_email'] !== '' ? View::e($bon['destinataire_email']) : '' ?><?php endif; ?></div>
+      <div><h3>Conditions</h3>
+        Devise : <strong><?= View::e($bon['devise']) ?></strong><br>
+        <?php if ($bon['incoterm'] !== ''): ?>Incoterm : <?= View::e($bon['incoterm']) ?><br><?php endif; ?>
+        <?php if ($bon['conditions_paiement'] !== ''): ?>Paiement : <?= View::e($bon['conditions_paiement']) ?><br><?php endif; ?>
+        <?php if ($bon['date_livraison_souhaitee']): ?>Livraison souhaitée : <strong><?= date('d/m/Y', strtotime($bon['date_livraison_souhaitee'])) ?></strong><?php endif; ?></div>
+    </div>
+    <div class="bloc liv">
+      <div><h3>Livraison</h3><strong><?= nl2br(View::e(trim($aLiv)) ?: 'À préciser') ?></strong>
+        <?php if ($contact): ?><br>Contact : <?= View::e(implode(' · ', $contact)) ?><?php endif; ?>
+        <?php if (!empty($bon['livraison_horaires'])): ?><br>Réception : <?= View::e($bon['livraison_horaires']) ?><?php endif; ?></div>
+      <div><h3>Facturation</h3><?= nl2br(View::e(trim($aFact))) ?>
+        <?php if ($juridique !== ''): ?><br><span class="d"><?= View::e($juridique) ?></span><?php endif; ?></div>
+    </div>
+    <div class="tw">
 <table>
   <thead><tr><th>Désignation</th><th class="num">Quantité</th><th>Unité</th><th class="num">Prix unitaire</th><?= $avecRem ? '<th class="num">Remise</th>' : '' ?><th class="num">Montant</th></tr></thead>
   <tbody>
@@ -81,7 +67,11 @@ $qte = fn($q) => $q === null ? '' : rtrim(rtrim(number_format((float) $q, 2, ','
   <?php if ($remTot > 0.004): ?><tr><td colspan="<?= $avecRem ? 5 : 4 ?>" class="num">Total brut</td><td class="num"><?= $fmt($brut) ?></td></tr><tr><td colspan="<?= $avecRem ? 5 : 4 ?>" class="num">Remises</td><td class="num">− <?= $fmt($remTot) ?></td></tr><?php endif; ?>
   <tr class="total"><td colspan="<?= $avecRem ? 5 : 4 ?>" class="num"><?= $remTot > 0.004 ? 'Total net ' : 'Total ' ?><?= View::e($bon['devise']) ?></td><td class="num"><?= $fmt($bon['montant_total']) ?></td></tr></tfoot>
 </table>
-<?php if (!empty($bon['notes'])): ?><div><strong>Instructions</strong><div style="white-space:pre-wrap"><?= View::e($bon['notes']) ?></div></div><?php endif; ?>
-<div class="pied"><?php if ($juridique !== '' || !empty($info['identifiants'])): ?><?= View::e(implode('  ·  ', array_filter([$nomEmetteur, $juridique, trim(preg_replace('/\s*\R\s*/u', '  ·  ', (string) ($info['identifiants'] ?? '')))]))) ?><br><?php endif; ?>Merci de nous confirmer la réception de ce bon et la date de livraison prévue. Édité le <?= date('d/m/Y H:i') ?> par <?= View::e($emetteur) ?>.</div>
+    </div>
+<?php if (!empty($bon['notes'])): ?><div class="sec">Instructions</div><div style="white-space:pre-wrap"><?= View::e($bon['notes']) ?></div><?php endif; ?>
+    <div class="pied2">Merci de nous confirmer la réception de ce bon et la date de livraison prévue. Édité le <?= date('d/m/Y H:i') ?> par <?= View::e($emetteur) ?>.</div>
+  </div>
+  <div class="pied"><?= View::e(implode('  ·  ', array_filter([$nomEmetteur, $juridique, trim(preg_replace('/\s*\R\s*/u', '  ·  ', (string) ($info['identifiants'] ?? '')))]))) ?></div>
+</div>
 </body>
 </html>

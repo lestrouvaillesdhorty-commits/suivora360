@@ -96,12 +96,14 @@ class PdfSimple
             $this->assurerPlace($hauteur + 4);
             $x = self::MARGE;
             if ($entete) {
-                $this->rect(self::MARGE, $this->y - $hauteur + 2, $utile = array_sum($cols), $hauteur, $this->modele === 'sobre' ? [0.93, 0.94, 0.96] : $this->teal);
+                $utile = array_sum($cols);
+                if ($this->modele === 'moderne') { $this->rect(self::MARGE, $this->y - $hauteur + 1, $utile, 1.6, $this->teal); }
+                else { $this->rect(self::MARGE, $this->y - $hauteur + 2, $utile, $hauteur, $this->modele === 'sobre' ? [0.93, 0.94, 0.96] : $this->teal); }
             }
             foreach ($coupees as $i => $lignesCellule) {
                 $yy = $this->y - $taille - 1;
                 foreach ($lignesCellule as $l) {
-                    $this->texte($x + 4, $yy, $l, $taille, $entete, ($entete && $this->modele !== 'sobre') ? [1, 1, 1] : [0.1, 0.1, 0.1]);
+                    $this->texte($x + 4, $yy, $l, $taille, $entete, ($entete && $this->modele === 'moderne') ? $this->teal : (($entete && $this->modele !== 'sobre') ? [1, 1, 1] : [0.1, 0.1, 0.1]));
                     $yy -= $taille + 2.5;
                 }
                 $x += $cols[$i];
@@ -258,6 +260,22 @@ class PdfSimple
     /** En-tête : à gauche logo + nom + coordonnées, à droite titre du document ; filet turquoise dessous. */
     public function enteteDevis(?array $logo, string $nom, array $coord, string $titre, array $droite, float $partTitre = 0.4): void
     {
+        if ($this->modele === 'moderne') {
+            // Modèle Moderne (maquette validée) : bandeau mince avec le titre et les références ; logo et coordonnées dessous, sur blanc.
+            $bandH = max(46.0, 22 + count($droite) * 12.5);
+            $this->rect(0, self::H - $bandH, self::W, $bandH, $this->teal);
+            $this->texte(self::MARGE, self::H - $bandH / 2 - 5, $titre, 16, true, [1, 1, 1]);
+            $xd = self::W - self::MARGE;
+            $yy = self::H - 15;
+            foreach ($droite as $l) {
+                $yy -= 9.5;
+                $this->texte($xd - $this->largeur($l, 9.5, false), $yy, $l, 9.5, false, [1, 1, 1]);
+                $yy -= 3;
+            }
+            $this->y = self::H - $bandH - 14;
+            $titre = '';
+            $droite = [];
+        }
         $largG = (self::W - 2 * self::MARGE) * (1 - $partTitre - 0.02);
         $hG = 0.0;
         $lh = 0.0;
@@ -276,17 +294,16 @@ class PdfSimple
             }
         }
         $hG += count($lCoord) * 11.5 + 2;
-        $lTitre = $this->couper($titre, 14, (self::W - 2 * self::MARGE) * $partTitre, true);
+        $lTitre = $titre === '' ? [] : $this->couper($titre, 14, (self::W - 2 * self::MARGE) * $partTitre, true);
         $hD = count($lTitre) * 17 + count($droite) * 12.5;
         $h = max($hG, $hD);
-        $moderne = $this->modele === 'moderne';
-        if ($moderne) { $this->y -= 14; } // marge haute du bandeau, comme l'aperçu
+        $moderne = false; // le bandeau est dessiné plus haut ; ici tout est sur fond blanc
         $this->assurerPlace($h + 16);
         $haut = $this->y;
         $yy = $haut;
         if ($moderne) {
             // Bandeau de couleur sur toute la largeur, du haut de la page jusqu'sous l'en-tête.
-            $this->rect(0, $haut - $h - 18, self::W, self::H - ($haut - $h - 18), $this->teal);
+            
         }
         if ($logo && $lh > 0) {
             if ($moderne) { $this->rect(self::MARGE - 4, $yy - $lh - 4, $lw + 8, $lh + 8, [1, 1, 1]); }
@@ -319,8 +336,8 @@ class PdfSimple
             $this->texte($xd - $this->largeur($l, 9.5, false), $yy, $l, 9.5, false, $moderne ? [1, 1, 1] : [0.33, 0.35, 0.4]);
             $yy -= 3;
         }
-        $this->y = $haut - $h - ($moderne ? 18 : 8);
-        if (!$moderne) {
+        $this->y = $haut - $h - 8;
+        if ($this->modele !== 'moderne') {
             $this->rect(self::MARGE, $this->y, self::W - 2 * self::MARGE, $this->modele === 'sobre' ? 1.0 : 2.5, $this->accent());
         }
         $this->y -= 16;
@@ -359,7 +376,11 @@ class PdfSimple
         $haut = $this->y;
         foreach ($rendu as $i => [$titre, $ls]) {
             $x = self::MARGE + $i * ($larg + $gap);
-            $this->rect($x, $haut - $hMax, $larg, $hMax, $this->modele === 'sobre' ? [0.95, 0.95, 0.96] : (($bl4[$i] ?? false) ? array_map(fn($v) => $v * 0.08 + 0.92, $this->teal) : [0.949, 0.969, 0.973]));
+            if ($this->modele === 'moderne') {
+                $this->rect($x, $haut - $hMax, $larg, $hMax, [0.975, 0.98, 0.985]);
+                $this->rect($x, $haut - $hMax, 3.2, $hMax, $this->teal);
+            } else
+            $this->rect($x, $haut - $hMax, $larg, $hMax, $this->modele === 'sobre' ? [0.95, 0.95, 0.96] : array_map(fn($v) => $v * 0.08 + 0.92, $this->teal));
             $this->texte($x + 10, $haut - 17, $titre, 8.5, true, [0.4, 0.42, 0.47]);
             $yy = $haut - 17;
             foreach ($ls as [$c, $gras]) {
@@ -399,7 +420,8 @@ class PdfSimple
             $h = $nb * ($taille + 3) + 9;
             $this->assurerPlace($h + 4);
             if ($entete) {
-                $this->rect(self::MARGE, $this->y - $h, $utile, $h, $this->modele === 'sobre' ? [0.93, 0.94, 0.96] : $this->teal);
+                if ($this->modele === 'moderne') { $this->rect(self::MARGE, $this->y - $h, $utile, 1.6, $this->teal); }
+                else { $this->rect(self::MARGE, $this->y - $h, $utile, $h, $this->modele === 'sobre' ? [0.93, 0.94, 0.96] : $this->teal); }
             }
             $x = self::MARGE;
             foreach ($pret as $i => [$a, $b]) {
@@ -407,7 +429,7 @@ class PdfSimple
                 foreach ($a as $l) {
                     $yy -= $taille;
                     $px = in_array($i, $droite, true) ? $x + $cols[$i] - 6 - $this->largeur($l, $taille, $entete) : $x + 6;
-                    $this->texte($px, $yy, $l, $taille, $entete, ($entete && $this->modele !== 'sobre') ? [1, 1, 1] : [0.11, 0.125, 0.19]);
+                    $this->texte($px, $yy, $l, $taille, $entete, ($entete && $this->modele === 'moderne') ? $this->teal : (($entete && $this->modele !== 'sobre') ? [1, 1, 1] : [0.11, 0.125, 0.19]));
                     $yy -= 3;
                 }
                 foreach ($b as $l) {
@@ -443,6 +465,14 @@ class PdfSimple
             $this->y -= 4;
         }
         $this->y -= 3;
+        if ($this->modele === 'moderne') {
+            $this->rect($x1 - 6, $this->y - 26, $larg + 12, 28, $this->teal);
+            $this->y -= 18;
+            $this->texte($x1, $this->y, $libelleTtc, 13, true, [1, 1, 1]);
+            $this->texte($x2 - $this->largeur($valeurTtc, 13, true), $this->y, $valeurTtc, 13, true, [1, 1, 1]);
+            $this->y -= 20;
+            return;
+        }
         $this->rect($x1, $this->y, $larg, 1.6, $this->teal);
         $this->y -= 20;
         $this->texte($x1, $this->y, $libelleTtc, 13, true, [0.11, 0.125, 0.19]);
