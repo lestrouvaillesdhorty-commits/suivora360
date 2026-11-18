@@ -30,6 +30,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p);box-s
 table.t{width:100%;border-collapse:collapse;font-size:14px}.t th{text-align:left;color:var(--m);font-weight:600;padding:8px 6px;border-bottom:1px solid var(--b)}.t td{padding:10px 6px;border-bottom:1px solid #f0f1f5}.t .n{text-align:right;white-space:nowrap}
 details.d summary{list-style:none;cursor:pointer}details.d summary::-webkit-details-marker{display:none}
 .hp{position:absolute;left:-9999px;height:0;overflow:hidden}
-@media(max-width:600px){h1{font-size:20px}.who{text-align:left}}
+@media(max-width:600px){h1{font-size:20px}.who{text-align:left}.tabs{flex-wrap:wrap;gap:4px 16px;overflow:visible;white-space:normal}.tabs a{font-size:13.5px;padding:8px 2px}.row .btn{flex:0 0 auto}}
 @media print{header.pt .who,.tabs,.act,.noprint,.priv{display:none!important}body{background:#fff}.card{border:0;padding:0}}
 </style>

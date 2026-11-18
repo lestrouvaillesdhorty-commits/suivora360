@@ -110,10 +110,11 @@ class PortailClient
     {
         $stmt = Database::connection()->prepare(
             'SELECT d.id, d.reference, d.objet, d.etape, d.statut, d.echeance, d.created_at
-             FROM dossiers d INNER JOIN demandes de ON de.id = d.demande_id
-             WHERE de.client_id = ? ORDER BY d.created_at DESC'
+             FROM dossiers d LEFT JOIN demandes de ON de.id = d.demande_id
+             WHERE de.client_id = ? OR EXISTS (SELECT 1 FROM cotations c2 WHERE c2.dossier_id = d.id AND c2.client_id = ? AND c2.statut IN (\'envoyee\', \'acceptee\', \'refusee\'))
+             ORDER BY d.created_at DESC'
         );
-        $stmt->execute([$clientId]);
+        $stmt->execute([$clientId, $clientId]);
         return $stmt->fetchAll();
     }
 

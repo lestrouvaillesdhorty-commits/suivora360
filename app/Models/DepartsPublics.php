@@ -12,7 +12,7 @@ use App\Core\Schema;
 class DepartsPublics
 {
     public const UNITES = ['m3' => 'm³', 'kg' => 'kg', 'colis' => 'colis', 'palette' => 'palette'];
-    private const CACHE_SECONDES = 300;
+    private const CACHE_SECONDES = 30;
     public const ORGANISATIONS = ['capacite' => 'Capacité fixe : places restantes en kg', 'reservations' => 'Départ confirmé selon les réservations', 'confirme' => 'Départ confirmé (date certaine)'];
     public const TRANSPORTS = ['fret' => 'Fret aérien', 'voyageur' => 'Par voyageur', 'maritime' => 'Maritime', 'routier' => 'Routier'];
     public const PRODUITS = ['alimentaire' => 'Alimentaire', 'non_alimentaire' => 'Non alimentaire'];
@@ -110,6 +110,12 @@ class DepartsPublics
     private static function fichierCache(int $filialeId): string
     {
         return dirname(__DIR__, 2) . '/storage/cache/departs_' . $filialeId . '.json';
+    }
+
+    /** Vide tous les caches de la page publique (changement de réservation, de statut…). */
+    public static function viderTout(): void
+    {
+        foreach (glob(dirname(__DIR__, 2) . '/storage/cache/departs_*.json') ?: [] as $f) { @unlink($f); }
     }
 
     public static function viderCache(int $filialeId): void

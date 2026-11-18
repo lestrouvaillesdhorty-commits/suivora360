@@ -111,6 +111,7 @@ class DepartsPublicsController
         $filiale = Filiale::find($filialeId) ?: [];
         $emetteur = ['nom' => trim((string) ($info['raison_sociale'] ?? '')) ?: (string) ($filiale['nom'] ?? '')] + $info;
         header('X-Robots-Tag: noindex, nofollow');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         View::renderPlain('expeditions/departs_public', [
             'emetteur' => $emetteur, 'logoUri' => EntrepriseInfo::logoDataUri($info),
             'departs' => DepartsPublics::departs($filialeId), 'whatsapp' => (string) ($info['depart_whatsapp'] ?? ''), 'interdits' => (string) ($info['depart_interdits'] ?? ''),

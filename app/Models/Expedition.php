@@ -36,6 +36,7 @@ class Expedition
     /** Corrige les quantités d'une réservation (poids confirmé par le transitaire, etc.) et recalcule son prix vendu ; le coût se recalcule à l'affichage. */
     public static function modifierReservation(array $r, array $d): void
     {
+        try { \App\Models\DepartsPublics::viderTout(); } catch (\Throwable $eC) { }
         $suppV = self::v60() ? (float) ($r['supplement_vente'] ?? 0) : 0.0;
         $prix = round(self::prix((string) $r['tarification'], (float) $r['tarif_unitaire'], $d['volume'], $d['poids'], $d['colis'], $d['palettes']) + $suppV, 2);
         $pdo = Database::connection();
@@ -51,6 +52,7 @@ class Expedition
 
     public static function validerReservation(int $id): void
     {
+        try { \App\Models\DepartsPublics::viderTout(); } catch (\Throwable $eC) { }
         if (self::v60()) {
             Database::connection()->prepare("UPDATE expedition_reservations SET validation_client = 'ok', valide_le = ? WHERE id = ?")->execute([date('Y-m-d'), $id]);
         }
@@ -221,6 +223,7 @@ class Expedition
 
     public static function changerStatut(int $id, string $statut): void
     {
+        try { \App\Models\DepartsPublics::viderTout(); } catch (\Throwable $eC) { }
         if (isset(self::STATUTS[$statut])) {
             Database::connection()->prepare('UPDATE expeditions SET statut = ? WHERE id = ?')->execute([$statut, $id]);
         }
@@ -399,6 +402,7 @@ class Expedition
 
     public static function ajouterReservation(array $exp, array $d): int
     {
+        try { \App\Models\DepartsPublics::viderTout(); } catch (\Throwable $eC) { }
         $pdo = Database::connection();
         $suppV = self::v60() ? max(0.0, (float) ($d['supplement_vente'] ?? 0)) : 0.0;
         $prix = round(self::prix($d['tarification'], (float) $d['tarif_unitaire'], $d['volume'], $d['poids'], $d['colis'], $d['palettes']) + $suppV, 2);
@@ -442,6 +446,7 @@ class Expedition
     /** Supprime une expédition sans aucune réservation. Retourne false s'il en reste. */
     public static function supprimer(int $id): bool
     {
+        try { \App\Models\DepartsPublics::viderTout(); } catch (\Throwable $eC) { }
         if (self::reservations($id)) {
             return false;
         }
@@ -451,6 +456,7 @@ class Expedition
 
     public static function supprimerReservation(int $id): void
     {
+        try { \App\Models\DepartsPublics::viderTout(); } catch (\Throwable $eC) { }
         Database::connection()->prepare('DELETE FROM expedition_reservations WHERE id = ?')->execute([$id]);
     }
 
