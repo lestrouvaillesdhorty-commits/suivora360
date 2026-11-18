@@ -346,6 +346,7 @@ class BonCommandeFournisseurController
             'bon' => $bon,
             'lignes' => BonCommandeFournisseur::lignes((int) $bon['id']),
             'filiale' => $filiale,
+            'fournisseur' => Fournisseur::find((int) $bon['fournisseur_id']),
             'organisation' => $org,
             'info' => \App\Models\EntrepriseInfo::forFiliale((int) $bon['filiale_id']),
             'logoUri' => \App\Models\EntrepriseInfo::logoDataUri(\App\Models\EntrepriseInfo::forFiliale((int) $bon['filiale_id'])),

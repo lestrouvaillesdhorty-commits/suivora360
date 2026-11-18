@@ -39,8 +39,25 @@ $contact = array_filter([(string) ($bon['livraison_contact_nom'] ?? ''), !empty(
 <?php if ($bon['statut'] === 'annule'): ?><div class="annule">BON ANNULÉ<?= !empty($bon['annule_motif']) ? ' — ' . View::e($bon['annule_motif']) : '' ?></div><?php endif; ?>
 <?php if ($bon['statut'] === 'brouillon'): ?><div class="noprint" style="color:#92400e;margin-bottom:10px;font-size:13px">Ce bon est encore un brouillon : vérifiez-le avant de l’envoyer.</div><?php endif; ?>
     <div class="bloc">
-      <div><h3>Fournisseur</h3><strong><?= View::e($bon['fournisseur_nom']) ?></strong><br><?= nl2br(View::e((string) $bon['fournisseur_adresse'])) ?>
-        <?php if ($bon['destinataire_nom'] !== '' || $bon['destinataire_email'] !== ''): ?><br>À l’attention de : <?= View::e($bon['destinataire_nom']) ?> <?= $bon['destinataire_email'] !== '' ? View::e($bon['destinataire_email']) : '' ?><?php endif; ?></div>
+      <?php
+        $fo = $fournisseur ?? [];
+        $adrF = trim((string) $bon['fournisseur_adresse']) !== '' ? (string) $bon['fournisseur_adresse'] : ($fo ? \App\Models\BonCommandeFournisseur::adresseTexte($fo) : '');
+        $telF = ''; $mailF = (string) ($bon['destinataire_email'] ?? '');
+        if ($fo) {
+            foreach (\App\Models\Fournisseur::contacts((int) $fo['id']) as $ct) {
+                if ((int) ($ct['actif'] ?? 1) === 1 && trim($ct['prenom'] . ' ' . $ct['nom']) === trim((string) $bon['destinataire_nom'])) { $telF = (string) ($ct['telephone'] ?? ''); if ($mailF === '') { $mailF = (string) ($ct['email'] ?? ''); } break; }
+            }
+            if ($telF === '') { $telF = (string) ($fo['telephone'] ?? ''); }
+            if ($mailF === '') { $mailF = (string) ($fo['email'] ?? ''); }
+        }
+        $idF = $fo ? array_filter([!empty($fo['siret']) ? 'SIRET : ' . $fo['siret'] : '', !empty($fo['tva']) ? 'TVA : ' . $fo['tva'] : '']) : [];
+      ?>
+      <div><h3>Fournisseur</h3><strong><?= View::e($bon['fournisseur_nom']) ?></strong>
+        <?php if (trim($adrF) !== ''): ?><br><?= nl2br(View::e($adrF)) ?><?php endif; ?>
+        <?php if ($bon['destinataire_nom'] !== ''): ?><br>À l’attention de : <?= View::e($bon['destinataire_nom']) ?><?php endif; ?>
+        <?php if ($telF !== ''): ?><br>Tél. <?= View::e($telF) ?><?php endif; ?>
+        <?php if ($mailF !== ''): ?><br><?= View::e($mailF) ?><?php endif; ?>
+        <?php if ($idF): ?><br><span class="d"><?= View::e(implode(' · ', $idF)) ?></span><?php endif; ?></div>
       <div><h3>Conditions</h3>
         Devise : <strong><?= View::e($bon['devise']) ?></strong><br>
         <?php if ($bon['incoterm'] !== ''): ?>Incoterm : <?= View::e($bon['incoterm']) ?><br><?php endif; ?>

@@ -264,7 +264,7 @@ class BonCommandeFournisseur
         }
     }
 
-    private static function adresseTexte(array $fournisseur): string
+    public static function adresseTexte(array $fournisseur): string
     {
         foreach (Fournisseur::adresses((int) $fournisseur['id']) as $a) {
             if ((int) $a['actif'] === 1 && (int) $a['par_defaut'] === 1) {
