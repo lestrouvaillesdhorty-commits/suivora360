@@ -57,8 +57,6 @@ class DevisPdf
         $p = [];
         foreach (['nom'] as $k) { if (!empty($e[$k])) { $p[] = $e[$k]; } }
         if (!empty($e['adresse'])) { $p[] = trim(preg_replace('/\s*\R\s*/u', ', ', (string) $e['adresse'])); }
-        if (!empty($e['telephone'])) { $p[] = 'Tél. ' . $e['telephone']; }
-        if (!empty($e['email'])) { $p[] = $e['email']; }
         if (!empty($e['site_web'])) { $p[] = $e['site_web']; }
         $id = \App\Models\EntrepriseInfo::ligneJuridique($e);
         if ($id !== '') { $p[] = $id; }

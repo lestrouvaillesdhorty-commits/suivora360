@@ -119,7 +119,7 @@ html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   <?php endif; ?>
   <div class="pied">
     <div class="pl"><strong><?= View::e($emetteur['nom']) ?></strong><?= !empty($emetteur['adresse']) ? ' — ' . View::e(trim(preg_replace('/\s*\R\s*/u', ', ', (string) $emetteur['adresse']))) : '' ?></div>
-    <div class="pl"><?= View::e(implode('  ·  ', array_filter([!empty($emetteur['telephone']) ? 'Tél. ' . $emetteur['telephone'] : '', $emetteur['email'] ?? '', $emetteur['site_web'] ?? '']))) ?></div>
+    <?php if (!empty($emetteur['site_web'])): ?><div class="pl"><?= View::e($emetteur['site_web']) ?></div><?php endif; ?>
     <?php if ($juridique !== ''): ?><div class="pl"><?= View::e($juridique) ?></div><?php endif; ?>
     <?php if (!empty($emetteur['identifiants'])): ?><div class="pl"><?= View::e(trim(preg_replace('/\s*\R\s*/u', '  ·  ', (string) $emetteur['identifiants']))) ?></div><?php endif; ?>
     <?php if (!empty($emetteur['mentions_pied'])): ?><div class="pl"><?= nl2br(View::e((string) $emetteur['mentions_pied'])) ?></div><?php endif; ?>
