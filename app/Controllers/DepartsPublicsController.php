@@ -43,7 +43,7 @@ class DepartsPublicsController
         }
         View::render('expeditions/page_publique', [
             'disponible' => $disponible, 'filiales' => Filiale::visibleFor($user), 'filialeId' => $filialeId,
-            'reg' => $reg, 'url' => $reg['token'] !== '' ? self::urlPublique($reg['token']) : '', 'expeditions' => $expeditions,
+            'hebdo' => DepartsPublics::hebdoListe($filialeId), 'reg' => $reg, 'url' => $reg['token'] !== '' ? self::urlPublique($reg['token']) : '', 'expeditions' => $expeditions,
             'peutEcrire' => Auth::canWrite(),
         ]);
     }
@@ -58,9 +58,42 @@ class DepartsPublicsController
             header('Location: ' . self::RETOUR);
             exit;
         }
-        DepartsPublics::enregistrer($filialeId, !empty($_POST['actif']), (string) ($_POST['whatsapp'] ?? ''), !empty($_POST['nouveau_lien']));
+        DepartsPublics::enregistrer($filialeId, !empty($_POST['actif']), (string) ($_POST['whatsapp'] ?? ''), !empty($_POST['nouveau_lien']), isset($_POST['interdits']) ? (string) $_POST['interdits'] : null);
         View::flash('succes', !empty($_POST['nouveau_lien']) ? "Nouveau lien créé : l'ancien ne fonctionne plus." : 'Réglages enregistrés.');
         header('Location: ' . self::RETOUR . '&filiale_id=' . $filialeId);
+        exit;
+    }
+
+    /** Départs hebdomadaires : créer, modifier, supprimer, suspendre une semaine. */
+    public function hebdo(): void
+    {
+        Auth::requireWrite();
+        $user = Auth::user();
+        $filialeId = (int) ($_POST['filiale_id'] ?? 0);
+        $retour = self::RETOUR . '&filiale_id=' . $filialeId;
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null) || !$filialeId || !Filiale::userCanAccess($user, $filialeId) || !DepartsPublics::hebdoDisponible()) {
+            View::flash('erreur', 'Enregistrement impossible (session expirée ou migrate_v67.php manquant).');
+            header('Location: ' . self::RETOUR);
+            exit;
+        }
+        $id = (int) ($_POST['id'] ?? 0);
+        $action = (string) ($_POST['action'] ?? 'enregistrer');
+        if ($action === 'supprimer') {
+            DepartsPublics::hebdoSupprimer($filialeId, $id);
+            View::flash('succes', 'Départ hebdomadaire supprimé.');
+        } elseif ($action === 'suspendre' || $action === 'reprendre') {
+            DepartsPublics::hebdoSuspendre($filialeId, $id, $action === 'suspendre');
+            View::flash('succes', $action === 'suspendre' ? 'Prochain départ suspendu : il disparaît de la page jusqu\'à la semaine suivante.' : 'Départ réactivé.');
+        } else {
+            if (trim((string) ($_POST['origine'] ?? '')) === '' || trim((string) ($_POST['destination'] ?? '')) === '') {
+                View::flash('erreur', "L'origine et la destination sont obligatoires.");
+                header('Location: ' . $retour);
+                exit;
+            }
+            DepartsPublics::hebdoEnregistrer($filialeId, $_POST, $id);
+            View::flash('succes', 'Départ hebdomadaire enregistré.');
+        }
+        header('Location: ' . $retour . '#hebdo');
         exit;
     }
 
@@ -80,7 +113,7 @@ class DepartsPublicsController
         header('X-Robots-Tag: noindex, nofollow');
         View::renderPlain('expeditions/departs_public', [
             'emetteur' => $emetteur, 'logoUri' => EntrepriseInfo::logoDataUri($info),
-            'departs' => DepartsPublics::departs($filialeId), 'whatsapp' => (string) ($info['depart_whatsapp'] ?? ''),
+            'departs' => DepartsPublics::departs($filialeId), 'whatsapp' => (string) ($info['depart_whatsapp'] ?? ''), 'interdits' => (string) ($info['depart_interdits'] ?? ''),
         ]);
     }
 }

@@ -66,17 +66,30 @@ $action = $exp ? '/index.php?r=expeditions/' . (int) $exp['id'] . '/modifier' : 
     <div class="form-group"><label>Devise</label><input type="text" name="devise" value="<?= $v('devise', 'EUR') ?>"></div>
     <div class="form-group"><label>N° de suivi / conteneur</label><input type="text" name="numero_suivi" value="<?= $v('numero_suivi') ?>"></div>
   </div>
-  <?php if (\App\Core\Schema::colonne('expeditions', 'public_affiche')): ?>
+  <?php if (\App\Core\Schema::colonne('expeditions', 'public_affiche')): $v67 = \App\Models\DepartsPublics::v67(); $org = (string) ($e['public_organisation'] ?? 'capacite'); ?>
   <div class="card" id="page-publique" style="background:#f7fafc;margin:10px 0 14px">
     <h3 style="margin:0 0 6px;font-size:15px">Page publique des départs</h3>
     <div class="form-group"><label><input type="checkbox" name="public_affiche" value="1" <?= !empty($e['public_affiche']) ? 'checked' : '' ?>> Afficher ce départ sur la page publique</label></div>
-    <div class="form-row">
-      <div class="form-group"><label>Tarif affiché : alimentaire</label><input type="text" name="public_tarif_alim" inputmode="decimal" value="<?= $v('public_tarif_alim') ?>"></div>
-      <div class="form-group"><label>Tarif affiché : non alimentaire</label><input type="text" name="public_tarif_non_alim" inputmode="decimal" value="<?= $v('public_tarif_non_alim') ?>"></div>
-      <div class="form-group"><label>Unité du tarif</label><select name="public_tarif_unite"><option value="">— Choisir —</option><?php foreach (\App\Models\DepartsPublics::UNITES as $k => $l): ?><option value="<?= $k ?>" <?= (($e['public_tarif_unite'] ?? '') === $k) ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select></div>
+    <?php if ($v67): ?>
+    <div class="form-group"><label>Comment ce départ est organisé</label>
+      <select name="public_organisation" id="pub-org"><?php foreach (\App\Models\DepartsPublics::ORGANISATIONS as $k => $l): ?><option value="<?= $k ?>" <?= $org === $k ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select></div>
+    <div id="pub-obj" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label>Objectif pour confirmer le départ</label><select name="public_objectif_type"><option value="kg" <?= ($e['public_objectif_type'] ?? 'kg') !== 'reservations' ? 'selected' : '' ?>>En kg réservés</option><option value="reservations" <?= ($e['public_objectif_type'] ?? '') === 'reservations' ? 'selected' : '' ?>>En nombre de réservations</option></select></div>
+        <div class="form-group"><label>Objectif (kg ou nombre)</label><input type="text" name="public_objectif" inputmode="decimal" value="<?= $v('public_objectif') ?>" placeholder="Ex. 3000"></div>
+      </div>
+      <div class="form-group"><label><input type="checkbox" name="public_confirme" value="1" <?= !empty($e['public_confirme']) ? 'checked' : '' ?>> Départ confirmé à la main (même si l'objectif n'est pas atteint)</label>
+        <div class="hint">Tant que le départ n'est pas confirmé, la page affiche « Départ prévu vers le … ». La date prévue se saisit dans « Départ » ci-dessus.</div></div>
     </div>
-    <div class="hint">C'est le tarif que le client voit (votre prix de vente, pas votre coût d'achat). Laissez vide : « Tarif sur demande ». Les places restantes se calculent toutes seules (capacité moins réservations).</div>
+    <div class="form-group"><label><input type="checkbox" name="public_chiffres" value="1" <?= (!isset($e['public_chiffres']) || !empty($e['public_chiffres'])) ? 'checked' : '' ?>> Afficher les kg (places restantes ou déjà réservés), sans aucun nom</label></div>
+    <?php endif; ?>
+    <div class="form-row">
+      <div class="form-group"><label>Tarif affiché alimentaire (€ par kg)</label><input type="text" name="public_tarif_alim" inputmode="decimal" value="<?= $v('public_tarif_alim') ?>"></div>
+      <div class="form-group"><label>Tarif affiché non alimentaire (€ par kg)</label><input type="text" name="public_tarif_non_alim" inputmode="decimal" value="<?= $v('public_tarif_non_alim') ?>"></div>
+    </div>
+    <div class="hint">C'est le tarif que le client voit (votre prix de vente, pas votre coût d'achat). Laissez vide : « Tarif sur demande ». Capacité fixe : les places restantes sont la capacité en kg moins les kg réservés.</div>
   </div>
+  <script>(function(){var s=document.getElementById('pub-org'),o=document.getElementById('pub-obj');function m(){if(s&&o){o.style.display=s.value==='reservations'?'':'none';}}if(s){s.addEventListener('change',m);}m();})();</script>
   <?php endif; ?>
   <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= $v('notes') ?></textarea></div>
   <button class="btn btn-primary" type="submit">Enregistrer</button>

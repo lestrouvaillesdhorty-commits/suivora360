@@ -6,12 +6,11 @@ use App\Models\Expedition;
 $col = EntrepriseInfo::couleurEffective($emetteur);
 $tel = preg_replace('/\D/', '', (string) $whatsapp);
 $mode = EntrepriseInfo::enteteMode($emetteur, !empty($logoUri));
-$trajets = [];
-foreach ($departs as $d) { $trajets[$d['origine'] . ' → ' . $d['destination']] = true; }
-$modes = [];
-foreach ($departs as $d) { $modes[$d['mode']] = Expedition::MODES[$d['mode']] ?? $d['mode']; }
-$donnees = array_map(fn($d) => $d + ['trajet' => $d['origine'] . ' → ' . $d['destination'], 'mode_lib' => Expedition::MODES[$d['mode']] ?? $d['mode'], 'type_lib' => Expedition::TYPES[$d['type']] ?? ''], $departs);
-$unites = ['m3' => 'm³', 'kg' => 'kg', 'colis' => 'colis', 'palette' => 'palette'];
+$trajets = []; $transports = [];
+foreach ($departs as $d) { $trajets[$d['origine'] . ' → ' . $d['destination']] = true; $transports[$d['transport_lib']] = true; }
+$donnees = array_map(fn($d) => $d + ['trajet' => $d['origine'] . ' → ' . $d['destination']], $departs);
+$tel = preg_replace('/\D/', '', (string) $whatsapp);
+$interdits = trim((string) ($interdits ?? ''));
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -37,6 +36,8 @@ select{width:100%;padding:11px 10px;border:1px solid #cfd6df;border-radius:10px;
 .btn{display:inline-block;background:#1e9e55;color:#fff;text-decoration:none;border-radius:10px;padding:11px 14px;font-weight:600;font-size:14px;text-align:center}
 .btn.gris{background:#fff;color:#334;border:1px solid #cfd6df}
 .vide{background:#fff;border:1px dashed #cfd6df;border-radius:12px;padding:24px;text-align:center;color:#556}
+.interdits{background:#fff;border:1px solid #f0d9b5;border-left:4px solid var(--c);border-radius:10px;padding:12px 14px;margin:0 0 30px;font-size:13.5px}.interdits b{display:block;margin-bottom:4px}
+.depot{min-width:200px;flex:1;font-size:12.5px;background:#f4f8f6;border-radius:8px;padding:8px 10px;white-space:pre-line}.barre{height:8px;background:#eef1f5;border-radius:99px;overflow:hidden;margin-top:4px}.barre i{display:block;height:8px;background:var(--c)}
 .note{font-size:12.5px;color:#667;margin:14px 0 30px}
 @media(max-width:560px){.date{border-right:0;padding-right:0;text-align:left;min-width:0}.btn{width:100%}}
 </style>
@@ -53,44 +54,74 @@ select{width:100%;padding:11px 10px;border:1px solid #cfd6df;border-radius:10px;
   <div class="filtres">
     <div><label for="f-trajet">Trajet</label><select id="f-trajet"><option value="">Tous les trajets</option><?php foreach (array_keys($trajets) as $t): ?><option><?= View::e($t) ?></option><?php endforeach; ?></select></div>
     <div><label for="f-produit">Type de produit</label><select id="f-produit"><option value="alimentaire">Alimentaire</option><option value="non_alimentaire">Non alimentaire</option></select></div>
-    <?php if (count($modes) > 1): ?><div><label for="f-mode">Mode</label><select id="f-mode"><option value="">Tous</option><?php foreach ($modes as $k => $l): ?><option value="<?= View::e($k) ?>"><?= View::e($l) ?></option><?php endforeach; ?></select></div><?php endif; ?>
+    <?php if (count($transports) > 1): ?><div><label for="f-mode">Transport</label><select id="f-mode"><option value="">Tous</option><?php foreach (array_keys($transports) as $l): ?><option><?= View::e($l) ?></option><?php endforeach; ?></select></div><?php endif; ?>
   </div>
   <div id="liste"></div>
-  <div class="note">Les dates, les places et les tarifs sont mis à jour automatiquement. Tarifs indicatifs : le prix final est confirmé avec vous. Un cas particulier (produit hors format, alcool, produit dangereux) ? Précisez-le dans votre message.</div>
+  <div class="note">Les dates, les places et les tarifs sont mis à jour automatiquement. Tous les tarifs sont au kilo et indicatifs : le prix final est confirmé avec vous. Un cas particulier ? Précisez-le dans votre message.</div>
 <?php endif; ?>
+<?php if ($interdits !== ''): ?><div class="interdits"><b>Produits interdits et conditions</b><div><?= nl2br(View::e($interdits)) ?></div></div><?php endif; ?>
 </div>
 <script>
 (function () {
   var D = <?= json_encode($donnees, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-  var TEL = <?= json_encode($tel) ?>, UN = <?= json_encode($unites) ?>;
+  var TEL = <?= json_encode($tel) ?>;
   var liste = document.getElementById('liste'); if (!liste) { return; }
   var fT = document.getElementById('f-trajet'), fP = document.getElementById('f-produit'), fM = document.getElementById('f-mode');
+  var JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'], MOIS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
   function e(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function dateFr(iso) { if (!iso) { return null; } var p = iso.split('-'); var m = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.']; return parseInt(p[2], 10) + ' ' + m[parseInt(p[1], 10) - 1]; }
+  function dt(iso) { var p = iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function dateCourte(iso) { if (!iso) { return null; } var d = dt(iso); return d.getDate() + ' ' + MOIS[d.getMonth()]; }
+  function dateJour(iso) { var d = dt(iso); return JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()]; }
   function dateLongue(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
-  function nombre(n) { return String(n).replace('.', ','); }
+  function nb(n) { return String(n).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
   function tarif(d, alim) {
-    var v = alim ? d.tarif_alim : d.tarif_non_alim;
+    var v = d.produit ? (d.produit === 'alimentaire' ? d.tarif_alim : d.tarif_non_alim) : (alim ? d.tarif_alim : d.tarif_non_alim);
+    var lib = d.produit ? (d.produit === 'alimentaire' ? 'Alimentaire' : 'Non alimentaire') : (alim ? 'Alimentaire' : 'Non alimentaire');
     if (v === null || v === undefined) { return '<span style="color:#667">Tarif sur demande</span>'; }
-    return (alim ? 'Alimentaire' : 'Non alimentaire') + ' : <b>' + nombre(v) + ' ' + e(d.devise === 'EUR' ? '€' : d.devise) + (d.unite ? ' / ' + e(UN[d.unite] || d.unite) : '') + '</b>';
+    return lib + ' : <b>' + nb(v) + ' ' + (d.devise === 'EUR' ? '€' : e(d.devise)) + ' / kg</b>';
   }
   function whats(d, alim) {
-    var prod = alim ? 'Alimentaire' : 'Non alimentaire';
-    if (d.etat === 'complet') { return 'https://wa.me/' + TEL + '?text=' + encodeURIComponent('Bonjour, le départ du ' + (d.depart ? dateLongue(d.depart) : '') + ' (' + d.trajet + ") est complet. Quand est le prochain départ ?\nType de produit : " + prod); }
-    var msg = 'Bonjour, je voudrais réserver sur le départ du ' + (d.depart ? dateLongue(d.depart) : 'date à confirmer') + ' : ' + d.trajet + ' (' + d.mode_lib.toLowerCase() + ").\nType de produit : " + prod + "\nQuantité estimée : \nMon nom : ";
+    var prod = d.produit ? (d.produit === 'alimentaire' ? 'Alimentaire' : 'Non alimentaire') : (alim ? 'Alimentaire' : 'Non alimentaire');
+    var quand = d.depart ? dateLongue(d.depart) : 'date à confirmer', msg;
+    if (d.etat === 'complet') { msg = 'Bonjour, le départ du ' + quand + ' (' + d.trajet + ") est complet. Quand est le prochain départ ?\nType de produit : " + prod; }
+    else if (d.genre === 'hebdo') { msg = "Bonjour, j'ai un colis à déposer pour le départ du " + quand + ' : ' + d.trajet + ' (' + d.transport_lib.toLowerCase() + ").\nType de produit : " + prod + "\nPoids estimé : \nMon nom : "; }
+    else { msg = 'Bonjour, je voudrais réserver sur le départ ' + (d.prevu ? 'prévu vers le ' : 'du ') + quand + ' : ' + d.trajet + ' (' + d.transport_lib.toLowerCase() + ").\nType de produit : " + prod + "\nQuantité estimée : \nMon nom : "; }
     return 'https://wa.me/' + TEL + '?text=' + encodeURIComponent(msg);
+  }
+  function etat(d) {
+    switch (d.etat) {
+      case 'complet': return '<span class="pill complet">Complet</span>';
+      case 'peu': return '<span class="pill peu">Dernières places</span>' + (d.places_kg !== null ? '<br>Environ ' + nb(d.places_kg) + ' kg libres' : '');
+      case 'ok': return '<span class="pill ok">Places disponibles</span>' + (d.places_kg !== null ? '<br>Il reste environ ' + nb(d.places_kg) + ' kg' : '');
+      case 'confirme': return '<span class="pill ok">Départ confirmé</span>';
+      case 'remplissage':
+        var p = d.progres, t = '<span class="pill peu">En cours de remplissage</span>';
+        if (p && p.chiffres) { t += '<br>' + (p.type === 'kg' ? nb(p.actuel) + ' kg sur ' + nb(p.objectif) + ' kg' : nb(p.actuel) + ' réservations sur ' + nb(p.objectif)); }
+        return t;
+      case 'depot': return '<span class="pill ok">Départ chaque semaine</span>';
+      default: return '<span class="pill sd">Sur demande</span>';
+    }
   }
   function maj() {
     var alim = fP.value === 'alimentaire', html = '', n = 0;
     D.forEach(function (d) {
+      if (d.produit && d.produit !== fP.value) { return; }
       if (fT.value && d.trajet !== fT.value) { return; }
-      if (fM && fM.value && d.mode !== fM.value) { return; }
+      if (fM && fM.value && d.transport_lib !== fM.value) { return; }
       n++;
-      var pl = d.etat === 'complet' ? '<span class="pill complet">Complet</span>' : d.etat === 'peu' ? '<span class="pill peu">Dernières places</span><br>Environ ' + nombre(d.places) + ' m³ libres'
-        : d.etat === 'ok' ? '<span class="pill ok">Places disponibles</span><br>Environ ' + nombre(d.places) + ' m³ libres' : '<span class="pill sd">Sur demande</span>';
-      var dt = dateFr(d.depart);
-      var btn = TEL ? (d.etat === 'complet' ? '<a class="btn gris" href="' + e(whats(d, alim)) + '">Complet : demander la prochaine date</a>' : '<a class="btn" href="' + e(whats(d, alim)) + '">Réserver sur WhatsApp</a>') : '';
-      html += '<div class="dep"><div class="date"><small>Départ</small><b>' + (dt || 'À confirmer') + '</b></div><div class="mid"><b>' + e(d.trajet) + '</b><span>' + e(d.mode_lib) + (d.type_lib ? ' · ' + e(d.type_lib.toLowerCase()) : '') + (d.cloture ? ' · réservations jusqu\'au ' + dateFr(d.cloture) : '') + '</span></div><div class="pl">' + pl + '</div><div class="tarif">' + tarif(d, alim) + '</div>' + btn + '</div>';
+      var hebdo = d.genre === 'hebdo';
+      var petit = hebdo ? 'Prochain départ' : (d.prevu ? 'Vers le' : 'Départ');
+      var dateTxt = d.depart ? (hebdo ? dateJour(d.depart) : dateCourte(d.depart)) : 'À confirmer';
+      var btn = '';
+      if (TEL) {
+        btn = d.etat === 'complet' ? '<a class="btn gris" href="' + e(whats(d, alim)) + '">Complet : demander la prochaine date</a>'
+          : '<a class="btn" href="' + e(whats(d, alim)) + '">' + (hebdo ? "J'ai un colis à déposer" : 'Réserver sur WhatsApp') + '</a>';
+      }
+      var sous = e(d.transport_lib) + (d.cloture ? ' · réservations jusqu\'au ' + dateCourte(d.cloture) : '');
+      var regle = hebdo ? '<div style="font-size:12.5px;margin-top:4px">' + e(d.regle) + '</div>' : '';
+      var depot = hebdo && d.depot ? '<div class="depot"><b>Où déposer</b>\n' + e(d.depot) + '</div>' : '';
+      var barre = d.etat === 'remplissage' && d.progres ? '<div style="flex-basis:100%;padding-left:2px"><div class="barre"><i style="width:' + d.progres.pct + '%"></i></div><div style="font-size:11.5px;color:#556;margin-top:3px">Ce départ est confirmé dès que ' + (d.progres.type === 'kg' ? nb(d.progres.objectif) + ' kg' : nb(d.progres.objectif) + ' réservations') + ' sont atteints. Plus vous réservez tôt, plus vite on part.</div></div>' : '';
+      html += '<div class="dep"><div class="date"><small>' + petit + '</small><b>' + dateTxt + '</b></div><div class="mid"><b>' + e(d.trajet) + '</b><span>' + sous + '</span>' + regle + '</div>' + depot + '<div class="pl">' + etat(d) + '</div><div class="tarif">' + tarif(d, alim) + '</div>' + btn + barre + '</div>';
     });
     liste.innerHTML = n ? html : '<div class="vide">Aucun départ pour ce choix. Essayez « Tous les trajets ».</div>';
   }

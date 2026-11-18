@@ -19,6 +19,8 @@ use App\Models\Expedition;
     <div class="form-group"><label><input type="checkbox" name="actif" value="1" <?= $reg['actif'] ? 'checked' : '' ?> <?= $peutEcrire ? '' : 'disabled' ?>> Activer la page publique</label></div>
     <div class="form-group"><label>Numéro WhatsApp de réservation</label><input type="text" name="whatsapp" inputmode="tel" value="<?= View::e($reg['whatsapp']) ?>" placeholder="Ex. +33612345678" style="max-width:280px" <?= $peutEcrire ? '' : 'disabled' ?>>
       <div class="hint">Avec l'indicatif du pays. Le bouton « Réserver » ouvre une conversation sur ce numéro, avec le trajet, la date et le type de produit déjà écrits.</div></div>
+    <div class="form-group"><label>Produits interdits et conditions (affichés en bas de la page)</label><textarea name="interdits" rows="4" placeholder="Ex. Produits interdits : … Produits acceptés seulement par voyageur : …" <?= $peutEcrire ? '' : 'disabled' ?>><?= View::e($reg['interdits']) ?></textarea>
+      <div class="hint">Évite les questions « est-ce que je peux envoyer ça ? ». Laissez vide pour ne rien afficher.</div></div>
     <?php if ($peutEcrire): ?><button class="btn btn-primary" type="submit">Enregistrer</button><?php endif; ?>
   </form>
 </div>
@@ -54,8 +56,37 @@ use App\Models\Expedition;
 })();
 </script>
 <?php endif; ?>
+<div class="card" id="hebdo">
+  <h2 style="margin-top:0;font-size:16px">Départs fixes chaque semaine (dépôt du colis)</h2>
+  <p class="hint" style="margin-top:0">Par exemple : tous les lundis, alimentaire, Cameroun → France ; tous les mercredis, non alimentaire, par voyageur, dans les deux sens. La page calcule toute seule la prochaine date. Tous les tarifs sont au kilo. Plusieurs lieux de dépôt ? Écrivez-les l'un sous l'autre.</p>
+  <?php if (!\App\Models\DepartsPublics::hebdoDisponible()): ?>
+    <div class="empty-state">Pas encore activé : lancez migrate_v67.php une fois.</div>
+  <?php else: ?>
+  <?php foreach ($hebdo as $h): $prochaine = \App\Models\DepartsPublics::prochaineDate($h); ?>
+  <form method="post" action="/index.php?r=expeditions/page-publique/hebdo" class="card" style="background:#f7fafc;margin-bottom:10px">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="filiale_id" value="<?= (int) $filialeId ?>"><input type="hidden" name="id" value="<?= (int) $h['id'] ?>">
+    <div style="margin-bottom:6px"><strong><?= View::e(ucfirst(\App\Models\DepartsPublics::JOURS[(int) $h['jour_semaine']] ?? '')) ?> · <?= View::e($h['origine'] . ' → ' . $h['destination']) ?> · <?= View::e(\App\Models\DepartsPublics::PRODUITS[$h['produit']] ?? '') ?></strong>
+      <span class="hint"> · <?= !(int) $h['actif'] ? 'désactivé' : ($prochaine ? 'prochain départ : ' . View::e(\App\Models\DepartsPublics::jourDate($prochaine)) : 'aucune date') ?><?= !empty($h['suspendu_jusqua']) ? ' · suspendu' : '' ?></span></div>
+    <?php include __DIR__ . '/_hebdo_champs.php'; ?>
+    <?php if ($peutEcrire): ?><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-primary" type="submit" name="action" value="enregistrer">Enregistrer</button>
+      <?php if (!empty($h['suspendu_jusqua'])): ?><button class="btn btn-secondary" type="submit" name="action" value="reprendre">Réactiver</button>
+      <?php else: ?><button class="btn btn-secondary" type="submit" name="action" value="suspendre" title="Jour férié, pause : le prochain départ disparaît de la page">Suspendre le prochain départ</button><?php endif; ?>
+      <button class="btn btn-secondary" type="submit" name="action" value="supprimer" style="color:#b3261e;border-color:#e3b5b1" onclick="return confirm('Supprimer ce départ hebdomadaire ?')">Supprimer</button></div><?php endif; ?>
+  </form>
+  <?php endforeach; ?>
+  <?php if ($peutEcrire): $h = ['id' => 0, 'jour_semaine' => 1, 'origine' => '', 'destination' => '', 'transport' => 'fret', 'produit' => 'alimentaire', 'depot_jours_avant' => 0, 'heure_limite' => '', 'tarif_kg' => '', 'lieu_depot' => '', 'actif' => 1]; ?>
+  <details><summary class="btn btn-secondary" style="display:inline-block;cursor:pointer">Ajouter un départ chaque semaine</summary>
+  <form method="post" action="/index.php?r=expeditions/page-publique/hebdo" class="card" style="background:#f7fafc;margin-top:10px">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="filiale_id" value="<?= (int) $filialeId ?>"><input type="hidden" name="id" value="0">
+    <?php include __DIR__ . '/_hebdo_champs.php'; ?>
+    <button class="btn btn-primary" type="submit" name="action" value="enregistrer" style="margin-top:8px">Ajouter</button>
+  </form></details>
+  <?php endif; ?>
+  <?php endif; ?>
+</div>
 <div class="card">
-  <h2 style="margin-top:0;font-size:16px">Départs ouverts</h2>
+  <h2 style="margin-top:0;font-size:16px">Départs ouverts (à capacité ou selon les réservations)</h2>
   <?php if (!$expeditions): ?><div class="empty-state">Aucune expédition ouverte.</div><?php else: ?>
   <table class="table responsive-cards"><thead><tr><th>Expédition</th><th>Trajet</th><th>Départ</th><th>Sur la page</th></tr></thead><tbody>
   <?php foreach ($expeditions as $e): ?><tr>
