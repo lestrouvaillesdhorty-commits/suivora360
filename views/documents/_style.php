@@ -27,7 +27,9 @@ th{background:transparent!important;color:var(--c)!important;border-bottom:2px s
 <?php elseif ($mep === 'sobre'): ?>
 .ent{border-bottom:1px solid #1c2030}th{background:#eef0f4;color:#1c2030;border-bottom:2px solid #1c2030}.tot .ttc{border-top:2px solid #1c2030}.bar a,.bar button{background:#1c2030}.bar a.s{color:#1c2030;background:#fff;border-color:#c9ced8}
 <?php endif; ?>
-@media print{body{background:#fff}.bar{display:none}.page{box-shadow:none;margin:0;max-width:none;min-height:0}}
+@page{size:A4;margin:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@media print{body{background:#fff}.bar,.noprint{display:none!important}.page{box-shadow:none;margin:0;max-width:none;min-height:0}}
 @media (max-width:600px){.ent,.corps,.pied{padding-left:16px;padding-right:16px}.ent .doc{text-align:left}}
 .ent .emet .logo{max-height:64px}
 .sec{margin:16px 0 6px;font-weight:700;color:var(--c)}

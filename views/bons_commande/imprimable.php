@@ -66,7 +66,9 @@ $contact = array_filter([(string) ($bon['livraison_contact_nom'] ?? ''), !empty(
     </div>
     <div class="bloc liv">
       <div><h3>Livraison</h3><strong><?= nl2br(View::e(trim($aLiv)) ?: 'À préciser') ?></strong>
-        <?php if ($contact): ?><br>Contact : <?= View::e(implode(' · ', $contact)) ?><?php endif; ?>
+        <?php if (!empty($bon['livraison_contact_nom'])): ?><br>Contact : <?= View::e($bon['livraison_contact_nom']) ?><?php endif; ?>
+        <?php if (!empty($bon['livraison_contact_tel'])): ?><br>Tél. <?= View::e($bon['livraison_contact_tel']) ?><?php endif; ?>
+        <?php if (!empty($bon['livraison_contact_email'])): ?><br><?= View::e($bon['livraison_contact_email']) ?><?php endif; ?>
         <?php if (!empty($bon['livraison_horaires'])): ?><br>Réception : <?= View::e($bon['livraison_horaires']) ?><?php endif; ?></div>
       <div><h3>Facturation</h3><?= nl2br(View::e(trim($aFact))) ?>
         <?php if ($juridique !== ''): ?><br><span class="d"><?= View::e($juridique) ?></span><?php endif; ?></div>
