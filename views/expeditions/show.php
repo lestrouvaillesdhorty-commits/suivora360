@@ -104,7 +104,21 @@ $tarifMode = Expedition::modeAchat($exp) === 'tarif';
 
 <?php $nbAV = 0; foreach ($reservations as $rv) { if (($rv['validation_client'] ?? 'ok') === 'a_valider') { $nbAV++; } } ?>
 <?php if ($nbAV > 0): ?><div class="alert alert-erreur"><?= $nbAV ?> réservation(s) à valider avec le client avant le départ (cas particuliers).</div><?php endif; ?>
-<?php if ($tarifMode && empty($exp['tarif_achat_type'])): ?><div class="alert alert-erreur">Le tarif d'achat du transitaire n'est pas renseigné : les coûts sont à zéro. <a href="<?= $base ?>/modifier">Le renseigner</a></div><?php endif; ?>
+<?php
+// Tarif manquant : seulement si une réservation a besoin d'un tarif d'achat qui n'est pas renseigné
+// (alimentaire -> tarif alimentaire, sinon tarif non alimentaire). Sans réservation : rien n'est saisi du tout.
+$tarifManquant = [];
+if ($tarifMode) {
+    $unAlim = !empty($exp['tarif_achat_alim_type']) || !empty($exp['tarif_achat_type']);
+    $unNon = !empty($exp['tarif_achat_type']);
+    foreach ($reservations as $rv) {
+        $alim = ($rv['type_marchandise'] ?? '') === 'alimentaire' && ($exp['tarif_achat_alim'] ?? '') !== '' && $exp['tarif_achat_alim'] !== null;
+        if ($alim ? !$unAlim : !$unNon) { $tarifManquant[($rv['type_marchandise'] ?? '') === 'alimentaire' ? 'alimentaire' : 'non alimentaire'] = true; }
+    }
+    if (!$reservations && !$unAlim && !$unNon) { $tarifManquant['alimentaire ou non alimentaire'] = true; }
+}
+?>
+<?php if ($tarifManquant): ?><div class="alert alert-erreur">Le tarif d'achat du transitaire n'est pas renseigné pour : <?= View::e(implode(', ', array_keys($tarifManquant))) ?>. Les coûts de ces réservations sont à zéro. <a href="<?= $base ?>/modifier">Le renseigner</a></div><?php endif; ?>
 
 <?php if ($peutEcrire && $ouverte && !($complet && $reservations)): ?>
 <div class="card">
