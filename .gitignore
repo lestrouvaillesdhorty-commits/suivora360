@@ -3,3 +3,4 @@
 .DS_Store
 /storage/uploads/
 *.sqlite
+storage/cache/
