@@ -1438,3 +1438,14 @@ select.niv-cache { border-color: #D6DCE3; }
   td.col-actions-visibles::before { display: none !important; }
   td.col-actions-visibles .btn { flex: 1 1 auto; justify-content: center; min-height: 40px; }
 }
+
+/* Audit téléphone : champs de recherche sans flèche de liste déroulante, champs à 16 px (évite le zoom automatique de l'iPhone), cibles tactiles plus grandes */
+.filter-bar .f-group input:not([type=date]):not([type=checkbox]) { background-image: none; }
+@media (max-width: 768px) {
+  input:not([type=checkbox]):not([type=radio]):not([type=hidden]), select, textarea,
+  .filter-bar .f-group select, .filter-bar .f-group input, #selFilialeActive { font-size: 16px !important; }
+  select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=hidden]) { font-size: 16px !important; }
+  .sidebar .logout, .sidebar .nav-group-head, .sidebar a { min-height: 40px; }
+  .sidebar a[href*="mon-mot-de-passe"], .filter-bar a, .banner a, .alert a { display: inline-block; padding: 8px 4px; }
+  .brand-close { min-width: 40px; min-height: 40px; }
+}
