@@ -32,11 +32,11 @@ $date = fn($d) => $d ? date('d/m/Y', strtotime($d)) : '—';
 <?php $titre = 'MANIFESTE ' . $exp['reference']; $droiteLignes = '<br>Édité le ' . date('d/m/Y') . '<br>' . View::e($exp['origine']) . ' → ' . View::e($exp['destination']) . ' · ' . View::e(Expedition::MODES[$exp['mode']] ?? ''); include __DIR__ . '/../documents/_entete.php'; ?>
 <div class="corps">
 <div class="bloc">
-  <div><h2>Transport</h2>
+  <div><h3>Transport</h3>
     <?php if ($exp['partenaire']): ?>Transitaire : <strong><?= View::e($exp['partenaire']) ?></strong><br><?php endif; ?>
     Type : <?= View::e(Expedition::TYPES[$exp['type']] ?? '') ?><br>
     <?php if ($exp['numero_suivi']): ?>N° de suivi / conteneur : <strong><?= View::e($exp['numero_suivi']) ?></strong><?php endif; ?></div>
-  <div><h2>Dates</h2>
+  <div><h3>Dates</h3>
     Clôture des réservations : <?= $date($exp['cloture_reservations']) ?><br>
     Départ : <strong><?= $date($exp['date_depart']) ?></strong><br>
     Arrivée prévue : <?= $date($exp['date_arrivee']) ?></div>

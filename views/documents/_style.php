@@ -29,7 +29,7 @@ th{background:transparent!important;color:var(--c)!important;border-bottom:2px s
 <?php endif; ?>
 @page{size:A4;margin:0}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-@media print{body{background:#fff}.bar,.noprint{display:none!important}.page{box-shadow:none;margin:0;max-width:none;min-height:0}}
+@media print{body{background:#fff}.bar,.noprint{display:none!important}.page{box-shadow:none;margin:0;max-width:none;min-height:296mm}.pied{page-break-inside:avoid}tr{page-break-inside:avoid}}
 @media (max-width:600px){.ent,.corps,.pied{padding-left:16px;padding-right:16px}.ent .doc{text-align:left}}
 .ent .emet .logo{max-height:64px}
 .sec{margin:16px 0 6px;font-weight:700;color:var(--c)}
