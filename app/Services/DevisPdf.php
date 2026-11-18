@@ -90,19 +90,23 @@ class DevisPdf
             'Date : ' . date('d/m/Y', strtotime((string) $c['created_at'])),
             $validite ? 'Valable jusqu\'au ' . date('d/m/Y', strtotime($validite)) : '',
         ]));
-        $pdf->enteteDevis($logo, (string) ($emetteur['nom'] ?? ''), $coord, 'DEVIS ' . $c['reference'], $droite);
+        $mode = EntrepriseInfo::enteteMode($emetteur, $logo !== null);
+        $pdf->enteteDevis($mode === 'nom' ? null : $logo, $mode === 'logo' ? '' : (string) ($emetteur['nom'] ?? ''), $coord, 'DEVIS ' . $c['reference'], $droite);
 
         $adr = trim(implode(', ', array_filter([(string) ($client['adresse'] ?? ''), trim(($client['code_postal'] ?? '') . ' ' . ($client['ville'] ?? '')), (string) ($client['pays'] ?? '')])));
-        $lc = [(string) ($client['nom'] ?? $c['client_nom'] ?? '')];
-        if ($adr !== '') { $lc[] = 'Facturation : ' . $adr; }
         $livr = trim((string) (($c['adresse_livraison'] ?? '') !== '' ? $c['adresse_livraison'] : ($client['adresse_livraison'] ?? '')));
-        if ($livr !== '') { $lc[] = 'Livraison : ' . trim(preg_replace('/\s*\R\s*/u', ', ', $livr)); }
+        $lc = [(string) ($client['nom'] ?? $c['client_nom'] ?? '')];
+        if ($adr !== '') { $lc[] = $adr; }
         if (!empty($client['email'])) { $lc[] = (string) $client['email']; }
         if (!empty($client['telephone'])) { $lc[] = (string) $client['telephone']; }
+        if ($livr !== '') {
+            $lc[] = '##Livraison';
+            foreach (preg_split('/\R/u', $livr) as $x) { if (trim($x) !== '') { $lc[] = trim($x); } }
+        }
         $lr = ['Dossier : ' . ($c['dossier_reference'] ?? '')];
         if (!empty($c['incoterm_client'])) { $lr[] = 'Incoterm : ' . (Demande::INCOTERMS[$c['incoterm_client']] ?? $c['incoterm_client']); }
         if (!empty($c['mode_paiement_negocie'])) { $lr[] = 'Paiement : ' . (Demande::MODES_PAIEMENT[$c['mode_paiement_negocie']] ?? $c['mode_paiement_negocie']); }
-        $pdf->blocsInfo([['Client', $lc], ['Références', $lr]]);
+        $pdf->blocsInfo([['Client' . ($livr !== '' ? ' · facturation' : ''), $lc, true], ['Références', $lr, false]]);
 
         $avecRemise = false;
         foreach ($items as $it) { if ((float) ($it['remise_pct'] ?? 0) > 0) { $avecRemise = true; } }

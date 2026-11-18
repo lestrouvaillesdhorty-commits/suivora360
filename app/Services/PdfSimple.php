@@ -279,13 +279,14 @@ class PdfSimple
         $lTitre = $this->couper($titre, 14, (self::W - 2 * self::MARGE) * $partTitre, true);
         $hD = count($lTitre) * 17 + count($droite) * 12.5;
         $h = max($hG, $hD);
+        $moderne = $this->modele === 'moderne';
+        if ($moderne) { $this->y -= 14; } // marge haute du bandeau, comme l'aperçu
         $this->assurerPlace($h + 16);
         $haut = $this->y;
         $yy = $haut;
-        $moderne = $this->modele === 'moderne';
         if ($moderne) {
             // Bandeau de couleur sur toute la largeur, du haut de la page jusqu'sous l'en-tête.
-            $this->rect(0, $haut - $h - 8, self::W, self::H - ($haut - $h - 8), $this->teal);
+            $this->rect(0, $haut - $h - 18, self::W, self::H - ($haut - $h - 18), $this->teal);
         }
         if ($logo && $lh > 0) {
             if ($moderne) { $this->rect(self::MARGE - 4, $yy - $lh - 4, $lw + 8, $lh + 8, [1, 1, 1]); }
@@ -318,7 +319,7 @@ class PdfSimple
             $this->texte($xd - $this->largeur($l, 9.5, false), $yy, $l, 9.5, false, $moderne ? [1, 1, 1] : [0.33, 0.35, 0.4]);
             $yy -= 3;
         }
-        $this->y = $haut - $h - 8;
+        $this->y = $haut - $h - ($moderne ? 18 : 8);
         if (!$moderne) {
             $this->rect(self::MARGE, $this->y, self::W - 2 * self::MARGE, $this->modele === 'sobre' ? 1.0 : 2.5, $this->accent());
         }
@@ -332,27 +333,41 @@ class PdfSimple
         $gap = 12.0;
         $larg = (self::W - 2 * self::MARGE - ($n - 1) * $gap) / $n;
         $rendu = [];
+        $bl4 = [];
         $hMax = 0.0;
         foreach ($blocs as $bl) {
             [$titre, $lignes] = $bl;
             $premierGras = $bl[2] ?? true;
             $ls = [];
             foreach ($lignes as $k => $l) {
-                foreach ($this->couper((string) $l, 9.5, $larg - 20, $k === 0 && $premierGras) as $j => $c) {
+                $l = (string) $l;
+                if (strncmp($l, '##', 2) === 0) {
+                    $ls[] = [substr($l, 2), 'h'];
+                    continue;
+                }
+                foreach ($this->couper($l, 9.5, $larg - 20, $k === 0 && $premierGras) as $c) {
                     $ls[] = [$c, $k === 0 && $premierGras];
                 }
             }
+            $h = 12 + 14 + 8;
+            foreach ($ls as [$c, $g]) { $h += $g === 'h' ? 17 : 12.5; }
             $rendu[] = [$titre, $ls];
-            $hMax = max($hMax, 12 + 14 + count($ls) * 12.5 + 8);
+            $bl4[] = !empty($bl[3]);
+            $hMax = max($hMax, $h);
         }
         $this->assurerPlace($hMax + 6);
         $haut = $this->y;
         foreach ($rendu as $i => [$titre, $ls]) {
             $x = self::MARGE + $i * ($larg + $gap);
-            $this->rect($x, $haut - $hMax, $larg, $hMax, $this->modele === 'sobre' ? [0.95, 0.95, 0.96] : array_map(fn($v) => $v * 0.08 + 0.92, $this->teal));
+            $this->rect($x, $haut - $hMax, $larg, $hMax, $this->modele === 'sobre' ? [0.95, 0.95, 0.96] : (($bl4[$i] ?? false) ? array_map(fn($v) => $v * 0.08 + 0.92, $this->teal) : [0.949, 0.969, 0.973]));
             $this->texte($x + 10, $haut - 17, $titre, 8.5, true, [0.4, 0.42, 0.47]);
             $yy = $haut - 17;
             foreach ($ls as [$c, $gras]) {
+                if ($gras === 'h') {
+                    $yy -= 17;
+                    $this->texte($x + 10, $yy, $c, 8.5, true, [0.4, 0.42, 0.47]);
+                    continue;
+                }
                 $yy -= 12.5;
                 $this->texte($x + 10, $yy, $c, 9.5, $gras, [0.11, 0.125, 0.19]);
             }

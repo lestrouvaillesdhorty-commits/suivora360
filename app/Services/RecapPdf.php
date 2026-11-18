@@ -64,7 +64,7 @@ class RecapPdf
             }
         }
         $livL[] = 'Incoterm : ' . ($liv['incoterm'] ?: 'Non précisé');
-        $pdf->blocsInfo([['Objet', $objet], ['Livraison souhaitée', $livL, false]]);
+        $pdf->blocsInfo([['Objet', $objet, true, true], ['Livraison souhaitée', $livL, false, true]]);
 
         $besoins = trim((string) ($consultation['articles_demandes'] ?? ''));
         if ($besoins !== '') {
