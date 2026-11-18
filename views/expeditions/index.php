@@ -8,7 +8,7 @@ $onglets = ['en_cours' => 'En cours', 'livree' => 'Livrées', '' => 'Toutes'];
 ?>
 <div class="page-header">
   <h1>Expéditions</h1>
-  <?php if (Auth::canWrite() && $disponible): ?><a class="btn btn-primary" href="/index.php?r=expeditions/nouvelle">Nouvelle expédition</a><?php endif; ?>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-secondary" href="/index.php?r=expeditions/page-publique">Page publique des départs</a><?php if (Auth::canWrite() && $disponible): ?><a class="btn btn-primary" href="/index.php?r=expeditions/nouvelle">Nouvelle expédition</a><?php endif; ?></div>
 </div>
 <?php if (!$disponible): ?>
   <div class="card"><div class="empty-state">Le module n'est pas encore activé : lancez migrate_v58.php une fois.</div></div>

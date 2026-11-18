@@ -145,6 +145,7 @@ class ExpeditionController
         $d['created_by'] = (int) $user['id'];
         $id = Expedition::create($d);
         Expedition::majTarif($id, $d);
+        \App\Models\DepartsPublics::enregistrerExpedition($id, $_POST);
         Expedition::definirTransitaire($id, (int) $d['fournisseur_id']);
         AuditLog::log($filialeId, (int) $user['id'], 'creation', 'expedition', $id, $d['origine'] . ' → ' . $d['destination']);
         View::flash('succes', 'Expédition créée.');
@@ -209,6 +210,7 @@ class ExpeditionController
         }
         Expedition::modifier((int) $exp['id'], $d);
         Expedition::majTarif((int) $exp['id'], $d);
+        \App\Models\DepartsPublics::enregistrerExpedition((int) $exp['id'], $_POST);
         if (isset($_POST['fournisseur_id'])) {
             Expedition::definirTransitaire((int) $exp['id'], (int) ($d['fournisseur_id'] ?? 0));
         }

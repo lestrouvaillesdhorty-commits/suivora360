@@ -751,6 +751,10 @@ $router->post('/dossiers/{id}/comparateur/revenir', function ($params) {
 });
 
 // Expéditions (groupage / conteneur complet) et réservations
+$router->get('/expeditions/page-publique', function () { (new \App\Controllers\DepartsPublicsController())->reglages(); });
+$router->post('/expeditions/page-publique', function () { (new \App\Controllers\DepartsPublicsController())->enregistrer(); });
+// Page publique des départs (sans connexion, lien aléatoire) : lecture seule, aucune donnée client.
+$router->get('/departs/{token}', function ($params) { (new \App\Controllers\DepartsPublicsController())->show($params); });
 $router->get('/expeditions', function () { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->index(); });
 $router->get('/expeditions/nouvelle', function () { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->create(); });
 $router->post('/expeditions', function () { Auth::requireLogin(); (new \App\Controllers\ExpeditionController())->store(); });

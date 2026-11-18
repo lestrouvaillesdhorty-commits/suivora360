@@ -66,6 +66,18 @@ $action = $exp ? '/index.php?r=expeditions/' . (int) $exp['id'] . '/modifier' : 
     <div class="form-group"><label>Devise</label><input type="text" name="devise" value="<?= $v('devise', 'EUR') ?>"></div>
     <div class="form-group"><label>N° de suivi / conteneur</label><input type="text" name="numero_suivi" value="<?= $v('numero_suivi') ?>"></div>
   </div>
+  <?php if (\App\Core\Schema::colonne('expeditions', 'public_affiche')): ?>
+  <div class="card" id="page-publique" style="background:#f7fafc;margin:10px 0 14px">
+    <h3 style="margin:0 0 6px;font-size:15px">Page publique des départs</h3>
+    <div class="form-group"><label><input type="checkbox" name="public_affiche" value="1" <?= !empty($e['public_affiche']) ? 'checked' : '' ?>> Afficher ce départ sur la page publique</label></div>
+    <div class="form-row">
+      <div class="form-group"><label>Tarif affiché : alimentaire</label><input type="text" name="public_tarif_alim" inputmode="decimal" value="<?= $v('public_tarif_alim') ?>"></div>
+      <div class="form-group"><label>Tarif affiché : non alimentaire</label><input type="text" name="public_tarif_non_alim" inputmode="decimal" value="<?= $v('public_tarif_non_alim') ?>"></div>
+      <div class="form-group"><label>Unité du tarif</label><select name="public_tarif_unite"><option value="">— Choisir —</option><?php foreach (\App\Models\DepartsPublics::UNITES as $k => $l): ?><option value="<?= $k ?>" <?= (($e['public_tarif_unite'] ?? '') === $k) ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select></div>
+    </div>
+    <div class="hint">C'est le tarif que le client voit (votre prix de vente, pas votre coût d'achat). Laissez vide : « Tarif sur demande ». Les places restantes se calculent toutes seules (capacité moins réservations).</div>
+  </div>
+  <?php endif; ?>
   <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= $v('notes') ?></textarea></div>
   <button class="btn btn-primary" type="submit">Enregistrer</button>
   <a class="btn" href="/index.php?r=expeditions<?= $exp ? '/' . (int) $exp['id'] : '' ?>">Annuler</a>
