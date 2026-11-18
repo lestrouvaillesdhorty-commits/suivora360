@@ -4,6 +4,8 @@ use App\Models\Expedition;
 /** Formulaire expédition. Variables : $exp (null = création), $filiales. */
 $e = $exp ?? [];
 $v = fn($k, $d = '') => View::e((string) ($e[$k] ?? $d));
+$tauxExp = 0.0;
+try { $fidExp = (int) ($e['filiale_id'] ?? ($exp['filiale_id'] ?? (\App\Core\Auth::user()['filiale_id'] ?? 0))); if ($fidExp > 0) { $tauxExp = (float) (\App\Models\Parametres::forFiliale($fidExp)['taux_eur_fcfa'] ?? 0); } } catch (\Throwable $eT) { $tauxExp = 0.0; }
 $action = $exp ? '/index.php?r=expeditions/' . (int) $exp['id'] . '/modifier' : '/index.php?r=expeditions';
 ?>
 <div class="page-header"><h1><?= $exp ? 'Modifier ' . View::e($exp['reference']) : 'Nouvelle expédition' ?></h1></div>
@@ -63,7 +65,10 @@ $action = $exp ? '/index.php?r=expeditions/' . (int) $exp['id'] . '/modifier' : 
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label>Devise</label><input type="text" name="devise" value="<?= $v('devise', 'EUR') ?>"></div>
+    <div class="form-group"><label>Devise de ce départ</label>
+      <?php $devCour = $v('devise', 'EUR'); $devListe = \App\Models\DepartsPublics::DEVISES; if (!in_array($devCour, $devListe, true)) { $devListe[] = $devCour; } ?>
+      <select name="devise" id="exp-devise"><?php foreach ($devListe as $dv): ?><option value="<?= View::e($dv) ?>" <?= $devCour === $dv ? 'selected' : '' ?>><?= View::e($dv === 'EUR' ? 'EUR (€)' : (in_array($dv, ['XAF', 'XOF'], true) ? $dv . ' (FCFA)' : $dv)) ?></option><?php endforeach; ?></select>
+      <div class="hint">Un départ, une devise : coût, tarifs et réservations. Cameroun → France en FCFA, Paris → Douala en EUR : créez un départ par sens.<?php if ($tauxExp > 0): ?> Taux utilisé pour la conversion affichée : 1 € = <?= View::e(rtrim(rtrim(number_format($tauxExp, 3, ',', ''), '0'), ',')) ?> FCFA.<?php endif; ?></div></div>
     <div class="form-group"><label>N° de suivi / conteneur</label><input type="text" name="numero_suivi" value="<?= $v('numero_suivi') ?>"></div>
   </div>
   <?php if (\App\Core\Schema::colonne('expeditions', 'public_affiche')): $v67 = \App\Models\DepartsPublics::v67(); $org = (string) ($e['public_organisation'] ?? 'capacite'); ?>
@@ -84,8 +89,8 @@ $action = $exp ? '/index.php?r=expeditions/' . (int) $exp['id'] . '/modifier' : 
     <div class="form-group"><label><input type="checkbox" name="public_chiffres" value="1" <?= (!isset($e['public_chiffres']) || !empty($e['public_chiffres'])) ? 'checked' : '' ?>> Afficher les kg (places restantes ou déjà réservés), sans aucun nom</label></div>
     <?php endif; ?>
     <div class="form-row">
-      <div class="form-group"><label>Tarif affiché alimentaire (€ par kg)</label><input type="text" name="public_tarif_alim" inputmode="decimal" value="<?= $v('public_tarif_alim') ?>"></div>
-      <div class="form-group"><label>Tarif affiché non alimentaire (€ par kg)</label><input type="text" name="public_tarif_non_alim" inputmode="decimal" value="<?= $v('public_tarif_non_alim') ?>"></div>
+      <div class="form-group"><label>Tarif affiché alimentaire (<span class="exp-dev">€</span> par kg)</label><input type="text" name="public_tarif_alim" inputmode="decimal" value="<?= $v('public_tarif_alim') ?>"></div>
+      <div class="form-group"><label>Tarif affiché non alimentaire (<span class="exp-dev">€</span> par kg)</label><input type="text" name="public_tarif_non_alim" inputmode="decimal" value="<?= $v('public_tarif_non_alim') ?>"></div>
     </div>
     <div class="hint">C'est le tarif que le client voit (votre prix de vente, pas votre coût d'achat). Laissez vide : « Tarif sur demande ». Capacité fixe : les places restantes sont la capacité en kg moins les kg réservés.</div>
   </div>
@@ -96,6 +101,25 @@ $action = $exp ? '/index.php?r=expeditions/' . (int) $exp['id'] . '/modifier' : 
   <a class="btn" href="/index.php?r=expeditions<?= $exp ? '/' . (int) $exp['id'] : '' ?>">Annuler</a>
 </form>
 <script>
+(function () {
+  // Devise : libellés des tarifs et conversion indicative à côté (EUR <-> FCFA).
+  var dev = document.getElementById('exp-devise'), TX = <?= json_encode($tauxExp) ?>;
+  function fc(d) { return d === 'XAF' || d === 'XOF'; }
+  function nb(n) { return String(n).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function majDev() {
+    if (!dev) { return; }
+    var d = dev.value, sym = d === 'EUR' ? '€' : (fc(d) ? 'FCFA' : d);
+    document.querySelectorAll('.exp-dev').forEach(function (n) { n.textContent = sym; });
+    ['public_tarif_alim', 'public_tarif_non_alim'].forEach(function (nom) {
+      var inp = document.querySelector('[name="' + nom + '"]'); if (!inp) { return; }
+      var box = inp.parentNode.querySelector('.exp-conv'); if (!box) { box = document.createElement('div'); box.className = 'hint exp-conv'; inp.parentNode.appendChild(box); }
+      var v = parseFloat(String(inp.value).replace(/\s/g, '').replace(',', '.'));
+      if (!(TX > 0) || isNaN(v) || !(d === 'EUR' || fc(d))) { box.textContent = ''; return; }
+      box.textContent = d === 'EUR' ? '≈ ' + nb(Math.round(v * TX)) + ' FCFA par kg' : '≈ ' + nb(Math.round(v / TX * 100) / 100) + ' € par kg';
+    });
+  }
+  if (dev) { dev.addEventListener('change', majDev); document.querySelectorAll('[name="public_tarif_alim"],[name="public_tarif_non_alim"]').forEach(function (i) { i.addEventListener('input', majDev); }); majDev(); }
+})();
 (function () {
   var sel = document.getElementById('mode-achat'), cap = document.getElementById('bloc-capacite'), tar = document.getElementById('bloc-tarif');
   function maj() { var t = sel && sel.value === 'tarif'; if (cap) cap.style.display = t ? 'none' : ''; if (tar) tar.style.display = t ? '' : 'none'; }

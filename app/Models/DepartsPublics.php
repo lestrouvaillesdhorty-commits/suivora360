@@ -13,6 +13,9 @@ class DepartsPublics
 {
     public const UNITES = ['m3' => 'm³', 'kg' => 'kg', 'colis' => 'colis', 'palette' => 'palette'];
     private const CACHE_SECONDES = 30;
+
+    /** Devises proposées pour les tarifs (XAF et XOF s'affichent « FCFA »). */
+    public const DEVISES = ['EUR', 'XAF', 'XOF', 'USD', 'GBP'];
     public const ORGANISATIONS = ['capacite' => 'Capacité fixe : places restantes en kg', 'reservations' => 'Départ confirmé selon les réservations', 'confirme' => 'Départ confirmé (date certaine)'];
     public const TRANSPORTS = ['fret' => 'Fret aérien', 'voyageur' => 'Par voyageur', 'maritime' => 'Maritime', 'routier' => 'Routier'];
     public const PRODUITS = ['alimentaire' => 'Alimentaire', 'non_alimentaire' => 'Non alimentaire'];
@@ -245,7 +248,7 @@ class DepartsPublics
                 'etat' => 'depot', 'places_kg' => null, 'progres' => null, 'depot' => (string) ($h['lieu_depot'] ?? ''), 'regle' => $regle,
                 'tarif_alim' => $h['produit'] === 'alimentaire' && $h['tarif_kg'] !== null && $h['tarif_kg'] !== '' ? (float) $h['tarif_kg'] : null,
                 'tarif_non_alim' => $h['produit'] !== 'alimentaire' && $h['tarif_kg'] !== null && $h['tarif_kg'] !== '' ? (float) $h['tarif_kg'] : null,
-                'devise' => 'EUR',
+                'devise' => (string) (($h['devise'] ?? '') ?: 'EUR'),
             ];
         }
         return $liste;
@@ -292,12 +295,21 @@ class DepartsPublics
             !empty($d['actif']) ? 1 : 0,
         ];
         $pdo = Database::connection();
+        $devise = in_array($d['devise'] ?? '', self::DEVISES, true) ? $d['devise'] : 'EUR';
+        $avecDevise = Schema::colonne('departs_hebdo', 'devise');
         if ($id > 0) {
             $pdo->prepare('UPDATE departs_hebdo SET jour_semaine=?, origine=?, destination=?, transport=?, produit=?, depot_jours_avant=?, heure_limite=?, tarif_kg=?, lieu_depot=?, suspendu_jusqua=?, actif=? WHERE id = ? AND filiale_id = ?')
                 ->execute(array_merge($vals, [$id, $filialeId]));
         } else {
             $pdo->prepare('INSERT INTO departs_hebdo (jour_semaine, origine, destination, transport, produit, depot_jours_avant, heure_limite, tarif_kg, lieu_depot, suspendu_jusqua, actif, filiale_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
                 ->execute(array_merge($vals, [$filialeId, date('Y-m-d H:i:s')]));
+        }
+        if ($avecDevise) {
+            if ($id > 0) {
+                $pdo->prepare('UPDATE departs_hebdo SET devise = ? WHERE id = ? AND filiale_id = ?')->execute([$devise, $id, $filialeId]);
+            } else {
+                $pdo->prepare('UPDATE departs_hebdo SET devise = ? WHERE id = ? AND filiale_id = ?')->execute([$devise, (int) $pdo->lastInsertId(), $filialeId]);
+            }
         }
         self::viderCache($filialeId);
     }

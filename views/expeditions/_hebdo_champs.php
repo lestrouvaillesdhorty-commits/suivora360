@@ -16,7 +16,8 @@ $dis = $peutEcrire ? '' : 'disabled';
 </div>
 <div class="form-row">
   <div class="form-group"><label>Heure limite (facultatif)</label><input type="text" name="heure_limite" value="<?= View::e((string) $h['heure_limite']) ?>" placeholder="Ex. 14:00" style="max-width:140px" <?= $dis ?>></div>
-  <div class="form-group"><label>Tarif affiché (€ par kg)</label><input type="text" name="tarif_kg" inputmode="decimal" value="<?= View::e((string) $h['tarif_kg']) ?>" style="max-width:160px" <?= $dis ?>></div>
+  <div class="form-group"><label>Tarif affiché (par kg)</label><input type="text" name="tarif_kg" inputmode="decimal" value="<?= View::e((string) $h['tarif_kg']) ?>" style="max-width:160px" <?= $dis ?>></div>
+  <div class="form-group"><label>Devise du tarif</label><select name="devise" style="max-width:140px" <?= $dis ?>><?php foreach (DepartsPublics::DEVISES as $dv): ?><option value="<?= $dv ?>" <?= (($h['devise'] ?? 'EUR') === $dv) ? 'selected' : '' ?>><?= $dv === 'EUR' ? 'EUR (€)' : (in_array($dv, ['XAF', 'XOF'], true) ? $dv . ' (FCFA)' : $dv) ?></option><?php endforeach; ?></select></div>
   <div class="form-group"><label><input type="checkbox" name="actif" value="1" <?= !empty($h['actif']) ? 'checked' : '' ?> <?= $dis ?>> Afficher sur la page</label></div>
 </div>
 <div class="form-group"><label>Lieu(x) de dépôt, adresse et horaires</label><textarea name="lieu_depot" rows="3" placeholder="Ex. Pontoise : adresse, horaires&#10;Brétigny-sur-Orge : adresse, horaires" <?= $dis ?>><?= View::e((string) $h['lieu_depot']) ?></textarea></div>

@@ -75,7 +75,7 @@ use App\Models\Expedition;
       <button class="btn btn-secondary" type="submit" name="action" value="supprimer" style="color:#b3261e;border-color:#e3b5b1" onclick="return confirm('Supprimer ce départ hebdomadaire ?')">Supprimer</button></div><?php endif; ?>
   </form>
   <?php endforeach; ?>
-  <?php if ($peutEcrire): $h = ['id' => 0, 'jour_semaine' => 1, 'origine' => '', 'destination' => '', 'transport' => 'fret', 'produit' => 'alimentaire', 'depot_jours_avant' => 0, 'heure_limite' => '', 'tarif_kg' => '', 'lieu_depot' => '', 'actif' => 1]; ?>
+  <?php if ($peutEcrire): $h = ['id' => 0, 'jour_semaine' => 1, 'origine' => '', 'destination' => '', 'transport' => 'fret', 'produit' => 'alimentaire', 'depot_jours_avant' => 0, 'heure_limite' => '', 'tarif_kg' => '', 'devise' => 'EUR', 'lieu_depot' => '', 'actif' => 1]; ?>
   <details><summary class="btn btn-secondary" style="display:inline-block;cursor:pointer">Ajouter un départ chaque semaine</summary>
   <form method="post" action="/index.php?r=expeditions/page-publique/hebdo" class="card" style="background:#f7fafc;margin-top:10px">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="filiale_id" value="<?= (int) $filialeId ?>"><input type="hidden" name="id" value="0">

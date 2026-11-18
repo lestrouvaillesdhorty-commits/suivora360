@@ -57,7 +57,7 @@ select{width:100%;padding:11px 10px;border:1px solid #cfd6df;border-radius:10px;
     <?php if (count($transports) > 1): ?><div><label for="f-mode">Transport</label><select id="f-mode"><option value="">Tous</option><?php foreach (array_keys($transports) as $l): ?><option><?= View::e($l) ?></option><?php endforeach; ?></select></div><?php endif; ?>
   </div>
   <div id="liste"></div>
-  <div class="note">Les dates, les places et les tarifs sont mis à jour automatiquement. Tous les tarifs sont au kilo et indicatifs : le prix final est confirmé avec vous. Un cas particulier ? Précisez-le dans votre message.</div>
+  <div class="note">Les dates, les places et les tarifs sont mis à jour automatiquement. Tous les tarifs sont au kilo et indicatifs : les montants convertis à côté sont donnés à titre indicatif ; le prix final est confirmé avec vous. Un cas particulier ? Précisez-le dans votre message.</div>
 <?php endif; ?>
 <?php if ($interdits !== ''): ?><div class="interdits"><b>Produits interdits et conditions</b><div><?= nl2br(View::e($interdits)) ?></div></div><?php endif; ?>
 </div>
@@ -65,6 +65,7 @@ select{width:100%;padding:11px 10px;border:1px solid #cfd6df;border-radius:10px;
 (function () {
   var D = <?= json_encode($donnees, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
   var TEL = <?= json_encode($tel) ?>;
+  var TAUX = <?= json_encode((float) ($tauxEurFcfa ?? 0)) ?>;
   var liste = document.getElementById('liste'); if (!liste) { return; }
   var fT = document.getElementById('f-trajet'), fP = document.getElementById('f-produit'), fM = document.getElementById('f-mode');
   var JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'], MOIS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
@@ -74,11 +75,21 @@ select{width:100%;padding:11px 10px;border:1px solid #cfd6df;border-radius:10px;
   function dateJour(iso) { var d = dt(iso); return JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()]; }
   function dateLongue(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
   function nb(n) { return String(n).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function fcfa(dv) { return dv === 'XAF' || dv === 'XOF'; }
+  function sym(dv) { return dv === 'EUR' ? '€' : (fcfa(dv) ? 'FCFA' : e(dv)); }
+  function fmt(v, dv) { return nb(fcfa(dv) ? Math.round(v) : Math.round(v * 100) / 100) + ' ' + sym(dv); }
+  function conv(v, dv) {
+    if (!(TAUX > 0)) { return ''; }
+    if (dv === 'EUR') { return fmt(v * TAUX, 'XAF'); }
+    if (fcfa(dv)) { return fmt(v / TAUX, 'EUR'); }
+    return '';
+  }
   function tarif(d, alim) {
     var v = d.produit ? (d.produit === 'alimentaire' ? d.tarif_alim : d.tarif_non_alim) : (alim ? d.tarif_alim : d.tarif_non_alim);
     var lib = d.produit ? (d.produit === 'alimentaire' ? 'Alimentaire' : 'Non alimentaire') : (alim ? 'Alimentaire' : 'Non alimentaire');
     if (v === null || v === undefined) { return '<span style="color:#667">Tarif sur demande</span>'; }
-    return lib + ' : <b>' + nb(v) + ' ' + (d.devise === 'EUR' ? '€' : e(d.devise)) + ' / kg</b>';
+    var c = conv(v, d.devise);
+    return lib + ' : <b>' + fmt(v, d.devise) + ' / kg</b>' + (c ? '<div style="color:#667;font-size:12px">≈ ' + c + ' / kg</div>' : '');
   }
   function whats(d, alim) {
     var prod = d.produit ? (d.produit === 'alimentaire' ? 'Alimentaire' : 'Non alimentaire') : (alim ? 'Alimentaire' : 'Non alimentaire');

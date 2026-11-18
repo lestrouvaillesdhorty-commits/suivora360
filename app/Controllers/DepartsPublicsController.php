@@ -114,7 +114,7 @@ class DepartsPublicsController
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         View::renderPlain('expeditions/departs_public', [
             'emetteur' => $emetteur, 'logoUri' => EntrepriseInfo::logoDataUri($info),
-            'departs' => DepartsPublics::departs($filialeId), 'whatsapp' => (string) ($info['depart_whatsapp'] ?? ''), 'interdits' => (string) ($info['depart_interdits'] ?? ''),
+            'departs' => DepartsPublics::departs($filialeId), 'tauxEurFcfa' => (float) (\App\Models\Parametres::forFiliale($filialeId)['taux_eur_fcfa'] ?? 0), 'whatsapp' => (string) ($info['depart_whatsapp'] ?? ''), 'interdits' => (string) ($info['depart_interdits'] ?? ''),
         ]);
     }
 }
