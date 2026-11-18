@@ -64,7 +64,7 @@ $date = fn($d) => $d ? date('d/m/Y', strtotime($d)) : '—';
 <?php if ($estimes): ?><div class="petit">* Poids estimé, à confirmer par le transitaire.</div><?php endif; ?>
 <div class="petit" style="margin-top:14px">Document établi par <?= View::e($nomEmetteur) ?>. Il ne comporte aucun prix.</div>
 </div>
-<?php $piedDroite = 'Manifeste ' . $exp['reference']; $juridique = \App\Models\EntrepriseInfo::ligneJuridique($info); include __DIR__ . '/../documents/_pied.php'; ?>
+<?php $juridique = \App\Models\EntrepriseInfo::ligneJuridique($info); include __DIR__ . '/../documents/_pied.php'; ?>
 </div>
 </body>
 </html>

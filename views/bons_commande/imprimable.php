@@ -90,7 +90,7 @@ $contact = array_filter([(string) ($bon['livraison_contact_nom'] ?? ''), !empty(
 <?php if (!empty($bon['notes'])): ?><div class="sec">Instructions</div><div style="white-space:pre-wrap"><?= View::e($bon['notes']) ?></div><?php endif; ?>
     <div class="pied2">Merci de nous confirmer la réception de ce bon et la date de livraison prévue. Édité le <?= date('d/m/Y H:i') ?> par <?= View::e($emetteur) ?>.</div>
   </div>
-<?php $piedDroite = 'Bon de commande ' . $bon['reference'] . ' — ' . $bon['devise']; include __DIR__ . '/../documents/_pied.php'; ?>
+<?php include __DIR__ . '/../documents/_pied.php'; ?>
 </div>
 </body>
 </html>

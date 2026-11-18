@@ -524,7 +524,8 @@ class PdfSimple
         if ($this->flux === '' && $this->numPage === 0) {
             return;
         }
-        $pied = trim($this->pied . '   Page ' . $this->numPage);
+        // Avec le pied d'entreprise, la référence du document est déjà en haut : on n'imprime que le numéro de page.
+        $pied = $this->pied2 !== '' ? 'Page ' . $this->numPage : trim($this->pied . '   Page ' . $this->numPage);
         if ($this->pied2 !== '') {
             $this->ligne(self::MARGE, 46, self::W - self::MARGE, [0.85, 0.86, 0.9]);
             $reste = $this->pied2;
