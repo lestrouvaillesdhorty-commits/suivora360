@@ -343,6 +343,209 @@ class DepartsPublics
         self::viderCache($filialeId);
     }
 
+    // ------------------------------------------------------------------
+    // [v70] Apparence, informations importantes, lieux de dépôt, contact
+    // ------------------------------------------------------------------
+
+    /** Ambiances douces : fond du bandeau, texte, accent, accent clair, bordure, libellé. */
+    public const AMBIANCES = [
+        'menthe' => ['linear-gradient(135deg,#E3F2F1,#F3FAF9)', '#0F3F46', '#0B7C8A', '#E3F2F1', '#CFE6E6', 'Menthe'],
+        'sable' => ['linear-gradient(135deg,#F6EEE3,#FBF7F1)', '#4A3524', '#A8643A', '#F6EBDD', '#E8D9C4', 'Sable'],
+        'ciel' => ['linear-gradient(135deg,#E5EEF9,#F5F9FE)', '#16325C', '#2F5FA8', '#E5EEF9', '#D2E0F3', 'Ciel'],
+    ];
+
+    public static function v70(): bool
+    {
+        return Schema::colonne('entreprise_infos', 'depart_ambiance') && Schema::colonne('depart_infos', 'texte') && Schema::colonne('depart_lieux', 'nom');
+    }
+
+    public static function aspect(int $filialeId): array
+    {
+        $vide = ['titre' => '', 'soustitre' => '', 'ambiance' => 'menthe', 'photo' => '', 'tel' => '', 'email' => '', 'etapes' => 1, 'conv' => 1, 'apercu' => 1];
+        if (!self::v70()) {
+            return $vide;
+        }
+        $st = Database::connection()->prepare('SELECT depart_titre, depart_soustitre, depart_ambiance, depart_photo, depart_tel, depart_email, depart_etapes, depart_conv, depart_apercu FROM entreprise_infos WHERE filiale_id = ? LIMIT 1');
+        $st->execute([$filialeId]);
+        $r = $st->fetch();
+        if (!$r) {
+            return $vide;
+        }
+        return [
+            'titre' => (string) $r['depart_titre'], 'soustitre' => (string) $r['depart_soustitre'],
+            'ambiance' => isset(self::AMBIANCES[$r['depart_ambiance']]) ? $r['depart_ambiance'] : 'menthe',
+            'photo' => (string) $r['depart_photo'], 'tel' => (string) $r['depart_tel'], 'email' => (string) $r['depart_email'],
+            'etapes' => (int) $r['depart_etapes'], 'conv' => (int) $r['depart_conv'], 'apercu' => (int) $r['depart_apercu'],
+        ];
+    }
+
+    public static function enregistrerAspect(int $filialeId, array $d): void
+    {
+        if (!self::v70()) {
+            return;
+        }
+        $pdo = Database::connection();
+        $st = $pdo->prepare('SELECT id FROM entreprise_infos WHERE filiale_id = ? LIMIT 1');
+        $st->execute([$filialeId]);
+        if (!$st->fetch()) {
+            $pdo->prepare('INSERT INTO entreprise_infos (filiale_id, updated_at) VALUES (?, ?)')->execute([$filialeId, date('Y-m-d H:i:s')]);
+        }
+        $amb = isset(self::AMBIANCES[$d['ambiance'] ?? '']) ? $d['ambiance'] : 'menthe';
+        $email = trim((string) ($d['email'] ?? ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $email = '';
+        }
+        $pdo->prepare('UPDATE entreprise_infos SET depart_titre = ?, depart_soustitre = ?, depart_ambiance = ?, depart_tel = ?, depart_email = ?, depart_etapes = ?, depart_conv = ?, depart_apercu = ? WHERE filiale_id = ?')
+            ->execute([
+                mb_substr(trim((string) ($d['titre'] ?? '')), 0, 160), mb_substr(trim((string) ($d['soustitre'] ?? '')), 0, 255), $amb,
+                mb_substr(preg_replace('/[^0-9+ ().-]/', '', (string) ($d['tel'] ?? '')), 0, 40), mb_substr($email, 0, 120),
+                !empty($d['etapes']) ? 1 : 0, !empty($d['conv']) ? 1 : 0, !empty($d['apercu']) ? 1 : 0, $filialeId,
+            ]);
+        self::viderCache($filialeId);
+    }
+
+    /** Enregistre la photo du bandeau (réduite à 1600 px de large, JPEG). Retourne un message d'erreur ou null. */
+    public static function enregistrerPhoto(int $filialeId, array $fichier): ?string
+    {
+        if (!self::v70() || ($fichier['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if (($fichier['error'] ?? 0) !== UPLOAD_ERR_OK || ($fichier['size'] ?? 0) > 6 * 1024 * 1024) {
+            return 'Photo non enregistrée : fichier trop lourd (6 Mo maximum).';
+        }
+        $info = @getimagesize($fichier['tmp_name']);
+        if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true) || !function_exists('imagecreatetruecolor')) {
+            return 'Photo non enregistrée : utilisez une image JPEG, PNG ou WebP.';
+        }
+        $src = match ($info[2]) { IMAGETYPE_JPEG => @imagecreatefromjpeg($fichier['tmp_name']), IMAGETYPE_PNG => @imagecreatefrompng($fichier['tmp_name']), default => @imagecreatefromwebp($fichier['tmp_name']) };
+        if (!$src) {
+            return 'Photo non enregistrée : image illisible.';
+        }
+        [$w, $h] = [imagesx($src), imagesy($src)];
+        $largeur = min(1600, $w);
+        $hauteur = (int) round($h * $largeur / $w);
+        $dst = imagecreatetruecolor($largeur, $hauteur);
+        imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $largeur, $hauteur, $w, $h);
+        $nom = 'depart_' . $filialeId . '_' . time() . '.jpg';
+        $dossier = \App\Core\Storage::path('uploads/departs');
+        if (!is_dir($dossier)) {
+            @mkdir($dossier, 0775, true);
+        }
+        if (!imagejpeg($dst, \App\Core\Storage::path('uploads/departs/' . $nom), 82)) {
+            return "Photo non enregistrée : impossible d'écrire sur le serveur.";
+        }
+        self::supprimerPhoto($filialeId);
+        Database::connection()->prepare('UPDATE entreprise_infos SET depart_photo = ? WHERE filiale_id = ?')->execute([$nom, $filialeId]);
+        return null;
+    }
+
+    public static function supprimerPhoto(int $filialeId): void
+    {
+        if (!self::v70()) {
+            return;
+        }
+        $a = self::aspect($filialeId);
+        if ($a['photo'] !== '') {
+            @unlink(\App\Core\Storage::path('uploads/departs/' . basename($a['photo'])));
+            Database::connection()->prepare("UPDATE entreprise_infos SET depart_photo = '' WHERE filiale_id = ?")->execute([$filialeId]);
+        }
+    }
+
+    public static function photoChemin(array $aspect): ?string
+    {
+        if (($aspect['photo'] ?? '') === '') {
+            return null;
+        }
+        $c = \App\Core\Storage::path('uploads/departs/' . basename($aspect['photo']));
+        return is_file($c) ? $c : null;
+    }
+
+    // --- Informations importantes
+
+    public static function infosListe(int $filialeId, bool $visiblesSeulement = false): array
+    {
+        if (!self::v70()) {
+            return [];
+        }
+        $st = Database::connection()->prepare('SELECT * FROM depart_infos WHERE filiale_id = ? ORDER BY id DESC');
+        $st->execute([$filialeId]);
+        $liste = $st->fetchAll();
+        if ($visiblesSeulement) {
+            $auj = date('Y-m-d');
+            $liste = array_values(array_filter($liste, fn($i) => (int) $i['actif'] === 1 && ($i['fin'] === null || $i['fin'] === '' || $i['fin'] >= $auj)));
+        }
+        return $liste;
+    }
+
+    public static function infoAjouter(int $filialeId, string $texte, string $niveau, string $fin): void
+    {
+        $texte = trim($texte);
+        if (!self::v70() || $texte === '') {
+            return;
+        }
+        Database::connection()->prepare('INSERT INTO depart_infos (filiale_id, texte, niveau, fin, actif, created_at) VALUES (?,?,?,?,1,?)')
+            ->execute([$filialeId, mb_substr($texte, 0, 600), $niveau === 'alerte' ? 'alerte' : 'info', preg_match('/^\d{4}-\d{2}-\d{2}$/', $fin) ? $fin : null, date('Y-m-d H:i:s')]);
+    }
+
+    public static function infoSupprimer(int $filialeId, int $id): void
+    {
+        if (self::v70()) {
+            Database::connection()->prepare('DELETE FROM depart_infos WHERE id = ? AND filiale_id = ?')->execute([$id, $filialeId]);
+        }
+    }
+
+    // --- Lieux de dépôt
+
+    public static function lieuxListe(int $filialeId): array
+    {
+        if (!self::v70()) {
+            return [];
+        }
+        $st = Database::connection()->prepare('SELECT * FROM depart_lieux WHERE filiale_id = ? ORDER BY ordre, id');
+        $st->execute([$filialeId]);
+        return $st->fetchAll();
+    }
+
+    public static function lieuAjouter(int $filialeId, array $d): void
+    {
+        $nom = trim((string) ($d['nom'] ?? ''));
+        if (!self::v70() || $nom === '') {
+            return;
+        }
+        $url = trim((string) ($d['carte_url'] ?? ''));
+        if ($url !== '' && !preg_match('#^https?://#i', $url)) {
+            $url = '';
+        }
+        Database::connection()->prepare('INSERT INTO depart_lieux (filiale_id, nom, adresse, horaires, carte_url, ordre, created_at) VALUES (?,?,?,?,?,?,?)')
+            ->execute([$filialeId, mb_substr($nom, 0, 120), mb_substr(trim((string) ($d['adresse'] ?? '')), 0, 500), mb_substr(trim((string) ($d['horaires'] ?? '')), 0, 500), mb_substr($url, 0, 300), count(self::lieuxListe($filialeId)), date('Y-m-d H:i:s')]);
+    }
+
+    public static function lieuSupprimer(int $filialeId, int $id): void
+    {
+        if (self::v70()) {
+            Database::connection()->prepare('DELETE FROM depart_lieux WHERE id = ? AND filiale_id = ?')->execute([$id, $filialeId]);
+        }
+    }
+
+    /** Texte court des prochains départs (aperçu du lien WhatsApp). */
+    public static function resumeApercu(array $departs, int $max = 3): string
+    {
+        $mois = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+        $jours = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+        $avecDate = array_values(array_filter($departs, fn($d) => !empty($d['depart'])));
+        usort($avecDate, fn($a, $b) => strcmp($a['depart'], $b['depart']));
+        $lignes = [];
+        foreach (array_slice($avecDate, 0, $max) as $d) {
+            $t = strtotime($d['depart']);
+            $tarif = $d['tarif_alim'] ?? $d['tarif_non_alim'];
+            $dev = in_array($d['devise'], ['XAF', 'XOF'], true) ? 'FCFA' : ($d['devise'] === 'EUR' ? '€' : $d['devise']);
+            $lignes[] = $jours[(int) date('w', $t)] . ' ' . (int) date('j', $t) . ' ' . $mois[(int) date('n', $t) - 1] . ' ' . $d['origine'] . ' → ' . $d['destination']
+                . ($tarif !== null ? ' · ' . rtrim(rtrim(number_format((float) $tarif, 2, ',', ' '), '0'), ',') . ' ' . $dev . '/kg' : '');
+        }
+        return implode(' | ', $lignes);
+    }
+
     /** Message WhatsApp prérempli pour un départ. */
     public static function messageWhatsapp(array $d, string $produit): string
     {

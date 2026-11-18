@@ -45,6 +45,8 @@ class DepartsPublicsController
             'disponible' => $disponible, 'filiales' => Filiale::visibleFor($user), 'filialeId' => $filialeId,
             'hebdo' => DepartsPublics::hebdoListe($filialeId), 'reg' => $reg, 'url' => $reg['token'] !== '' ? self::urlPublique($reg['token']) : '', 'expeditions' => $expeditions,
             'peutEcrire' => Auth::canWrite(),
+            'aspect' => DepartsPublics::aspect($filialeId), 'infos' => DepartsPublics::infosListe($filialeId), 'lieux' => DepartsPublics::lieuxListe($filialeId),
+            'v70' => DepartsPublics::v70(), 'raisonSociale' => (string) (Filiale::find($filialeId)['nom'] ?? ''),
         ]);
     }
 
@@ -97,6 +99,66 @@ class DepartsPublicsController
         exit;
     }
 
+    /** [v70] Apparence, informations importantes, lieux de dépôt. */
+    public function apparence(): void
+    {
+        Auth::requireWrite();
+        $user = Auth::user();
+        $filialeId = (int) ($_POST['filiale_id'] ?? 0);
+        $retour = self::RETOUR . '&filiale_id=' . $filialeId;
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null) || !$filialeId || !Filiale::userCanAccess($user, $filialeId) || !DepartsPublics::v70()) {
+            View::flash('erreur', 'Enregistrement impossible (session expirée ou migrate_v70.php manquant).');
+            header('Location: ' . self::RETOUR);
+            exit;
+        }
+        $action = (string) ($_POST['action'] ?? 'aspect');
+        $ancre = '#apparence';
+        if ($action === 'info_ajouter') {
+            DepartsPublics::infoAjouter($filialeId, (string) ($_POST['texte'] ?? ''), (string) ($_POST['niveau'] ?? 'info'), (string) ($_POST['fin'] ?? ''));
+            DepartsPublics::viderCache($filialeId);
+            View::flash('succes', 'Information ajoutée sur la page.');
+            $ancre = '#infos';
+        } elseif ($action === 'info_supprimer') {
+            DepartsPublics::infoSupprimer($filialeId, (int) ($_POST['id'] ?? 0));
+            View::flash('succes', 'Information retirée de la page.');
+            $ancre = '#infos';
+        } elseif ($action === 'lieu_ajouter') {
+            DepartsPublics::lieuAjouter($filialeId, $_POST);
+            View::flash('succes', 'Lieu de dépôt ajouté.');
+            $ancre = '#lieux';
+        } elseif ($action === 'lieu_supprimer') {
+            DepartsPublics::lieuSupprimer($filialeId, (int) ($_POST['id'] ?? 0));
+            View::flash('succes', 'Lieu de dépôt retiré.');
+            $ancre = '#lieux';
+        } else {
+            DepartsPublics::enregistrerAspect($filialeId, $_POST);
+            $err = null;
+            if (!empty($_POST['photo_retirer'])) {
+                DepartsPublics::supprimerPhoto($filialeId);
+            } elseif (!empty($_FILES['photo'])) {
+                $err = DepartsPublics::enregistrerPhoto($filialeId, $_FILES['photo']);
+            }
+            View::flash($err ? 'erreur' : 'succes', $err ?: 'Apparence enregistrée.');
+        }
+        header('Location: ' . $retour . $ancre);
+        exit;
+    }
+
+    /** [v70] Photo du bandeau (publique, via le lien aléatoire). */
+    public function photo(array $params): void
+    {
+        $info = DepartsPublics::findByToken((string) ($params['token'] ?? ''));
+        $chemin = $info ? DepartsPublics::photoChemin(DepartsPublics::aspect((int) $info['filiale_id'])) : null;
+        if (!$chemin) {
+            http_response_code(404);
+            return;
+        }
+        header('Content-Type: image/jpeg');
+        header('Cache-Control: public, max-age=300');
+        header('X-Robots-Tag: noindex');
+        readfile($chemin);
+    }
+
     /** Page publique : aucune authentification, aucune donnée client. */
     public function show(array $params): void
     {
@@ -115,6 +177,8 @@ class DepartsPublicsController
         View::renderPlain('expeditions/departs_public', [
             'emetteur' => $emetteur, 'logoUri' => EntrepriseInfo::logoDataUri($info),
             'departs' => DepartsPublics::departs($filialeId), 'tauxEurFcfa' => (float) (\App\Models\Parametres::forFiliale($filialeId)['taux_eur_fcfa'] ?? 0), 'whatsapp' => (string) ($info['depart_whatsapp'] ?? ''), 'interdits' => (string) ($info['depart_interdits'] ?? ''),
+            'aspect' => DepartsPublics::aspect($filialeId), 'infos' => DepartsPublics::infosListe($filialeId, true), 'lieux' => DepartsPublics::lieuxListe($filialeId),
+            'token' => (string) $params['token'],
         ]);
     }
 }
