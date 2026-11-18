@@ -5,7 +5,7 @@ $selects = [
   ['validite', 'Validité', ['expiree' => 'Expirée (non tranchée)'], 'Toutes'],
 ];
 $placeholderRecherche = 'Référence, dossier, fournisseur...';
-$badges = ['recue' => 'blue', 'retenue' => 'green', 'rejetee' => 'gray', 'remplacee' => 'gray'];
+$badges = ['recue' => 'blue', 'retenue' => 'green', 'rejetee' => 'gray', 'remplacee' => 'gray', 'a_verifier' => 'yellow'];
 ?>
 <h1>Offres</h1>
 <div class="subtitle"><?= count($lignes) ?> offre<?= count($lignes) > 1 ? 's' : '' ?> — tous dossiers confondus. Pour répondre ou comparer, ouvrez le dossier.</div>

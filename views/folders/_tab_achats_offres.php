@@ -22,6 +22,26 @@ $piecesParOffre = \App\Models\DossierPieceJointe::parOffre($piecesJointes ?? [])
 </div>
 <?php endif; ?>
 <?php
+$aVerifier = \App\Models\Offre::aVerifierDuDossier((int) $dossier['id']);
+if ($aVerifier): ?>
+<div class="card" style="margin-top:14px;border-left:5px solid #D97706">
+  <h3 style="margin:0 0 4px">Offres reçues par le lien fournisseur : à vérifier</h3>
+  <div style="font-size:12.5px;color:#555;margin-bottom:8px">Ces offres ont été saisies par le fournisseur lui-même. Elles n'entrent dans le comparateur qu'après votre validation.</div>
+  <?php foreach ($aVerifier as $av): $frais = (float) ($av['transport_montant'] ?? 0) + (float) ($av['assurance_montant'] ?? 0) + (float) ($av['emballage_montant'] ?? 0) + (float) ($av['douane_montant'] ?? 0) + (float) ($av['dedouanement_montant'] ?? 0) + (float) ($av['autres_frais_montant'] ?? 0); ?>
+  <div style="border-top:1px solid #eee;padding:10px 0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+    <div><strong><?= View::e($av['fournisseur_nom']) ?></strong> <span class="badge badge-yellow">À vérifier</span>
+      <div style="font-size:13px;color:#555">Prix <?= number_format((float) $av['montant_total'], 2, ',', ' ') ?> <?= View::e($av['devise']) ?><?= $frais > 0 ? ' + frais ' . number_format($frais, 2, ',', ' ') . ' ' . View::e($av['devise']) : '' ?><?= $av['delai_livraison'] !== '' ? ' · délai ' . View::e($av['delai_livraison']) : '' ?><?= !empty($av['validite_offre']) ? ' · valable jusqu\'au ' . date('d/m/Y', strtotime($av['validite_offre'])) : '' ?></div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <a href="/index.php?r=offres/<?= (int) $av['id'] ?>/modifier" class="btn btn-sm btn-secondary">Corriger</a>
+      <?php if (\App\Core\Auth::canValiderOffres()): ?>
+      <form method="post" action="/index.php?r=offres/<?= (int) $av['id'] ?>/valider" style="display:inline"><input type="hidden" name="csrf_token" value="<?= View::e(\App\Core\Auth::csrfToken()) ?>"><input type="hidden" name="retour" value="dossiers/<?= (int) $dossier['id'] ?>&onglet=achats&sous=offres"><button type="submit" class="btn btn-sm">Valider l'offre</button></form>
+      <?php endif; ?>
+    </div>
+  </div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+<?php
 $offresRecues = array_values(array_filter($offres ?? [], fn($o) => ($o['statut'] ?? '') === 'recue'));
 $dejaRetenue = array_filter($offres ?? [], fn($o) => ($o['statut'] ?? '') === 'retenue');
 if (count($offresRecues) === 1 && !$dejaRetenue && \App\Core\Auth::canValiderOffres()): $uniq = $offresRecues[0]; ?>

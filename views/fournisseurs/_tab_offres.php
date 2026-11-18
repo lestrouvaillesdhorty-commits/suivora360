@@ -5,7 +5,7 @@ use App\Models\Offre;
 
 $fmt = fn($m, $dev) => number_format((float) $m, 2, ',', ' ') . ' ' . View::e((string) $dev);
 $badgeConsult = ['a_envoyer' => 'badge-orange', 'envoyee' => 'badge-blue', 'relance' => 'badge-orange', 'reponse_recue' => 'badge-green', 'sans_reponse' => 'badge-red'];
-$badgeOffre = ['recue' => 'badge-blue', 'retenue' => 'badge-green', 'rejetee' => 'badge-gray', 'remplacee' => 'badge-gray'];
+$badgeOffre = ['recue' => 'badge-blue', 'retenue' => 'badge-green', 'rejetee' => 'badge-gray', 'remplacee' => 'badge-gray', 'a_verifier' => 'badge-yellow'];
 $aujourdhui = date('Y-m-d');
 ?>
 <div class="card">

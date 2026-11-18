@@ -15,6 +15,7 @@ use App\Controllers\DossierController;
 use App\Controllers\FactureController;
 use App\Controllers\FilialeController;
 use App\Controllers\FournisseurController;
+use App\Controllers\FournisseurLienController;
 use App\Controllers\ListesController;
 use App\Controllers\NotificationController;
 use App\Controllers\OffreController;
@@ -297,6 +298,24 @@ $router->post('/clients/{id}/portail', function ($params) {
 $router->post('/clients/{id}/portail/{lienId}/revoquer', function ($params) {
     Auth::requireLogin();
     (new ClientController())->revoquerLienPortail($params);
+});
+
+// [v68] Lien fournisseur : pages publiques (sans connexion) + gestion depuis la fiche fournisseur
+$router->get('/lien-fournisseur/{token}', fn($params) => (new FournisseurLienController())->liste($params));
+$router->get('/lien-fournisseur/{token}/demandes/{id}', fn($params) => (new FournisseurLienController())->demande($params));
+$router->post('/lien-fournisseur/{token}/demandes/{id}/offre', fn($params) => (new FournisseurLienController())->repondre($params));
+$router->post('/lien-fournisseur/{token}/demandes/{id}/reponse', fn($params) => (new FournisseurLienController())->reponseSimple($params));
+$router->post('/fournisseurs/{id}/lien', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurLienController())->creer($params);
+});
+$router->post('/fournisseurs/{id}/lien/{lienId}/revoquer', function ($params) {
+    Auth::requireLogin();
+    (new FournisseurLienController())->revoquer($params);
+});
+$router->post('/offres/{id}/valider', function ($params) {
+    Auth::requireLogin();
+    (new OffreController())->valider($params);
 });
 
 // Fiche client : contacts, adresses, documents (07/10)

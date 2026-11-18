@@ -79,6 +79,62 @@ $nbConsultEnCours = count(array_filter($consultations, fn($c) => in_array($c['st
     </div>
     <?php endif; ?>
 
+    <?php if ($peutEcrire):
+      $lienPret = \App\Models\FournisseurLien::schemaPret();
+      $liensF = $lienPret ? \App\Models\FournisseurLien::liensDuFournisseur((int) $fournisseur['id']) : [];
+      $urlBaseF = (((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? '');
+      $suivi = $lienPret ? \App\Models\FournisseurLien::consultations((int) $fournisseur['id']) : [];
+      $baseF = '/index.php?r=fournisseurs/' . (int) $fournisseur['id'];
+      $lienActif = null; foreach ($liensF as $lf) { if (empty($lf['revoque_le']) && strtotime((string) $lf['expire_le']) > time()) { $lienActif = $lf; break; } }
+      $urlActif = $lienActif ? $urlBaseF . '/index.php?r=lien-fournisseur/' . $lienActif['token'] : '';
+      $relance = $lienActif ? \App\Models\FournisseurLien::messageRelance(\App\Models\FournisseurLien::aRelancer((int) $fournisseur['id']), $urlActif) : '';
+    ?>
+    <div class="card" id="lien-fournisseur">
+      <h2>Lien fournisseur</h2>
+      <?php if (!$lienPret): ?>
+        <div class="empty-state">Migration V68 requise pour activer le lien fournisseur.</div>
+      <?php else: ?>
+        <p style="font-size:13px;color:#666;margin:0 0 10px">Lien privé, sans compte ni mot de passe : le fournisseur voit ses demandes de prix en cours et y répond (prix, transport, délai). Son offre arrive « à vérifier » : rien n’est retenu sans vous. Vos clients, marges et les offres des autres fournisseurs ne sont jamais visibles.</p>
+        <?php if ((int) $fournisseur['is_active'] === 1): ?>
+        <form method="post" action="<?= $baseF ?>/lien" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>">
+          <select name="jours" aria-label="Durée de validité"><?php foreach (\App\Models\FournisseurLien::DUREES_JOURS as $j): ?><option value="<?= $j ?>" <?= $j === \App\Models\FournisseurLien::DUREE_DEFAUT ? 'selected' : '' ?>>Valable <?= $j ?> jours</option><?php endforeach; ?></select>
+          <button type="submit" class="btn btn-sm">Créer un lien</button>
+        </form>
+        <?php endif; ?>
+        <?php if ($suivi): ?>
+        <div style="margin-bottom:10px">
+          <div style="font-size:12px;color:#888;margin-bottom:4px">Suivi des demandes</div>
+          <?php foreach ($suivi as $sv): [$libEtat, $coul] = \App\Models\FournisseurLien::etat($sv); ?>
+            <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-top:1px solid #f0f0f0"><a href="/index.php?r=consultations/<?= (int) $sv['id'] ?>"><?= View::e($sv['reference'] ?? ('#' . $sv['id'])) ?></a><span class="badge badge-<?= $coul === 'red' ? 'red' : ($coul === 'green' ? 'green' : ($coul === 'yellow' ? 'yellow' : 'gray')) ?>"><?= View::e($libEtat) ?></span></div>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <?php if ($relance !== ''): ?>
+        <div style="background:#E8F5EC;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:10px"><div id="msg-relance" style="white-space:pre-wrap"><?= View::e($relance) ?></div>
+          <button type="button" class="btn btn-sm btn-secondary" style="margin-top:6px" onclick="var t=document.getElementById('msg-relance').innerText;if(navigator.clipboard){navigator.clipboard.writeText(t);this.textContent='Message copié ✔';}">Copier le message de relance</button></div>
+        <?php endif; ?>
+        <?php if (empty($liensF)): ?><div class="empty-state">Aucun lien créé pour ce fournisseur.</div><?php endif; ?>
+        <?php foreach ($liensF as $l):
+          $revoque = !empty($l['revoque_le']); $expire = strtotime((string) $l['expire_le']) <= time();
+          $url = $urlBaseF . '/index.php?r=lien-fournisseur/' . $l['token']; ?>
+          <div style="border-top:1px solid #eee;padding:10px 0">
+            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
+              <span>
+                <?php if ($revoque): ?><span class="badge badge-red">Révoqué</span><?php elseif ($expire): ?><span class="badge badge-gray">Expiré</span><?php else: ?><span class="badge badge-green">Actif</span><?php endif; ?>
+                <span style="font-size:12px;color:#888">expire le <?= date('d/m/Y', strtotime((string) $l['expire_le'])) ?> · <?= (int) $l['nb_acces'] ?> visite(s)<?= !empty($l['dernier_acces']) ? ', dernière le ' . date('d/m/Y H:i', strtotime((string) $l['dernier_acces'])) : '' ?></span>
+              </span>
+              <?php if (!$revoque && !$expire): ?>
+              <form method="post" action="<?= $baseF ?>/lien/<?= (int) $l['id'] ?>/revoquer" style="display:inline"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>"><button type="submit" class="btn btn-sm btn-secondary">Révoquer</button></form>
+              <?php endif; ?>
+            </div>
+            <?php if (!$revoque && !$expire): ?><input type="text" readonly value="<?= View::e($url) ?>" onclick="this.select()" style="width:100%;margin-top:6px;font-size:12px" aria-label="Lien fournisseur"><?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <?php if (!empty($fournisseur['notes'])): ?>
     <div class="card"><h2>Notes internes</h2><div><?= nl2br(View::e($fournisseur['notes'])) ?></div></div>
     <?php endif; ?>

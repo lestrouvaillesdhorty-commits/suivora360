@@ -15,6 +15,8 @@ class Offre
         // consultation — l'ancienne reste en base (historique des
         // versions) mais sort des listes "offres actuelles".
         'remplacee' => 'Remplacée (version antérieure)',
+        // [v68] Offre saisie par le fournisseur via son lien : elle n'entre dans le comparateur qu'après validation.
+        'a_verifier' => 'À vérifier (reçue par le lien)',
     ];
 
     public const CONFORMITE = [
@@ -61,11 +63,30 @@ class Offre
              FROM offres o
              INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
              INNER JOIN consultations_fournisseur cf ON cf.id = o.consultation_id
-             WHERE o.dossier_id = ? AND o.statut != 'remplacee'
+             WHERE o.dossier_id = ? AND o.statut NOT IN ('remplacee', 'a_verifier')
              ORDER BY o.montant_total ASC"
         );
         $stmt->execute([$dossierId]);
         return $stmt->fetchAll();
+    }
+
+    /** Offres reçues par le lien fournisseur, en attente de validation (hors comparateur). */
+    public static function aVerifierDuDossier(int $dossierId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT o.*, fo.nom AS fournisseur_nom FROM offres o INNER JOIN fournisseurs fo ON fo.id = o.fournisseur_id
+             WHERE o.dossier_id = ? AND o.statut = 'a_verifier' ORDER BY o.created_at DESC"
+        );
+        $stmt->execute([$dossierId]);
+        return $stmt->fetchAll();
+    }
+
+    /** Valide une offre « à vérifier » : elle devient une offre reçue normale et entre dans le comparateur. */
+    public static function valider(int $offreId): bool
+    {
+        $stmt = Database::connection()->prepare("UPDATE offres SET statut = 'recue', updated_at = ? WHERE id = ? AND statut = 'a_verifier'");
+        $stmt->execute([date('Y-m-d H:i:s'), $offreId]);
+        return $stmt->rowCount() > 0;
     }
 
     /** Toutes les offres retenues du dossier (une par fournisseur au maximum). */

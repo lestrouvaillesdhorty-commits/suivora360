@@ -341,6 +341,26 @@ class OffreController
         return ['offre' => $offre, 'consultation' => $consultation, 'dossier' => $dossier];
     }
 
+    /** [v68] Valide une offre reçue par le lien fournisseur : elle entre dans le comparateur. */
+    public function valider(array $params): void
+    {
+        Auth::requireWrite();
+        $offre = Offre::find((int) ($params['id'] ?? 0));
+        $user = Auth::user();
+        if (!$offre || !Offre::userCanAccess($user, $offre) || !Auth::canValiderOffres()) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        $retour = preg_match('#^[a-z0-9/_&=.-]+$#i', (string) ($_POST['retour'] ?? '')) ? (string) $_POST['retour'] : 'dossiers/' . (int) $offre['dossier_id'];
+        if (Auth::verifyCsrf($_POST['csrf_token'] ?? null) && Offre::valider((int) $offre['id'])) {
+            AuditLog::log((int) $offre['filiale_id'], (int) $user['id'], 'validation_offre_lien', 'offre', (int) $offre['id'], 'Offre reçue par le lien fournisseur validée');
+            View::flash('succes', 'Offre validée : elle apparaît maintenant dans le comparateur.');
+        }
+        header('Location: /index.php?r=' . $retour);
+        exit;
+    }
+
     public function edit(array $params): void
     {
         Auth::requireWrite();
