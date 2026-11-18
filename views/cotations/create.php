@@ -57,12 +57,49 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
 </div>
 <?php endif; ?>
 
-<div class="card" style="max-width:760px">
+<style>
+.cot-grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;align-items:start;max-width:1200px}
+.cot-grid>.card{margin:0}
+.cot-aside{position:sticky;top:12px}
+.cot-etape{display:flex;align-items:center;gap:10px;margin:22px 0 10px;font-weight:700;font-size:15px}
+.cot-etape:first-child{margin-top:0}
+.cot-etape .n{width:26px;height:26px;border-radius:50%;background:#0B7C8A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 auto}
+.cot-etape small{font-weight:400;color:#667;font-size:12px}
+#recap-calc{border:2px solid #0B7C8A;border-radius:14px;background:#fff;padding:12px 16px}
+#recap-calc summary{cursor:pointer;list-style:none}
+#recap-calc summary::-webkit-details-marker{display:none}
+.rc-l{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #EEF1F5;font-size:13.5px}
+.rc-l small{display:block;font-size:11.5px;color:#778}
+.rc-l b.t{color:#0B7C8A;font-weight:800}
+.rc-l span:last-child{white-space:nowrap;text-align:right}
+.rc-ok,.rc-warn{margin-top:8px;border-radius:8px;padding:7px 10px;font-size:12.5px;font-weight:600}
+.rc-ok{background:#E8F5EC;color:#1E7B3A}.rc-warn{background:#FFF4E0;color:#92400E}
+@media(max-width:900px){.cot-grid{grid-template-columns:minmax(0,1fr)}.cot-aside{position:static;order:-1}}
+</style>
+<?php
+// Lignes « achat » du récapitulatif (lecture seule, reprises de l'offre retenue).
+$rcDev = !empty($modeGroupe) ? ($calcAchat['devise'] ?? 'EUR') : ($offreRetenue['devise'] ?? '');
+$rcAchat = [];
+try {
+    $nf = fn($x) => number_format((float) $x, 2, ',', ' ') . ' ' . $rcDev;
+    if ($offreRetenue && !empty($modeGroupe)) {
+        foreach ($calcAchat['offres'] as $l) { $rcAchat[] = [View::e($l['fournisseur']), $nf($l['total']), 'prix ' . $nf($l['prix']) . ($l['frais_propres'] > 0.004 ? ' + frais ' . $nf($l['frais_propres']) : '') . ($l['part_communs'] > 0.004 ? ' + part frais communs ' . $nf($l['part_communs']) : '')]; }
+    } elseif ($offreRetenue) {
+        $rcAchat[] = ['Prix du fournisseur (' . View::e($offreRetenue['fournisseur_nom']) . ')', $nf($offreRetenue['montant_total']), ''];
+        foreach (['transport_montant' => 'Expédition jusqu\'à la destination', 'assurance_montant' => 'Assurance', 'emballage_montant' => 'Emballage', 'douane_montant' => 'Douane / droits', 'dedouanement_montant' => 'Dédouanement', 'autres_frais_montant' => 'Autres frais'] as $k => $lib) {
+            if ((float) ($offreRetenue[$k] ?? 0) > 0) { $rcAchat[] = ['+ ' . $lib, $nf($offreRetenue[$k]), 'frais de l\'offre']; }
+        }
+    }
+} catch (\Throwable $eRc) { $rcAchat = []; }
+?>
+<div class="cot-grid">
+<div class="card">
   <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/cotations">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <input type="hidden" name="offre_id" value="<?= ($cotationPrecedente['offre_id'] ?? null) ?: ($offreRetenue['id'] ?? '') ?>">
     <?php if ($cotationPrecedente): ?><input type="hidden" name="cotation_precedente_id" value="<?= (int) $cotationPrecedente['id'] ?>"><?php endif; ?>
 
+    <div class="cot-etape"><span class="n">1</span>Client et devise</div>
     <div class="form-group">
       <label>Client</label>
       <select name="client_id" required>
@@ -99,6 +136,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
         <div class="hint" style="font-size:11px;color:#888;margin-top:2px">Proposé d'après les paramètres de l'entreprise (EUR ↔ FCFA) ; modifiable.</div>
       </div>
     </div>
+    <div class="cot-etape"><span class="n">2</span>Coût d'achat, marge et remises <small>le coût est repris de l'offre retenue, frais compris</small></div>
     <?php if (Auth::canModifierMarge((int) $dossier['filiale_id'])): ?>
     <div class="form-row">
       <div class="form-group"><label>Montant d'achat (coût fournisseur, en <?= View::e($deviseOffre) ?>)</label><input type="number" step="0.01" name="achat_origine" id="achat_origine" value="<?= View::e($achatOrigine) ?>"></div>
@@ -131,6 +169,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       <div id="rem-recap"></div>
     </div>
     <?php endif; ?>
+    <div class="cot-etape"><span class="n">3</span>Montants du devis <small>calculés automatiquement, modifiables</small></div>
     <div class="tot-bloc">
       <div class="form-row">
         <div class="form-group"><label>Montant HT (hors taxe)</label><input type="number" step="0.01" name="montant_ht" id="montant_ht" value="<?= $cotationPrecedente ? $vNum('montant_ht') : '' ?>"></div>
@@ -142,6 +181,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       <div class="form-group" style="margin:8px 0 0"><label>Montant total facturé au client (TTC)</label><input type="number" step="0.01" name="montant_total" id="montant_total" required value="<?= $cotationPrecedente ? $vNum('montant_total') : '' ?>"></div>
       <div class="hint" style="font-size:11px;color:#667;margin-top:4px">Tout se calcule tout seul (achat × taux × marge, puis TVA). Vous pouvez corriger le HT ou le TTC à la main.</div>
     </div>
+    <div class="cot-etape"><span class="n">4</span>Conditions</div>
     <div class="form-row">
       <div class="form-group">
         <label>Mode de paiement négocié</label>
@@ -182,6 +222,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
     <?php endif; ?>
     <div class="form-group"><label>Validité du devis</label><input type="date" name="validite_devis" value="<?= View::e($v('validite_devis')) ?>"></div>
 
+    <div class="cot-etape"><span class="n">5</span>Articles <small>prix de vente = coût × taux × (1 + marge)</small></div>
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <label style="margin:0">Détail des articles (optionnel)</label>
@@ -193,12 +234,21 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
       </tbody></table>
     </div>
 
+    <div class="cot-etape"><span class="n">6</span>Livraison et notes <small>facultatif</small></div>
     <div class="form-group"><label>Adresse de livraison (si différente de celle du client)</label><textarea name="adresse_livraison" rows="2" placeholder="Laisser vide pour reprendre l'adresse de livraison de la fiche client"><?= View::e($v('adresse_livraison')) ?></textarea></div>
     <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e($v('notes')) ?></textarea></div>
 
     <button type="submit" class="btn"><?= $cotationPrecedente ? 'Créer la nouvelle version' : 'Créer la cotation' ?></button>
     <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>" class="btn btn-secondary">Annuler</a>
   </form>
+</div>
+<aside class="cot-aside"><div id="recap-calc"><details id="rc-det" open>
+  <summary><div style="font-weight:800;font-size:15px">Comment le prix est calculé</div><div style="font-size:13px;margin-top:2px">Total TTC : <strong id="rc-ttc-top">—</strong></div></summary>
+  <div style="margin-top:6px">
+    <?php foreach ($rcAchat as $l): ?><div class="rc-l"><span><?= $l[0] ?><?php if ($l[2]): ?><small><?= $l[2] ?></small><?php endif; ?></span><span><?= $l[1] ?></span></div><?php endforeach; ?>
+    <div id="rc-live"></div>
+  </div>
+</details></div></aside>
 </div>
 
 <template id="item-row-template"><?php $item = []; include __DIR__ . '/../partials/_ligne_article.php'; ?></template>
@@ -290,6 +340,39 @@ document.getElementById('items-body').addEventListener('click', function (e) {
     var s = sommeLignes(); if (auto && s !== null && isNaN(num(achat))) { ht.value = r2(net(s)); depuisHt(); } else if (auto && !isNaN(num(achat))) { recalc(); }
   });
   body.addEventListener('click', function () { setTimeout(sommeLignes, 0); });
-  majTaux(); prevTx = tauxEff(); prevM = marge ? (parseFloat(marge.value) || 0) : 0; recalc(); affTva();
+
+  // Récapitulatif lisible + contrôle de cohérence
+  function fm(x, d) { return (isNaN(x) ? '—' : x.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2})) + ' ' + d; }
+  function recap() {
+    var el = $('rc-live'); if (!el) return;
+    var d = dv.value, o = dOffre.value, tx = tauxEff(), m = marge ? (parseFloat(marge.value) || 0) : 0, a = num(achat), h = num(ht), t = num(tva), T2 = num(ttc);
+    var L = function (a1, b, small, tot) { return '<div class="rc-l"><span>' + (tot ? '<b class="t">' + a1 + '</b>' : a1) + (small ? '<small>' + small + '</small>' : '') + '</span><span>' + (tot ? '<b class="t">' + b + '</b>' : b) + '</span></div>'; };
+    var h2 = '';
+    if (!isNaN(a)) {
+      h2 += L('= Coût d\'achat utilisé', fm(a, o), 'modifiable à l\'étape 2', true);
+      if (!memeDevise() && !isNaN(tx) && tx > 0) { h2 += L('× Taux de change', String(Math.round(tx * 1000000) / 1000000), '1 ' + o + ' = ' + tx + ' ' + d) + L('= Coût d\'achat en ' + d, fm(a * tx, d), '', true); }
+      var base = a * (memeDevise() ? 1 : (tx > 0 ? tx : NaN));
+      if (!isNaN(base)) { h2 += L('+ Votre marge', m + ' % = ' + fm(base * m / 100, d), 'jamais visible sur le devis'); }
+    }
+    var g = glob ? (parseFloat(glob.value) || 0) : 0;
+    if (g > 0) h2 += L('− Remise globale', g + ' %', '');
+    h2 += L('= Prix HT', fm(h, d), '', true);
+    h2 += L('+ TVA', isNaN(t) ? '—' : (t + ' % = ' + fm(T2 - h, d)), '');
+    h2 += L('= Total facturé au client (TTC)', fm(T2, d), '', true);
+    var rows = 0, sb = 0, rl = 0;
+    body.querySelectorAll('tr').forEach(function (tr) {
+      var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value), ri = tr.querySelector('[name="item_remise[]"]'), r = ri ? (parseFloat(ri.value) || 0) : 0;
+      if (!isNaN(q) && !isNaN(p)) { rows++; sb += q * p * (1 - Math.min(100, Math.max(0, r)) / 100); }
+    });
+    if (rows && !isNaN(h)) {
+      var attendu = sb * (1 - Math.min(100, Math.max(0, g)) / 100), ecart = attendu - h;
+      h2 += Math.abs(ecart) < 0.6 ? '<div class="rc-ok">✔ La somme des lignes d\'articles (' + fm(attendu, d) + ') correspond au prix HT.</div>'
+        : '<div class="rc-warn">⚠ Écart de ' + fm(Math.abs(ecart), d) + ' entre la somme des lignes (' + fm(attendu, d) + ') et le prix HT (' + fm(h, d) + '). ' + (auto ? 'Vérifiez les lignes (prix modifié à la main ?).' : 'Le HT a été saisi à la main.') + '</div>';
+    }
+    el.innerHTML = h2; var top = $('rc-ttc-top'); if (top) top.textContent = fm(T2, d);
+  }
+  ['input', 'change', 'click'].forEach(function (ev) { f.addEventListener(ev, function () { setTimeout(recap, 30); }); });
+  if (window.matchMedia && window.matchMedia('(max-width:900px)').matches && $('rc-det')) { $('rc-det').removeAttribute('open'); }
+  majTaux(); prevTx = tauxEff(); prevM = marge ? (parseFloat(marge.value) || 0) : 0; recalc(); affTva(); recap();
 })();
 </script>
