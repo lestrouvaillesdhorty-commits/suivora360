@@ -137,3 +137,15 @@
     });
   }
 })();
+
+/* Onglets défilants : l'onglet actif est ramené dans l'écran (évite « nsemble » coupé sur téléphone). */
+(function () {
+  function centrer() {
+    document.querySelectorAll('.tabs').forEach(function (t) {
+      var a = t.querySelector('.tab.active, .active');
+      if (a && t.scrollWidth > t.clientWidth) { t.scrollLeft = Math.max(0, a.offsetLeft - (t.clientWidth - a.offsetWidth) / 2); }
+    });
+  }
+  if (document.readyState !== 'loading') { centrer(); } else { document.addEventListener('DOMContentLoaded', centrer); }
+  window.addEventListener('load', centrer);
+})();

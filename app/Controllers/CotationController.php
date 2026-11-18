@@ -60,7 +60,7 @@ class CotationController
         $depuisOffre = false;
         if (!$cotationPrecedente) {
             foreach ($offresRetenues as $oR) {
-                if ($modeGroupe && !isset($calcAchat['offres'][(int) $oR['id']])) {
+                if (!isset($calcAchat['offres'][(int) $oR['id']])) {
                     continue; // devise différente : non additionnée (signalée à l'écran)
                 }
                 $lignesOffre = \App\Models\OffreItem::retenuesDe((int) $oR['id']) ?: \App\Models\OffreItem::forOffre((int) $oR['id']);
@@ -68,8 +68,9 @@ class CotationController
                 foreach ($lignesOffre as $oi) {
                     $sommeMontants += (float) ($oi['montant'] ?? 0);
                 }
-                $tOffre = $modeGroupe ? (float) ($calcAchat['offres'][(int) $oR['id']]['taux'] ?? 1) : 1.0;
-                $extra = $modeGroupe ? (float) $calcAchat['offres'][(int) $oR['id']]['frais_propres'] + (float) $calcAchat['offres'][(int) $oR['id']]['part_communs'] : 0.0;
+                // Toujours : chaque article porte sa part des frais (même avec une seule offre), pour que la somme des lignes = le total du devis.
+                $tOffre = (float) ($calcAchat['offres'][(int) $oR['id']]['taux'] ?? 1);
+                $extra = (float) $calcAchat['offres'][(int) $oR['id']]['frais_propres'] + (float) $calcAchat['offres'][(int) $oR['id']]['part_communs'];
                 foreach ($lignesOffre as $oi) {
                     $cout = $oi['prix_unitaire'] !== null ? round((float) $oi['prix_unitaire'] * $tOffre, 4) : null;
                     if ($extra > 0.004 && $sommeMontants > 0 && (float) ($oi['montant'] ?? 0) > 0 && (float) $oi['quantite'] > 0) {

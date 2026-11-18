@@ -14,8 +14,8 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
 ?>
 <div class="detail-grid">
   <div>
-    <div class="card">
-      <h2>Contact principal</h2>
+    <div class="card" id="contact-principal">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">Contact principal</h2><?php if (!empty($peutEcrire)): ?><a class="btn btn-sm btn-secondary" href="<?= $base ?>/modifier#contact_prenom">Modifier</a><?php endif; ?></div>
       <?= $ligne('Nom', $contactPrincipal) ?>
       <?= $ligne('Fonction', $client['fonction_contact'] ?? '') ?>
       <?= $ligne('E-mail', $client['email'] ?? '') ?>
@@ -27,7 +27,7 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
     </div>
 
     <div class="card">
-      <h2>Coordonnées et gestion</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">Coordonnées et gestion</h2><?php if (!empty($peutEcrire)): ?><a class="btn btn-sm btn-secondary" href="<?= $base ?>/modifier#adresse">Modifier</a><?php endif; ?></div>
       <?= $ligne('Adresse', $adresseComplete) ?>
       <?= $ligne('Filiale', $filiale['nom'] ?? '') ?>
       <?php if ($schemaPret): ?>
