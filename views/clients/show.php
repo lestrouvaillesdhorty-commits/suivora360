@@ -58,7 +58,7 @@ $contactPrincipal = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['con
   <div class="alert" style="background:#f1f2f5;color:#4b5563;margin-top:12px">Ce client est inactif : ses demandes, dossiers et documents restent consultables. Réactivez-le pour créer de nouvelles demandes.</div>
 <?php endif; ?>
 
-<div class="tabs" style="margin-top:16px;overflow-x:auto;white-space:nowrap">
+<div class="tabs tabs-fiche" style="margin-top:16px">
   <?php foreach ($onglets as $code => $lib): ?>
     <a href="<?= $base . ($code === 'vue' ? '' : '&onglet=' . $code) ?>" class="<?= $onglet === $code ? 'active' : '' ?>"><?= View::e($lib) ?><?php
       if ($code === 'operations' && count($operations) > 0): ?> (<?= count($operations) ?>)<?php endif;

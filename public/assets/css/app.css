@@ -1456,3 +1456,9 @@ select.niv-cache { border-color: #D6DCE3; }
   .tabs::-webkit-scrollbar { display: none; }
   .tabs .tab { flex: 0 0 auto; white-space: nowrap; }
 }
+
+/* Fiches client / fournisseur : onglets visibles en entier sur téléphone (retour à la ligne, sans défilement) */
+@media (max-width: 900px) {
+  .tabs.tabs-fiche { overflow: visible; flex-wrap: wrap; white-space: normal; gap: 0 16px; }
+  .tabs.tabs-fiche a, .tabs.tabs-fiche .tab { flex: 0 0 auto; margin-right: 0; padding: 10px 2px; white-space: nowrap; }
+}

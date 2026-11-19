@@ -81,7 +81,7 @@ $nbAlertes = count($alertesDocuments);
   <div class="alert" style="background:#fef3c7;color:#92400e;margin-top:12px">Mise à jour de la base à finaliser (migration V23) : contacts multiples, qualification, évaluations et échéances de documents seront disponibles ensuite.</div>
 <?php endif; ?>
 
-<div class="tabs" style="margin-top:16px;overflow-x:auto;white-space:nowrap">
+<div class="tabs tabs-fiche" style="margin-top:16px">
   <?php foreach ($onglets as $code => $lib): ?>
     <a href="<?= $base . ($code === 'vue' ? '' : '&onglet=' . $code) ?>" class="<?= $onglet === $code ? 'active' : '' ?>"><?= View::e($lib) ?><?php
       if ($code === 'offres' && count($consultations) > 0): ?> (<?= count($consultations) ?>)<?php endif;
