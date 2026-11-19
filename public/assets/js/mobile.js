@@ -135,6 +135,20 @@
       c.firstElementChild.setAttribute('role', 'button');
       c.firstElementChild.addEventListener('click', function () { c.classList.toggle('acc-ferme'); });
     });
+    /* Lien direct vers un champ (ex. « Modifier » du contact principal : …/modifier#contact_prenom) :
+       on ouvre la section qui le contient et on s'y rend, au lieu de rester en haut de la page. */
+    if (location.hash.length > 1) {
+      var cible = null;
+      try { cible = fm.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(location.hash.slice(1)) : location.hash.slice(1))); } catch (er) { cible = null; }
+      var sec = cible && cible.closest('.card.acc');
+      if (cible && sec) {
+        sec.classList.remove('acc-ferme');
+        setTimeout(function () {
+          cible.scrollIntoView({ block: 'center' });
+          try { cible.focus({ preventScroll: true }); } catch (er2) { /* ignore */ }
+        }, 150);
+      }
+    }
   }
 })();
 

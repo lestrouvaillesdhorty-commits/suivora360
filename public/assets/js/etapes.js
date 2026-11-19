@@ -136,7 +136,25 @@
         if (!valider(i)) { e.preventDefault(); afficher(i); valider(i); return; }
       }
     });
-    afficher(0);
+    // Lien direct vers un champ (ex. « Modifier » du contact principal : …/modifier#contact_prenom) :
+    // on ouvre l'étape qui contient ce champ, au lieu de toujours démarrer par la première.
+    var depart = 0, cible = null;
+    if (location.hash.length > 1) {
+      try { cible = form.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(location.hash.slice(1)) : location.hash.slice(1))); } catch (er) { cible = null; }
+      var bloc = cible && cible.closest('[data-etape]');
+      if (bloc) {
+        var k = titres.indexOf(bloc.getAttribute('data-etape'));
+        if (k >= 0) { depart = k; }
+        var det = cible.closest('details'); if (det) { det.open = true; }
+      }
+    }
+    afficher(depart);
+    if (cible && depart > 0) {
+      setTimeout(function () {
+        try { cible.focus({ preventScroll: true }); } catch (er) { /* ignore */ }
+        cible.scrollIntoView({ block: 'center' });
+      }, 350);
+    }
   }
   document.addEventListener('DOMContentLoaded', function () {
     Array.prototype.forEach.call(document.querySelectorAll('form[data-etapes]'), init);

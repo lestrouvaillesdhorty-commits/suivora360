@@ -65,7 +65,7 @@ $adressePrincipale = trim(implode(', ', array_filter([$client['adresse'] ?? '', 
       <span style="font-size:13px;color:#666"><?= View::e($client['fonction_contact'] ?? '') ?></span>
       <div style="font-size:13px"><?= View::e($client['email'] ?? '') ?><?= (!empty($client['email']) && !empty($client['telephone'])) ? ' · ' : '' ?><?= View::e($client['telephone'] ?? '') ?></div>
       <div style="margin-top:6px"><?php $bcEmail = $client['email'] ?? ''; $bcTel = $client['telephone'] ?? ''; include __DIR__ . '/_boutons_contact.php'; ?>
-        <?php if ($peutEcrire): ?><a class="btn btn-sm btn-secondary" href="<?= $base ?>/modifier">Modifier</a><?php endif; ?></div>
+        <?php if ($peutEcrire): ?><a class="btn btn-sm btn-secondary" href="<?= $base ?>/modifier#contact_prenom">Modifier</a><?php endif; ?></div>
     </div>
     <?php foreach ($contacts as $c): $cNom = trim($c['prenom'] . ' ' . $c['nom']); $cActif = (int) $c['actif'] === 1; ?>
       <div class="info-row" style="display:block;<?= $cActif ? '' : 'opacity:.6' ?>">
@@ -100,7 +100,7 @@ $adressePrincipale = trim(implode(', ', array_filter([$client['adresse'] ?? '', 
     <div class="info-row" style="display:block">
       <strong>Adresse principale</strong> <span class="badge badge-blue">Facturation par défaut</span><br>
       <span style="font-size:13px"><?= View::e($adressePrincipale) ?: '<span style="color:#999">Non renseignée</span>' ?></span>
-      <?php if ($peutEcrire): ?><div style="margin-top:6px"><a class="btn btn-sm btn-secondary" href="<?= $base ?>/modifier">Modifier</a></div><?php endif; ?>
+      <?php if ($peutEcrire): ?><div style="margin-top:6px"><a class="btn btn-sm btn-secondary" href="<?= $base ?>/modifier#adresse">Modifier</a></div><?php endif; ?>
     </div>
     <?php if (!empty($client['adresse_livraison'])): ?>
       <div class="info-row" style="display:block"><strong>Livraison habituelle</strong><br><span style="font-size:13px"><?= View::e($client['adresse_livraison']) ?></span></div>
