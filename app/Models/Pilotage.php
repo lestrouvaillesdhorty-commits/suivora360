@@ -485,6 +485,13 @@ class Pilotage
         foreach ($stmt->fetchAll() as $row) {
             $out[(int) $row['filiale_id']] = $row;
         }
+        // Entreprise dont les paramètres n'ont jamais été enregistrés : on applique le taux par défaut
+        // (parité fixe officielle 1 € = 655,957 FCFA), comme à la création des cotations, au lieu d'exclure les montants en FCFA.
+        foreach ($filialeIds as $fid) {
+            if (!isset($out[(int) $fid]) || empty($out[(int) $fid]['taux_eur_fcfa'])) {
+                $out[(int) $fid] = ['filiale_id' => (int) $fid, 'taux_eur_fcfa' => \App\Models\Parametres::DEFAUTS['taux_eur_fcfa'], 'taux_date_maj' => null];
+            }
+        }
         return $out;
     }
 
