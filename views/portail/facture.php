@@ -1,6 +1,6 @@
 <?php
 use App\Core\View;
-$fm = fn($m, $d) => number_format((float) $m, 0, ',', ' ') . ' ' . ($d !== null && $d !== '' ? $d : '');
+$fm = fn($m, $d) => number_format((float) $m, 0, ',', ' ') . ' ' . ($d !== null && $d !== '' ? \App\Core\View::dev($d) : '');
 ?>
 <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Facture <?= View::e($facture['reference']) ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">

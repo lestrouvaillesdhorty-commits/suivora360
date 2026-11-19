@@ -34,7 +34,7 @@ $fmt = fn($m) => number_format((float) $m, 2, ',', ' ');
         <td data-label="Dossier"><?= !empty($b['dossier_id']) ? '<a href="/index.php?r=dossiers/' . (int) $b['dossier_id'] . '">' . View::e($b['dossier_reference']) . '</a>' : '—' ?></td>
         <td data-label="Date"><?= date('d/m/Y', strtotime($b['date_emission'])) ?></td>
         <td data-label="Livraison souhaitée"><?= $b['date_livraison_souhaitee'] ? date('d/m/Y', strtotime($b['date_livraison_souhaitee'])) : '—' ?></td>
-        <td data-label="Montant" class="num" style="white-space:nowrap"><?= $fmt($b['montant_total']) ?> <?= View::e($b['devise']) ?></td>
+        <td data-label="Montant" class="num" style="white-space:nowrap"><?= $fmt($b['montant_total']) ?> <?= View::dev($b['devise']) ?></td>
         <td data-label="Statut"><span class="badge <?= Bon::BADGES[$b['statut']] ?>"><?= View::e(Bon::STATUTS[$b['statut']]) ?></span></td>
       </tr>
     <?php endforeach; ?>

@@ -61,6 +61,13 @@ class View
         return null;
     }
 
+    /** Libellé affiché d'une devise : les francs CFA (XAF, XOF, CFA) s'affichent « FCFA » ; les autres restent en code (EUR, USD…). */
+    public static function dev(?string $code): string
+    {
+        $c = strtoupper(trim((string) $code));
+        return self::e(in_array($c, ['XAF', 'XOF', 'CFA'], true) ? 'FCFA' : (string) $code);
+    }
+
     public static function e(?string $value): string
     {
         return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');

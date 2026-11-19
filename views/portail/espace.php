@@ -6,7 +6,7 @@ use App\Core\View;
 
 /** Espace client externe — page principale. Variables : $lien, $client, $onglet, $dossiers, $cotations, $factures, $nbAttente, $emetteur, $base, $erreurs, $old, $csrfToken, $flashPortail. */
 $etapesClient = ['qualifie' => 'Pris en charge', 'sourcing' => 'Recherche en cours', 'cotation' => 'Cotation', 'commande' => 'En commande', 'livraison' => 'En livraison', 'cloture' => 'Terminé'];
-$fm = fn($m, $d) => number_format((float) $m, 0, ',', ' ') . ' ' . ($d !== null && $d !== '' ? $d : '');
+$fm = fn($m, $d) => number_format((float) $m, 0, ',', ' ') . ' ' . ($d !== null && $d !== '' ? \App\Core\View::dev($d) : '');
 $onglets = ['dossiers' => 'Mes dossiers (' . count($dossiers) . ')', 'cotations' => 'Cotations (' . count($cotations) . ')', 'factures' => 'Factures (' . count($factures) . ')', 'demande' => 'Nouvelle demande'];
 $valeur = fn(string $k) => View::e((string) ($old[$k] ?? ''));
 $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'] ?? ''));

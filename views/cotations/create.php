@@ -127,7 +127,7 @@ try {
       <div class="form-group">
         <label>Devise du devis (celle du client)</label>
         <select name="devise" id="devise_devis">
-          <?php foreach ($devisesListe as $d): ?><option <?= $deviseDevis === $d ? 'selected' : '' ?>><?= $d ?></option><?php endforeach; ?>
+          <?php foreach ($devisesListe as $d): ?><option value="<?= $d ?>" <?= $deviseDevis === $d ? 'selected' : '' ?>><?= in_array($d, ['XAF', 'XOF'], true) ? 'FCFA (' . $d . ')' : $d ?></option><?php endforeach; ?>
         </select>
       </div>
       <div class="form-group" id="bloc-taux" style="display:none">

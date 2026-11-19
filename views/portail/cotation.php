@@ -1,6 +1,6 @@
 <?php
 use App\Core\View;
-$fm = fn($m, $d) => number_format((float) $m, 0, ',', ' ') . ' ' . ($d !== null && $d !== '' ? $d : '');
+$fm = fn($m, $d) => number_format((float) $m, 0, ',', ' ') . ' ' . ($d !== null && $d !== '' ? \App\Core\View::dev($d) : '');
 $badges = ['envoyee' => ['À valider', 'ye'], 'acceptee' => ['Acceptée', 'gr'], 'refusee' => ['Refusée', 'rd']];
 $bg = $badges[$cotation['statut']];
 ?>

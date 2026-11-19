@@ -59,7 +59,7 @@ $contact = array_filter([(string) ($bon['livraison_contact_nom'] ?? ''), !empty(
         <?php if ($mailF !== ''): ?><br><?= View::e($mailF) ?><?php endif; ?>
         <?php if ($idF): ?><br><span class="d"><?= View::e(implode(' · ', $idF)) ?></span><?php endif; ?></div>
       <div><h3>Conditions</h3>
-        Devise : <strong><?= View::e($bon['devise']) ?></strong><br>
+        Devise : <strong><?= View::dev($bon['devise']) ?></strong><br>
         <?php if ($bon['incoterm'] !== ''): ?>Incoterm : <?= View::e($bon['incoterm']) ?><br><?php endif; ?>
         <?php if ($bon['conditions_paiement'] !== ''): ?>Paiement : <?= View::e($bon['conditions_paiement']) ?><br><?php endif; ?>
         <?php if ($bon['date_livraison_souhaitee']): ?>Livraison souhaitée : <strong><?= date('d/m/Y', strtotime($bon['date_livraison_souhaitee'])) ?></strong><?php endif; ?></div>
@@ -84,7 +84,7 @@ $contact = array_filter([(string) ($bon['livraison_contact_nom'] ?? ''), !empty(
   </tbody>
   <tfoot>
   <?php if ($remTot > 0.004): ?><tr><td colspan="<?= $avecRem ? 5 : 4 ?>" class="num">Total brut</td><td class="num"><?= $fmt($brut) ?></td></tr><tr><td colspan="<?= $avecRem ? 5 : 4 ?>" class="num">Remises</td><td class="num">− <?= $fmt($remTot) ?></td></tr><?php endif; ?>
-  <tr class="total"><td colspan="<?= $avecRem ? 5 : 4 ?>" class="num"><?= $remTot > 0.004 ? 'Total net ' : 'Total ' ?><?= View::e($bon['devise']) ?></td><td class="num"><?= $fmt($bon['montant_total']) ?></td></tr></tfoot>
+  <tr class="total"><td colspan="<?= $avecRem ? 5 : 4 ?>" class="num"><?= $remTot > 0.004 ? 'Total net ' : 'Total ' ?><?= View::dev($bon['devise']) ?></td><td class="num"><?= $fmt($bon['montant_total']) ?></td></tr></tfoot>
 </table>
     </div>
 <?php if (!empty($bon['notes'])): ?><div class="sec">Instructions</div><div style="white-space:pre-wrap"><?= View::e($bon['notes']) ?></div><?php endif; ?>

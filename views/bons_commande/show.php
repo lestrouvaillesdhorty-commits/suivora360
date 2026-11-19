@@ -82,7 +82,7 @@ $mailto = $bon['destinataire_email'] !== ''
           </tr>
         <?php endforeach; ?>
         </tbody>
-        <tfoot><tr><td colspan="<?= $avecRem ? 5 : 4 ?>" style="text-align:right;font-weight:700">Total (<?= View::e($bon['devise']) ?>)</td><td class="num" style="font-weight:700"><?= $fmt($bon['montant_total']) ?></td></tr></tfoot>
+        <tfoot><tr><td colspan="<?= $avecRem ? 5 : 4 ?>" style="text-align:right;font-weight:700">Total (<?= View::dev($bon['devise']) ?>)</td><td class="num" style="font-weight:700"><?= $fmt($bon['montant_total']) ?></td></tr></tfoot>
       </table>
       <?php if (!empty($bon['notes'])): ?><div style="margin-top:12px"><strong style="font-size:13px">Instructions pour le fournisseur</strong><div style="white-space:pre-wrap;font-size:14px"><?= View::e($bon['notes']) ?></div></div><?php endif; ?>
     </div>

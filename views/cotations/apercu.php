@@ -93,15 +93,15 @@ html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     <?php else: ?><p>Offre globale (voir les montants ci-dessous).</p><?php endif; ?>
     <div class="tot">
       <?php if ($totaux['brut'] !== null): ?>
-      <div><span>Total brut HT</span><span><?= $n($totaux['brut']) ?> <?= View::e($dev) ?></span></div>
-      <?php if ($totaux['remise_lignes'] > 0): ?><div><span>Remises sur lignes</span><span>− <?= $n($totaux['remise_lignes']) ?> <?= View::e($dev) ?></span></div><?php endif; ?>
-      <?php if ($totaux['remise_globale'] > 0): ?><div><span>Remise globale <?= View::e(rtrim(rtrim(number_format((float) $totaux['remise_globale_pct'], 2, ',', ''), '0'), ',')) ?> %<?= $totaux['remise_motif'] !== '' ? ' (' . View::e($totaux['remise_motif']) . ')' : '' ?></span><span>− <?= $n($totaux['remise_globale']) ?> <?= View::e($dev) ?></span></div><?php endif; ?>
-      <div><span>Total net HT</span><span><?= $n($totaux['ht']) ?> <?= View::e($dev) ?></span></div>
+      <div><span>Total brut HT</span><span><?= $n($totaux['brut']) ?> <?= View::dev($dev) ?></span></div>
+      <?php if ($totaux['remise_lignes'] > 0): ?><div><span>Remises sur lignes</span><span>− <?= $n($totaux['remise_lignes']) ?> <?= View::dev($dev) ?></span></div><?php endif; ?>
+      <?php if ($totaux['remise_globale'] > 0): ?><div><span>Remise globale <?= View::e(rtrim(rtrim(number_format((float) $totaux['remise_globale_pct'], 2, ',', ''), '0'), ',')) ?> %<?= $totaux['remise_motif'] !== '' ? ' (' . View::e($totaux['remise_motif']) . ')' : '' ?></span><span>− <?= $n($totaux['remise_globale']) ?> <?= View::dev($dev) ?></span></div><?php endif; ?>
+      <div><span>Total net HT</span><span><?= $n($totaux['ht']) ?> <?= View::dev($dev) ?></span></div>
       <?php else: ?>
-      <div><span>Total HT</span><span><?= $n($totaux['ht']) ?> <?= View::e($dev) ?></span></div>
+      <div><span>Total HT</span><span><?= $n($totaux['ht']) ?> <?= View::dev($dev) ?></span></div>
       <?php endif; ?>
-      <div><span>TVA<?= $totaux['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($totaux['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '' ?></span><span><?= $n($totaux['tva']) ?> <?= View::e($dev) ?></span></div>
-      <div class="ttc"><span>Total TTC</span><span><?= $n($totaux['ttc']) ?> <?= View::e($dev) ?></span></div>
+      <div><span>TVA<?= $totaux['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($totaux['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '' ?></span><span><?= $n($totaux['tva']) ?> <?= View::dev($dev) ?></span></div>
+      <div class="ttc"><span>Total TTC</span><span><?= $n($totaux['ttc']) ?> <?= View::dev($dev) ?></span></div>
     </div>
     <?php if (trim((string) $cotation['notes']) !== ''): ?><div class="cond"><strong>Remarques</strong><br><?= nl2br(View::e($cotation['notes'])) ?></div><?php endif; ?>
     <?php if (trim((string) ($emetteur['devis_conditions'] ?? '')) !== ''): ?><div class="cond"><strong>Conditions générales</strong><br><?= nl2br(View::e($emetteur['devis_conditions'])) ?></div><?php endif; ?>
