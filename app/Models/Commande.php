@@ -8,9 +8,9 @@ class Commande
 {
     public const ETAPES_STEPS = [
         'paiement' => 'Paiement',
-        'expedition' => 'Expédition',
+        'expedition' => 'Expédition par le fournisseur',
         'douane' => 'Dédouanement',
-        'livraison' => 'Livraison',
+        'livraison' => 'Livraison au client',
         'solde' => 'Solde',
     ];
 
@@ -28,9 +28,9 @@ class Commande
      */
     public const STEP_STATUT_LABELS = [
         'paiement' => ['a_faire' => 'Paiement à faire', 'en_cours' => 'Paiement en cours', 'termine' => 'Payé'],
-        'expedition' => ['a_faire' => 'À préparer', 'en_cours' => 'En préparation', 'termine' => 'Expédiée'],
+        'expedition' => ['a_faire' => 'À préparer chez le fournisseur', 'en_cours' => 'En préparation', 'termine' => 'Expédiée par le fournisseur'],
         'douane' => ['a_faire' => 'Dédouanement à faire', 'en_cours' => 'En cours de dédouanement', 'termine' => 'Dédouané'],
-        'livraison' => ['a_faire' => 'À expédier', 'en_cours' => 'En transit', 'termine' => 'Reçue'],
+        'livraison' => ['a_faire' => 'Pas encore en route', 'en_cours' => 'En route vers le client', 'termine' => 'Livrée au client'],
         'solde' => ['a_faire' => 'Solde à payer', 'en_cours' => 'Solde en cours', 'termine' => 'Soldé'],
     ];
 
