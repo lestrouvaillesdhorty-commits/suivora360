@@ -16,6 +16,9 @@ h2{font-size:16px;margin:0 0 12px}
 .badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
 .bl{background:#dbeafe;color:#1e40af}.gr{background:#d1fae5;color:#065f46}.ye{background:#fef3c7;color:#92400e}.rd{background:#fee2e2;color:#991b1b}.gy{background:#eef0f6;color:#4b5563}
 .steps{display:flex;gap:4px;margin-top:8px;width:260px;max-width:100%}.steps i{height:6px;flex:1;border-radius:4px;background:#e6e8ef}.steps i.d{background:var(--p)}
+.e-qualifie{background:#e0e7ff;color:#3730a3}.e-sourcing{background:#ede9fe;color:#5b21b6}.e-cotation{background:#fef3c7;color:#92400e}.e-commande{background:#dbeafe;color:#1e40af}.e-livraison{background:#ccfbf1;color:#115e59}.e-cloture{background:#e5e7eb;color:#374151}
+.steps.s-qualifie i.d{background:#6366f1}.steps.s-sourcing i.d{background:#8b5cf6}.steps.s-cotation i.d{background:#f59e0b}.steps.s-commande i.d{background:#3b82f6}.steps.s-livraison i.d{background:#14b8a6}.steps.s-cloture i.d{background:#6b7280}
+.badge.big{font-size:13px;padding:5px 12px}
 .btn{display:inline-block;padding:9px 16px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;border:0;cursor:pointer;font-family:inherit}
 .bp{background:var(--p);color:#fff}.bs{background:#eef0f6;color:var(--t)}.bd{background:#b42318;color:#fff}
 .cota{border:2px solid var(--p);background:#F2F9FA}

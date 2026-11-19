@@ -780,7 +780,8 @@ class Demande
         }
         $placeholders = implode(',', array_fill(0, count($filialeIds), '?'));
         $sql = "SELECT COUNT(*) FROM demandes
-                WHERE statut IN ('a_qualifier','en_attente_info','qualifiee') AND filiale_id IN ($placeholders)" . \App\Models\ActiviteAcces::sqlActivite('activite');
+                WHERE statut IN ('a_qualifier','en_attente_info','qualifiee') AND filiale_id IN ($placeholders)
+                AND NOT EXISTS (SELECT 1 FROM dossiers zd WHERE zd.demande_id = demandes.id AND zd.statut <> 'actif')" . \App\Models\ActiviteAcces::sqlActivite('activite');
         $params = $filialeIds;
         if ($activite) {
             $sql .= ' AND activite = ?' . Demande::sousFiltresSql('');

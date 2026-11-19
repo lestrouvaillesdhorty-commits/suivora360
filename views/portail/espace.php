@@ -41,9 +41,9 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
   <?php foreach ($dossiers as $d): $idx = array_search($d['etape'], Dossier::ETAPES, true); $idx = $idx === false ? 0 : $idx; ?>
     <div class="row"><div>
       <div class="ref"><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?></div>
-      <div class="mut"><?= View::e($etapesClient[$d['etape']] ?? $d['etape']) ?><?= !empty($d['echeance']) && $d['statut'] === 'actif' ? ' · échéance prévue ' . date('d/m/Y', strtotime($d['echeance'])) : '' ?></div>
-      <div class="steps"><?php for ($i = 0; $i < 6; $i++): ?><i class="<?= $i <= $idx ? 'd' : '' ?>"></i><?php endfor; ?></div>
-    </div><span class="badge <?= $d['statut'] === 'actif' ? 'bl' : 'gy' ?>"><?= $d['statut'] === 'actif' ? 'En cours' : 'Terminé' ?></span></div>
+      <div class="mut"><?= !empty($d['echeance']) && $d['statut'] === 'actif' ? 'Échéance prévue ' . date('d/m/Y', strtotime($d['echeance'])) : ($d['statut'] === 'actif' ? 'En cours' : 'Terminé') ?></div>
+      <div class="steps s-<?= View::e($d['etape']) ?>"><?php for ($i = 0; $i < 6; $i++): ?><i class="<?= $i <= $idx ? 'd' : '' ?>"></i><?php endfor; ?></div>
+    </div><span class="badge big e-<?= View::e($d['etape']) ?>"><?= View::e($etapesClient[$d['etape']] ?? $d['etape']) ?></span></div>
   <?php endforeach; ?></div>
 
 <?php elseif ($onglet === 'cotations'): ?>

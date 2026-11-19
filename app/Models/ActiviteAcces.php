@@ -116,6 +116,12 @@ class ActiviteAcces
         return $c ? " AND NOT EXISTS (SELECT 1 FROM dossiers zg_d INNER JOIN demandes zg_m ON zg_m.id = zg_d.demande_id WHERE zg_d.id = $col AND zg_m.activite IN (" . self::liste($c) . '))' : '';
     }
 
+    /** Tableau de bord : ne garde que les éléments dont le dossier est encore actif (ni clôturé, ni annulé, ni perdu). */
+    public static function sqlDossierActif(string $col): string
+    {
+        return " AND EXISTS (SELECT 1 FROM dossiers za_d WHERE za_d.id = $col AND za_d.statut = 'actif')";
+    }
+
     /** Activités affichables (retire les cachées) : filtres, formulaires, tableau de bord. */
     public static function retirerCachees(array $noms): array
     {
