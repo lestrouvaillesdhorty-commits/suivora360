@@ -301,6 +301,41 @@ class BonCommandeFournisseurController
         $this->retour($url, 'succes', 'Bon de commande mis à jour.');
     }
 
+    // ------------------------------------------------------------------ suivi fournisseur (v71)
+
+    /** Téléchargement d'un document envoyé par le fournisseur (connecté, accès à la filiale du bon). */
+    public function document(array $params): void
+    {
+        $bon = $this->chargerBon($params);
+        $doc = \App\Models\BonSuivi::pret() ? \App\Models\BonSuivi::document((int) $bon['id'], (int) ($params['docId'] ?? 0)) : null;
+        $chemin = $doc ? \App\Models\BonSuivi::cheminDocument($doc) : '';
+        if (!$doc || !is_file($chemin)) {
+            http_response_code(404);
+            \App\Core\View::render('errors/404');
+            return;
+        }
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($chemin) ?: 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: inline; filename="' . str_replace('"', '', $doc['nom_original']) . '"');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Length: ' . filesize($chemin));
+        readfile($chemin);
+    }
+
+    public function livree(array $params): void
+    {
+        $this->gererOu403();
+        $bon = $this->chargerBon($params);
+        $url = '/index.php?r=bons-commande/' . (int) $bon['id'];
+        $this->postOuRetour($url);
+        if (\App\Models\BonSuivi::pret() && $bon['statut'] === 'confirme') {
+            \App\Models\BonSuivi::marquerLivree((int) $bon['id']);
+            AuditLog::log((int) $bon['filiale_id'], (int) Auth::user()['id'], 'bon_commande_livre', 'bon_commande_fournisseur', (int) $bon['id'], '');
+            $this->retour($url, 'succes', 'Commande marquée comme livrée.');
+        }
+        $this->retour($url, 'erreur', 'Ce changement n’est pas possible.');
+    }
+
     // ------------------------------------------------------------------ statut
 
     public function statut(array $params): void

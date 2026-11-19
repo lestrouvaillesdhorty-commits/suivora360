@@ -114,6 +114,22 @@ $mailto = $bon['destinataire_email'] !== ''
       <?php if (!empty($bon['confirme_le'])): ?><div class="info-row"><span class="label">Confirmé</span><span><?= date('d/m/Y H:i', strtotime($bon['confirme_le'])) ?></span></div><?php endif; ?>
       <?php if (!empty($bon['notes_internes'])): ?><div style="margin-top:10px;font-size:13px"><strong>Notes internes</strong><div style="white-space:pre-wrap"><?= View::e($bon['notes_internes']) ?></div></div><?php endif; ?>
     </div>
+    <?php if (\App\Models\BonSuivi::pret() && in_array($bon['statut'], ['envoye', 'confirme'], true) || !empty($bon['refuse_le'])):
+        $etape = \App\Models\BonSuivi::etape($bon); $docsBon = \App\Models\BonSuivi::documents((int) $bon['id']); ?>
+    <div class="card">
+      <h2>Suivi par le fournisseur</h2>
+      <?php if (!empty($bon['refuse_le'])): ?><div class="alert alert-danger" style="margin-bottom:8px"><strong>Le fournisseur ne peut pas honorer cette commande</strong> (<?= date('d/m/Y', strtotime($bon['refuse_le'])) ?>)<?= !empty($bon['refus_motif']) ? ' : ' . View::e($bon['refus_motif']) : '' ?></div><?php endif; ?>
+      <div style="display:flex;gap:4px;margin:6px 0 10px"><?php foreach (\App\Models\BonSuivi::ETAPES as $i => $lib): ?><div style="flex:1;text-align:center"><div style="height:6px;border-radius:4px;background:<?= $i < $etape ? '#0B7C8A' : '#E6E8EF' ?>"></div><div style="font-size:11px;color:<?= $i < $etape ? '#0F3F46' : '#99a' ?>;margin-top:3px"><?= $lib ?></div></div><?php endforeach; ?></div>
+      <?php if (!empty($bon['prepare_le'])): ?><div class="info-row"><span class="label">Préparation prévue</span><span><?= date('d/m/Y', strtotime($bon['prepare_le'])) ?></span></div><?php endif; ?>
+      <?php if (!empty($bon['expedie_le'])): ?><div class="info-row"><span class="label">Expédiée le</span><span><?= date('d/m/Y', strtotime($bon['expedie_le'])) ?><?= !empty($bon['transporteur']) ? ' · ' . View::e($bon['transporteur']) : '' ?></span></div><?php endif; ?>
+      <?php if (!empty($bon['suivi_numero'])): ?><div class="info-row"><span class="label">N° de suivi</span><span><?= View::e($bon['suivi_numero']) ?></span></div><?php endif; ?>
+      <?php if (!empty($bon['arrivee_prevue'])): ?><div class="info-row"><span class="label">Arrivée prévue</span><span><?= date('d/m/Y', strtotime($bon['arrivee_prevue'])) ?></span></div><?php endif; ?>
+      <?php if (!empty($bon['livre_le'])): ?><div class="info-row"><span class="label">Livrée le</span><span><?= date('d/m/Y', strtotime($bon['livre_le'])) ?></span></div><?php endif; ?>
+      <?php if ($docsBon): ?><div style="margin-top:8px"><strong style="font-size:13px">Documents du fournisseur</strong><?php foreach ($docsBon as $dx): ?><div style="font-size:13.5px;margin-top:3px"><a href="<?= $base ?>/documents/<?= (int) $dx['id'] ?>" target="_blank" rel="noopener"><?= View::e($dx['nom_original']) ?></a> · <?= View::e(\App\Models\BonSuivi::TYPES[$dx['type']] ?? 'Autre') ?> · <?= date('d/m/Y', strtotime($dx['created_at'])) ?></div><?php endforeach; ?></div><?php endif; ?>
+      <?php if ($peutGerer && $bon['statut'] === 'confirme' && ($bon['suivi_etat'] ?? '') !== 'livre'): ?>
+      <form method="post" action="<?= $base ?>/livree" style="margin-top:10px"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><button class="btn btn-sm btn-secondary" type="submit">Marquer comme livrée</button></form><?php endif; ?>
+    </div>
+    <?php endif; ?>
     <div class="card" style="background:#fafafa;font-size:13px;color:#666">Réception de la marchandise et factures du fournisseur : <strong>à connecter</strong>. Ce bon n’est pas une facture et n’enregistre aucun paiement.</div>
   </div>
 </div>

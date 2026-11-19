@@ -1,0 +1,2 @@
+<?php /** Barre de progression d'une commande. Variable : $etape (1 à 5). */ ?>
+<div style="display:flex;gap:4px;margin:12px 0 4px"><?php foreach (\App\Models\BonSuivi::ETAPES as $i => $lib): ?><div style="flex:1;text-align:center"><div style="height:6px;border-radius:4px;background:<?= $i < $etape ? 'var(--p)' : '#e6e8ef' ?>"></div><div style="font-size:10.5px;color:<?= $i < $etape ? '#0f3f46' : '#99a' ?>;margin-top:3px"><?= $lib ?></div></div><?php endforeach; ?></div>

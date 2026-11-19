@@ -11,7 +11,7 @@ $aRepondre = array_filter($demandes, fn($d) => in_array($d['statut'], ['envoyee'
   <div class="hero"><h1>Bonjour <?= View::e($fournisseur['nom']) ?></h1>
   <div class="sub"><?= count($aRepondre) > 0 ? count($aRepondre) . ' demande' . (count($aRepondre) > 1 ? 's attendent' : ' attend') . ' votre réponse.' : 'Aucune demande en attente de votre réponse.' ?></div></div>
   <?php if (!empty($flashPortail)): ?><div class="alert <?= $flashPortail['type'] === 'succes' ? 'al-s' : 'al-e' ?>"><?= View::e($flashPortail['message']) ?></div><?php endif; ?>
-  <div style="margin-top:16px"></div>
+  <?php $onglet = 'demandes'; $nbCommandes = \App\Models\BonSuivi::aConfirmer((int) $fournisseur['id']); include __DIR__ . '/_onglets.php'; ?>
   <?php if (empty($demandes)): ?><div class="card"><div class="mut">Aucune demande de prix pour le moment.</div></div><?php endif; ?>
   <?php foreach ($demandes as $d):
     $ouverte = in_array($d['statut'], ['envoyee', 'relance'], true);

@@ -305,6 +305,13 @@ $router->get('/lien-fournisseur/{token}', fn($params) => (new FournisseurLienCon
 $router->get('/lien-fournisseur/{token}/demandes/{id}', fn($params) => (new FournisseurLienController())->demande($params));
 $router->post('/lien-fournisseur/{token}/demandes/{id}/offre', fn($params) => (new FournisseurLienController())->repondre($params));
 $router->post('/lien-fournisseur/{token}/demandes/{id}/reponse', fn($params) => (new FournisseurLienController())->reponseSimple($params));
+$router->get('/lien-fournisseur/{token}/commandes', fn($params) => (new FournisseurLienController())->commandes($params));
+$router->get('/lien-fournisseur/{token}/commandes/{id}', fn($params) => (new FournisseurLienController())->commande($params));
+$router->post('/lien-fournisseur/{token}/commandes/{id}/confirmer', fn($params) => (new FournisseurLienController())->actionCommande($params + ['action' => 'confirmer']));
+$router->post('/lien-fournisseur/{token}/commandes/{id}/refuser', fn($params) => (new FournisseurLienController())->actionCommande($params + ['action' => 'refuser']));
+$router->post('/lien-fournisseur/{token}/commandes/{id}/expedier', fn($params) => (new FournisseurLienController())->actionCommande($params + ['action' => 'expedier']));
+$router->get('/lien-fournisseur/{token}/documents', fn($params) => (new FournisseurLienController())->documents($params));
+$router->post('/lien-fournisseur/{token}/documents', fn($params) => (new FournisseurLienController())->televerser($params));
 $router->post('/fournisseurs/{id}/lien', function ($params) {
     Auth::requireLogin();
     (new FournisseurLienController())->creer($params);
@@ -475,6 +482,14 @@ $router->post('/bons-commande/{id}/modifier', function ($params) {
 $router->post('/bons-commande/{id}/statut', function ($params) {
     Auth::requireLogin();
     (new BonCommandeFournisseurController())->statut($params);
+});
+$router->get('/bons-commande/{id}/documents/{docId}', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->document($params);
+});
+$router->post('/bons-commande/{id}/livree', function ($params) {
+    Auth::requireLogin();
+    (new BonCommandeFournisseurController())->livree($params);
 });
 $router->get('/bons-commande/{id}/imprimable', function ($params) {
     Auth::requireLogin();

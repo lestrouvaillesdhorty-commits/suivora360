@@ -13,6 +13,8 @@ use App\Models\Fournisseur;
 use App\Models\FournisseurLien;
 use App\Models\Notification;
 use App\Models\Offre;
+use App\Models\BonSuivi;
+use App\Models\BonCommandeFournisseur;
 
 /**
  * Lien fournisseur (v68) : pages PUBLIQUES (aucune connexion) accessibles par un jeton aléatoire de 192 bits,
@@ -174,6 +176,135 @@ class FournisseurLienController
             $f['nom'] . ($type === 'delai' ? ' demande plus de temps' : ' ne peut pas répondre') . ' pour le dossier ' . $c['dossier_reference'] . ($note !== '' ? ' : ' . mb_substr($note, 0, 200) : '.'), 'consultation');
         $this->flash('succes', $type === 'delai' ? 'Merci, votre demande de délai a été transmise.' : 'Merci, nous avons bien noté que vous ne pouvez pas répondre.');
         $this->aller($base);
+    }
+
+    // ------------------------------------------------------------------ Commandes et documents (v71)
+
+    public function commandes(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $f] = $ctx;
+        FournisseurLien::enregistrerAcces((int) $lien['id']);
+        $this->rendre('fournisseur_lien/commandes', [
+            'lien' => $lien, 'fournisseur' => $f, 'bons' => BonSuivi::liste((int) $f['id']), 'onglet' => 'commandes',
+            'emetteur' => $this->emetteur($f), 'base' => $this->base($lien), 'nbCommandes' => BonSuivi::aConfirmer((int) $f['id']),
+        ]);
+    }
+
+    public function commande(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $f] = $ctx;
+        $b = BonSuivi::bon((int) $f['id'], (int) ($params['id'] ?? 0));
+        if (!$b) {
+            $this->introuvable();
+            return;
+        }
+        $this->rendre('fournisseur_lien/commande', [
+            'lien' => $lien, 'fournisseur' => $f, 'bon' => $b, 'lignes' => BonCommandeFournisseur::lignes((int) $b['id']), 'docs' => BonSuivi::documents((int) $b['id']),
+            'onglet' => 'commandes', 'emetteur' => $this->emetteur($f), 'base' => $this->base($lien), 'nbCommandes' => BonSuivi::aConfirmer((int) $f['id']),
+        ]);
+    }
+
+    /** Confirmer, refuser ou expédier une commande : une seule entrée, trois actions. */
+    public function actionCommande(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $f] = $ctx;
+        $b = BonSuivi::bon((int) $f['id'], (int) ($params['id'] ?? 0));
+        if (!$b) {
+            $this->introuvable();
+            return;
+        }
+        $base = $this->base($lien);
+        $retour = $base . '/commandes/' . (int) $b['id'];
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            $this->flash('erreur', 'Page expirée : merci de réessayer.');
+            $this->aller($retour);
+        }
+        $action = (string) ($params['action'] ?? '');
+        if ($action === 'confirmer' && $b['statut'] === 'envoye') {
+            BonSuivi::confirmer($b, (string) ($_POST['prepare_le'] ?? ''));
+            AuditLog::log((int) $b['filiale_id'], null, 'bon_confirme_lien', 'bon_commande', (int) $b['id'], $f['nom'] . ' a confirmé le bon ' . $b['reference']);
+            $this->prevenirBon($b, $f, 'Commande confirmée', $f['nom'] . ' a confirmé le bon de commande ' . $b['reference'] . '.');
+            $this->flash('succes', 'Merci, la commande est confirmée.');
+        } elseif ($action === 'refuser' && $b['statut'] === 'envoye') {
+            BonSuivi::refuser($b, trim((string) ($_POST['motif'] ?? '')));
+            AuditLog::log((int) $b['filiale_id'], null, 'bon_refuse_lien', 'bon_commande', (int) $b['id'], $f['nom'] . ' ne peut pas honorer le bon ' . $b['reference']);
+            $m = trim((string) ($_POST['motif'] ?? ''));
+            $this->prevenirBon($b, $f, 'Commande refusée par le fournisseur', $f['nom'] . ' ne peut pas honorer le bon ' . $b['reference'] . ($m !== '' ? ' : ' . mb_substr($m, 0, 200) : '.'));
+            $this->flash('succes', 'Merci, nous avons prévenu l\'entreprise tout de suite.');
+            $this->aller($base . '/commandes');
+        } elseif ($action === 'expedier' && $b['statut'] === 'confirme' && in_array($b['suivi_etat'], ['', 'prepare'], true)) {
+            BonSuivi::expedier($b, $_POST);
+            AuditLog::log((int) $b['filiale_id'], null, 'bon_expedie_lien', 'bon_commande', (int) $b['id'], $f['nom'] . ' a expédié le bon ' . $b['reference']);
+            $this->prevenirBon($b, $f, 'Commande expédiée', $f['nom'] . ' a expédié la commande ' . $b['reference'] . (trim((string) ($_POST['suivi_numero'] ?? '')) !== '' ? ' (suivi ' . mb_substr(trim((string) $_POST['suivi_numero']), 0, 40) . ')' : '') . '.');
+            $this->flash('succes', 'Merci, l\'expédition est enregistrée.');
+        } else {
+            $this->flash('erreur', 'Cette action n\'est plus possible pour cette commande.');
+        }
+        $this->aller($retour);
+    }
+
+    public function documents(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $f] = $ctx;
+        $this->rendre('fournisseur_lien/documents', [
+            'lien' => $lien, 'fournisseur' => $f, 'bons' => BonSuivi::liste((int) $f['id']), 'docs' => BonSuivi::documentsFournisseur((int) $f['id']),
+            'onglet' => 'documents', 'emetteur' => $this->emetteur($f), 'base' => $this->base($lien), 'nbCommandes' => BonSuivi::aConfirmer((int) $f['id']),
+            'preBon' => (int) ($_GET['bon'] ?? 0),
+        ]);
+    }
+
+    public function televerser(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $f] = $ctx;
+        $base = $this->base($lien);
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            $this->flash('erreur', 'Page expirée : merci de réessayer.');
+            $this->aller($base . '/documents');
+        }
+        $b = BonSuivi::bon((int) $f['id'], (int) ($_POST['bon_id'] ?? 0));
+        if (!$b) {
+            $this->flash('erreur', 'Choisissez la commande concernée.');
+            $this->aller($base . '/documents');
+        }
+        $err = BonSuivi::ajouterDocument($b, $f, (string) ($_POST['type'] ?? 'autre'), $_FILES['fichier'] ?? []);
+        if ($err) {
+            $this->flash('erreur', $err);
+        } else {
+            AuditLog::log((int) $b['filiale_id'], null, 'bon_document_lien', 'bon_commande', (int) $b['id'], $f['nom'] . ' a envoyé un document pour ' . $b['reference']);
+            $this->prevenirBon($b, $f, 'Document reçu d\'un fournisseur', $f['nom'] . ' a envoyé un document pour le bon ' . $b['reference'] . '.');
+            $this->flash('succes', 'Merci, votre document a bien été envoyé.');
+        }
+        $this->aller($base . '/documents');
+    }
+
+    private function prevenirBon(array $b, array $f, string $titre, string $message): void
+    {
+        try {
+            $dossier = !empty($b['dossier_id']) ? Dossier::find((int) $b['dossier_id']) : null;
+            $dest = $dossier ? Notification::destinatairesDossier($dossier, []) : Notification::destinatairesFiliale((int) $b['filiale_id'], ['proprietaire'], []);
+            Notification::notifierTous($dest, (int) $b['filiale_id'], 'bon_commande', $titre, $message, '/index.php?r=bons-commande/' . (int) $b['id'], 'bon_commande', (int) $b['id']);
+        } catch (\Throwable $e) {
+        }
     }
 
     // ------------------------------------------------------------------ Gestion depuis la fiche fournisseur
