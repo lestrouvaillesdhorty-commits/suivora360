@@ -24,7 +24,7 @@
         <div style="padding:14px 0;border-bottom:1px solid #f1f2f5">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <strong><?= Commande::ETAPES_STEPS[$step['libelle']] ?? $step['libelle'] ?></strong>
-            <span class="badge <?= $step['statut'] === 'termine' ? 'badge-green' : ($step['statut'] === 'en_cours' ? 'badge-blue' : 'badge-gray') ?>"><?= Commande::libelleStatutEtape($step['libelle'], $step['statut']) ?></span>
+            <span class="badge <?= $step['statut'] === 'termine' ? 'badge-green' : ($step['statut'] === 'en_cours' ? 'badge-blue' : 'badge-gray') ?>"<?= $step['statut'] === Commande::STATUT_INCLUS ? ' style="background:#eef6f7;color:#0F3F46"' : '' ?>><?= Commande::libelleStatutEtape($step['libelle'], $step['statut']) ?></span>
           </div>
           <form method="post" action="/index.php?r=commandes/<?= $commande['id'] ?>/etapes/<?= $step['id'] ?>">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
@@ -34,6 +34,7 @@
                   <?php foreach (Commande::STEP_STATUTS as $code => $label): ?>
                     <option value="<?= $code ?>" <?= $step['statut'] === $code ? 'selected' : '' ?>><?= Commande::libelleStatutEtape($step['libelle'], $code) ?></option>
                   <?php endforeach; ?>
+                  <?php if ($step['libelle'] === 'douane'): ?><option value="inclus" <?= $step['statut'] === 'inclus' ? 'selected' : '' ?>>Inclus dans le transport (rien à faire)</option><?php endif; ?>
                 </select>
               </div>
               <div class="form-group" style="margin-bottom:8px">

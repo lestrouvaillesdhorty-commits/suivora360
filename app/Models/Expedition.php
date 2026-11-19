@@ -263,6 +263,9 @@ class Expedition
             $change = false;
             foreach (Commande::steps((int) $cmd['id']) as $step) {
                 $nouveau = $cible[$step['libelle']] ?? null;
+                if ($step['statut'] === Commande::STATUT_INCLUS) {
+                    continue; // dédouanement pris en charge par le transporteur : on ne le touche pas
+                }
                 if ($nouveau === null || ($rang[$nouveau] ?? 0) <= ($rang[$step['statut']] ?? 0)) {
                     continue;
                 }

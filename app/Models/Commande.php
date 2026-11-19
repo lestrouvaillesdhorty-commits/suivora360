@@ -34,8 +34,14 @@ class Commande
         'solde' => ['a_faire' => 'Solde à payer', 'en_cours' => 'Solde en cours', 'termine' => 'Soldé'],
     ];
 
+    /** Statut particulier de l'étape Dédouanement : le transporteur s'en charge (rien à suivre de notre côté). */
+    public const STATUT_INCLUS = 'inclus';
+
     public static function libelleStatutEtape(string $etape, string $statut): string
     {
+        if ($statut === self::STATUT_INCLUS) {
+            return 'Inclus dans le transport';
+        }
         return self::STEP_STATUT_LABELS[$etape][$statut] ?? (self::STEP_STATUTS[$statut] ?? $statut);
     }
 
@@ -46,6 +52,11 @@ class Commande
      */
     public static function progression(array $steps): int
     {
+        if (empty($steps)) {
+            return 0;
+        }
+        // Une étape « incluse dans le transport » n'est pas à faire : elle ne compte ni dans le total ni dans l'avancement.
+        $steps = array_values(array_filter($steps, fn($st) => ($st['statut'] ?? '') !== self::STATUT_INCLUS));
         if (empty($steps)) {
             return 0;
         }
@@ -130,7 +141,14 @@ class Commande
 
     public static function updateStep(int $stepId, int $commandeId, string $statut, ?string $dateReelle, string $notes): void
     {
-        if (!array_key_exists($statut, self::STEP_STATUTS)) {
+        if ($statut === self::STATUT_INCLUS) {
+            $q = Database::connection()->prepare('SELECT libelle FROM commande_steps WHERE id = ? AND commande_id = ?');
+            $q->execute([$stepId, $commandeId]);
+            if ($q->fetchColumn() !== 'douane') {
+                throw new \InvalidArgumentException('Seul le dédouanement peut être inclus dans le transport.');
+            }
+            $dateReelle = null;
+        } elseif (!array_key_exists($statut, self::STEP_STATUTS)) {
             throw new \InvalidArgumentException('Statut d\'étape invalide.');
         }
         $now = date('Y-m-d H:i:s');
@@ -152,7 +170,7 @@ class Commande
         $etapeCourante = null;
         $toutesTerminees = true;
         foreach ($steps as $step) {
-            if ($step['statut'] !== 'termine') {
+            if ($step['statut'] !== 'termine' && $step['statut'] !== self::STATUT_INCLUS) {
                 $toutesTerminees = false;
                 if ($etapeCourante === null) {
                     $etapeCourante = $step['libelle'];

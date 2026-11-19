@@ -74,7 +74,7 @@ $notesSteps = array_filter($stepsT, fn($s) => trim((string) ($s['notes'] ?? ''))
   <div class="kv-row"><span class="label">Coût transport (offre retenue)</span><span class="value"><?= !empty($o['transport_montant']) ? number_format((float) $o['transport_montant'], 0, ',', ' ') . ' ' . View::e($o['devise'] ?? '') : $nd ?></span></div>
   <div class="kv-row"><span class="label">Dédouanement</span><span class="value"><?php
     $dd = $stepParCode['douane'] ?? null;
-    echo $dd ? '<span class="badge ' . ($dd['statut'] === 'termine' ? 'badge-green' : ($dd['statut'] === 'en_cours' ? 'badge-blue' : 'badge-gray')) . '">' . View::e(Commande::libelleStatutEtape('douane', $dd['statut'])) . '</span>' : $nd;
+    echo $dd ? '<span class="badge ' . ($dd['statut'] === 'termine' || $dd['statut'] === 'inclus' ? 'badge-green' : ($dd['statut'] === 'en_cours' ? 'badge-blue' : 'badge-gray')) . '">' . View::e(Commande::libelleStatutEtape('douane', $dd['statut'])) . '</span>' : $nd;
   ?></span></div>
   <?php if ($commande): ?><div class="hint"><a href="/index.php?r=dossiers/<?= $dossier['id'] ?>/commande">Mettre à jour dans le suivi de la commande</a></div><?php endif; ?>
 </div>
