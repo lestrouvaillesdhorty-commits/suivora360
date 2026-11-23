@@ -29,7 +29,7 @@ $fq = fn($q) => $q === null || $q === '' ? '' : rtrim(rtrim(number_format((float
   </div>
 
 <?php if ($peutRepondre): ?>
-  <form method="post" action="<?= $base ?>/demandes/<?= (int) $c['id'] ?>/offre" class="card">
+  <form method="post" action="<?= $base ?>/demandes/<?= (int) $c['id'] ?>/offre" enctype="multipart/form-data" class="card">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <h2>Votre offre</h2>
     <label>Devise</label>
@@ -60,6 +60,9 @@ $fq = fn($q) => $q === null || $q === '' ? '' : rtrim(rtrim(number_format((float
     <?php if (isset($erreurs['validite'])): ?><div class="err"><?= View::e($erreurs['validite']) ?></div><?php endif; ?>
     <label>Commentaire (facultatif)</label>
     <textarea name="commentaire" rows="3" maxlength="1000"><?= $v('commentaire', $ancien['notes'] ?? '') ?></textarea>
+    <label>Joindre votre devis, une fiche technique ou des photos (facultatif)</label>
+    <input type="file" name="fichiers[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt" style="width:100%;font-size:14px">
+    <div class="mut">PDF, images, Word, Excel ou texte · 5 fichiers maximum, 10 Mo chacun.</div>
     <div class="act"><button type="submit" class="btn bp"><?= $ancien ? 'Mettre à jour mon offre' : 'Envoyer mon offre' ?></button></div>
   </form>
   <?php if ($ouverte): ?>

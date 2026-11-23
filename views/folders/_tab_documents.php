@@ -61,7 +61,7 @@ $peutEcrire = Auth::canWrite();
         <tr>
           <td class="row-title"><?= View::e($p['nom_original']) ?> <span style="font-weight:400;color:#888;font-size:12px">· <?= number_format($p['taille'] / 1024, 0) ?> Ko</span></td>
           <td><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
-          <td><?= View::e($p['uploaded_by_nom']) ?></td>
+          <td><?= View::e($p['uploaded_by_nom'] ?: (($p['categorie'] ?? '') === 'offres_fournisseurs' ? 'Fournisseur (lien)' : '—')) ?></td>
           <td><span class="visibility-tag <?= ($p['visibilite'] ?? 'interne') === 'client' ? 'client' : 'interne' ?>"><?= View::e(DossierPieceJointe::VISIBILITES[$p['visibilite'] ?? 'interne'] ?? 'Interne') ?></span></td>
           <td>
             <?php if (\App\Core\Storage::estPrevisualisable($p['type_mime'])): ?>

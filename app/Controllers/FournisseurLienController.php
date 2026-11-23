@@ -140,10 +140,75 @@ class FournisseurLienController
         $pdo->prepare("UPDATE consultations_fournisseur SET reponse_fournisseur = NULL, reponse_fournisseur_note = NULL WHERE id = ?")->execute([(int) $c['id']]);
 
         AuditLog::log((int) $c['filiale_id'], null, $precedente ? 'revision_offre_lien' : 'creation_offre_lien', 'offre', (int) $offreId, 'Saisie par ' . $f['nom'] . ' depuis son lien');
+        [$nbJoints, $refus] = $this->joindreFichiersOffre((int) $c['dossier_id'], (int) $c['filiale_id'], (int) $offreId);
         $this->prevenir($c, $f, (int) $offreId, ($precedente ? 'Offre révisée à vérifier' : 'Offre reçue à vérifier'),
-            $f['nom'] . ' a envoyé son prix par son lien (dossier ' . $c['dossier_reference'] . '). Vérifiez et validez l\'offre pour l\'ajouter au comparateur.');
-        $this->flash('succes', 'Merci, votre offre a bien été envoyée. Vous pouvez la modifier tant qu\'elle n\'a pas été traitée.');
+            $f['nom'] . ' a envoyé son prix par son lien (dossier ' . $c['dossier_reference'] . ')' . ($nbJoints > 0 ? ' avec ' . $nbJoints . ' fichier' . ($nbJoints > 1 ? 's' : '') . ' joint' . ($nbJoints > 1 ? 's' : '') : '') . '. Vérifiez et validez l\'offre pour l\'ajouter au comparateur.');
+        $this->flash('succes', 'Merci, votre offre a bien été envoyée' . ($nbJoints > 0 ? ', avec ' . $nbJoints . ' fichier' . ($nbJoints > 1 ? 's' : '') . ' joint' . ($nbJoints > 1 ? 's' : '') : '') . '. Vous pouvez la modifier tant qu\'elle n\'a pas été traitée.'
+            . ($refus ? ' Non joints : ' . implode(' ; ', $refus) . '.' : ''));
         $this->aller($retour);
+    }
+
+    private const JOINTS_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'txt'];
+    private const JOINTS_MAX_FICHIERS = 5;
+
+    /**
+     * Fichiers joints par le fournisseur à son offre (devis, fiche technique, photos) : rangés dans les documents du dossier,
+     * catégorie « Offres fournisseurs », rattachés à l'offre, internes. 5 fichiers maximum, 10 Mo chacun, extensions limitées,
+     * nom aléatoire hors webroot, type lu sur le fichier. Retourne [nombre joint, liste des refus] : un refus ne bloque jamais l'offre.
+     */
+    private function joindreFichiersOffre(int $dossierId, int $filialeId, int $offreId): array
+    {
+        $ok = 0;
+        $refus = [];
+        $fi = $_FILES['fichiers'] ?? null;
+        if (!$fi || empty($fi['name']) || $dossierId <= 0) {
+            return [0, []];
+        }
+        $vus = 0;
+        foreach ((array) $fi['name'] as $i => $nomOriginal) {
+            if (($fi['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $nomOriginal = mb_substr(basename((string) $nomOriginal), 0, 200);
+            if (++$vus > self::JOINTS_MAX_FICHIERS) {
+                $refus[] = '« ' . $nomOriginal . ' » (5 fichiers maximum)';
+                continue;
+            }
+            if ($fi['error'][$i] !== UPLOAD_ERR_OK) {
+                $refus[] = '« ' . $nomOriginal . ' » (échec de l\'envoi)';
+                continue;
+            }
+            if ($fi['size'][$i] > \App\Models\DossierPieceJointe::TAILLE_MAX) {
+                $refus[] = '« ' . $nomOriginal . ' » (plus de 10 Mo)';
+                continue;
+            }
+            $ext = strtolower(pathinfo($nomOriginal, PATHINFO_EXTENSION));
+            if (!in_array($ext, self::JOINTS_EXTENSIONS, true) || !is_uploaded_file($fi['tmp_name'][$i])) {
+                $refus[] = '« ' . $nomOriginal . ' » (format non accepté)';
+                continue;
+            }
+            $nomFichier = bin2hex(random_bytes(16)) . '.' . $ext;
+            $chemin = \App\Core\Storage::path('uploads/dossiers/' . $dossierId . '/' . $nomFichier);
+            if (!move_uploaded_file($fi['tmp_name'][$i], $chemin)) {
+                $refus[] = '« ' . $nomOriginal . ' » (enregistrement impossible)';
+                continue;
+            }
+            $mime = function_exists('mime_content_type') ? (string) @mime_content_type($chemin) : '';
+            \App\Models\DossierPieceJointe::create([
+                'dossier_id' => $dossierId,
+                'nom_original' => $nomOriginal,
+                'nom_fichier' => $nomFichier,
+                'taille' => (int) $fi['size'][$i],
+                'type_mime' => $mime !== '' ? $mime : 'application/octet-stream',
+                'uploaded_by' => null,
+                'categorie' => 'offres_fournisseurs',
+                'visibilite' => 'interne',
+                'offre_id' => $offreId,
+            ]);
+            AuditLog::log($filialeId, null, 'ajout_piece_jointe', 'dossier', $dossierId, $nomOriginal . ' (lien fournisseur)');
+            $ok++;
+        }
+        return [$ok, $refus];
     }
 
     public function reponseSimple(array $params): void
