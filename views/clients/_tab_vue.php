@@ -50,6 +50,38 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
       <div style="font-size:12px;color:#888;margin-top:8px">Réservées à l’équipe : jamais exposées au client.</div>
     </div>
     <?php endif; ?>
+
+    <div class="card">
+      <h2>Dossiers récents</h2>
+      <?php if (empty($recents)): ?>
+        <div class="empty-state">Aucun dossier pour ce client.</div>
+      <?php else: foreach ($recents as $o): ?>
+        <div class="info-row">
+          <span><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>"><?= View::e($o['dossier_reference']) ?></a><br><span style="font-size:12px;color:#888"><?= View::e($o['objet']) ?></span></span>
+          <span><span class="badge badge-blue"><?= View::e(Dossier::ETAPES_LABELS[$o['etape']] ?? $o['etape']) ?></span></span>
+        </div>
+      <?php endforeach; endif; ?>
+      <div style="margin-top:8px"><a href="<?= $base ?>&onglet=operations">Voir toutes les demandes et dossiers</a></div>
+    </div>
+
+    <div class="card">
+      <h2>Prochaines actions</h2>
+      <?php if (empty($prochaines) && empty($sansDossier)): ?>
+        <div class="empty-state">Aucune échéance ni demande en attente.</div>
+      <?php endif; ?>
+      <?php foreach ($prochaines as $o): $retard = $o['dossier_echeance'] < $aujourdhui; ?>
+        <div class="info-row">
+          <span><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>"><?= View::e($o['dossier_reference']) ?></a><br><span style="font-size:12px;color:#888">Échéance du dossier</span></span>
+          <span style="<?= $retard ? 'color:#991b1b;font-weight:600' : '' ?>"><?= date('d/m/Y', strtotime($o['dossier_echeance'])) ?><?= $retard ? ' (dépassée)' : '' ?></span>
+        </div>
+      <?php endforeach; ?>
+      <?php foreach ($sansDossier as $o): ?>
+        <div class="info-row">
+          <span><a href="/index.php?r=demandes/<?= (int) $o['demande_id'] ?>"><?= View::e($o['demande_reference']) ?></a><br><span style="font-size:12px;color:#888">Demande à traiter</span></span>
+          <span><?= !empty($o['demande_echeance']) ? date('d/m/Y', strtotime($o['demande_echeance'])) : '—' ?></span>
+        </div>
+      <?php endforeach; ?>
+    </div>
   </div>
 
   <div>
@@ -121,37 +153,5 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
       <?php endif; ?>
     </div>
     <?php endif; ?>
-
-    <div class="card">
-      <h2>Dossiers récents</h2>
-      <?php if (empty($recents)): ?>
-        <div class="empty-state">Aucun dossier pour ce client.</div>
-      <?php else: foreach ($recents as $o): ?>
-        <div class="info-row">
-          <span><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>"><?= View::e($o['dossier_reference']) ?></a><br><span style="font-size:12px;color:#888"><?= View::e($o['objet']) ?></span></span>
-          <span><span class="badge badge-blue"><?= View::e(Dossier::ETAPES_LABELS[$o['etape']] ?? $o['etape']) ?></span></span>
-        </div>
-      <?php endforeach; endif; ?>
-      <div style="margin-top:8px"><a href="<?= $base ?>&onglet=operations">Voir toutes les demandes et dossiers</a></div>
-    </div>
-
-    <div class="card">
-      <h2>Prochaines actions</h2>
-      <?php if (empty($prochaines) && empty($sansDossier)): ?>
-        <div class="empty-state">Aucune échéance ni demande en attente.</div>
-      <?php endif; ?>
-      <?php foreach ($prochaines as $o): $retard = $o['dossier_echeance'] < $aujourdhui; ?>
-        <div class="info-row">
-          <span><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>"><?= View::e($o['dossier_reference']) ?></a><br><span style="font-size:12px;color:#888">Échéance du dossier</span></span>
-          <span style="<?= $retard ? 'color:#991b1b;font-weight:600' : '' ?>"><?= date('d/m/Y', strtotime($o['dossier_echeance'])) ?><?= $retard ? ' (dépassée)' : '' ?></span>
-        </div>
-      <?php endforeach; ?>
-      <?php foreach ($sansDossier as $o): ?>
-        <div class="info-row">
-          <span><a href="/index.php?r=demandes/<?= (int) $o['demande_id'] ?>"><?= View::e($o['demande_reference']) ?></a><br><span style="font-size:12px;color:#888">Demande à traiter</span></span>
-          <span><?= !empty($o['demande_echeance']) ? date('d/m/Y', strtotime($o['demande_echeance'])) : '—' ?></span>
-        </div>
-      <?php endforeach; ?>
-    </div>
   </div>
 </div>

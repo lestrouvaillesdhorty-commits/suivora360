@@ -775,8 +775,10 @@ class Client
     {
         try {
             $pdo = Database::connection();
+            $tauxOk = \App\Core\Schema::colonne('cotations', 'taux_change') && \App\Core\Schema::colonne('cotations', 'devise_achat');
+            $colTaux = $tauxOk ? ', co.taux_change, co.devise_achat' : '';
             $stmt = $pdo->prepare(
-                "SELECT co.id, co.reference, co.dossier_id, co.version, co.montant_total, co.devise, co.statut, co.created_at, d.reference AS dossier_reference
+                "SELECT co.id, co.reference, co.dossier_id, co.version, co.montant_total, co.devise, co.statut, co.created_at{$colTaux}, d.reference AS dossier_reference
                  FROM cotations co INNER JOIN dossiers d ON d.id = co.dossier_id
                  WHERE co.client_id = ? ORDER BY co.dossier_id, co.version DESC"
             );
@@ -784,7 +786,7 @@ class Client
             $cotations = $stmt->fetchAll();
 
             $stmt = $pdo->prepare(
-                "SELECT fa.id, fa.reference, fa.dossier_id, fa.montant, fa.devise, fa.statut, fa.date_emission, fa.date_echeance, d.reference AS dossier_reference
+                "SELECT fa.id, fa.reference, fa.dossier_id, fa.montant, fa.devise, fa.statut, fa.date_emission, fa.date_echeance, fa.cotation_id{$colTaux}, co.devise AS cot_devise, d.reference AS dossier_reference
                  FROM factures fa
                  INNER JOIN dossiers d ON d.id = fa.dossier_id
                  INNER JOIN demandes de ON de.id = d.demande_id
@@ -820,12 +822,24 @@ class Client
             $acceptees[$c['dossier_id']] = $c;
         }
         $totaux = [];
-        $ajout = function (string $cle, ?string $devise, float $montant) use (&$totaux) {
+        // Équivalent en euros : uniquement avec le taux de la cotation d'origine (1 EUR = taux × devise du devis).
+        // Sans taux exploitable, le montant est compté dans « sans taux » : jamais d'estimation inventée.
+        $ajout = function (string $cle, ?string $devise, float $montant, ?array $cot = null) use (&$totaux) {
             $devise = $devise !== null && $devise !== '' ? $devise : '—';
             $totaux[$devise][$cle] = ($totaux[$devise][$cle] ?? 0) + $montant;
+            if (!in_array($devise, ['XAF', 'XOF'], true)) { // équivalent € proposé pour le FCFA uniquement
+                return;
+            }
+            $taux = $cot !== null && ($cot['devise_achat'] ?? '') === 'EUR' && ($cot['cot_devise'] ?? $cot['devise'] ?? '') === $devise && (float) ($cot['taux_change'] ?? 0) > 0
+                ? (float) $cot['taux_change'] : 0.0;
+            if ($taux > 0) {
+                $totaux[$devise]['eur_' . $cle] = ($totaux[$devise]['eur_' . $cle] ?? 0) + $montant / $taux;
+            } else {
+                $totaux[$devise]['sans_taux_' . $cle] = ($totaux[$devise]['sans_taux_' . $cle] ?? 0) + $montant;
+            }
         };
         foreach ($acceptees as $c) {
-            $ajout('acceptees', $c['devise'], (float) $c['montant_total']);
+            $ajout('acceptees', $c['devise'], (float) $c['montant_total'], $c);
         }
         $nbAnnulees = 0;
         $facturesPeriode = [];
@@ -839,11 +853,12 @@ class Client
                 continue;
             }
             $m = (float) $fa['montant'];
-            $ajout('facture', $fa['devise'], $m);
+            $cotFa = !empty($fa['cotation_id']) ? $fa : null; // taux = celui de la cotation qui a généré la facture
+            $ajout('facture', $fa['devise'], $m, $cotFa);
             if ($fa['statut'] === 'payee') {
-                $ajout('encaisse', $fa['devise'], $m);
+                $ajout('encaisse', $fa['devise'], $m, $cotFa);
             } else {
-                $ajout('reste', $fa['devise'], $m);
+                $ajout('reste', $fa['devise'], $m, $cotFa);
             }
         }
         ksort($totaux);
