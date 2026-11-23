@@ -98,7 +98,7 @@ $nbConsultEnCours = count(array_filter($consultations, fn($c) => in_array($c['st
         <?php if ((int) $fournisseur['is_active'] === 1): ?>
         <form method="post" action="<?= $baseF ?>/lien" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>">
-          <select name="jours" aria-label="Durée de validité"><?php foreach (\App\Models\FournisseurLien::DUREES_JOURS as $j): ?><option value="<?= $j ?>" <?= $j === \App\Models\FournisseurLien::DUREE_DEFAUT ? 'selected' : '' ?>>Valable <?= $j ?> jours</option><?php endforeach; ?></select>
+          <select name="jours" aria-label="Durée de validité"><?php foreach (\App\Models\FournisseurLien::DUREES_JOURS as $j): ?><option value="<?= $j ?>" <?= $j === \App\Models\FournisseurLien::DUREE_DEFAUT ? 'selected' : '' ?>>Valable <?= \App\Models\Echange::libelleDuree($j) ?></option><?php endforeach; ?></select>
           <?php if (\App\Core\Schema::colonne('fournisseur_liens', 'contact_id')): ?>
           <select name="contact_id" aria-label="Contact destinataire"><?php foreach (\App\Models\Echange::contacts('fournisseur', $fournisseur) as $_c): ?><option value="<?= (int) $_c['id'] ?>">Pour : <?= View::e($_c['nom']) ?><?= $_c['principal'] ? ' (principal)' : '' ?></option><?php endforeach; ?></select>
           <?php endif; ?>
@@ -127,6 +127,11 @@ $nbConsultEnCours = count(array_filter($consultations, fn($c) => in_array($c['st
                 <?php if ($revoque): ?><span class="badge badge-red">Révoqué</span><?php elseif ($expire): ?><span class="badge badge-gray">Expiré</span><?php else: ?><span class="badge badge-green">Actif</span><?php endif; ?>
                 <span style="font-size:12px;color:#888">expire le <?= date('d/m/Y', strtotime((string) $l['expire_le'])) ?> · <?= (int) $l['nb_acces'] ?> visite(s)<?= !empty($l['dernier_acces']) ? ', dernière le ' . date('d/m/Y H:i', strtotime((string) $l['dernier_acces'])) : '' ?></span>
               </span>
+              <?php if (!$revoque): ?>
+              <form method="post" action="<?= $baseF ?>/lien/<?= (int) $l['id'] ?>/prolonger" style="display:inline-flex;gap:4px;align-items:center"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>">
+                <select name="jours" aria-label="Prolonger de"><?php foreach (\App\Models\FournisseurLien::DUREES_JOURS as $j): ?><option value="<?= $j ?>" <?= $j === 365 ? 'selected' : '' ?>><?= \App\Models\Echange::libelleDuree($j) ?></option><?php endforeach; ?></select>
+                <button type="submit" class="btn btn-sm btn-secondary">Prolonger</button></form>
+              <?php endif; ?>
               <?php if (!$revoque && !$expire): ?>
               <form method="post" action="<?= $baseF ?>/lien/<?= (int) $l['id'] ?>/revoquer" style="display:inline"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>"><button type="submit" class="btn btn-sm btn-secondary">Révoquer</button></form>
               <?php endif; ?>

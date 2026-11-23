@@ -15,7 +15,7 @@ use App\Core\Database;
  */
 class PortailClient
 {
-    public const DUREES_JOURS = [7, 30, 90];
+    public const DUREES_JOURS = [7, 30, 90, 180, 365];
     public const DUREE_DEFAUT = 30;
     public const DEMANDES_MAX_PAR_HEURE = 5;
 
@@ -90,6 +90,16 @@ class PortailClient
     public static function estValide(array $lien): bool
     {
         return empty($lien['revoque_le']) && strtotime((string) $lien['expire_le']) > time();
+    }
+
+    /** Repousse l'échéance d'un lien non révoqué (client régulier) : nouvelle échéance = aujourd'hui + durée. */
+    public static function prolonger(int $lienId, int $jours): void
+    {
+        if (!in_array($jours, self::DUREES_JOURS, true)) {
+            $jours = self::DUREE_DEFAUT;
+        }
+        Database::connection()->prepare('UPDATE client_portail_liens SET expire_le = ? WHERE id = ? AND revoque_le IS NULL')
+            ->execute([date('Y-m-d H:i:s', time() + $jours * 86400), $lienId]);
     }
 
     public static function revoquer(int $lienId): void

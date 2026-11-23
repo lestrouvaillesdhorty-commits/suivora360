@@ -354,6 +354,14 @@ $router->post('/clients/{id}/portail/{lienId}/contact', function ($params) {
     Auth::requireLogin();
     (new EchangeController())->contactLienClient($params);
 });
+$router->post('/clients/{id}/portail/{lienId}/prolonger', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->prolongerLienClient($params);
+});
+$router->post('/fournisseurs/{id}/lien/{lienId}/prolonger', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->prolongerLienFournisseur($params);
+});
 $router->post('/fournisseurs/{id}/lien/{lienId}/contact', function ($params) {
     Auth::requireLogin();
     (new EchangeController())->contactLienFournisseur($params);

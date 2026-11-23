@@ -49,6 +49,12 @@ class Echange
         return $pret;
     }
 
+    /** Libellé d'une durée de lien : « 30 jours », « 6 mois », « 1 an ». */
+    public static function libelleDuree(int $jours): string
+    {
+        return $jours === 365 ? '1 an' : ($jours === 180 ? '6 mois' : $jours . ' jours');
+    }
+
     // ------------------------------------------------------------------ Notes de suivi
 
     public static function notes(int $dossierId): array

@@ -154,6 +154,44 @@ class EchangeController
         $this->aller($retour);
     }
 
+    public function prolongerLienClient(array $params): void
+    {
+        Auth::requireWrite();
+        $client = Client::find((int) ($params['id'] ?? 0));
+        if (!$client || !Client::userCanAccess(Auth::user(), $client)) {
+            $this->introuvable();
+        }
+        $retour = '/index.php?r=clients/' . (int) $client['id'] . '#espace-client';
+        $this->verifier($retour);
+        $lien = \App\Models\PortailClient::lienDuClient((int) $client['id'], (int) ($params['lienId'] ?? 0));
+        if ($lien && empty($lien['revoque_le'])) {
+            $jours = (int) ($_POST['jours'] ?? 0);
+            \App\Models\PortailClient::prolonger((int) $lien['id'], $jours);
+            AuditLog::log((int) $client['filiale_id'], (int) Auth::user()['id'], 'lien_espace_client_prolonge', 'client', (int) $client['id'], Echange::libelleDuree($jours));
+            View::flash('succes', 'Lien prolongé.');
+        }
+        $this->aller($retour);
+    }
+
+    public function prolongerLienFournisseur(array $params): void
+    {
+        Auth::requireWrite();
+        $f = Fournisseur::find((int) ($params['id'] ?? 0));
+        if (!$f || !Fournisseur::userCanAccess(Auth::user(), $f)) {
+            $this->introuvable();
+        }
+        $retour = '/index.php?r=fournisseurs/' . (int) $f['id'] . '#lien-fournisseur';
+        $this->verifier($retour);
+        $lien = \App\Models\FournisseurLien::lienDuFournisseur((int) $f['id'], (int) ($params['lienId'] ?? 0));
+        if ($lien && empty($lien['revoque_le'])) {
+            $jours = (int) ($_POST['jours'] ?? 0);
+            \App\Models\FournisseurLien::prolonger((int) $lien['id'], $jours);
+            AuditLog::log((int) $f['filiale_id'], (int) Auth::user()['id'], 'lien_fournisseur_prolonge', 'fournisseur', (int) $f['id'], Echange::libelleDuree($jours));
+            View::flash('succes', 'Lien prolongé.');
+        }
+        $this->aller($retour);
+    }
+
     // ------------------------------------------------------------------ Utilitaires
 
     private function dossier(array $params): array

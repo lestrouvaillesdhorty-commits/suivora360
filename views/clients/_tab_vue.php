@@ -73,7 +73,7 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
           <select name="jours" aria-label="Durée de validité">
             <?php foreach (\App\Models\PortailClient::DUREES_JOURS as $j): ?>
-              <option value="<?= $j ?>" <?= $j === \App\Models\PortailClient::DUREE_DEFAUT ? 'selected' : '' ?>>Valable <?= $j ?> jours</option>
+              <option value="<?= $j ?>" <?= $j === \App\Models\PortailClient::DUREE_DEFAUT ? 'selected' : '' ?>>Valable <?= \App\Models\Echange::libelleDuree($j) ?></option>
             <?php endforeach; ?>
           </select>
           <?php if (\App\Core\Schema::colonne('client_portail_liens', 'contact_id')): ?>
@@ -98,6 +98,13 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
                 <?php else: ?><span class="badge badge-green">Actif</span><?php endif; ?>
                 <span style="font-size:12px;color:#888">expire le <?= date('d/m/Y', strtotime((string) $l['expire_le'])) ?> · <?= (int) $l['nb_acces'] ?> visite(s)<?= !empty($l['dernier_acces']) ? ', dernière le ' . date('d/m/Y H:i', strtotime((string) $l['dernier_acces'])) : '' ?></span>
               </span>
+              <?php if (!$revoque): ?>
+              <form method="post" action="<?= $base ?>/portail/<?= (int) $l['id'] ?>/prolonger" style="display:inline-flex;gap:4px;align-items:center">
+                <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+                <select name="jours" aria-label="Prolonger de"><?php foreach (\App\Models\PortailClient::DUREES_JOURS as $j): ?><option value="<?= $j ?>" <?= $j === 365 ? 'selected' : '' ?>><?= \App\Models\Echange::libelleDuree($j) ?></option><?php endforeach; ?></select>
+                <button type="submit" class="btn btn-sm btn-secondary">Prolonger</button>
+              </form>
+              <?php endif; ?>
               <?php if (!$revoque && !$expire): ?>
               <form method="post" action="<?= $base ?>/portail/<?= (int) $l['id'] ?>/revoquer" style="display:inline">
                 <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
