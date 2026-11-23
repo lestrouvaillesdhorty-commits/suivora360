@@ -22,6 +22,10 @@ $bg = $badges[$cotation['statut']];
     </tbody></table>
     <?php endif; ?>
     <div class="big" style="margin-top:16px">Total : <?= $fm($cotation['montant_total'], $cotation['devise']) ?></div>
+    <?php $d2 = \App\Services\DevisPdf::deuxiemeDevise($cotation); if ($d2 !== null): ?>
+    <div style="margin-top:4px;font-size:15px;font-weight:600">≈ <?= \App\Core\View::e($d2['montant_txt']) ?> <?= \App\Core\View::e($d2['nom']) ?></div>
+    <div class="mut" style="margin-top:2px"><?= \App\Core\View::e(str_replace('  -  ', ' · ', $d2['ligne_taux'])) ?></div>
+    <?php endif; ?>
     <div class="mut" style="margin-top:6px">
       <?= !empty($cotation['incoterm_client']) ? 'Incoterm : ' . View::e($cotation['incoterm_client']) . ' · ' : '' ?>
       <?= !empty($cotation['mode_paiement_negocie']) ? 'Paiement : ' . View::e(\App\Models\Demande::MODES_PAIEMENT[$cotation['mode_paiement_negocie']] ?? $cotation['mode_paiement_negocie']) . ' · ' : '' ?>

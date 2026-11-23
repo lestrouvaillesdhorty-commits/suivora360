@@ -137,8 +137,9 @@ class PortailClient
      */
     public static function cotations(int $clientId): array
     {
+        $d2 = \App\Core\Schema::colonne('cotations', 'devise2') ? ', co.devise2, co.taux_devise2' : '';
         $stmt = Database::connection()->prepare(
-            "SELECT co.id, co.reference, co.version, co.montant_total, co.devise, co.statut, co.validite_devis,
+            "SELECT co.id, co.reference, co.version, co.montant_total, co.devise, co.statut, co.validite_devis$d2,
                     co.mode_paiement_negocie, co.incoterm_client, co.created_at, d.id AS dossier_id, d.reference AS dossier_reference, d.objet AS dossier_objet
              FROM cotations co INNER JOIN dossiers d ON d.id = co.dossier_id
              WHERE co.client_id = ? AND co.statut IN ('envoyee', 'acceptee', 'refusee')

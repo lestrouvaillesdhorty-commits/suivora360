@@ -41,6 +41,24 @@ class DevisPdf
             'remise_globale_pct' => isset($c['remise_globale_pct']) && $c['remise_globale_pct'] !== null ? (float) $c['remise_globale_pct'] : null, 'remise_motif' => (string) ($c['remise_motif'] ?? '')];
     }
 
+    /** 2e devise facultative : montant TTC converti avec le taux saisi sur la cotation (null si non demandée). */
+    public static function deuxiemeDevise(array $c): ?array
+    {
+        $d2 = strtoupper(trim((string) ($c['devise2'] ?? '')));
+        $tx = (float) ($c['taux_devise2'] ?? 0);
+        if ($d2 === '' || $tx <= 0) {
+            return null;
+        }
+        $cfa = in_array($d2, ['XAF', 'XOF', 'CFA'], true);
+        $m = (float) $c['montant_total'] * $tx;
+        $nb = rtrim(rtrim(number_format($tx, 6, ',', ' '), '0'), ',');
+        $dev = (string) ($c['devise'] ?? '');
+        $nomDev = in_array(strtoupper($dev), ['XAF', 'XOF', 'CFA'], true) ? 'FCFA' : $dev;
+        $nomD2 = $cfa ? 'FCFA' : $d2;
+        return ['devise' => $d2, 'nom' => $nomD2, 'montant' => $cfa ? round($m) : round($m, 2), 'montant_txt' => self::fmt($m, $cfa ? 0 : 2),
+            'taux_txt' => $nb, 'ligne_taux' => 'Au taux de 1 ' . $nomDev . ' = ' . $nb . ' ' . $nomD2 . '  -  Paiement possible en ' . $nomDev . ' ou en ' . $nomD2];
+    }
+
     /** Date de validité : celle de la cotation, sinon date du devis + durée par défaut de la fiche entreprise. */
     public static function validite(array $c, array $emetteur = []): ?string
     {
@@ -144,6 +162,11 @@ class DevisPdf
         }
         $lt[] = [$tvaLib, self::fmt($t['tva']) . ' ' . $dev];
         $pdf->totauxDevis($lt, 'Total TTC', self::fmt($t['ttc']) . ' ' . $dev);
+        $d2 = self::deuxiemeDevise($c);
+        if ($d2 !== null) {
+            $pdf->paragraphe('Soit environ ' . $d2['montant_txt'] . ' ' . $d2['nom'] . ' TTC', 10.5);
+            $pdf->paragraphe($d2['ligne_taux'], 8.5);
+        }
 
         if (trim((string) ($c['notes'] ?? '')) !== '') {
             $pdf->noteTitree('Remarques', (string) $c['notes']);

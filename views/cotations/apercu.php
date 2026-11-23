@@ -107,6 +107,10 @@ html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
       <?php endif; ?>
       <div><span>TVA<?= $totaux['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($totaux['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '' ?></span><span><?= $n($totaux['tva']) ?> <?= View::dev($dev) ?></span></div>
       <div class="ttc"><span>Total TTC</span><span><?= $n($totaux['ttc']) ?> <?= View::dev($dev) ?></span></div>
+      <?php $d2 = DevisPdf::deuxiemeDevise($cotation); if ($d2 !== null): ?>
+      <div style="font-weight:600"><span>Soit environ</span><span><?= View::e($d2['montant_txt']) ?> <?= View::e($d2['nom']) ?></span></div>
+      <div style="font-size:11px;color:#667"><span><?= View::e($d2['ligne_taux']) ?></span></div>
+      <?php endif; ?>
     </div>
     <?php if (trim((string) $cotation['notes']) !== ''): ?><div class="cond"><strong>Remarques</strong><br><?= nl2br(View::e($cotation['notes'])) ?></div><?php endif; ?>
     <?php if (trim((string) ($emetteur['devis_conditions'] ?? '')) !== ''): ?><div class="cond"><strong>Conditions générales</strong><br><?= nl2br(View::e($emetteur['devis_conditions'])) ?></div><?php endif; ?>

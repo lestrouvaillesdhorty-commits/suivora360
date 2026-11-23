@@ -136,6 +136,25 @@ try {
         <div class="hint" style="font-size:11px;color:#888;margin-top:2px">Proposé d'après les paramètres de l'entreprise (EUR ↔ FCFA) ; modifiable.</div>
       </div>
     </div>
+    <?php
+    $d2Actif = $cotationPrecedente && !empty($cotationPrecedente['devise2']);
+    $d2Sel = $d2Actif ? strtoupper((string) $cotationPrecedente['devise2']) : ((in_array($deviseDevis, ['XAF', 'XOF'], true)) ? 'EUR' : 'XAF');
+    $d2Taux = $d2Actif ? (float) $cotationPrecedente['taux_devise2'] : 0;
+    ?>
+    <div class="form-group" style="border:1px dashed #BFD6DB;border-radius:10px;padding:10px 12px;background:#F7FBFC">
+      <label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" name="afficher_devise2" value="1" id="d2_on" <?= $d2Actif ? 'checked' : '' ?>> Afficher aussi le prix dans une 2e devise</label>
+      <div class="hint" style="font-size:11.5px;color:#667;margin:2px 0 0 24px">Le client peut payer dans les deux. Information seulement : le montant officiel reste dans la devise du devis.</div>
+      <div id="d2_bloc" style="display:<?= $d2Actif ? 'block' : 'none' ?>;margin-top:8px">
+        <div class="form-row">
+          <div class="form-group"><label>2e devise</label>
+            <select name="devise2" id="d2_dev"><?php foreach ($devisesListe as $d): ?><option value="<?= $d ?>" <?= $d2Sel === $d ? 'selected' : '' ?>><?= in_array($d, ['XAF', 'XOF'], true) ? 'FCFA (' . $d . ')' : $d ?></option><?php endforeach; ?></select></div>
+          <div class="form-group"><label>Taux : 1 <span id="d2_lib1"><?= View::e($deviseDevis) ?></span> = ? <span id="d2_lib2"></span></label>
+            <input type="number" step="0.000001" min="0" name="taux_devise2" id="d2_taux" value="<?= $d2Taux > 0 ? View::e((string) $d2Taux) : '' ?>"></div>
+        </div>
+        <div id="d2_apercu" style="font-weight:600;font-size:13px"></div>
+        <div class="hint" style="font-size:11.5px;color:#667">Ce taux est à vous : il peut être différent du taux d'achat. Une nouvelle version reprend celui de la version précédente.</div>
+      </div>
+    </div>
     <div class="cot-etape"><span class="n">2</span>Coût d'achat, marge et remises <small>le coût est repris de l'offre retenue, frais compris</small></div>
     <?php if (Auth::canModifierMarge((int) $dossier['filiale_id'])): ?>
     <div class="form-row">
@@ -341,6 +360,24 @@ document.getElementById('items-body').addEventListener('click', function (e) {
   });
   body.addEventListener('click', function () { setTimeout(sommeLignes, 0); });
 
+  // 2e devise facultative : taux proposé d'après les paramètres, aperçu du montant.
+  var d2on = $('d2_on'), d2dev = $('d2_dev'), d2tx = $('d2_taux'), d2man = !!d2tx.value;
+  function d2taux() {
+    var a = dv.value, b = d2dev.value; if (a === b) return '';
+    var t = (T[a] || {})[b]; return t ? String(Math.round(t * 1000000) / 1000000) : '';
+  }
+  function majD2() {
+    $('d2_bloc').style.display = d2on.checked ? 'block' : 'none';
+    $('d2_lib1').textContent = dv.value; $('d2_lib2').textContent = d2dev.value;
+    if (!d2man) { d2tx.value = d2taux(); }
+    var t = parseFloat(d2tx.value), v = parseFloat(ttc.value), cfa = ['XAF', 'XOF'].indexOf(d2dev.value) >= 0;
+    $('d2_apercu').textContent = (d2dev.value === dv.value) ? 'Choisissez une devise différente de celle du devis.' : ((!isNaN(t) && t > 0 && !isNaN(v)) ? 'Aperçu : ' + fm(v, dv.value) + ' ≈ ' + (v * t).toLocaleString('fr-FR', {minimumFractionDigits: cfa ? 0 : 2, maximumFractionDigits: cfa ? 0 : 2}) + ' ' + (cfa ? 'FCFA' : d2dev.value) : '');
+  }
+  d2on.addEventListener('change', majD2); d2dev.addEventListener('change', function () { d2man = false; majD2(); });
+  d2tx.addEventListener('input', function () { d2man = true; majD2(); });
+  dv.addEventListener('change', function () { d2man = false; if (d2dev.value === dv.value) { d2dev.value = (dv.value === 'EUR') ? 'XAF' : 'EUR'; } majD2(); });
+  ttc.addEventListener('input', majD2); ht.addEventListener('input', majD2); tva.addEventListener('change', majD2);
+  setInterval(majD2, 700);
   // Récapitulatif lisible + contrôle de cohérence
   function fm(x, d) { return (isNaN(x) ? '—' : x.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2})) + ' ' + d; }
   function recap() {

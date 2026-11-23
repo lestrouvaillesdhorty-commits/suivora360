@@ -166,6 +166,13 @@ class Cotation
             $montantHt = round($montantTotal / (1 + $tvaTaux / 100), 2);
         }
         $montantTva = $montantHt !== null ? round($montantTotal - $montantHt, 2) : null;
+        // 2e devise facultative (information) : « 1 devise du devis = X devise2 », taux propre à l'entreprise.
+        $devise2 = strtoupper(trim((string) ($data['devise2'] ?? '')));
+        $tauxDevise2 = (float) str_replace(',', '.', (string) ($data['taux_devise2'] ?? ''));
+        if (empty($data['afficher_devise2']) || $devise2 === '' || $devise2 === strtoupper(trim((string) ($data['devise'] ?? ''))) || $tauxDevise2 <= 0) {
+            $devise2 = null;
+            $tauxDevise2 = null;
+        }
         $tauxChange = ($data['taux_change'] ?? '') !== '' && (float) $data['taux_change'] > 0 ? (float) $data['taux_change'] : null;
         // Remises : le HT saisi est le NET. On retrouve le brut : net = (brut - remises lignes) x (1 - remise globale %).
         $remiseLignes = 0.0;
@@ -225,6 +232,8 @@ class Cotation
                 'montant_ht' => $montantHt,
                 'tva_taux' => $tvaTaux,
                 'montant_tva' => $montantTva,
+                'devise2' => $devise2,
+                'taux_devise2' => $tauxDevise2,
                 'devise_achat' => ($data['devise_achat'] ?? '') !== '' ? trim($data['devise_achat']) : null,
                 'montant_brut' => $montantBrut,
                 'remise_lignes_montant' => $montantBrut !== null ? $remiseLignes : null,

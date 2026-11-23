@@ -77,6 +77,9 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
       <div class="info-row"><span class="label">Montant <?= $tt['brut'] !== null ? 'net ' : '' ?>HT</span><span><?= number_format($tt['ht'], 2, ',', ' ') ?> <?= View::dev($cotation['devise']) ?></span></div>
       <div class="info-row"><span class="label">TVA<?= $tt['tva_taux'] !== null ? ' (' . rtrim(rtrim(number_format($tt['tva_taux'], 2, ',', ''), '0'), ',') . ' %)' : '' ?></span><span><?= number_format($tt['tva'], 2, ',', ' ') ?> <?= View::dev($cotation['devise']) ?></span></div>
       <div class="info-row"><span class="label">Total TTC facturé au client</span><span><strong><?= number_format((float) $cotation['montant_total'], 2, ',', ' ') ?> <?= View::dev($cotation['devise']) ?></strong></span></div>
+      <?php $d2 = \App\Services\DevisPdf::deuxiemeDevise($cotation); if ($d2 !== null): ?>
+      <div class="info-row"><span class="label">Affiché aussi en <?= View::e($d2['nom']) ?></span><span>≈ <?= View::e($d2['montant_txt']) ?> <?= View::e($d2['nom']) ?> (taux <?= View::e($d2['taux_txt']) ?>)</span></div>
+      <?php endif; ?>
       <?php if (!empty($cotation['taux_change']) && (float) $cotation['taux_change'] != 1.0): ?>
       <div class="info-row"><span class="label">Taux de change</span><span>1 <?= View::e((string) ($cotation['devise_achat'] ?? '')) ?> = <?= rtrim(rtrim(number_format((float) $cotation['taux_change'], 6, ',', ' '), '0'), ',') ?> <?= View::dev($cotation['devise']) ?></span></div>
       <?php endif; ?>
