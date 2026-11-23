@@ -37,3 +37,4 @@ details.d summary{list-style:none;cursor:pointer}details.d summary::-webkit-deta
 @media(max-width:600px){h1{font-size:20px}.who{text-align:left}.tabs{flex-wrap:wrap;gap:4px 16px;overflow:visible;white-space:normal}.tabs a{font-size:13.5px;padding:8px 2px}.row .btn{flex:0 0 auto}}
 @media print{header.pt .who,.tabs,.act,.noprint,.priv{display:none!important}body{background:#fff}.card{border:0;padding:0}}
 </style>
+<style>.dl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 2px;border-bottom:1px solid #EEF1F5}.dl .nm{flex:1;min-width:180px}.dl .nm span.mut{display:block;font-size:12px}.dl .nm .nw{display:inline-block}</style>

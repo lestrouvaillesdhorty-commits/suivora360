@@ -40,8 +40,30 @@ class DossierPieceJointe
         return array_key_exists((string) $v, self::VISIBILITES) ? (string) $v : 'interne';
     }
 
+    /** Les offres fournisseurs (prix d'achat) ne sont jamais visibles par le client. */
+    public static function visibiliteEffective(?string $categorie, ?string $visibilite): string
+    {
+        return self::categorieValide($categorie) === 'offres_fournisseurs' ? 'interne' : self::visibiliteValide($visibilite);
+    }
+
+    /** Documents que le client a le droit de voir (visibles client, hors offres fournisseurs), du plus récent au plus ancien. */
+    public static function pourClient(int $dossierId): array
+    {
+        try {
+            $stmt = Database::connection()->prepare(
+                "SELECT id, dossier_id, nom_original, taille, type_mime, categorie, created_at FROM dossier_pieces_jointes
+                 WHERE dossier_id = ? AND visibilite = 'client' AND categorie <> 'offres_fournisseurs' ORDER BY created_at DESC, id DESC"
+            );
+            $stmt->execute([$dossierId]);
+            return $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     public static function classer(int $id, string $categorie, string $visibilite): void
     {
+        $visibilite = self::visibiliteEffective($categorie, $visibilite);
         $stmt = Database::connection()->prepare('UPDATE dossier_pieces_jointes SET categorie = ?, visibilite = ? WHERE id = ?');
         $stmt->execute([self::categorieValide($categorie), self::visibiliteValide($visibilite), $id]);
     }
@@ -146,7 +168,7 @@ class DossierPieceJointe
             $data['type_mime'],
             $data['uploaded_by'],
             self::categorieValide($data['categorie'] ?? null),
-            self::visibiliteValide($data['visibilite'] ?? null),
+            self::visibiliteEffective($data['categorie'] ?? null, $data['visibilite'] ?? null),
             date('Y-m-d H:i:s'),
         ]);
         $id = (int) $pdo->lastInsertId();

@@ -35,9 +35,10 @@ $peutEcrire = Auth::canWrite();
         <label>Visibilité</label>
         <select name="visibilite">
           <?php foreach (DossierPieceJointe::VISIBILITES as $code => $label): ?>
-            <option value="<?= $code ?>"><?= View::e($label) ?></option>
+            <option value="<?= $code ?>"><?= View::e($code === 'client' ? 'Visible par le client' : $label) ?></option>
           <?php endforeach; ?>
         </select>
+        <div class="hint" style="font-size:11px;color:#667;margin-top:2px">« Visible par le client » : le fichier apparaît dans l'onglet Documents de son espace. Les offres fournisseurs restent toujours internes.</div>
       </div>
       <div class="form-group" style="flex:0 0 auto"><button type="submit" class="btn">+ Ajouter</button></div>
     </div>

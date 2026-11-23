@@ -405,8 +405,12 @@ class PortailClientController
         }
         PortailClient::enregistrerAcces((int) $lien['id']);
         $id = (int) $d['public']['id'];
-        $vue = in_array($_GET['vue'] ?? '', ['avancement', 'suivi', 'messages'], true) ? $_GET['vue'] : 'avancement';
+        $vue = in_array($_GET['vue'] ?? '', ['avancement', 'devis', 'documents', 'suivi', 'messages'], true) ? $_GET['vue'] : 'avancement';
+        $documents = \App\Models\DossierPieceJointe::pourClient($id);
         $this->rendre('portail/dossier', [
+            'documents' => $documents,
+            'devis' => array_values(array_filter(PortailClient::cotations((int) $client['id']), fn($c) => (int) $c['dossier_id'] === $id)),
+            'factures' => array_values(array_filter(PortailClient::factures((int) $client['id']), fn($f) => (int) ($f['dossier_id'] ?? 0) === $id)),
             'lien' => $lien,
             'client' => $client,
             'dossier' => $d['public'],
@@ -421,6 +425,38 @@ class PortailClientController
         if ($vue === 'messages') {
             \App\Models\Echange::marquerLusExterne(\App\Models\Echange::CLIENT, $id);
         }
+    }
+
+    /** Téléchargement d'un document « visible client » d'un dossier du client (jamais un autre dossier, jamais une offre fournisseur). */
+    public function documentDossier(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [, $client] = $ctx;
+        $d = $this->dossierDuClient($client, (int) ($params['id'] ?? 0));
+        $pid = (int) ($params['pid'] ?? 0);
+        $piece = null;
+        if ($d) {
+            foreach (\App\Models\DossierPieceJointe::pourClient((int) $d['public']['id']) as $p) {
+                if ((int) $p['id'] === $pid) { $piece = $p; break; }
+            }
+        }
+        $chemin = $piece ? \App\Core\Storage::path('uploads/dossiers/' . (int) $d['public']['id'] . '/' . (\App\Models\DossierPieceJointe::find($pid)['nom_fichier'] ?? '')) : '';
+        if (!$piece || !is_file($chemin)) {
+            $this->introuvable();
+            return;
+        }
+        $mime = (string) $piece['type_mime'];
+        $image = in_array($mime, ['image/jpeg', 'image/png'], true);
+        header('Content-Type: ' . ($image || $mime === 'application/pdf' ? $mime : 'application/octet-stream'));
+        header('Content-Disposition: ' . (($image && !empty($_GET['apercu'])) ? 'inline' : 'attachment') . '; filename="' . str_replace(['"', "\r", "\n"], '', basename((string) $piece['nom_original'])) . '"');
+        header('Content-Length: ' . filesize($chemin));
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, no-store');
+        readfile($chemin);
+        exit;
     }
 
     public function envoyerMessage(array $params): void

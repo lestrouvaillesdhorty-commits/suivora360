@@ -957,7 +957,7 @@ class DossierController
             'type_mime' => $fichier['type'] ?: 'application/octet-stream',
             'uploaded_by' => (int) $user['id'],
             'categorie' => $_POST['categorie'] ?? 'autre',
-            'visibilite' => $_POST['visibilite'] ?? 'interne',
+            'visibilite' => \App\Models\DossierPieceJointe::visibiliteEffective($_POST['categorie'] ?? null, $_POST['visibilite'] ?? null),
         ]);
         AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'ajout_piece_jointe', 'dossier', (int) $dossier['id'], $fichier['name']);
 
@@ -1053,7 +1053,7 @@ class DossierController
         $piece = DossierPieceJointe::find((int) ($params['pieceId'] ?? 0));
         if ($piece && (int) $piece['dossier_id'] === (int) $dossier['id']) {
             $categorie = DossierPieceJointe::categorieValide($_POST['categorie'] ?? null);
-            $visibilite = DossierPieceJointe::visibiliteValide($_POST['visibilite'] ?? null);
+            $visibilite = DossierPieceJointe::visibiliteEffective($categorie, $_POST['visibilite'] ?? null);
             DossierPieceJointe::classer((int) $piece['id'], $categorie, $visibilite);
             AuditLog::log((int) $dossier['filiale_id'], (int) $user['id'], 'classement_piece_jointe', 'dossier', (int) $dossier['id'], $piece['nom_original'] . ' : ' . $categorie . ' / ' . $visibilite);
             View::flash('succes', 'Document classé.');
