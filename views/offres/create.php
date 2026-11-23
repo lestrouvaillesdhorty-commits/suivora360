@@ -394,10 +394,35 @@ document.getElementById('items-body').addEventListener('click', function (e) {
             var des = tr.querySelector('[name="item_designation[]"]');
             if (!des || !des.value.trim()) tr.remove();
           });
-          c.articles.forEach(function (a) {
-            tbody.appendChild(tpl.content.cloneNode(true));
-            var tr = tbody.lastElementChild;
-            tr.querySelector('[name="item_designation[]"]').value = a.designation;
+          // Les lignes déjà là viennent de la demande : l'IA remplit leurs prix, elle n'ajoute une ligne que pour un article inconnu.
+          var norm = function (t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); };
+          var mots = function (t) { return norm(t).split(' ').filter(function (w) { return w.length > 2; }); };
+          var lignes = Array.prototype.slice.call(tbody.querySelectorAll('tr')), prises = [];
+          var score = function (x, y) {
+            var A = mots(x), B = mots(y); if (!A.length || !B.length) return 0;
+            var ca = norm(x), cb = norm(y); if (ca === cb) return 1;
+            var com = A.filter(function (w) { return B.indexOf(w) >= 0; }).length;
+            return com / Math.min(A.length, B.length);
+          };
+          var affecte = c.articles.map(function (a) {
+            var best = -1, bs = 0;
+            lignes.forEach(function (tr, i) {
+              if (prises.indexOf(i) >= 0) return;
+              var sc = score(a.designation, tr.querySelector('[name="item_designation[]"]').value);
+              if (sc > bs) { bs = sc; best = i; }
+            });
+            if (best >= 0 && bs >= 0.5) { prises.push(best); return best; }
+            return -1;
+          });
+          // Même nombre de lignes et aucun rapprochement par le nom : on suit l'ordre du document.
+          if (!prises.length && lignes.length === c.articles.length) { affecte = c.articles.map(function (a, i) { return i; }); }
+          c.articles.forEach(function (a, k) {
+            var tr = affecte[k] >= 0 ? lignes[affecte[k]] : null;
+            if (!tr) {
+              tbody.appendChild(tpl.content.cloneNode(true));
+              tr = tbody.lastElementChild;
+              tr.querySelector('[name="item_designation[]"]').value = a.designation;
+            }
             if (a.quantite !== null) tr.querySelector('[name="item_quantite[]"]').value = a.quantite;
             if (a.prix_unitaire !== null) tr.querySelector('[name="item_prix_unitaire[]"]').value = a.prix_unitaire;
             var u = tr.querySelector('[name="item_unite[]"]');
