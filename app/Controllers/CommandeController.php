@@ -75,6 +75,7 @@ class CommandeController
             'steps' => $steps,
             'factures' => $factures,
             'progression' => Commande::progression($steps),
+            'transitaires' => \App\Models\TransitaireTarif::transitaires($user),
         ]);
     }
 
@@ -103,7 +104,13 @@ class CommandeController
             (int) $commande['id'],
             $_POST['statut'] ?? '',
             $_POST['date_reelle'] ?? null,
-            $_POST['notes'] ?? ''
+            $_POST['notes'] ?? '',
+            [
+                'transitaire_id' => $_POST['transitaire_id'] ?? 0,
+                'transitaire_nom' => $_POST['transitaire_nom'] ?? '',
+                'date_arrivee' => $_POST['date_arrivee'] ?? null,
+                'date_depart' => $_POST['date_depart'] ?? null,
+            ]
         );
         AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_etape_commande', 'commande', $commande['id']);
         // [08/10] Livraison en transit / reçue : prévenir le responsable du dossier (cloche).

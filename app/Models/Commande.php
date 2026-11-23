@@ -9,6 +9,7 @@ class Commande
     public const ETAPES_STEPS = [
         'paiement' => 'Paiement',
         'expedition' => 'Expédition',
+        'transitaire' => 'Chez le transitaire',
         'douane' => 'Dédouanement',
         'livraison' => 'Livraison au client',
         'solde' => 'Solde',
@@ -29,18 +30,22 @@ class Commande
     public const STEP_STATUT_LABELS = [
         'paiement' => ['a_faire' => 'Paiement à faire', 'en_cours' => 'Paiement en cours', 'termine' => 'Payé'],
         'expedition' => ['a_faire' => 'À préparer', 'en_cours' => 'En préparation', 'termine' => 'Expédiée (départ effectué)'],
+        'transitaire' => ['a_faire' => 'En attente de la marchandise', 'en_cours' => 'Reçue chez le transitaire', 'termine' => 'Repartie vers la destination'],
         'douane' => ['a_faire' => 'Dédouanement à faire', 'en_cours' => 'En cours de dédouanement', 'termine' => 'Dédouané'],
         'livraison' => ['a_faire' => 'Pas encore en route', 'en_cours' => 'En route vers le client', 'termine' => 'Livrée au client'],
         'solde' => ['a_faire' => 'Solde à payer', 'en_cours' => 'Solde en cours', 'termine' => 'Soldé'],
     ];
 
-    /** Statut particulier de l'étape Dédouanement : le transporteur s'en charge (rien à suivre de notre côté). */
+    /**
+     * Statut particulier de deux étapes facultatives : Dédouanement (le transporteur s'en charge) et Chez le transitaire
+     * (« Sans transitaire » : envoi direct). Rien à suivre de notre côté : l'étape sort de l'avancement.
+     */
     public const STATUT_INCLUS = 'inclus';
 
     public static function libelleStatutEtape(string $etape, string $statut): string
     {
         if ($statut === self::STATUT_INCLUS) {
-            return 'Inclus dans le transport';
+            return $etape === 'transitaire' ? 'Sans transitaire' : 'Inclus dans le transport';
         }
         return self::STEP_STATUT_LABELS[$etape][$statut] ?? (self::STEP_STATUTS[$statut] ?? $statut);
     }
@@ -121,7 +126,8 @@ class Commande
             );
             foreach (self::ETAPES_STEPS as $code => $label) {
                 $ordre++;
-                $insertStep->execute([$commandeId, $code, $ordre === 1 ? 'en_cours' : 'a_faire', '', $ordre, $now, $now]);
+                $statutInitial = $code === 'transitaire' ? self::STATUT_INCLUS : ($ordre === 1 ? 'en_cours' : 'a_faire');
+                $insertStep->execute([$commandeId, $code, $statutInitial, '', $ordre, $now, $now]);
             }
 
             $pdo->commit();
@@ -139,25 +145,52 @@ class Commande
         return $stmt->fetchAll();
     }
 
-    public static function updateStep(int $stepId, int $commandeId, string $statut, ?string $dateReelle, string $notes): void
+    /** Étapes qui peuvent être « incluses / sans objet » (rien à suivre). */
+    public const ETAPES_FACULTATIVES = ['douane', 'transitaire'];
+
+    /**
+     * Met à jour une étape. $transit (étape « transitaire » seulement) : transitaire_id, transitaire_nom, date_arrivee, date_depart.
+     */
+    public static function updateStep(int $stepId, int $commandeId, string $statut, ?string $dateReelle, string $notes, array $transit = []): void
     {
+        $pdo = Database::connection();
+        $q = $pdo->prepare('SELECT libelle FROM commande_steps WHERE id = ? AND commande_id = ?');
+        $q->execute([$stepId, $commandeId]);
+        $libelle = (string) $q->fetchColumn();
         if ($statut === self::STATUT_INCLUS) {
-            $q = Database::connection()->prepare('SELECT libelle FROM commande_steps WHERE id = ? AND commande_id = ?');
-            $q->execute([$stepId, $commandeId]);
-            if ($q->fetchColumn() !== 'douane') {
-                throw new \InvalidArgumentException('Seul le dédouanement peut être inclus dans le transport.');
+            if (!in_array($libelle, self::ETAPES_FACULTATIVES, true)) {
+                throw new \InvalidArgumentException('Seuls le dédouanement et le transitaire peuvent être mis « sans objet ».');
             }
             $dateReelle = null;
         } elseif (!array_key_exists($statut, self::STEP_STATUTS)) {
             throw new \InvalidArgumentException('Statut d\'étape invalide.');
         }
         $now = date('Y-m-d H:i:s');
-        $stmt = Database::connection()->prepare(
+        $stmt = $pdo->prepare(
             'UPDATE commande_steps SET statut = ?, date_reelle = ?, notes = ?, updated_at = ? WHERE id = ? AND commande_id = ?'
         );
         $stmt->execute([$statut, $dateReelle ?: null, trim($notes), $now, $stepId, $commandeId]);
 
+        // Étape transitaire : qui, reçue le, repartie le (colonnes ajoutées par la migration V73 ; sans elle, on ignore).
+        if ($libelle === 'transitaire' && $statut !== self::STATUT_INCLUS && self::transitaireDispo()) {
+            $d = fn($v) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $v) ? (string) $v : null;
+            $tid = (int) ($transit['transitaire_id'] ?? 0);
+            $nom = mb_substr(trim((string) ($transit['transitaire_nom'] ?? '')), 0, 190);
+            if ($tid > 0) {
+                $f = \App\Models\Fournisseur::find($tid);
+                $nom = $f ? (string) $f['nom'] : $nom; // nom pris dans la liste des transitaires
+            }
+            $pdo->prepare('UPDATE commande_steps SET transitaire_id = ?, transitaire_nom = ?, date_arrivee = ?, date_depart = ? WHERE id = ? AND commande_id = ?')
+                ->execute([$tid > 0 ? $tid : null, $nom !== '' ? $nom : null, $d($transit['date_arrivee'] ?? null), $d($transit['date_depart'] ?? null), $stepId, $commandeId]);
+        }
+
         self::refreshEtape($commandeId);
+    }
+
+    /** Les colonnes de l'étape transitaire existent-elles (migration V73) ? */
+    public static function transitaireDispo(): bool
+    {
+        return \App\Core\Schema::colonne('commande_steps', 'transitaire_nom') && \App\Core\Schema::colonne('commande_steps', 'date_depart');
     }
 
     /**
@@ -406,7 +439,7 @@ class Commande
                 INNER JOIN dossiers d ON d.id = c.dossier_id
                 INNER JOIN demandes dm ON dm.id = d.demande_id
                 LEFT JOIN commande_steps cs ON cs.commande_id = c.id AND cs.libelle = 'livraison'
-                WHERE c.statut = 'en_cours' AND c.etape IN ('expedition','douane','livraison') AND c.filiale_id IN ($ph)" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id') . \App\Models\ActiviteAcces::sqlDossierActif('c.dossier_id');
+                WHERE c.statut = 'en_cours' AND c.etape IN ('expedition','transitaire','douane','livraison') AND c.filiale_id IN ($ph)" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id') . \App\Models\ActiviteAcces::sqlDossierActif('c.dossier_id');
         $params = $filialeIds;
         if ($activite) {
             $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
@@ -429,14 +462,16 @@ class Commande
             $arrivPrevue = $r['date_arrivee_prevue'] ?? null ?: ($r['date_transit_fin'] ?? null ?: ($r['livraison_prevue'] ?? null));
             $debut = $r['date_transit_debut'] ?? null;
             $pct = 15;
-            if ($r['etape'] === 'douane') {
+            if ($r['etape'] === 'transitaire') {
+                $pct = 55;
+            } elseif ($r['etape'] === 'douane') {
                 $pct = 85;
             } elseif ($r['etape'] === 'livraison') {
                 $pct = 95;
             } elseif ($debut && $arrivPrevue && strtotime($arrivPrevue) > strtotime($debut)) {
                 $pct = (int) max(8, min(80, round((time() - strtotime($debut)) / (strtotime($arrivPrevue) - strtotime($debut)) * 80)));
             }
-            $statut = ['expedition' => $mode === 'aerien' ? 'En vol' : ($mode === 'routier' ? 'En route' : 'En mer'), 'douane' => 'En douane', 'livraison' => 'En livraison'][$r['etape']];
+            $statut = ['expedition' => $mode === 'aerien' ? 'En vol' : ($mode === 'routier' ? 'En route' : 'En mer'), 'transitaire' => 'Chez le transitaire', 'douane' => 'En douane', 'livraison' => 'En livraison'][$r['etape']];
             $retard = $arrivPrevue && strtotime($arrivPrevue) < strtotime(date('Y-m-d'));
             $flux[] = [
                 'dossier_id' => (int) $r['dossier_id'], 'reference' => $r['dossier_reference'], 'objet' => $r['dossier_objet'],

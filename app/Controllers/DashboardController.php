@@ -229,6 +229,7 @@ class DashboardController
         $etapeActions = [
             'paiement' => 'Confirmer le paiement fournisseur',
             'expedition' => "Relancer le fournisseur pour l'expédition",
+            'transitaire' => 'Suivre la marchandise chez le transitaire',
             'douane' => 'Suivre le dédouanement',
             'livraison' => 'Suivre la livraison',
             'solde' => 'Émettre la facture de solde',
@@ -236,6 +237,7 @@ class DashboardController
         $etapeBoutons = [
             'paiement' => 'Confirmer',
             'expedition' => 'Relancer',
+            'transitaire' => 'Suivre',
             'douane' => 'Suivre',
             'livraison' => 'Suivre',
             'solde' => 'Facturer',

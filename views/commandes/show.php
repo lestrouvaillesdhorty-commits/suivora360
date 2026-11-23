@@ -12,40 +12,168 @@
 
 <div class="detail-grid">
   <div>
+    <?php
+    /* Étapes de suivi : frise + étape en cours ouverte, les autres sur une ligne (« Modifier » les déplie). */
+    $courte = ['paiement' => 'Paiement', 'expedition' => 'Expédition', 'transitaire' => 'Transitaire', 'douane' => 'Dédouanement', 'livraison' => 'Livraison', 'solde' => 'Solde'];
+    $groupes = ['DÉPART' => ['paiement', 'expedition'], 'ACHEMINEMENT' => ['transitaire', 'douane', 'livraison'], 'CLÔTURE' => ['solde']];
+    $jm = fn($d) => !empty($d) && strtotime((string) $d) ? date('d/m', strtotime((string) $d)) : '';
+    $jmy = fn($d) => !empty($d) && strtotime((string) $d) ? date('d/m/Y', strtotime((string) $d)) : '';
+    $stepsParCode = [];
+    $numero = [];
+    foreach ($steps as $i => $st) { $stepsParCode[$st['libelle']] = $st; $numero[$st['libelle']] = $i + 1; }
+    $codeCourant = null;
+    foreach ($steps as $st) {
+        if ($st['statut'] !== 'termine' && $st['statut'] !== Commande::STATUT_INCLUS) { $codeCourant = $st['libelle']; break; }
+    }
+    $classeEtape = function (array $st) use ($codeCourant) {
+        if ($st['statut'] === Commande::STATUT_INCLUS) { return 'opt'; }
+        if ($st['statut'] === 'termine') { return 'done'; }
+        return $st['libelle'] === $codeCourant ? 'cur' : '';
+    };
+    $transitDispo = Commande::transitaireDispo();
+    $sousTitre = function (array $st) use ($jm, $jmy, $transitDispo) {
+        $c = $st['libelle'];
+        if ($st['statut'] === Commande::STATUT_INCLUS) { return $c === 'transitaire' ? 'Envoi direct : rien à suivre' : 'Inclus dans le transport'; }
+        if ($c === 'transitaire' && $transitDispo) {
+            $bits = [];
+            if (!empty($st['transitaire_nom'])) { $bits[] = $st['transitaire_nom']; }
+            if (!empty($st['date_depart'])) { $bits[] = 'repartie le ' . $jmy($st['date_depart']); }
+            elseif (!empty($st['date_arrivee'])) { $bits[] = 'reçue le ' . $jmy($st['date_arrivee']); }
+            if ($bits) { return implode(' · ', $bits); }
+        }
+        if (!empty($st['date_reelle'])) { return Commande::libelleStatutEtape($c, $st['statut']) . ' le ' . $jmy($st['date_reelle']); }
+        return Commande::libelleStatutEtape($c, $st['statut']);
+    };
+    $prochaine = [
+        'paiement' => 'confirmer le paiement',
+        'expedition' => "attendre le départ de la marchandise",
+        'transitaire' => 'suivre la marchandise chez le transitaire',
+        'douane' => 'suivre le dédouanement',
+        'livraison' => 'suivre la livraison au client',
+        'solde' => 'émettre la facture de solde',
+    ];
+    $badgeStyle = ['termine' => 'background:#DCFCE7;color:#166534', 'en_cours' => 'background:#DBEAFE;color:#1E40AF', 'a_faire' => 'background:#E5E7EB;color:#374151', 'inclus' => 'background:#EEF6F7;color:#0F3F46'];
+    $formEtape = function (array $st) use ($commande, $csrfToken, $transitaires, $transitDispo) {
+        $c = $st['libelle'];
+        ob_start(); ?>
+        <form method="post" action="/index.php?r=commandes/<?= (int) $commande['id'] ?>/etapes/<?= (int) $st['id'] ?>">
+          <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+          <?php if ($c === 'transitaire' && $transitDispo): ?>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:8px"><label>Transitaire</label>
+              <select name="transitaire_id">
+                <option value="0">— Choisir dans la liste —</option>
+                <?php foreach ($transitaires as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) ($st['transitaire_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= View::e($t['nom']) ?></option><?php endforeach; ?>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:8px"><label>Ou un autre transitaire (pas dans la liste)</label>
+              <input type="text" name="transitaire_nom" value="<?= View::e(empty($st['transitaire_id']) ? ($st['transitaire_nom'] ?? '') : '') ?>" placeholder="Nom du transitaire">
+            </div>
+          </div>
+          <?php endif; ?>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:8px"><label>Où en est cette étape ?</label>
+              <select name="statut">
+                <?php foreach (Commande::STEP_STATUTS as $code => $label): ?>
+                  <option value="<?= $code ?>" <?= $st['statut'] === $code ? 'selected' : '' ?>><?= Commande::libelleStatutEtape($c, $code) ?></option>
+                <?php endforeach; ?>
+                <?php if (in_array($c, Commande::ETAPES_FACULTATIVES, true)): ?><option value="inclus" <?= $st['statut'] === 'inclus' ? 'selected' : '' ?>><?= $c === 'transitaire' ? 'Sans transitaire (envoi direct)' : 'Inclus dans le transport (rien à faire)' ?></option><?php endif; ?>
+              </select>
+            </div>
+            <?php if ($c === 'transitaire' && $transitDispo): ?>
+            <div class="form-group" style="margin-bottom:8px"><label>Reçue chez lui le</label><input type="date" name="date_arrivee" value="<?= View::e($st['date_arrivee'] ?? '') ?>"></div>
+            <div class="form-group" style="margin-bottom:8px"><label>Repartie vers la destination le</label><input type="date" name="date_depart" value="<?= View::e($st['date_depart'] ?? '') ?>"></div>
+            <?php else: ?>
+            <div class="form-group" style="margin-bottom:8px"><label>Date réelle</label><input type="date" name="date_reelle" value="<?= View::e($st['date_reelle'] ?? '') ?>"></div>
+            <?php endif; ?>
+          </div>
+          <input type="text" name="notes" value="<?= View::e($st['notes'] ?? '') ?>" placeholder="Note sur cette étape<?= $c === 'transitaire' ? ' (ex. attente de regroupement)' : '' ?>" style="margin-bottom:8px">
+          <button type="submit" class="btn btn-sm">Enregistrer</button>
+          <?php if (in_array($c, Commande::ETAPES_FACULTATIVES, true) && $st['statut'] !== 'inclus'): ?>
+            <button type="submit" name="statut" value="inclus" class="btn btn-sm btn-secondary"><?= $c === 'transitaire' ? 'Sans transitaire (envoi direct)' : 'Inclus dans le transport' ?></button>
+          <?php endif; ?>
+        </form>
+        <?php
+        return ob_get_clean();
+    };
+    ?>
+    <style>
+      .stp{display:flex;align-items:flex-start;margin:8px 0 6px}
+      .stn{flex:1;text-align:center;position:relative;font-size:12px;color:#5B6B7B;min-width:0;padding:0 2px}
+      .stn:before{content:"";position:absolute;top:13px;left:-50%;width:100%;height:3px;background:#DDE4EC;z-index:0}
+      .stn:first-child:before{display:none}
+      .stn.done:before,.stn.cur:before{background:#16a34a}
+      .stn .dot{width:28px;height:28px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;position:relative;z-index:1;background:#fff;border:2px solid #C9D3DD;color:#8A98A5;box-sizing:border-box}
+      .stn.done .dot{background:#16a34a;border-color:#16a34a;color:#fff}
+      .stn.cur .dot{background:#0B7C8A;border-color:#0B7C8A;color:#fff;box-shadow:0 0 0 5px #D6EEF1}
+      .stn.opt .dot{border-style:dashed;background:#F5F7FA}
+      .stn b{display:block;color:#1B2B3A;font-size:12.5px;overflow:hidden;text-overflow:ellipsis}
+      .stn.cur b{color:#0B7C8A}
+      .stn small{display:block;font-size:11.5px;margin-top:1px;overflow:hidden;text-overflow:ellipsis}
+      .etp-ph{font-size:11px;font-weight:700;color:#5B6B7B;padding:12px 4px 4px;letter-spacing:.2px}
+      .etp-ln{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #EEF1F5;list-style:none;cursor:pointer}
+      .etp-ln::-webkit-details-marker{display:none}
+      .etp-ic{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700}
+      .etp-nm{flex:1;min-width:0}.etp-nm b{font-size:13.5px}.etp-nm span{display:block;font-size:12px;color:#5B6B7B}
+      .etp-b{border-radius:99px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+      .etp-md{font-size:12.5px;color:#0B7C8A;border:1px solid #BFE0E5;border-radius:8px;padding:3px 10px;flex:none}
+      .etp-opt{border:1px dashed #C9D3DD;background:#FAFBFC;border-radius:10px;margin:4px 0}
+      .etp-cur{border:2px solid #0B7C8A;background:#F2FAFB;border-radius:12px;padding:14px;margin:8px 0}
+      .etp-body{padding:10px 4px 12px}
+      .detail-grid > div{min-width:0}
+      @media (max-width:640px){.etp-ln{flex-wrap:wrap}.etp-nm{flex:1 1 calc(100% - 40px)}.etp-b{white-space:normal}.etp-cur{padding:12px}.stp{flex-direction:column;align-items:stretch;padding-left:34px;position:relative}.stn{text-align:left;padding:0 0 14px;display:block}.stn:before{top:26px;left:-21px;width:3px;height:calc(100% - 20px)}.stn .dot{position:absolute;left:-34px;top:0;margin:0;width:24px;height:24px;font-size:12px}.stn:first-child:before{display:block}.stn:last-child:before{display:none}}
+    </style>
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
         <h2 style="margin:0">Étapes de suivi</h2>
         <strong style="font-size:14px"><?= $progression ?>%</strong>
       </div>
-      <div style="background:#f1f2f5;border-radius:6px;height:8px;overflow:hidden;margin-bottom:16px">
+      <div style="background:#f1f2f5;border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px">
         <div style="background:<?= $progression === 100 ? '#16a34a' : '#0B7C8A' ?>;height:100%;width:<?= $progression ?>%"></div>
       </div>
-      <?php foreach ($steps as $step): ?>
-        <div style="padding:14px 0;border-bottom:1px solid #f1f2f5">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <strong><?= Commande::ETAPES_STEPS[$step['libelle']] ?? $step['libelle'] ?></strong>
-            <span class="badge <?= $step['statut'] === 'termine' ? 'badge-green' : ($step['statut'] === 'en_cours' ? 'badge-blue' : 'badge-gray') ?>"<?= $step['statut'] === Commande::STATUT_INCLUS ? ' style="background:#eef6f7;color:#0F3F46"' : '' ?>><?= Commande::libelleStatutEtape($step['libelle'], $step['statut']) ?></span>
-          </div>
-          <form method="post" action="/index.php?r=commandes/<?= $commande['id'] ?>/etapes/<?= $step['id'] ?>">
-            <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-            <div class="form-row">
-              <div class="form-group" style="margin-bottom:8px">
-                <select name="statut">
-                  <?php foreach (Commande::STEP_STATUTS as $code => $label): ?>
-                    <option value="<?= $code ?>" <?= $step['statut'] === $code ? 'selected' : '' ?>><?= Commande::libelleStatutEtape($step['libelle'], $code) ?></option>
-                  <?php endforeach; ?>
-                  <?php if ($step['libelle'] === 'douane'): ?><option value="inclus" <?= $step['statut'] === 'inclus' ? 'selected' : '' ?>>Inclus dans le transport (rien à faire)</option><?php endif; ?>
-                </select>
+      <div class="stp">
+        <?php foreach ($steps as $st): $cl = $classeEtape($st); ?>
+          <div class="stn <?= $cl ?>"><div class="dot"><?= $cl === 'done' ? '✓' : ($cl === 'opt' ? '–' : $numero[$st['libelle']]) ?></div>
+            <b><?= View::e($courte[$st['libelle']] ?? $st['libelle']) ?></b>
+            <small><?php
+              if ($cl === 'opt') { echo 'sans objet'; }
+              elseif ($cl === 'done') { $dd = $st['libelle'] === 'transitaire' ? ($st['date_depart'] ?: ($st['date_arrivee'] ?: $st['date_reelle'])) : $st['date_reelle']; echo $dd ? $jm($dd) : 'terminé'; }
+              elseif ($cl === 'cur') { echo $st['libelle'] === 'transitaire' && !empty($st['date_arrivee']) && $st['statut'] === 'en_cours' ? 'reçue le ' . $jm($st['date_arrivee']) : ($st['statut'] === 'en_cours' ? 'en cours' : 'à faire'); }
+              else { echo 'à venir'; }
+            ?></small></div>
+        <?php endforeach; ?>
+      </div>
+      <div style="font-size:13px;margin:4px 0 2px"><?= $codeCourant ? 'Prochaine action : <b>' . View::e($prochaine[$codeCourant] ?? 'suivre l\'étape en cours') . '</b>' : '<b>Toutes les étapes sont terminées.</b>' ?></div>
+
+      <?php foreach ($groupes as $titreGroupe => $codes):
+        $dansGroupe = array_values(array_filter($codes, fn($c) => isset($stepsParCode[$c])));
+        if (!$dansGroupe) { continue; } ?>
+        <div class="etp-ph"><?= $titreGroupe ?></div>
+        <?php foreach ($dansGroupe as $c): $st = $stepsParCode[$c]; $cl = $classeEtape($st);
+          $nomEtape = Commande::ETAPES_STEPS[$c] ?? $c;
+          $couleur = ['done' => '#16a34a', 'cur' => '#0B7C8A', 'opt' => '#C9D3DD', '' => '#C9D3DD'][$cl];
+          $marque = $cl === 'done' ? '✓' : ($cl === 'opt' ? '–' : $numero[$c]);
+          if ($cl === 'cur'): ?>
+            <div class="etp-cur">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                <div><b style="font-size:15px"><?= View::e($nomEtape) ?></b><div style="font-size:12.5px;color:#5B6B7B;margin-top:2px">Étape en cours · <?= View::e($sousTitre($st)) ?></div></div>
+                <span class="etp-b" style="<?= $badgeStyle[$st['statut']] ?? $badgeStyle['a_faire'] ?>"><?= Commande::libelleStatutEtape($c, $st['statut']) ?></span>
               </div>
-              <div class="form-group" style="margin-bottom:8px">
-                <input type="date" name="date_reelle" value="<?= View::e($step['date_reelle'] ?? '') ?>" placeholder="Date réelle">
-              </div>
+              <?= $formEtape($st) ?>
             </div>
-            <input type="text" name="notes" value="<?= View::e($step['notes'] ?? '') ?>" placeholder="Note sur cette étape" style="margin-bottom:8px">
-            <button type="submit" class="btn btn-sm">Mettre à jour</button>
-          </form>
-        </div>
-      <?php endforeach; ?>
+          <?php else: ?>
+            <details class="<?= $cl === 'opt' ? 'etp-opt' : '' ?>">
+              <summary class="etp-ln">
+                <span class="etp-ic" style="background:<?= $couleur ?>"><?= $marque ?></span>
+                <span class="etp-nm"><b><?= View::e($nomEtape) ?></b><span><?= View::e($sousTitre($st)) ?></span></span>
+                <span class="etp-b" style="<?= $badgeStyle[$st['statut']] ?? $badgeStyle['a_faire'] ?>"><?= Commande::libelleStatutEtape($c, $st['statut']) ?></span>
+                <span class="etp-md">Modifier</span>
+              </summary>
+              <div class="etp-body"><?= $formEtape($st) ?></div>
+            </details>
+          <?php endif;
+        endforeach;
+      endforeach; ?>
     </div>
   </div>
 
