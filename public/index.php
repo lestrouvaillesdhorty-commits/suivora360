@@ -941,6 +941,16 @@ $router->post('/factures/{id}/statut', function ($params) {
     (new FactureController())->updateStatut($params);
 });
 
+// Mise à jour par zip (administrateur Suivora)
+$router->get('/maj', function () {
+    Auth::requireLogin();
+    (new \App\Controllers\MajController())->index();
+});
+$router->post('/maj', function () {
+    Auth::requireLogin();
+    (new \App\Controllers\MajController())->installer();
+});
+
 // Sécurité — journal d'audit (Propriétaire / Admin d'organisation)
 $router->get('/securite', function () {
     Auth::requireLogin();

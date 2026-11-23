@@ -18,6 +18,7 @@ $lienEntite = function (array $l): ?string {
     <div class="subtitle"><?= (int) $total ?> événement<?= $total > 1 ? 's' : '' ?> · réservé au Propriétaire et à l'Admin d'organisation</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <?php if (\App\Core\Auth::isSuperAdmin()): ?><a href="/index.php?r=maj" class="btn btn-secondary">Mise à jour de l'application</a> <?php endif; ?>
     <a href="/index.php?r=securite/export<?= $exportParams ? '&' . $exportParams : '' ?>" class="btn btn-secondary">Exporter (Excel / CSV)</a>
     <a href="/index.php?r=securite/imprimable<?= $exportParams ? '&' . $exportParams : '' ?>" target="_blank" class="btn btn-secondary">Imprimer / PDF</a>
   </div>
