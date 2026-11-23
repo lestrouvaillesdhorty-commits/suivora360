@@ -70,7 +70,7 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
   <?php if ((int) $client['is_active'] !== 1): ?>
     <div class="alert al-e">Votre compte client est actuellement inactif. Merci de contacter directement votre interlocuteur.</div>
   <?php else: ?>
-  <form method="post" action="<?= $base ?>/demande" novalidate>
+  <form method="post" action="<?= $base ?>/demande" enctype="multipart/form-data" novalidate>
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <div class="hp" aria-hidden="true"><label>Site web</label><input type="text" name="site_web" tabindex="-1" autocomplete="off"></div>
     <label for="objet">Objet de la demande *</label>
@@ -84,6 +84,9 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
     <?php if (!empty($erreurs['message'])): ?><div class="err"><?= View::e($erreurs['message']) ?></div><?php endif; ?>
     <label for="date_souhaitee">Date souhaitée (facultatif)</label>
     <input type="date" id="date_souhaitee" name="date_souhaitee" value="<?= $valeur('date_souhaitee') ?>">
+    <label for="fichiers">Joindre des fichiers (facultatif)</label>
+    <input type="file" id="fichiers" name="fichiers[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt">
+    <div class="mut">Cahier des charges, liste de produits, photos… PDF, images, Word, Excel ou texte · 5 fichiers maximum, 10 Mo chacun.</div>
     <div class="act"><button type="submit" class="btn bp">Envoyer ma demande</button></div>
   </form>
   <?php endif; ?></div>

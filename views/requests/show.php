@@ -358,7 +358,7 @@ $unitesArticle = \App\Models\Demande::UNITES;
               <td data-label="Fichier"><?= View::e($p['nom_original']) ?></td>
               <td data-label="Taille"><?= number_format($p['taille'] / 1024, 0) ?> Ko</td>
               <td data-label="Ajouté le"><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
-              <td data-label="Par"><?= View::e($p['uploaded_by_nom']) ?></td>
+              <td data-label="Par"><?= View::e($p['uploaded_by_nom'] ?: 'Client (espace client)') ?></td>
               <td data-label="Actions" style="white-space:nowrap">
                 <?php if (Storage::estPrevisualisable($p['type_mime'])): ?>
                   <a href="/index.php?r=demandes/<?= $demande['id'] ?>/pieces/<?= $p['id'] ?>/telecharger&apercu=1" target="_blank" class="btn btn-sm btn-secondary" title="Aperçu"<?= \App\Core\Storage::attrsPhoto($p) ?>><?= Icon::svg('eye', 'icon', 14) ?></a>

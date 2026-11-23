@@ -27,6 +27,7 @@ h2{font-size:16px;margin:0 0 12px}
 .priv{font-size:12px;color:var(--m);text-align:center;padding:16px 0 28px}
 .alert{padding:12px 16px;border-radius:10px;margin:16px 0 0;font-size:14px}.al-s{background:#d1fae5;color:#065f46}.al-e{background:#fee2e2;color:#991b1b}
 label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+input[type=file]{width:100%;margin-top:4px;font-size:14px;font-family:inherit}
 input[type=text],input[type=date],select,textarea{width:100%;padding:10px 12px;border:1px solid #d7dae0;border-radius:9px;font-size:15px;font-family:inherit;background:#fff}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px #DDF1F3}
 .err{color:#b42318;font-size:12px;margin-top:4px}

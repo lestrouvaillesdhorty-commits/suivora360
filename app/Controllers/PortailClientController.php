@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\LimiteConnexion;
+use App\Core\Storage;
 use App\Core\View;
 use App\Models\AuditLog;
 use App\Models\Client;
@@ -174,6 +175,12 @@ class PortailClientController
         $base = '/index.php?r=espace-client/' . $lien['token'];
         $retour = $base . '&onglet=demande';
 
+        // Envoi plus gros que la limite du serveur (post_max_size) : PHP vide alors tout le formulaire.
+        $limite = (int) (function_exists('ini_parse_quantity') ? ini_parse_quantity((string) ini_get('post_max_size')) : (int) ini_get('post_max_size') * 1048576);
+        if (empty($_POST) && $limite > 0 && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > $limite) {
+            $this->flashPortail('erreur', 'Les fichiers sont trop volumineux. Envoyez-en moins à la fois ou réduisez leur taille (10 Mo maximum par fichier).');
+            $this->aller($retour);
+        }
         if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
             $this->flashPortail('erreur', 'Page expirée : merci de réessayer.');
             $this->aller($retour);
@@ -240,11 +247,77 @@ class PortailClientController
         ]);
         $demande = Demande::find($demandeId);
         AuditLog::log((int) $client['filiale_id'], null, 'creation', 'demande', $demandeId, 'Déposée par le client depuis l’espace client');
+        [$nbJoints, $refus] = $this->joindreFichiersDemande($demandeId, (int) $client['filiale_id']);
         $this->notifier($client, $client['responsable_id'] ?? null, (int) $client['filiale_id'], 'demande_client', 'Nouvelle demande d’un client',
-            $client['nom'] . ' a déposé la demande ' . ($demande['reference'] ?? '') . ' : ' . $objet, '/index.php?r=demandes/' . $demandeId, 'demande', $demandeId);
+            $client['nom'] . ' a déposé la demande ' . ($demande['reference'] ?? '') . ' : ' . $objet . ($nbJoints > 0 ? ' (' . $nbJoints . ' fichier' . ($nbJoints > 1 ? 's' : '') . ' joint' . ($nbJoints > 1 ? 's' : '') . ')' : ''),
+            '/index.php?r=demandes/' . $demandeId, 'demande', $demandeId);
 
-        $this->flashPortail('succes', 'Merci, votre demande a bien été envoyée (référence ' . ($demande['reference'] ?? '') . '). Votre interlocuteur vous répondra rapidement.');
+        $this->flashPortail('succes', 'Merci, votre demande a bien été envoyée (référence ' . ($demande['reference'] ?? '') . ')'
+            . ($nbJoints > 0 ? ', avec ' . $nbJoints . ' fichier' . ($nbJoints > 1 ? 's' : '') . ' joint' . ($nbJoints > 1 ? 's' : '') : '')
+            . '. Votre interlocuteur vous répondra rapidement.'
+            . ($refus ? ' Non joints : ' . implode(' ; ', $refus) . ' Vous pouvez les renvoyer par message ou à votre interlocuteur.' : ''));
         $this->aller($base . '&onglet=demande');
+    }
+
+    /** Extensions acceptées depuis l'espace client (pas d'e-mails .eml/.msg : on reste sur des documents courants). */
+    private const JOINTS_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'txt'];
+    private const JOINTS_MAX_FICHIERS = 5;
+
+    /**
+     * Pièces jointes d'une demande déposée par le client (champ fichiers[]) : 5 fichiers maximum, 10 Mo chacun,
+     * extensions limitées, nom aléatoire hors webroot, type lu sur le fichier (pas celui annoncé par le navigateur).
+     * Retourne [nombre joint, liste des refus]. Un refus n'empêche jamais l'envoi de la demande.
+     */
+    private function joindreFichiersDemande(int $demandeId, int $filialeId): array
+    {
+        $ok = 0;
+        $refus = [];
+        $f = $_FILES['fichiers'] ?? null;
+        if (!$f || empty($f['name'])) {
+            return [0, []];
+        }
+        $noms = (array) $f['name'];
+        $vus = 0;
+        foreach ($noms as $i => $nomOriginal) {
+            if (($f['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $nomOriginal = mb_substr(basename((string) $nomOriginal), 0, 200);
+            if (++$vus > self::JOINTS_MAX_FICHIERS) {
+                $refus[] = '« ' . $nomOriginal . ' » (5 fichiers maximum)';
+                continue;
+            }
+            if ($f['error'][$i] !== UPLOAD_ERR_OK) {
+                $refus[] = '« ' . $nomOriginal . ' » (échec de l\'envoi)';
+                continue;
+            }
+            if ($f['size'][$i] > \App\Models\DemandePieceJointe::TAILLE_MAX) {
+                $refus[] = '« ' . $nomOriginal . ' » (plus de 10 Mo)';
+                continue;
+            }
+            $ext = strtolower(pathinfo($nomOriginal, PATHINFO_EXTENSION));
+            if (!in_array($ext, self::JOINTS_EXTENSIONS, true) || !is_uploaded_file($f['tmp_name'][$i])) {
+                $refus[] = '« ' . $nomOriginal . ' » (format non accepté : PDF, images, Word, Excel ou texte)';
+                continue;
+            }
+            $nomFichier = bin2hex(random_bytes(16)) . '.' . $ext;
+            if (!move_uploaded_file($f['tmp_name'][$i], Storage::path('uploads/demandes/' . $demandeId . '/' . $nomFichier))) {
+                $refus[] = '« ' . $nomOriginal . ' » (enregistrement impossible)';
+                continue;
+            }
+            $mime = function_exists('mime_content_type') ? (string) @mime_content_type(Storage::path('uploads/demandes/' . $demandeId . '/' . $nomFichier)) : '';
+            \App\Models\DemandePieceJointe::create([
+                'demande_id' => $demandeId,
+                'nom_original' => $nomOriginal,
+                'nom_fichier' => $nomFichier,
+                'taille' => (int) $f['size'][$i],
+                'type_mime' => $mime !== '' ? $mime : 'application/octet-stream',
+                'uploaded_by' => null,
+            ]);
+            AuditLog::log($filialeId, null, 'ajout_piece_jointe', 'demande', $demandeId, $nomOriginal . ' (espace client)');
+            $ok++;
+        }
+        return [$ok, $refus];
     }
 
     // ------------------------------------------------------------------
