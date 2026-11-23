@@ -287,6 +287,8 @@ $router->post('/clients/{id}/activer', function ($params) {
 // Espace client externe (07/10) — PUBLIC : accès par lien privé, aucune connexion
 $router->get('/espace-client/{token}', fn($params) => (new PortailClientController())->show($params));
 $router->get('/espace-client/{token}/cotations/{id}', fn($params) => (new PortailClientController())->cotation($params));
+$router->get('/espace-client/{token}/cotations/{id}/document', fn($params) => (new PortailClientController())->devisDocument($params));
+$router->get('/espace-client/{token}/cotations/{id}/pdf', fn($params) => (new PortailClientController())->devisPdf($params));
 $router->post('/espace-client/{token}/cotations/{id}/decision', fn($params) => (new PortailClientController())->decision($params));
 $router->get('/espace-client/{token}/factures/{id}', fn($params) => (new PortailClientController())->facture($params));
 $router->post('/espace-client/{token}/demande', fn($params) => (new PortailClientController())->nouvelleDemande($params));

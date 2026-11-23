@@ -87,6 +87,60 @@ class PortailClientController
         ]);
     }
 
+    /**
+     * Le devis du client sous sa vraie forme (mêmes modèle, logo, couleurs, TVA, remises et photos que le document
+     * envoyé par l'entreprise), au lieu de l'impression de la page web de l'espace client.
+     * Seules les cotations déjà envoyées au client (envoyée / acceptée / refusée) sont accessibles, et que les siennes.
+     */
+    private function devisDuClient(array $params): ?array
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return null;
+        }
+        [$lien, $client] = $ctx;
+        $visible = PortailClient::cotation((int) $client['id'], (int) ($params['id'] ?? 0));
+        $cotation = $visible ? \App\Models\Cotation::findWithDetails((int) $visible['id']) : null;
+        if (!$cotation || (int) $cotation['client_id'] !== (int) $client['id']) {
+            $this->introuvable();
+            return null;
+        }
+        $filiale = Filiale::find((int) $cotation['filiale_id']) ?: [];
+        $info = \App\Models\EntrepriseInfo::forFiliale((int) $cotation['filiale_id']);
+        $emetteur = ['nom' => trim((string) ($info['raison_sociale'] ?? '')) ?: (string) ($filiale['nom'] ?? '')] + $info;
+        return ['lien' => $lien, 'cotation' => $cotation, 'items' => \App\Models\CotationItem::forCotation((int) $cotation['id']),
+                'client' => Client::find((int) $cotation['client_id']) ?: [], 'emetteur' => $emetteur];
+    }
+
+    public function devisDocument(array $params): void
+    {
+        $d = $this->devisDuClient($params);
+        if (!$d) {
+            return;
+        }
+        header('X-Robots-Tag: noindex, nofollow');
+        header('Referrer-Policy: no-referrer');
+        header('Cache-Control: no-store');
+        $base = '/index.php?r=espace-client/' . $d['lien']['token'];
+        View::renderPlain('cotations/apercu', [
+            'cotation' => $d['cotation'], 'items' => $d['items'], 'client' => $d['client'], 'emetteur' => $d['emetteur'],
+            'totaux' => \App\Services\DevisPdf::totaux($d['cotation']),
+            'logoUri' => \App\Models\EntrepriseInfo::logoDataUri($d['emetteur']),
+            'photos' => \App\Services\PhotoProduit::urisDevis($d['cotation']),
+            'barreClient' => ['pdf' => $base . '/cotations/' . (int) $d['cotation']['id'] . '/pdf', 'retour' => $base . '/cotations/' . (int) $d['cotation']['id']],
+        ]);
+    }
+
+    public function devisPdf(array $params): void
+    {
+        $d = $this->devisDuClient($params);
+        if (!$d) {
+            return;
+        }
+        header('X-Robots-Tag: noindex, nofollow');
+        \App\Services\RecapPdf::sortir(\App\Services\DevisPdf::generer($d['cotation'], $d['items'], $d['emetteur'], $d['client']), \App\Services\DevisPdf::nomFichier($d['cotation']));
+    }
+
     public function decision(array $params): void
     {
         $ctx = $this->contexte($params);

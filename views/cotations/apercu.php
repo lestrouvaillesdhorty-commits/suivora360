@@ -49,9 +49,14 @@ html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style></head><body>
 <div class="bar">
   <button onclick="window.print()">Imprimer / enregistrer en PDF</button>
+  <?php if (!empty($barreClient)): ?>
+  <a class="s" href="<?= View::e($barreClient['pdf']) ?>">Télécharger le PDF</a>
+  <a class="s" href="<?= View::e($barreClient['retour']) ?>">Retour</a>
+  <?php else: ?>
   <a class="s" href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>/pdf">Télécharger le PDF</a>
   <a class="s" href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>/envoyer">Envoyer au client</a>
   <a class="s" href="/index.php?r=cotations/<?= (int) $cotation['id'] ?>">Retour</a>
+  <?php endif; ?>
 </div>
 <div class="page">
   <?php $validiteB = DevisPdf::validite($cotation, $emetteur); if ($mep === 'moderne'): ?>

@@ -27,7 +27,8 @@ $bg = $badges[$cotation['statut']];
       <?= !empty($cotation['mode_paiement_negocie']) ? 'Paiement : ' . View::e(\App\Models\Demande::MODES_PAIEMENT[$cotation['mode_paiement_negocie']] ?? $cotation['mode_paiement_negocie']) . ' · ' : '' ?>
       <?= !empty($cotation['validite_devis']) ? 'Valable jusqu\'au ' . date('d/m/Y', strtotime($cotation['validite_devis'])) : '' ?>
     </div>
-    <div class="act"><button class="btn bs noprint" onclick="window.print()">Imprimer / enregistrer en PDF</button></div>
+    <div class="act noprint"><a class="btn bp" href="<?= $base ?>/cotations/<?= (int) $cotation['id'] ?>/pdf">Télécharger le devis (PDF)</a>
+      <a class="btn bs" href="<?= $base ?>/cotations/<?= (int) $cotation['id'] ?>/document" target="_blank" rel="noopener">Voir le devis / imprimer</a></div>
   </div>
 
   <?php if ($decisionPossible): ?>
