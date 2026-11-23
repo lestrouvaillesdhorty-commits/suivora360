@@ -148,6 +148,14 @@ class BonCommandeFournisseur
     }
 
     /** Bon non annulé d'une offre (au plus un). */
+    /** Bons adressés à un fournisseur (ni brouillon ni annulés) sur un dossier : sert à la messagerie du dossier. */
+    public static function pourDossier(int $dossierId): array
+    {
+        $st = Database::connection()->prepare("SELECT * FROM bons_commande_fournisseur WHERE dossier_id = ? AND statut NOT IN ('brouillon', 'annule') ORDER BY date_emission DESC, id DESC");
+        $st->execute([$dossierId]);
+        return $st->fetchAll();
+    }
+
     public static function actifPourOffre(int $offreId): ?array
     {
         if (!self::schemaPret()) {

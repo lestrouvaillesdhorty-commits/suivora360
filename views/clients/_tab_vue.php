@@ -76,6 +76,9 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
               <option value="<?= $j ?>" <?= $j === \App\Models\PortailClient::DUREE_DEFAUT ? 'selected' : '' ?>>Valable <?= $j ?> jours</option>
             <?php endforeach; ?>
           </select>
+          <?php if (\App\Core\Schema::colonne('client_portail_liens', 'contact_id')): ?>
+          <select name="contact_id" aria-label="Contact destinataire"><?php foreach (\App\Models\Echange::contacts('client', $client) as $_c): ?><option value="<?= (int) $_c['id'] ?>">Pour : <?= View::e($_c['nom']) ?><?= $_c['principal'] ? ' (principal)' : '' ?></option><?php endforeach; ?></select>
+          <?php endif; ?>
           <button type="submit" class="btn btn-sm">Créer un lien</button>
         </form>
         <?php endif; ?>
@@ -104,6 +107,7 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
             </div>
             <?php if (!$revoque && !$expire): ?>
               <input type="text" readonly value="<?= View::e($url) ?>" onclick="this.select()" style="width:100%;margin-top:6px;font-size:12px" aria-label="Lien de l’espace client">
+              <?php $type = 'client'; $fiche = $client; $phrase = 'voici le lien pour suivre vos dossiers'; $actionContact = $base . '/portail/' . (int) $l['id'] . '/contact'; $csrf = $csrfToken; include __DIR__ . '/../echanges/_envoi_lien.php'; ?>
             <?php endif; ?>
           </div>
         <?php endforeach; ?>

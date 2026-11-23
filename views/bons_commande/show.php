@@ -133,3 +133,17 @@ $mailto = $bon['destinataire_email'] !== ''
     <div class="card" style="background:#fafafa;font-size:13px;color:#666">Réception de la marchandise et factures du fournisseur : <strong>à connecter</strong>. Ce bon n’est pas une facture et n’enregistre aucun paiement.</div>
   </div>
 </div>
+
+<?php if (\App\Models\Echange::pret() && in_array($st, ['envoye', 'confirme'], true)): ?>
+<div class="card" id="messages" style="margin-top:14px">
+  <h2>Messages avec le fournisseur</h2>
+  <?php
+  $messages = \App\Models\Echange::messages(\App\Models\Echange::FOURNISSEUR, (int) ($bon['dossier_id'] ?? 0), (int) $bon['id']);
+  $actionUrl = $base . '/messages'; $fichierBase = $base . '/messages'; $canal = \App\Models\Echange::FOURNISSEUR; $bonId = (int) $bon['id'];
+  $placeholder = 'Écrire au fournisseur…'; $peutEcrire = \App\Core\Auth::canWrite();
+  include __DIR__ . '/../echanges/_fil.php';
+  \App\Models\Echange::marquerLusInterne(0, (int) $bon['id']);
+  ?>
+  <div style="font-size:12px;color:#888;margin-top:6px">Le fournisseur voit ce fil sur son lien, dans la commande. Il est prévenu par e-mail quand vous répondez.</div>
+</div>
+<?php endif; ?>

@@ -99,6 +99,9 @@ $nbConsultEnCours = count(array_filter($consultations, fn($c) => in_array($c['st
         <form method="post" action="<?= $baseF ?>/lien" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
           <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>">
           <select name="jours" aria-label="Durée de validité"><?php foreach (\App\Models\FournisseurLien::DUREES_JOURS as $j): ?><option value="<?= $j ?>" <?= $j === \App\Models\FournisseurLien::DUREE_DEFAUT ? 'selected' : '' ?>>Valable <?= $j ?> jours</option><?php endforeach; ?></select>
+          <?php if (\App\Core\Schema::colonne('fournisseur_liens', 'contact_id')): ?>
+          <select name="contact_id" aria-label="Contact destinataire"><?php foreach (\App\Models\Echange::contacts('fournisseur', $fournisseur) as $_c): ?><option value="<?= (int) $_c['id'] ?>">Pour : <?= View::e($_c['nom']) ?><?= $_c['principal'] ? ' (principal)' : '' ?></option><?php endforeach; ?></select>
+          <?php endif; ?>
           <button type="submit" class="btn btn-sm">Créer un lien</button>
         </form>
         <?php endif; ?>
@@ -128,7 +131,8 @@ $nbConsultEnCours = count(array_filter($consultations, fn($c) => in_array($c['st
               <form method="post" action="<?= $baseF ?>/lien/<?= (int) $l['id'] ?>/revoquer" style="display:inline"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>"><button type="submit" class="btn btn-sm btn-secondary">Révoquer</button></form>
               <?php endif; ?>
             </div>
-            <?php if (!$revoque && !$expire): ?><input type="text" readonly value="<?= View::e($url) ?>" onclick="this.select()" style="width:100%;margin-top:6px;font-size:12px" aria-label="Lien fournisseur"><?php endif; ?>
+            <?php if (!$revoque && !$expire): ?><input type="text" readonly value="<?= View::e($url) ?>" onclick="this.select()" style="width:100%;margin-top:6px;font-size:12px" aria-label="Lien fournisseur">
+            <?php $type = 'fournisseur'; $fiche = $fournisseur; $phrase = 'voici le lien pour répondre à nos demandes et suivre vos commandes'; $actionContact = $baseF . '/lien/' . (int) $l['id'] . '/contact'; $csrf = $csrfToken ?? \App\Core\Auth::csrfToken(); include __DIR__ . '/../echanges/_envoi_lien.php'; ?><?php endif; ?>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>

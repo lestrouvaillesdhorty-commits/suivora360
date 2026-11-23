@@ -206,10 +206,78 @@ class FournisseurLienController
             $this->introuvable();
             return;
         }
+        $echPret = \App\Models\Echange::pret();
+        $vue = $echPret && ($_GET['vue'] ?? '') === 'messages' ? 'messages' : 'detail';
+        $dossierId = (int) ($b['dossier_id'] ?? 0);
         $this->rendre('fournisseur_lien/commande', [
             'lien' => $lien, 'fournisseur' => $f, 'bon' => $b, 'lignes' => BonCommandeFournisseur::lignes((int) $b['id']), 'docs' => BonSuivi::documents((int) $b['id']),
             'onglet' => 'commandes', 'emetteur' => $this->emetteur($f), 'base' => $this->base($lien), 'nbCommandes' => BonSuivi::aConfirmer((int) $f['id']),
+            'echPret' => $echPret, 'vue' => $vue,
+            'messages' => $echPret ? \App\Models\Echange::messages(\App\Models\Echange::FOURNISSEUR, $dossierId, (int) $b['id']) : [],
+            'notes' => $echPret && $dossierId > 0 ? \App\Models\Echange::notesVisibles($dossierId, \App\Models\Echange::FOURNISSEUR) : [],
+            'nonLus' => $echPret ? \App\Models\Echange::nonLusExterne(\App\Models\Echange::FOURNISSEUR, $dossierId, (int) $b['id']) : 0,
         ]);
+        if ($vue === 'messages') {
+            \App\Models\Echange::marquerLusExterne(\App\Models\Echange::FOURNISSEUR, $dossierId, (int) $b['id']);
+        }
+    }
+
+    /** Message du fournisseur sur une de ses commandes (v72). */
+    public function envoyerMessage(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $f] = $ctx;
+        $b = \App\Models\Echange::pret() ? BonSuivi::bon((int) $f['id'], (int) ($params['id'] ?? 0)) : null;
+        if (!$b) {
+            $this->introuvable();
+            return;
+        }
+        $base = $this->base($lien);
+        $retour = $base . '/commandes/' . (int) $b['id'] . '&vue=messages';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            $this->flash('erreur', 'Page expirée : merci de réessayer.');
+            $this->aller($retour);
+        }
+        if (trim((string) ($_POST['site_web'] ?? '')) !== '') {
+            $this->aller($base);
+        }
+        $dossierId = (int) ($b['dossier_id'] ?? 0);
+        if (\App\Models\Echange::recentsExternes(\App\Models\Echange::FOURNISSEUR, $dossierId, (int) $b['id']) >= \App\Models\Echange::MAX_PAR_HEURE) {
+            $this->flash('erreur', 'Vous avez envoyé plusieurs messages à l’instant. Merci de patienter un peu avant d’en écrire un autre.');
+            $this->aller($retour);
+        }
+        $dossier = $dossierId > 0 ? \App\Models\Dossier::find($dossierId) : null;
+        $dossier = $dossier ?: ['id' => 0, 'filiale_id' => (int) $f['filiale_id'], 'responsable_id' => null, 'reference' => '', 'demande_id' => 0];
+        $contact = \App\Models\Echange::contactDuLien(\App\Models\Echange::FOURNISSEUR, $f, $lien);
+        [$mid, $erreur] = \App\Models\Echange::envoyer(\App\Models\Echange::FOURNISSEUR, $dossier, (int) $b['id'], 'externe', null, (string) $contact['nom'], (string) ($_POST['texte'] ?? ''), $_FILES['fichier'] ?? null);
+        if (!$mid) {
+            $this->flash('erreur', (string) $erreur);
+            $this->aller($retour);
+        }
+        $apercu = mb_substr(trim((string) ($_POST['texte'] ?? '')), 0, 300);
+        \App\Models\Echange::prevenirEquipe($dossier, 'Nouveau message d’un fournisseur',
+            $f['nom'] . ' a écrit sur la commande ' . $b['reference'] . ($apercu !== '' ? ' : « ' . $apercu . ' »' : ' (fichier joint).'),
+            $dossierId > 0 ? '/index.php?r=dossiers/' . $dossierId . '&onglet=messages' : '/index.php?r=bons-commande/' . (int) $b['id'] . '#messages');
+        $this->flash('succes', 'Votre message a bien été envoyé.');
+        $this->aller($retour);
+    }
+
+    public function fichierMessage(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [, $f] = $ctx;
+        $m = \App\Models\Echange::pret() ? \App\Models\Echange::message((int) ($params['mid'] ?? 0)) : null;
+        if (!$m || $m['canal'] !== \App\Models\Echange::FOURNISSEUR || !BonSuivi::bon((int) $f['id'], (int) $m['bon_id'])) {
+            $this->introuvable();
+            return;
+        }
+        \App\Models\Echange::servirFichier($m);
     }
 
     /** Confirmer, refuser ou expédier une commande : une seule entrée, trois actions. */
@@ -328,7 +396,14 @@ class FournisseurLienController
             $this->versFiche($id);
         }
         $jours = (int) ($_POST['jours'] ?? FournisseurLien::DUREE_DEFAUT);
-        FournisseurLien::creerLien($id, $jours, (int) Auth::user()['id']);
+        $contactId = (int) ($_POST['contact_id'] ?? 0);
+        $contactOk = null;
+        foreach (\App\Models\Echange::contacts('fournisseur', $f) as $c) {
+            if ((int) $c['id'] === $contactId && $contactId > 0) {
+                $contactOk = $contactId;
+            }
+        }
+        FournisseurLien::creerLien($id, $jours, (int) Auth::user()['id'], $contactOk);
         AuditLog::log((int) $f['filiale_id'], (int) Auth::user()['id'], 'lien_fournisseur_cree', 'fournisseur', $id, $jours . ' jours');
         View::flash('succes', 'Lien créé. Copiez-le ou copiez le message de relance, puis envoyez-le (WhatsApp, e-mail…).');
         $this->versFiche($id);

@@ -39,7 +39,7 @@ class FournisseurLien
 
     // ------------------------------------------------------------------ Liens
 
-    public static function creerLien(int $fournisseurId, int $jours, ?int $userId): string
+    public static function creerLien(int $fournisseurId, int $jours, ?int $userId, ?int $contactId = null): string
     {
         if (!in_array($jours, self::DUREES_JOURS, true)) {
             $jours = self::DUREE_DEFAUT;
@@ -48,6 +48,9 @@ class FournisseurLien
         Database::connection()->prepare(
             'INSERT INTO fournisseur_liens (fournisseur_id, token, expire_le, cree_par, created_at) VALUES (?, ?, ?, ?, ?)'
         )->execute([$fournisseurId, $token, date('Y-m-d H:i:s', time() + $jours * 86400), $userId, date('Y-m-d H:i:s')]);
+        if ($contactId && \App\Core\Schema::colonne('fournisseur_liens', 'contact_id')) {
+            Database::connection()->prepare('UPDATE fournisseur_liens SET contact_id = ? WHERE token = ?')->execute([$contactId, $token]);
+        }
         return $token;
     }
 

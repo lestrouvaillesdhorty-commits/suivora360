@@ -79,7 +79,7 @@ class Dossier
      * [ajouté 06/10, report de la maquette Dossiers] Onglets de la fiche
      * Dossier — voir DossierController::show().
      */
-    public const ONGLETS = ['synthese', 'besoin', 'achats', 'cotations', 'execution', 'documents', 'equipe'];
+    public const ONGLETS = ['synthese', 'besoin', 'achats', 'cotations', 'execution', 'documents', 'suivi', 'messages', 'equipe'];
 
     /**
      * [ajouté 06/10, report de la maquette Dossiers, cahier des charges

@@ -15,6 +15,23 @@ $d = fn($x) => date('d/m/Y', strtotime($x));
   <div class="hero"><h1>Bon <?= View::e($bon['reference']) ?></h1><div class="sub"><?= !empty($bon['dossier_reference']) ? 'Dossier ' . View::e($bon['dossier_reference']) . ' · ' : '' ?>émis le <?= $d($bon['date_emission']) ?></div></div>
   <?php if (!empty($flashPortail)): ?><div class="alert <?= $flashPortail['type'] === 'succes' ? 'al-s' : 'al-e' ?>"><?= View::e($flashPortail['message']) ?></div><?php endif; ?>
   <?php include __DIR__ . '/_onglets.php'; ?>
+  <?php $vue = $vue ?? 'detail'; $echPret = $echPret ?? false; if ($echPret): $urlBon = $base . '/commandes/' . (int) $bon['id']; ?>
+  <div class="tabs" style="margin-top:0">
+    <a href="<?= View::e($urlBon) ?>" class="<?= $vue === 'detail' ? 'on' : '' ?>">Détail</a>
+    <a href="<?= View::e($urlBon) ?>&vue=messages" class="<?= $vue === 'messages' ? 'on' : '' ?>">Messages<?= ($nonLus ?? 0) > 0 ? ' <span class="badge rd" style="padding:1px 7px">' . (int) $nonLus . '</span>' : '' ?></a>
+  </div>
+  <?php endif; ?>
+<?php if ($vue === 'messages'): ?>
+  <?php if (!empty($notes)): ?><div class="card"><h2>Informations de l'entreprise</h2>
+    <?php foreach ($notes as $n): ?><div style="border-left:3px solid #0B7C8A;padding:2px 0 2px 10px;margin-bottom:10px"><div class="mut"><?= $d(substr((string) $n['created_at'], 0, 10)) ?></div><div style="white-space:pre-line"><?= View::e($n['texte']) ?></div></div><?php endforeach; ?></div><?php endif; ?>
+  <div class="card"><h2>Messages</h2>
+    <?php $actionUrl = $urlBon . '/messages'; $fichierBase = $base . '/messages'; $nomEquipe = $emetteur !== '' ? $emetteur : 'Équipe'; include __DIR__ . '/../portail/_fil_externe.php'; ?>
+  </div>
+  <div class="act"><a href="<?= $base ?>/commandes">← Toutes mes commandes</a></div>
+</div></body></html>
+<?php return; endif; ?>
+  <?php if (!empty($notes)): ?><div class="card"><h2>Informations de l'entreprise</h2>
+    <?php foreach ($notes as $n): ?><div style="border-left:3px solid #0B7C8A;padding:2px 0 2px 10px;margin-bottom:10px"><div class="mut"><?= $d(substr((string) $n['created_at'], 0, 10)) ?></div><div style="white-space:pre-line"><?= View::e($n['texte']) ?></div></div><?php endforeach; ?></div><?php endif; ?>
   <div class="card"><h2>Articles commandés</h2>
     <?php foreach ($lignes as $l): ?><div class="row"><div><div class="ref"><?= View::e($l['designation']) ?></div>
       <div class="mut"><?= $qte($l['quantite']) !== '' ? $qte($l['quantite']) . ' ' . View::e($l['unite']) : '' ?><?= $l['prix_unitaire'] !== null ? ' × ' . $fm($l['prix_unitaire']) . ' ' . View::e($bon['devise']) : '' ?></div></div>

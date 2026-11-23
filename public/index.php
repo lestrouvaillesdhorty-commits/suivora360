@@ -3,6 +3,7 @@
 use App\Controllers\AuthController;
 use App\Controllers\BonCommandeFournisseurController;
 use App\Controllers\ClientController;
+use App\Controllers\EchangeController;
 use App\Controllers\PortailClientController;
 use App\Controllers\CommandeController;
 use App\Controllers\ComparateurController;
@@ -320,6 +321,49 @@ $router->post('/fournisseurs/{id}/lien/{lienId}/revoquer', function ($params) {
     Auth::requireLogin();
     (new FournisseurLienController())->revoquer($params);
 });
+// Échanges (v72) : notes de suivi, messages, contact destinataire des liens (équipe connectée)
+$router->post('/dossiers/{id}/suivi', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->ajouterNote($params);
+});
+$router->post('/dossiers/{id}/suivi/{nid}', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->modifierNote($params);
+});
+$router->post('/dossiers/{id}/suivi/{nid}/retirer', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->retirerNote($params);
+});
+$router->post('/dossiers/{id}/messages', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->repondre($params);
+});
+$router->get('/dossiers/{id}/messages/{mid}/fichier', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->fichier($params);
+});
+$router->post('/bons-commande/{id}/messages', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->repondreBon($params);
+});
+$router->get('/bons-commande/{id}/messages/{mid}/fichier', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->fichier($params);
+});
+$router->post('/clients/{id}/portail/{lienId}/contact', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->contactLienClient($params);
+});
+$router->post('/fournisseurs/{id}/lien/{lienId}/contact', function ($params) {
+    Auth::requireLogin();
+    (new EchangeController())->contactLienFournisseur($params);
+});
+// Échanges (v72) — PUBLIC, par lien privé : dossier du client, messages du fournisseur
+$router->get('/espace-client/{token}/dossiers/{id}', fn($params) => (new PortailClientController())->dossier($params));
+$router->post('/espace-client/{token}/dossiers/{id}/messages', fn($params) => (new PortailClientController())->envoyerMessage($params));
+$router->get('/espace-client/{token}/messages/{mid}/fichier', fn($params) => (new PortailClientController())->fichierMessage($params));
+$router->post('/lien-fournisseur/{token}/commandes/{id}/messages', fn($params) => (new FournisseurLienController())->envoyerMessage($params));
+$router->get('/lien-fournisseur/{token}/messages/{mid}/fichier', fn($params) => (new FournisseurLienController())->fichierMessage($params));
 $router->post('/offres/{id}/valider', function ($params) {
     Auth::requireLogin();
     (new OffreController())->valider($params);

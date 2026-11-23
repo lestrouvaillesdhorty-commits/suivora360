@@ -109,8 +109,14 @@ $csrfEntete = \App\Core\Auth::csrfToken();
 </div>
 
 <div class="dos-tabs">
-  <?php foreach (['synthese' => 'Synthèse', 'besoin' => 'Besoin', 'achats' => 'Achats et offres', 'cotations' => 'Cotations client', 'execution' => 'Exécution', 'documents' => 'Documents', 'equipe' => 'Équipe et historique'] as $code => $label): ?>
-    <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>&onglet=<?= $code ?>" class="dos-tab <?= $onglet === $code ? 'active' : '' ?>"><?= $label ?></a>
+  <?php
+  $_echPret = \App\Models\Echange::pret();
+  $_nbNonLus = $_echPret ? (int) ($echangeNonLus ?? \App\Models\Echange::nonLusInterne((int) $dossier['id'])) : 0;
+  $_ongletsDossier = ['synthese' => 'Synthèse', 'besoin' => 'Besoin', 'achats' => 'Achats et offres', 'cotations' => 'Cotations client', 'execution' => 'Exécution', 'documents' => 'Documents'];
+  if ($_echPret) { $_ongletsDossier['suivi'] = 'Suivi'; $_ongletsDossier['messages'] = 'Messages'; }
+  $_ongletsDossier['equipe'] = 'Équipe et historique';
+  foreach ($_ongletsDossier as $code => $label): ?>
+    <a href="/index.php?r=dossiers/<?= $dossier['id'] ?>&onglet=<?= $code ?>" class="dos-tab <?= $onglet === $code ? 'active' : '' ?>"><?= $label ?><?= ($code === 'messages' && $_nbNonLus > 0) ? ' <span class="badge badge-red" style="padding:0 6px">' . $_nbNonLus . '</span>' : '' ?></a>
   <?php endforeach; ?>
 </div>
 

@@ -248,6 +248,114 @@ class PortailClientController
     }
 
     // ------------------------------------------------------------------
+    // Dossier : suivi (notes de l'équipe) et messages (v72)
+    // ------------------------------------------------------------------
+
+    /** Dossier du client (jamais celui d'un autre) : ligne « publique » + dossier complet pour l'enregistrement. */
+    private function dossierDuClient(array $client, int $id): ?array
+    {
+        foreach (PortailClient::dossiers((int) $client['id']) as $d) {
+            if ((int) $d['id'] === $id) {
+                $complet = Dossier::find($id);
+                return $complet ? ['public' => $d, 'complet' => $complet] : null;
+            }
+        }
+        return null;
+    }
+
+    public function dossier(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $client] = $ctx;
+        $base = '/index.php?r=espace-client/' . $lien['token'];
+        $d = \App\Models\Echange::pret() ? $this->dossierDuClient($client, (int) ($params['id'] ?? 0)) : null;
+        if (!$d) {
+            $this->introuvable();
+            return;
+        }
+        PortailClient::enregistrerAcces((int) $lien['id']);
+        $id = (int) $d['public']['id'];
+        $vue = in_array($_GET['vue'] ?? '', ['avancement', 'suivi', 'messages'], true) ? $_GET['vue'] : 'avancement';
+        $this->rendre('portail/dossier', [
+            'lien' => $lien,
+            'client' => $client,
+            'dossier' => $d['public'],
+            'vue' => $vue,
+            'notes' => \App\Models\Echange::notesVisibles($id, \App\Models\Echange::CLIENT),
+            'messages' => \App\Models\Echange::messages(\App\Models\Echange::CLIENT, $id),
+            'nonLus' => \App\Models\Echange::nonLusExterne(\App\Models\Echange::CLIENT, $id),
+            'emetteur' => $this->nomEmetteur($client),
+            'base' => $base,
+            'erreurs' => [],
+        ]);
+        if ($vue === 'messages') {
+            \App\Models\Echange::marquerLusExterne(\App\Models\Echange::CLIENT, $id);
+        }
+    }
+
+    public function envoyerMessage(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [$lien, $client] = $ctx;
+        $base = '/index.php?r=espace-client/' . $lien['token'];
+        $d = \App\Models\Echange::pret() ? $this->dossierDuClient($client, (int) ($params['id'] ?? 0)) : null;
+        if (!$d) {
+            $this->introuvable();
+            return;
+        }
+        $id = (int) $d['public']['id'];
+        $retour = $base . '/dossiers/' . $id . '&vue=messages';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            $this->flashPortail('erreur', 'Page expirée : merci de réessayer.');
+            $this->aller($retour);
+        }
+        if (trim((string) ($_POST['site_web'] ?? '')) !== '') {
+            $this->aller($base);
+        }
+        if ((int) $client['is_active'] !== 1) {
+            $this->flashPortail('erreur', 'Votre compte client est actuellement inactif. Merci de contacter directement votre interlocuteur.');
+            $this->aller($retour);
+        }
+        if (\App\Models\Echange::recentsExternes(\App\Models\Echange::CLIENT, $id, null) >= \App\Models\Echange::MAX_PAR_HEURE) {
+            $this->flashPortail('erreur', 'Vous avez envoyé plusieurs messages à l’instant. Merci de patienter un peu avant d’en écrire un autre.');
+            $this->aller($retour);
+        }
+        $contact = \App\Models\Echange::contactDuLien(\App\Models\Echange::CLIENT, $client, $lien);
+        [$mid, $erreur] = \App\Models\Echange::envoyer(\App\Models\Echange::CLIENT, $d['complet'], null, 'externe', null, (string) $contact['nom'], (string) ($_POST['texte'] ?? ''), $_FILES['fichier'] ?? null);
+        if (!$mid) {
+            $this->flashPortail('erreur', (string) $erreur);
+            $this->aller($retour);
+        }
+        $apercu = mb_substr(trim((string) ($_POST['texte'] ?? '')), 0, 300);
+        \App\Models\Echange::prevenirEquipe($d['complet'], 'Nouveau message d’un client',
+            $client['nom'] . ' a écrit sur le dossier ' . $d['complet']['reference'] . ($apercu !== '' ? ' : « ' . $apercu . ' »' : ' (fichier joint).'),
+            '/index.php?r=dossiers/' . $id . '&onglet=messages');
+        $this->flashPortail('succes', 'Votre message a bien été envoyé.');
+        $this->aller($retour);
+    }
+
+    public function fichierMessage(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [, $client] = $ctx;
+        $m = \App\Models\Echange::pret() ? \App\Models\Echange::message((int) ($params['mid'] ?? 0)) : null;
+        if (!$m || $m['canal'] !== \App\Models\Echange::CLIENT || !$this->dossierDuClient($client, (int) $m['dossier_id'])) {
+            $this->introuvable();
+            return;
+        }
+        \App\Models\Echange::servirFichier($m);
+    }
+
+    // ------------------------------------------------------------------
     // Utilitaires
     // ------------------------------------------------------------------
 

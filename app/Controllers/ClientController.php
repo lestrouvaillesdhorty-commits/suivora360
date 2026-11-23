@@ -626,6 +626,17 @@ class ClientController
     // Espace client externe : liens privés (07/10)
     // ------------------------------------------------------------------
 
+    /** Contact choisi pour un lien : conservé seulement s'il appartient bien à la fiche (0 = contact principal). */
+    private static function contactValide(string $type, array $fiche, int $contactId): ?int
+    {
+        foreach (\App\Models\Echange::contacts($type, $fiche) as $c) {
+            if ((int) $c['id'] === $contactId) {
+                return $contactId ?: null;
+            }
+        }
+        return null;
+    }
+
     public function creerLienPortail(array $params): void
     {
         $client = $this->chargerOu404($params, true);
@@ -650,7 +661,7 @@ class ClientController
             $this->versFiche($id);
         }
         $jours = (int) ($_POST['jours'] ?? \App\Models\PortailClient::DUREE_DEFAUT);
-        \App\Models\PortailClient::creerLien($id, $jours, (int) $user['id']);
+        \App\Models\PortailClient::creerLien($id, $jours, (int) $user['id'], self::contactValide('client', $client, (int) ($_POST['contact_id'] ?? 0)));
         AuditLog::log((int) $client['filiale_id'], (int) $user['id'], 'lien_espace_client_cree', 'client', $id, $jours . ' jours');
         View::flash('succes', 'Lien créé. Copiez-le et envoyez-le à votre client (e-mail, WhatsApp…).');
         $this->versFiche($id);

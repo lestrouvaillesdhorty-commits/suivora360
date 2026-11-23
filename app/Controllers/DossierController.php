@@ -465,6 +465,9 @@ class DossierController
         // reçues / Comparaison), conforme à la maquette — même mécanisme
         // que $onglet, mais à un niveau en dessous et seulement pertinent
         // pour cet onglet précis.
+        // [v72] Messages reçus et non lus (pastille de l'onglet) ; ils sont marqués lus une fois l'onglet Messages affiché.
+        $echangeNonLus = \App\Models\Echange::nonLusInterne((int) $dossier['id']);
+
         $sousOngletsAchats = ['consultations', 'offres'];
         $sousOngletAchats = $_GET['sous'] ?? 'consultations';
         if (!in_array($sousOngletAchats, $sousOngletsAchats, true)) {
@@ -474,6 +477,7 @@ class DossierController
         View::render('folders/show', [
             'dossier' => $dossier,
             'onglet' => $onglet,
+            'echangeNonLus' => $echangeNonLus,
             'sousOngletAchats' => $sousOngletAchats,
             'demande' => $demande,
             'articles' => $articles,

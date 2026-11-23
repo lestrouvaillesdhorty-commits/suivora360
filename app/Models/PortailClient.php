@@ -43,7 +43,7 @@ class PortailClient
     // Liens
     // ------------------------------------------------------------------
 
-    public static function creerLien(int $clientId, int $jours, ?int $userId): string
+    public static function creerLien(int $clientId, int $jours, ?int $userId, ?int $contactId = null): string
     {
         if (!in_array($jours, self::DUREES_JOURS, true)) {
             $jours = self::DUREE_DEFAUT;
@@ -54,6 +54,9 @@ class PortailClient
         )->execute([
             $clientId, $token, date('Y-m-d H:i:s', time() + $jours * 86400), $userId, date('Y-m-d H:i:s'),
         ]);
+        if ($contactId && \App\Core\Schema::colonne('client_portail_liens', 'contact_id')) {
+            Database::connection()->prepare('UPDATE client_portail_liens SET contact_id = ? WHERE token = ?')->execute([$contactId, $token]);
+        }
         return $token;
     }
 

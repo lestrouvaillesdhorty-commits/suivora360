@@ -40,7 +40,7 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
   <?php if (empty($dossiers)): ?><div class="mut">Aucun dossier pour le moment.</div><?php endif; ?>
   <?php foreach ($dossiers as $d): $idx = array_search($d['etape'], Dossier::ETAPES, true); $idx = $idx === false ? 0 : $idx; ?>
     <div class="row"><div>
-      <div class="ref"><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?></div>
+      <div class="ref"><?php if (\App\Models\Echange::pret()): ?><a href="<?= $base ?>/dossiers/<?= (int) $d['id'] ?>" style="color:inherit"><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?></a><?php $nl = \App\Models\Echange::nonLusExterne('client', (int) $d['id']); if ($nl > 0): ?> <span class="badge rd" style="padding:1px 7px"><?= $nl ?> réponse<?= $nl > 1 ? 's' : '' ?></span><?php endif; ?><?php else: ?><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?><?php endif; ?></div>
       <div class="mut"><?= !empty($d['echeance']) && $d['statut'] === 'actif' ? 'Échéance prévue ' . date('d/m/Y', strtotime($d['echeance'])) : ($d['statut'] === 'actif' ? 'En cours' : 'Terminé') ?></div>
       <div class="steps s-<?= View::e($d['etape']) ?>"><?php for ($i = 0; $i < 6; $i++): ?><i class="<?= $i <= $idx ? 'd' : '' ?>"></i><?php endfor; ?></div>
     </div><span class="badge big e-<?= View::e($d['etape']) ?>"><?= View::e($etapesClient[$d['etape']] ?? $d['etape']) ?></span></div>
