@@ -366,11 +366,12 @@ document.getElementById('items-body').addEventListener('click', function (e) {
     var f = document.getElementById('iaFichier').files[0];
     if (!f) { msg.style.color = '#991b1b'; msg.textContent = 'Choisissez d\u2019abord un fichier.'; return; }
     var fd = new FormData(); fd.append('csrf_token', token); fd.append('fichier', f);
-    btn.disabled = true; msg.style.color = '#555'; msg.textContent = 'Lecture en cours… (jusqu\u2019à une minute)';
+    btn.disabled = true; msg.style.color = '#555'; var t0 = Date.now();
+    var chrono = setInterval(function () { msg.textContent = 'Lecture en cours… ' + Math.round((Date.now() - t0) / 1000) + ' s (en général 10 à 30 s)'; }, 1000); msg.textContent = 'Lecture en cours…';
     fetch('/index.php?r=offres/extraire-ia', { method: 'POST', body: fd, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        btn.disabled = false;
+        clearInterval(chrono); btn.disabled = false;
         if (d.erreur) { msg.style.color = '#991b1b'; msg.textContent = d.erreur; return; }
         var c = d.champs, n = 0;
         Object.keys(c).forEach(function (k) {
@@ -435,7 +436,7 @@ document.getElementById('items-body').addEventListener('click', function (e) {
         msg.style.color = '#166534';
         msg.textContent = 'Formulaire prérempli (' + n + ' éléments, surlignés en jaune). Vérifiez chaque valeur avant d\u2019enregistrer.';
       })
-      .catch(function () { btn.disabled = false; msg.style.color = '#991b1b'; msg.textContent = 'Lecture impossible, réessayez.'; });
+      .catch(function () { clearInterval(chrono); btn.disabled = false; msg.style.color = '#991b1b'; msg.textContent = 'Lecture impossible, réessayez.'; });
   });
 })();
 </script>

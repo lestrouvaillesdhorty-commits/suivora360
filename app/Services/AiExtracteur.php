@@ -24,6 +24,13 @@ class AiExtracteur
         return $m !== '' ? $m : self::MODEL;
     }
 
+    /** Lecture d'une offre : modèle rapide par défaut (réglable : ANTHROPIC_MODEL_OFFRE dans .env), la lecture d'un tableau n'a pas besoin du plus gros modèle. */
+    private static function modeleOffre(): string
+    {
+        $m = trim((string) Env::get('ANTHROPIC_MODEL_OFFRE', ''));
+        return $m !== '' ? $m : 'claude-haiku-4-5-20251001';
+    }
+
     /**
      * [ajouté 05/10, report de la maquette] Vérification légère, sans appel
      * réseau, pour afficher un état de repli discret (bouton "Extraire avec
@@ -273,9 +280,9 @@ Clés possibles (omets toute clé dont l'information n'est pas écrite dans le d
 - "poids_kg", "volume_m3": nombres ; "nombre_colis": entier
 - "transport_montant", "assurance_montant", "emballage_montant", "douane_montant", "dedouanement_montant", "autres_frais_montant": nombres
 - "notes": conditions particulières utiles, une à deux phrases
-- "articles": tableau d'objets {"designation": texte, "quantite": nombre ou null, "unite": texte ou "", "prix_unitaire": nombre ou null}
+- "articles": tableau de lignes COMPACTES, une par article : [designation, quantite, unite, prix_unitaire] (quantite et prix_unitaire = nombre ou null, unite = texte ou ""), par exemple ["Compresseur ZB45", 2, "pce", 1250.5]
 
-Règles : ne rapporte que ce qui est écrit dans le document, n'invente et ne calcule jamais une valeur manquante. Si "montant_total" n'est pas écrit mais que les lignes le permettent, laisse-le de côté. Si le document n'est pas une offre, réponds {}.
+Règles : ne rapporte que ce qui est écrit dans le document, n'invente et ne calcule jamais une valeur manquante. Si "montant_total" n'est pas écrit mais que les lignes le permettent, laisse-le de côté. Si le document n'est pas une offre, réponds {}. Réponds le plus court possible : JSON sur une seule ligne, sans espaces inutiles.
 PROMPT;
 
         $contenu = [];
@@ -294,9 +301,9 @@ PROMPT;
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 90,
+            CURLOPT_TIMEOUT => 120,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . $apiKey, 'anthropic-version: 2023-06-01'],
-            CURLOPT_POSTFIELDS => json_encode(['model' => self::modele(), 'max_tokens' => 4096, 'messages' => [['role' => 'user', 'content' => $contenu]]]),
+            CURLOPT_POSTFIELDS => json_encode(['model' => self::modeleOffre(), 'max_tokens' => 8000, 'messages' => [['role' => 'user', 'content' => $contenu]]]),
         ]);
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -342,6 +349,10 @@ PROMPT;
         }
         $res['articles'] = [];
         foreach ((array) ($o['articles'] ?? []) as $a) {
+            // Format compact [désignation, quantité, unité, prix] ; l'ancien format objet reste accepté.
+            if (is_array($a) && array_is_list($a)) {
+                $a = ['designation' => $a[0] ?? '', 'quantite' => $a[1] ?? null, 'unite' => $a[2] ?? '', 'prix_unitaire' => $a[3] ?? null];
+            }
             if (!is_array($a) || empty($a['designation'])) {
                 continue;
             }
@@ -351,7 +362,7 @@ PROMPT;
                 'unite' => isset($a['unite']) ? (string) $a['unite'] : '',
                 'prix_unitaire' => isset($a['prix_unitaire']) && is_numeric($a['prix_unitaire']) ? round((float) $a['prix_unitaire'], 2) : null,
             ];
-            if (count($res['articles']) >= 50) {
+            if (count($res['articles']) >= 150) {
                 break;
             }
         }
