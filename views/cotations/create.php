@@ -101,12 +101,16 @@ try {
 
     <div class="cot-etape"><span class="n">1</span>Client et devise</div>
     <div class="form-group">
-      <label>Client</label>
+      <label>Facturé à (client)</label>
       <select name="client_id" required>
         <option value="">— Sélectionner —</option>
-        <?php foreach ($clients as $c): ?>
-          <?php $clientDefaut = $cotationPrecedente ? (int) $cotationPrecedente['client_id'] : (int) ($demande['client_id'] ?? 0); ?>
-          <option value="<?= $c['id'] ?>" <?= ($clientDefaut === (int) $c['id']) ? 'selected' : '' ?>><?= View::e($c['nom']) ?></option>
+        <?php $clientDefaut = $cotationPrecedente ? (int) $cotationPrecedente['client_id'] : (int) ($demande['client_id'] ?? 0); ?>
+        <?php foreach (\App\Models\Client::regrouper($clients) as $bloc): ?>
+          <?php if ($bloc['groupe']): ?><optgroup label="<?= View::e($bloc['groupe']) ?>"><?php endif; ?>
+          <?php foreach ($bloc['clients'] as $c): ?>
+            <option value="<?= $c['id'] ?>" <?= ($clientDefaut === (int) $c['id']) ? 'selected' : '' ?>><?= View::e($c['nom']) ?></option>
+          <?php endforeach; ?>
+          <?php if ($bloc['groupe']): ?></optgroup><?php endif; ?>
         <?php endforeach; ?>
       </select>
     </div>

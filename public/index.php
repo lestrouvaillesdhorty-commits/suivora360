@@ -382,6 +382,14 @@ $router->post('/offres/{id}/valider', function ($params) {
 });
 
 // Fiche client : contacts, adresses, documents (07/10)
+$router->post('/clients/{id}/groupe', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->groupeAjouter($params);
+});
+$router->post('/clients/{id}/groupe/{cid}/retirer', function ($params) {
+    Auth::requireLogin();
+    (new ClientController())->groupeRetirer($params);
+});
 $router->post('/clients/{id}/contacts', function ($params) {
     Auth::requireLogin();
     (new ClientController())->enregistrerContact($params);

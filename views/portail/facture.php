@@ -14,7 +14,7 @@ $fm = fn($m, $d) => number_format((float) $m, 0, ',', ' ') . ' ' . ($d !== null 
     <div class="sub">Dossier <?= View::e($facture['dossier_reference']) ?><?= !empty($facture['date_emission']) ? ' · émise le ' . date('d/m/Y', strtotime($facture['date_emission'])) : '' ?></div>
     <div class="big" style="margin-top:16px"><?= $fm($facture['montant'], $facture['devise']) ?></div>
     <?php if ($facture['statut'] === 'emise' && !empty($facture['date_echeance'])): ?><div class="mut" style="margin-top:6px">À régler avant le <?= date('d/m/Y', strtotime($facture['date_echeance'])) ?></div><?php endif; ?>
-    <div class="mut" style="margin-top:12px">Émise par <?= View::e($emetteur) ?> pour <?= View::e($client['nom']) ?>.</div>
+    <div class="mut" style="margin-top:12px">Émise par <?= View::e($emetteur) ?> pour <?= View::e((\App\Models\Client::find((int) ($facture['ent_id'] ?? 0))['nom'] ?? null) ?: $client['nom']) ?>.</div>
     <div class="act"><?php if (!empty($facture['fichier'])): ?><a class="btn bp noprint" href="<?= $base ?>/factures/<?= (int) $facture['id'] ?>/fichier">Télécharger la facture (<?= strtoupper(pathinfo((string) $facture['fichier'], PATHINFO_EXTENSION)) ?>)</a> <?php endif; ?><button class="btn bs noprint" onclick="window.print()">Imprimer / enregistrer en PDF</button></div>
   </div>
   <div class="priv">Ce lien est personnel : ne le partagez pas.</div>

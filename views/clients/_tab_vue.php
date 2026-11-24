@@ -14,6 +14,33 @@ $sansDossier = array_slice(array_values(array_filter($operations, fn($o) => empt
 ?>
 <div class="detail-grid">
   <div>
+<?php if (\App\Models\Client::groupeDispo()): $membres = Client::groupe($client); $tete = Client::teteId($client); $ajoutables = !empty($peutEcrire) ? Client::ajoutablesAuGroupe($client) : []; ?>
+<div class="card" id="groupe-client">
+  <h2 style="margin:0 0 6px">Groupe et sociétés facturées</h2>
+  <?php if (count($membres) < 2): ?>
+    <div style="font-size:13px;color:#667">Ce client est seul. Si votre client a plusieurs sociétés à facturer (chacune son SIRET et sa TVA), reliez-les ici : elles partagent un seul lien client.</div>
+  <?php else: ?>
+    <div style="font-size:13px;color:#667;margin-bottom:6px">Groupe <?= View::e($membres[0]['nom']) ?> · <?= count($membres) ?> sociétés facturées · un lien client commun</div>
+    <?php foreach ($membres as $m): ?>
+      <div class="info-row" style="align-items:center"><span><a href="/index.php?r=clients/<?= (int) $m['id'] ?>"><?= View::e($m['nom']) ?></a> <span class="badge <?= (int) $m['id'] === $tete ? 'badge-blue' : 'badge-gray' ?>"><?= (int) $m['id'] === $tete ? 'Société mère' : 'Filiale' ?></span><?= (int) $m['id'] === (int) $client['id'] ? ' <span style="font-size:12px;color:#889">(cette fiche)</span>' : '' ?><br><span style="font-size:12px;color:#667"><?= View::e(trim(($m['siret'] ?? '') !== '' ? 'SIRET ' . $m['siret'] : '') . (($m['tva'] ?? '') !== '' ? ' · TVA ' . $m['tva'] : '')) ?></span></span>
+        <?php if (!empty($peutEcrire) && (int) $m['id'] !== $tete): ?>
+          <form method="post" action="/index.php?r=clients/<?= (int) $client['id'] ?>/groupe/<?= (int) $m['id'] ?>/retirer" onsubmit="return confirm('Retirer cette société du groupe ?')"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>"><button class="btn btn-sm btn-secondary" type="submit">Retirer</button></form>
+        <?php endif; ?>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
+  <?php if (!empty($ajoutables)): ?>
+    <form method="post" action="/index.php?r=clients/<?= (int) $client['id'] ?>/groupe" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken ?? \App\Core\Auth::csrfToken()) ?>">
+      <select name="client_id" required style="flex:1;min-width:180px"><option value="">— Choisir une société —</option><?php foreach ($ajoutables as $c): ?><option value="<?= (int) $c['id'] ?>"><?= View::e($c['nom']) ?></option><?php endforeach; ?></select>
+      <button class="btn btn-secondary" type="submit">+ Ajouter une société au groupe</button>
+    </form>
+  <?php elseif (count($membres) < 2): ?>
+    <div style="font-size:12px;color:#889;margin-top:6px">Créez d'abord l'autre société comme client, puis revenez la relier ici.</div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
     <div class="card" id="contact-principal">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">Contact principal</h2><?php if (!empty($peutEcrire)): ?><a class="btn btn-sm btn-secondary" href="<?= $base ?>/modifier#contact_prenom">Modifier</a><?php endif; ?></div>
       <?= $ligne('Nom', $contactPrincipal) ?>

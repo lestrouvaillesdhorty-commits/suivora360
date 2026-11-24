@@ -49,6 +49,7 @@ class PortailClientController
             'lien' => $lien,
             'client' => $client,
             'onglet' => $onglet,
+            'entites' => PortailClient::entites($clientId),
             'dossiers' => PortailClient::dossiers($clientId),
             'cotations' => $cotations,
             'factures' => PortailClient::factures($clientId),

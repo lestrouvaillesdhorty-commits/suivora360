@@ -766,4 +766,49 @@ class ClientController
     {
         (new FournisseurController())->rechercheIa('client');
     }
+
+    /** Ajoute une société au groupe de cette fiche (la société ajoutée doit être seule et de la même filiale). */
+    public function groupeAjouter(array $params): void
+    {
+        $client = $this->chargerOu404($params, true);
+        if (!$client) {
+            return;
+        }
+        $id = (int) $client['id'];
+        $this->csrfOuRetour($id, 'vue');
+        $cible = (int) ($_POST['client_id'] ?? 0);
+        $ok = false;
+        foreach (Client::ajoutablesAuGroupe($client) as $c) {
+            if ((int) $c['id'] === $cible) { $ok = true; break; }
+        }
+        if (!$ok || !Client::groupeDispo()) {
+            View::flash('erreur', Client::groupeDispo() ? 'Cette société ne peut pas être ajoutée au groupe.' : 'Mise à jour de la base requise (migration V75).');
+            $this->versFiche($id);
+        }
+        Client::ajouterAuGroupe(Client::teteId($client), $cible);
+        \App\Models\AuditLog::log((int) $client['filiale_id'], (int) Auth::user()['id'], 'groupe_client_ajout', 'client', $id, 'Société ajoutée au groupe : client ' . $cible);
+        View::flash('succes', 'Société ajoutée au groupe.');
+        $this->versFiche($id);
+    }
+
+    public function groupeRetirer(array $params): void
+    {
+        $client = $this->chargerOu404($params, true);
+        if (!$client) {
+            return;
+        }
+        $id = (int) $client['id'];
+        $this->csrfOuRetour($id, 'vue');
+        $cible = (int) ($params['cid'] ?? 0);
+        $tete = Client::teteId($client);
+        foreach (Client::groupe($client) as $c) {
+            if ((int) $c['id'] === $cible && $cible !== $tete) {
+                Client::retirerDuGroupe($cible);
+                \App\Models\AuditLog::log((int) $client['filiale_id'], (int) Auth::user()['id'], 'groupe_client_retrait', 'client', $id, 'Société retirée du groupe : client ' . $cible);
+                View::flash('succes', 'Société retirée du groupe.');
+                break;
+            }
+        }
+        $this->versFiche($id);
+    }
 }

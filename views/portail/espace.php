@@ -26,6 +26,22 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
     <?php endforeach; ?>
   </div>
 
+<?php if (!empty($entites) && in_array($onglet, ['dossiers', 'cotations', 'factures'], true)): ?>
+  <div class="noprint" id="chips-ent" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px">
+    <button type="button" class="btn bp" style="padding:6px 12px" data-ent="0">Toutes</button>
+    <?php foreach ($entites as $eid => $enom): ?><button type="button" class="btn bs" style="padding:6px 12px" data-ent="<?= (int) $eid ?>"><?= View::e($enom) ?></button><?php endforeach; ?>
+  </div>
+  <script>
+  (function () {
+    var chips = document.querySelectorAll('#chips-ent button');
+    chips.forEach(function (b) { b.addEventListener('click', function () {
+      var e = b.dataset.ent;
+      chips.forEach(function (x) { x.className = 'btn ' + (x === b ? 'bp' : 'bs'); x.style.padding = '6px 12px'; });
+      document.querySelectorAll('.row[data-ent]').forEach(function (r) { r.style.display = (e === '0' || r.dataset.ent === e) ? '' : 'none'; });
+    }); });
+  })();
+  </script>
+<?php endif; ?>
 <?php if ($onglet === 'dossiers'): ?>
   <?php foreach (array_filter($cotations, fn($c) => \App\Models\PortailClient::decisionPossible($c)) as $c): ?>
   <div class="card cota">
@@ -39,8 +55,9 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
   <div class="card"><h2>Mes dossiers</h2>
   <?php if (empty($dossiers)): ?><div class="mut">Aucun dossier pour le moment.</div><?php endif; ?>
   <?php foreach ($dossiers as $d): $idx = array_search($d['etape'], Dossier::ETAPES, true); $idx = $idx === false ? 0 : $idx; ?>
-    <div class="row"><div>
+    <div class="row" data-ent="<?= (int) ($d['ent_id'] ?? 0) ?>"><div>
       <div class="ref"><?php if (\App\Models\Echange::pret()): ?><a href="<?= $base ?>/dossiers/<?= (int) $d['id'] ?>" style="color:inherit"><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?></a><?php $nl = \App\Models\Echange::nonLusExterne('client', (int) $d['id']); if ($nl > 0): ?> <span class="badge rd" style="padding:1px 7px"><?= $nl ?> réponse<?= $nl > 1 ? 's' : '' ?></span><?php endif; ?><?php else: ?><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?><?php endif; ?></div>
+      <?php if (!empty($entites) && isset($entites[(int) ($d['ent_id'] ?? 0)])): ?><div class="mut">Facturé à <?= View::e($entites[(int) $d['ent_id']]) ?></div><?php endif; ?>
       <div class="mut"><?= !empty($d['echeance']) && $d['statut'] === 'actif' ? 'Échéance prévue ' . date('d/m/Y', strtotime($d['echeance'])) : ($d['statut'] === 'actif' ? 'En cours' : 'Terminé') ?></div>
       <div class="steps s-<?= View::e($d['etape']) ?>"><?php for ($i = 0; $i < 6; $i++): ?><i class="<?= $i <= $idx ? 'd' : '' ?>"></i><?php endfor; ?></div>
     </div><span class="badge big e-<?= View::e($d['etape']) ?>"><?= View::e($etapesClient[$d['etape']] ?? $d['etape']) ?></span></div>
@@ -50,7 +67,8 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
   <div class="card"><h2>Mes cotations</h2>
   <?php if (empty($cotations)): ?><div class="mut">Aucune cotation à consulter pour le moment.</div><?php endif; ?>
   <?php $badges = ['envoyee' => ['À valider', 'ye'], 'acceptee' => ['Acceptée', 'gr'], 'refusee' => ['Refusée', 'rd']]; foreach ($cotations as $c): $bg = $badges[$c['statut']]; ?>
-    <div class="row"><div><div class="ref"><?= View::e($c['reference']) ?> — <?= View::e($c['dossier_objet']) ?></div>
+    <div class="row" data-ent="<?= (int) ($c['ent_id'] ?? 0) ?>"><div><div class="ref"><?= View::e($c['reference']) ?> — <?= View::e($c['dossier_objet']) ?></div>
+      <?php if (!empty($entites) && isset($entites[(int) ($c['ent_id'] ?? 0)])): ?><div class="mut">Facturé à <?= View::e($entites[(int) $c['ent_id']]) ?></div><?php endif; ?>
       <div class="mut"><?= $fm($c['montant_total'], $c['devise']) ?><?= !empty($c['validite_devis']) ? ' · valable jusqu\'au ' . date('d/m/Y', strtotime($c['validite_devis'])) : '' ?></div></div>
       <div><span class="badge <?= $bg[1] ?>"><?= $bg[0] ?></span> &nbsp;<a class="btn bs" style="padding:6px 12px" href="<?= $base ?>/cotations/<?= (int) $c['id'] ?>">Voir</a></div></div>
   <?php endforeach; ?></div>
@@ -59,7 +77,8 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
   <div class="card"><h2>Mes factures</h2>
   <?php if (empty($factures)): ?><div class="mut">Aucune facture pour le moment.</div><?php endif; ?>
   <?php foreach ($factures as $f): ?>
-    <div class="row"><div><div class="ref"><?= View::e($f['reference']) ?></div>
+    <div class="row" data-ent="<?= (int) ($f['ent_id'] ?? 0) ?>"><div><div class="ref"><?= View::e($f['reference']) ?></div>
+      <?php if (!empty($entites) && isset($entites[(int) ($f['ent_id'] ?? 0)])): ?><div class="mut">Facturée à <?= View::e($entites[(int) $f['ent_id']]) ?></div><?php endif; ?>
       <div class="mut"><?= !empty($f['date_emission']) ? 'Émise le ' . date('d/m/Y', strtotime($f['date_emission'])) . ' · ' : '' ?><?= View::e($f['dossier_reference']) ?><?= ($f['statut'] === 'emise' && !empty($f['date_echeance'])) ? ' · à régler avant le ' . date('d/m/Y', strtotime($f['date_echeance'])) : '' ?></div></div>
       <div><b><?= $fm($f['montant'], $f['devise']) ?></b> &nbsp;<span class="badge <?= $f['statut'] === 'payee' ? 'gr' : 'ye' ?>"><?= $f['statut'] === 'payee' ? 'Payée' : 'À régler' ?></span> &nbsp;<a class="btn bs" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>">Voir</a><?php if (!empty($f['fichier'])): ?> <a class="btn bp" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>/fichier">PDF</a><?php endif; ?></div></div>
   <?php endforeach; ?></div>

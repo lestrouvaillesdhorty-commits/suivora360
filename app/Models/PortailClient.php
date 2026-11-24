@@ -118,16 +118,44 @@ class PortailClient
     // Données visibles par le client (toutes filtrées par client_id)
     // ------------------------------------------------------------------
 
+    /** Ids des sociétés du groupe du client (lui seul s'il n'a pas de groupe). */
+    private static function ids(int $clientId): array
+    {
+        return \App\Models\Client::idsGroupe($clientId) ?: [$clientId];
+    }
+
+    private static function marques(array $ids): string
+    {
+        return implode(',', array_fill(0, count($ids), '?'));
+    }
+
+    /** Sociétés du groupe [id => nom] si le client a plusieurs sociétés facturées, sinon []. */
+    public static function entites(int $clientId): array
+    {
+        $ids = self::ids($clientId);
+        if (count($ids) < 2) {
+            return [];
+        }
+        $st = Database::connection()->prepare('SELECT id, nom FROM clients WHERE id IN (' . self::marques($ids) . ') ORDER BY nom');
+        $st->execute($ids);
+        $out = [];
+        foreach ($st->fetchAll() as $r) { $out[(int) $r['id']] = (string) $r['nom']; }
+        return $out;
+    }
+
     /** Dossiers du client (via la demande d'origine) : référence, objet, étape, statut, échéance. Rien d'interne. */
     public static function dossiers(int $clientId): array
     {
+        $ids = self::ids($clientId);
+        $in = self::marques($ids);
         $stmt = Database::connection()->prepare(
-            'SELECT d.id, d.reference, d.objet, d.etape, d.statut, d.echeance, d.created_at
+            "SELECT d.id, d.reference, d.objet, d.etape, d.statut, d.echeance, d.created_at,
+                    COALESCE((SELECT c3.client_id FROM cotations c3 WHERE c3.dossier_id = d.id AND c3.statut IN ('envoyee', 'acceptee', 'refusee') ORDER BY c3.created_at DESC, c3.id DESC LIMIT 1), de.client_id) AS ent_id
              FROM dossiers d LEFT JOIN demandes de ON de.id = d.demande_id
-             WHERE de.client_id = ? OR EXISTS (SELECT 1 FROM cotations c2 WHERE c2.dossier_id = d.id AND c2.client_id = ? AND c2.statut IN (\'envoyee\', \'acceptee\', \'refusee\'))
-             ORDER BY d.created_at DESC'
+             WHERE de.client_id IN ($in) OR EXISTS (SELECT 1 FROM cotations c2 WHERE c2.dossier_id = d.id AND c2.client_id IN ($in) AND c2.statut IN ('envoyee', 'acceptee', 'refusee'))
+             ORDER BY d.created_at DESC"
         );
-        $stmt->execute([$clientId, $clientId]);
+        $stmt->execute(array_merge($ids, $ids));
         return $stmt->fetchAll();
     }
 
@@ -138,14 +166,15 @@ class PortailClient
     public static function cotations(int $clientId): array
     {
         $d2 = \App\Core\Schema::colonne('cotations', 'devise2') ? ', co.devise2, co.taux_devise2' : '';
+        $ids = self::ids($clientId);
         $stmt = Database::connection()->prepare(
-            "SELECT co.id, co.reference, co.version, co.montant_total, co.devise, co.statut, co.validite_devis$d2,
+            "SELECT co.id, co.reference, co.version, co.montant_total, co.devise, co.statut, co.validite_devis, co.client_id AS ent_id$d2,
                     co.mode_paiement_negocie, co.incoterm_client, co.created_at, d.id AS dossier_id, d.reference AS dossier_reference, d.objet AS dossier_objet
              FROM cotations co INNER JOIN dossiers d ON d.id = co.dossier_id
-             WHERE co.client_id = ? AND co.statut IN ('envoyee', 'acceptee', 'refusee')
+             WHERE co.client_id IN (" . self::marques($ids) . ") AND co.statut IN ('envoyee', 'acceptee', 'refusee')
              ORDER BY (CASE WHEN co.statut = 'envoyee' THEN 0 ELSE 1 END), co.created_at DESC"
         );
-        $stmt->execute([$clientId]);
+        $stmt->execute($ids);
         return $stmt->fetchAll();
     }
 
@@ -178,18 +207,20 @@ class PortailClient
     public static function factures(int $clientId): array
     {
         $fic = \App\Core\Schema::colonne('factures', 'fichier') ? ', fa.fichier, fa.fichier_nom' : '';
+        $ids = self::ids($clientId);
+        $in = self::marques($ids);
         $stmt = Database::connection()->prepare(
-            "SELECT fa.id, fa.reference, fa.montant, fa.devise, fa.statut, fa.date_emission, fa.date_echeance, fa.dossier_id$fic, d.reference AS dossier_reference
+            "SELECT fa.id, fa.reference, fa.montant, fa.devise, fa.statut, fa.date_emission, fa.date_echeance, fa.dossier_id, COALESCE(co.client_id, de.client_id) AS ent_id$fic, d.reference AS dossier_reference
              FROM factures fa
              INNER JOIN dossiers d ON d.id = fa.dossier_id
              LEFT JOIN demandes de ON de.id = d.demande_id
              LEFT JOIN cotations co ON co.id = fa.cotation_id
-             WHERE (co.client_id = ? OR de.client_id = ?
-                    OR EXISTS (SELECT 1 FROM cotations c2 WHERE c2.dossier_id = fa.dossier_id AND c2.client_id = ? AND c2.statut IN ('envoyee', 'acceptee', 'refusee')))
+             WHERE (co.client_id IN ($in) OR de.client_id IN ($in)
+                    OR EXISTS (SELECT 1 FROM cotations c2 WHERE c2.dossier_id = fa.dossier_id AND c2.client_id IN ($in) AND c2.statut IN ('envoyee', 'acceptee', 'refusee')))
                AND fa.statut IN ('emise', 'payee')
              ORDER BY fa.date_emission DESC, fa.id DESC"
         );
-        $stmt->execute([$clientId, $clientId, $clientId]);
+        $stmt->execute(array_merge($ids, $ids, $ids));
         return $stmt->fetchAll();
     }
 

@@ -871,4 +871,98 @@ class Client
             'nb_annulees' => $nbAnnulees,
         ];
     }
+
+    // ------------------------------------------------------------------
+    // Groupes de clients (migrate_v75) : plusieurs sociétés facturées, une société « tête » (clients.groupe_id = id de la tête)
+    // ------------------------------------------------------------------
+
+    public static function groupeDispo(): bool
+    {
+        return \App\Core\Schema::colonne('clients', 'groupe_id');
+    }
+
+    /** Id de la société « tête » du groupe (le client lui-même s'il est seul ou tête). */
+    public static function teteId(array $client): int
+    {
+        return self::groupeDispo() && !empty($client['groupe_id']) ? (int) $client['groupe_id'] : (int) $client['id'];
+    }
+
+    /** Sociétés du groupe, la tête en premier. Un client seul : tableau d'un seul élément (lui-même). */
+    public static function groupe(array $client): array
+    {
+        if (!self::groupeDispo()) {
+            return [$client];
+        }
+        $tete = self::teteId($client);
+        $st = Database::connection()->prepare('SELECT * FROM clients WHERE id = ? OR groupe_id = ? ORDER BY (CASE WHEN id = ? THEN 0 ELSE 1 END), nom');
+        $st->execute([$tete, $tete, $tete]);
+        $rows = $st->fetchAll();
+        return $rows ?: [$client];
+    }
+
+    /** @return int[] */
+    public static function idsGroupe(int $clientId): array
+    {
+        if (!self::groupeDispo()) {
+            return [$clientId];
+        }
+        $c = self::find($clientId);
+        if (!$c) {
+            return [$clientId];
+        }
+        return array_map(fn($r) => (int) $r['id'], self::groupe($c));
+    }
+
+    /** Clients qu'on peut encore ajouter à un groupe : actifs, de la même filiale, seuls (ni dans un groupe, ni tête d'un groupe). */
+    public static function ajoutablesAuGroupe(array $client): array
+    {
+        if (!self::groupeDispo()) {
+            return [];
+        }
+        $deja = array_map(fn($r) => (int) $r['id'], self::groupe($client));
+        $out = [];
+        foreach (self::allForFiliale((int) $client['filiale_id']) as $c) {
+            if (in_array((int) $c['id'], $deja, true) || !empty($c['groupe_id'])) { continue; }
+            $st = Database::connection()->prepare('SELECT COUNT(*) FROM clients WHERE groupe_id = ?');
+            $st->execute([(int) $c['id']]);
+            if ((int) $st->fetchColumn() > 0) { continue; }
+            $out[] = $c;
+        }
+        return $out;
+    }
+
+    public static function ajouterAuGroupe(int $teteId, int $clientId): void
+    {
+        Database::connection()->prepare('UPDATE clients SET groupe_id = ? WHERE id = ?')->execute([$teteId, $clientId]);
+    }
+
+    public static function retirerDuGroupe(int $clientId): void
+    {
+        Database::connection()->prepare('UPDATE clients SET groupe_id = NULL WHERE id = ?')->execute([$clientId]);
+    }
+
+    /** Pour une liste déroulante : [['groupe' => nom|null, 'clients' => [...]], ...] (les clients seuls restent à plat). */
+    public static function regrouper(array $clients): array
+    {
+        if (!self::groupeDispo()) {
+            return [['groupe' => null, 'clients' => $clients]];
+        }
+        $parTete = [];
+        foreach ($clients as $c) {
+            $t = !empty($c['groupe_id']) ? (int) $c['groupe_id'] : (int) $c['id'];
+            $parTete[$t][] = $c;
+        }
+        $noms = [];
+        foreach ($clients as $c) { $noms[(int) $c['id']] = $c['nom']; }
+        $out = [];
+        foreach ($parTete as $t => $liste) {
+            if (count($liste) > 1) {
+                $nom = $noms[$t] ?? $liste[0]['nom'];
+                $out[] = ['groupe' => 'Groupe ' . $nom, 'clients' => $liste];
+            } else {
+                $out[] = ['groupe' => null, 'clients' => $liste];
+            }
+        }
+        return $out;
+    }
 }
