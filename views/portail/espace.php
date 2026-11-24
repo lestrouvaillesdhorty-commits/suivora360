@@ -61,7 +61,7 @@ $contact = trim(($client['contact_prenom'] ?? '') . ' ' . ($client['contact_nom'
   <?php foreach ($factures as $f): ?>
     <div class="row"><div><div class="ref"><?= View::e($f['reference']) ?></div>
       <div class="mut"><?= !empty($f['date_emission']) ? 'Émise le ' . date('d/m/Y', strtotime($f['date_emission'])) . ' · ' : '' ?><?= View::e($f['dossier_reference']) ?><?= ($f['statut'] === 'emise' && !empty($f['date_echeance'])) ? ' · à régler avant le ' . date('d/m/Y', strtotime($f['date_echeance'])) : '' ?></div></div>
-      <div><b><?= $fm($f['montant'], $f['devise']) ?></b> &nbsp;<span class="badge <?= $f['statut'] === 'payee' ? 'gr' : 'ye' ?>"><?= $f['statut'] === 'payee' ? 'Payée' : 'À régler' ?></span> &nbsp;<a class="btn bs" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>">Voir</a></div></div>
+      <div><b><?= $fm($f['montant'], $f['devise']) ?></b> &nbsp;<span class="badge <?= $f['statut'] === 'payee' ? 'gr' : 'ye' ?>"><?= $f['statut'] === 'payee' ? 'Payée' : 'À régler' ?></span> &nbsp;<a class="btn bs" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>">Voir</a><?php if (!empty($f['fichier'])): ?> <a class="btn bp" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>/fichier">PDF</a><?php endif; ?></div></div>
   <?php endforeach; ?></div>
 
 <?php else: ?>

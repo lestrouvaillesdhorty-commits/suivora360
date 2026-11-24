@@ -215,6 +215,30 @@ class PortailClientController
         ]);
     }
 
+    /** Fichier (PDF, image) joint à une facture par l'équipe : uniquement pour une facture émise/payée de ce client. */
+    public function fichierFacture(array $params): void
+    {
+        $ctx = $this->contexte($params);
+        if (!$ctx) {
+            return;
+        }
+        [, $client] = $ctx;
+        $f = PortailClient::facture((int) $client['id'], (int) ($params['id'] ?? 0));
+        $chemin = $f && !empty($f['fichier']) ? \App\Core\Storage::path('uploads/factures/' . basename((string) $f['fichier'])) : '';
+        if (!$f || !is_file($chemin)) {
+            $this->introuvable();
+            return;
+        }
+        $ext = strtolower(pathinfo($chemin, PATHINFO_EXTENSION));
+        header('Content-Type: ' . (['pdf' => 'application/pdf', 'png' => 'image/png'][$ext] ?? 'image/jpeg'));
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, no-store');
+        header('Content-Disposition: attachment; filename="' . str_replace(['"', "\r", "\n"], '', basename((string) (($f['fichier_nom'] ?? '') ?: $f['fichier']))) . '"');
+        header('Content-Length: ' . filesize($chemin));
+        readfile($chemin);
+        exit;
+    }
+
     // ------------------------------------------------------------------
     // Nouvelle demande
     // ------------------------------------------------------------------

@@ -177,8 +177,9 @@ class PortailClient
 
     public static function factures(int $clientId): array
     {
+        $fic = \App\Core\Schema::colonne('factures', 'fichier') ? ', fa.fichier, fa.fichier_nom' : '';
         $stmt = Database::connection()->prepare(
-            "SELECT fa.id, fa.reference, fa.montant, fa.devise, fa.statut, fa.date_emission, fa.date_echeance, fa.dossier_id, d.reference AS dossier_reference
+            "SELECT fa.id, fa.reference, fa.montant, fa.devise, fa.statut, fa.date_emission, fa.date_echeance, fa.dossier_id$fic, d.reference AS dossier_reference
              FROM factures fa
              INNER JOIN dossiers d ON d.id = fa.dossier_id
              INNER JOIN demandes de ON de.id = d.demande_id

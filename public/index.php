@@ -290,6 +290,7 @@ $router->get('/espace-client/{token}/cotations/{id}', fn($params) => (new Portai
 $router->get('/espace-client/{token}/cotations/{id}/document', fn($params) => (new PortailClientController())->devisDocument($params));
 $router->get('/espace-client/{token}/cotations/{id}/pdf', fn($params) => (new PortailClientController())->devisPdf($params));
 $router->post('/espace-client/{token}/cotations/{id}/decision', fn($params) => (new PortailClientController())->decision($params));
+$router->get('/espace-client/{token}/factures/{id}/fichier', fn($params) => (new PortailClientController())->fichierFacture($params));
 $router->get('/espace-client/{token}/factures/{id}', fn($params) => (new PortailClientController())->facture($params));
 $router->post('/espace-client/{token}/demande', fn($params) => (new PortailClientController())->nouvelleDemande($params));
 

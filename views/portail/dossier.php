@@ -48,7 +48,7 @@ $nomEquipe = $emetteur !== '' ? $emetteur : 'Équipe';
     <?php foreach ($factures as $f): ?>
       <div class="dl"><div class="nm"><b><?= View::e($f['reference']) ?></b><span class="mut"><?= !empty($f['date_emission']) ? 'émise le ' . date('d/m/Y', strtotime((string) $f['date_emission'])) : '' ?><?= ($f['statut'] === 'emise' && !empty($f['date_echeance'])) ? ' · échéance ' . date('d/m/Y', strtotime((string) $f['date_echeance'])) : '' ?> · <?= number_format((float) $f['montant'], in_array($f['devise'], ['XAF', 'XOF'], true) ? 0 : 2, ',', ' ') ?> <?= View::dev($f['devise']) ?></span></div>
         <span class="badge <?= $f['statut'] === 'payee' ? 'gr' : 'ye' ?>"><?= $f['statut'] === 'payee' ? 'Payée' : 'À régler' ?></span>
-        <a class="btn bs" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>">Voir</a></div>
+        <a class="btn bs" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>">Voir</a><?php if (!empty($f['fichier'])): ?> <a class="btn bp" style="padding:6px 12px" href="<?= $base ?>/factures/<?= (int) $f['id'] ?>/fichier">PDF</a><?php endif; ?></div>
     <?php endforeach; ?>
   </div>
 <?php elseif ($vue === 'documents'): ?>
