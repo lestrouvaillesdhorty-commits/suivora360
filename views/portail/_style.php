@@ -1,6 +1,5 @@
-<?php $__m = !empty($client['filiale_id']) ? \App\Models\PortailClient::marque((int) $client['filiale_id']) : ['couleur' => '#0B7C8A', 'logo' => null, 'nom' => '']; $__on = \App\Models\PortailClient::texteSur($__m['couleur']); ?>
 <style>
-:root{--p:<?= $__m['couleur'] ?>;--on:<?= $__on ?>;--pl:color-mix(in srgb,var(--p) 16%,#fff);--pl2:color-mix(in srgb,var(--p) 7%,#fff);--bg:#F2F7F8;--b:#e6e8ef;--t:#161a2d;--m:#6b7285}
+:root{--p:#0B7C8A;--on:#fff;--pl:color-mix(in srgb,var(--p) 16%,#fff);--pl2:color-mix(in srgb,var(--p) 7%,#fff);--bg:#F2F7F8;--b:#e6e8ef;--t:#161a2d;--m:#6b7285}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--t);font-size:15px;line-height:1.45}
 header.pt{background:#fff;border-bottom:1px solid var(--b)}
 .w{max-width:980px;margin:0 auto;padding:0 20px}

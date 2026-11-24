@@ -241,32 +241,4 @@ class PortailClient
         $stmt->execute([$clientId, date('Y-m-d H:i:s', time() - 3600)]);
         return (int) $stmt->fetchColumn();
     }
-
-    /** Identité visuelle de l'entreprise (couleur, logo, nom) lue dans « Mon entreprise » ; valeurs Suivora360 par défaut. */
-    public static function marque(int $filialeId): array
-    {
-        static $cache = [];
-        if (isset($cache[$filialeId])) {
-            return $cache[$filialeId];
-        }
-        $m = ['couleur' => '#0B7C8A', 'logo' => null, 'nom' => ''];
-        try {
-            $i = \App\Models\EntrepriseInfo::forFiliale($filialeId);
-            $col = (string) ($i['couleur'] ?? '');
-            if (preg_match('/^#[0-9A-Fa-f]{6}$/', $col)) {
-                $m['couleur'] = strtoupper($col);
-            }
-            $m['logo'] = \App\Models\EntrepriseInfo::logoDataUri($i);
-            $m['nom'] = trim((string) ($i['raison_sociale'] ?? ''));
-        } catch (\Throwable $e) {
-        }
-        return $cache[$filialeId] = $m;
-    }
-
-    /** Couleur de texte lisible (blanc ou presque noir) sur un fond donné. */
-    public static function texteSur(string $hex): string
-    {
-        $r = hexdec(substr($hex, 1, 2)); $g = hexdec(substr($hex, 3, 2)); $b = hexdec(substr($hex, 5, 2));
-        return (0.299 * $r + 0.587 * $g + 0.114 * $b) > 160 ? '#161a2d' : '#ffffff';
-    }
 }
