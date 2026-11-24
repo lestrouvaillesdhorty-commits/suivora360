@@ -1463,8 +1463,8 @@ select.niv-cache { border-color: #D6DCE3; }
   .tabs.tabs-fiche a, .tabs.tabs-fiche .tab { flex: 0 0 auto; margin-right: 0; padding: 10px 2px; white-space: nowrap; }
 }
 
-/* Téléphone : les onglets d'un dossier passent à la ligne (tous visibles, plus de défilement caché) */
+/* Téléphone : les onglets d'un dossier en grille de 3 colonnes, cases égales, tous visibles */
 @media (max-width: 768px) {
-  .dos-tabs { overflow: visible; flex-wrap: wrap; white-space: normal; gap: 6px; }
-  .dos-tabs a, .dos-tabs .dos-tab { flex: 1 1 auto; text-align: center; padding: 9px 12px; white-space: nowrap; }
+  .dos-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: visible; white-space: normal; padding: 6px; }
+  .dos-tabs .dos-tab, .dos-tabs a { display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; min-height: 44px; padding: 8px 4px; font-size: 13px; white-space: normal; flex: none; }
 }
