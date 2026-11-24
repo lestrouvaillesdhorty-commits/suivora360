@@ -73,7 +73,7 @@ $aPayer = count(array_filter($factures, fn($f) => $f['statut'] === 'emise'));
       <div class="ref"><?php if (\App\Models\Echange::pret()): ?><a href="<?= $base ?>/dossiers/<?= (int) $d['id'] ?>" style="color:inherit"><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?></a><?php $nl = \App\Models\Echange::nonLusExterne('client', (int) $d['id']); if ($nl > 0): ?> <span class="badge rd" style="padding:1px 7px"><?= $nl ?> réponse<?= $nl > 1 ? 's' : '' ?></span><?php endif; ?><?php else: ?><?= View::e($d['reference']) ?> — <?= View::e($d['objet']) ?><?php endif; ?></div>
       <div class="mut"><?= !empty($d['echeance']) && $actif ? 'Échéance prévue ' . date('d/m/Y', strtotime($d['echeance'])) : ($actif ? 'En cours' : 'Terminé') ?><?php if (!empty($entites) && isset($entites[(int) ($d['ent_id'] ?? 0)])): ?> <span class="so"><?= View::e($entites[(int) $d['ent_id']]) ?></span><?php endif; ?></div>
     </div>
-    <div class="pg"><i><u style="width:<?= (int) round(($idx + 1) / 6 * 100) ?>%"></u></i><small>Étape <?= $idx + 1 ?> sur 6</small></div>
+    <div class="pg"><div class="steps s-<?= View::e($d['etape']) ?>" style="margin-top:0;width:100%"><?php for ($i = 0; $i < 6; $i++): ?><i class="<?= $i <= $idx ? 'd' : '' ?>"></i><?php endfor; ?></div><small>Étape <?= $idx + 1 ?> sur 6</small></div>
     <span class="badge big e-<?= View::e($d['etape']) ?>"><?= View::e($etapesClient[$d['etape']] ?? $d['etape']) ?></span></div>
   <?php endforeach; ?>
   <div class="mut" id="vide-dos" style="display:none;padding:14px 0">Aucun dossier ne correspond à cette recherche.</div>
