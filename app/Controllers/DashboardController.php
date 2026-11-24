@@ -97,6 +97,16 @@ class DashboardController
         $livraisonsEnCours = Commande::livraisonsEnCoursFor($user, 10, $filialeIds, $activite ?: null);
         $livraisonsEnCoursCount = Commande::livraisonsEnCoursCount($user, $filialeIds, $activite ?: null);
 
+        // Demandes reçues par partage / dépôt (page « À valider ») : elles ne sont pas encore des demandes, mais elles attendent une vérification.
+        $entrantsAValider = [];
+        try {
+            if (class_exists(\App\Models\EntrantDemande::class) && \App\Models\EntrantDemande::disponible() && !$activite) {
+                $entrantsAValider = \App\Models\EntrantDemande::enAttente($filialeIds);
+            }
+        } catch (\Throwable $e) {
+            $entrantsAValider = [];
+        }
+
         $dernieresDemandes = Demande::recentesFor($user, 10, $filialeIds, $activite ?: null, ['a_qualifier', 'en_attente_info']); // seulement les demandes encore à traiter
 
         $echeancesDemandes = array_map(
@@ -175,6 +185,7 @@ class DashboardController
             'livraisonsEnCours' => $livraisonsEnCours,
             'livraisonsEnCoursCount' => $livraisonsEnCoursCount,
             'dernieresDemandes' => $dernieresDemandes,
+            'entrantsAValider' => $entrantsAValider,
             'echeancesAVenir' => $echeancesAVenir,
             'dossiersEnCours' => $dossiersEnCours,
             'fluxEnCours' => $fluxEnCours,

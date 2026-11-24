@@ -241,8 +241,20 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
   <div class="card dg-demandes">
     <?php $nbAQualifier = 0; foreach ($dernieresDemandes as $dd) { if (($dd['statut'] ?? '') === 'a_qualifier') { $nbAQualifier++; } } ?>
     <h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('inbox', 'icon', 17) ?> Nouvelles demandes <?php if ($nbAQualifier > 0): ?><span class="badge badge-blue"><?= $nbAQualifier ?> à qualifier</span><?php endif; ?></span><a href="/index.php?r=demandes" style="font-size:13px;font-weight:600">Toutes les demandes</a></h2>
-    <?php if (empty($dernieresDemandes)): ?>
+    <?php if (!empty($entrantsAValider)): ?>
+      <div style="border:2px solid #0B7C8A;background:#F2FAFB;border-radius:12px;padding:10px 12px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <strong><?= count($entrantsAValider) ?> demande<?= count($entrantsAValider) > 1 ? 's reçues' : ' reçue' ?> à valider</strong>
+          <a href="/index.php?r=a-valider" class="btn btn-sm">Vérifier</a>
+        </div>
+        <?php foreach (array_slice($entrantsAValider, 0, 3) as $e): $ap = trim((string) $e['texte']) !== '' ? (string) $e['texte'] : (string) $e['nom_original']; ?>
+          <div style="font-size:13px;color:#445;margin-top:6px"><a href="/index.php?r=a-valider/<?= (int) $e['id'] ?>" style="color:inherit"><?= View::e(mb_strimwidth(preg_replace('/\s+/', ' ', $ap), 0, 70, '…')) ?></a> <span style="color:#889">· <?= View::e(date('d/m H:i', strtotime((string) $e['created_at']))) ?></span></div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+    <?php if (empty($dernieresDemandes) && empty($entrantsAValider)): ?>
       <div class="empty-state">Aucune demande à traiter pour le moment.</div>
+    <?php elseif (empty($dernieresDemandes)): ?>
     <?php else: ?>
       <ul class="feed-list nd-list">
       <?php foreach (array_slice($dernieresDemandes, 0, 4) as $d): $aQ = ($d['statut'] ?? '') === 'a_qualifier'; ?>
