@@ -4,7 +4,7 @@
 header.pt{background:#fff;border-bottom:1px solid var(--b)}
 .w{max-width:980px;margin:0 auto;padding:0 20px}
 .top{display:flex;justify-content:space-between;align-items:center;padding:14px 0;gap:12px;flex-wrap:wrap}
-.top img{height:30px}.who{font-size:13px;color:var(--m);text-align:right}.who b{color:var(--t);display:block;font-size:14px}
+.top img{height:40px}.who{font-size:13px;color:var(--m);text-align:right}.who b{color:var(--t);display:block;font-size:14px}
 .hero{padding:26px 0 8px}h1{margin:0 0 4px;font-size:24px}.sub{color:var(--m);font-size:14px}
 .tabs{display:flex;gap:22px;border-bottom:1px solid var(--b);margin:18px 0 20px;overflow-x:auto;white-space:nowrap}
 .tabs a{padding:10px 2px;color:var(--m);font-size:14px;text-decoration:none;border-bottom:2px solid transparent}
