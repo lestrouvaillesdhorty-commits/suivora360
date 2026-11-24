@@ -182,12 +182,14 @@ class PortailClient
             "SELECT fa.id, fa.reference, fa.montant, fa.devise, fa.statut, fa.date_emission, fa.date_echeance, fa.dossier_id$fic, d.reference AS dossier_reference
              FROM factures fa
              INNER JOIN dossiers d ON d.id = fa.dossier_id
-             INNER JOIN demandes de ON de.id = d.demande_id
+             LEFT JOIN demandes de ON de.id = d.demande_id
              LEFT JOIN cotations co ON co.id = fa.cotation_id
-             WHERE (co.client_id = ? OR (co.id IS NULL AND de.client_id = ?)) AND fa.statut IN ('emise', 'payee')
+             WHERE (co.client_id = ? OR de.client_id = ?
+                    OR EXISTS (SELECT 1 FROM cotations c2 WHERE c2.dossier_id = fa.dossier_id AND c2.client_id = ? AND c2.statut IN ('envoyee', 'acceptee', 'refusee')))
+               AND fa.statut IN ('emise', 'payee')
              ORDER BY fa.date_emission DESC, fa.id DESC"
         );
-        $stmt->execute([$clientId, $clientId]);
+        $stmt->execute([$clientId, $clientId, $clientId]);
         return $stmt->fetchAll();
     }
 
