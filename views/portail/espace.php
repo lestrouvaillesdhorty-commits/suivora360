@@ -27,7 +27,7 @@ $nbTermines = count($dossiers) - $enCours;
 $aPayer = count(array_filter($factures, fn($f) => $f['statut'] === 'emise'));
 ?>
   <div class="kp">
-    <div class="k <?= $aValider > 0 ? 'w' : '' ?>"><span>À valider</span><b><?= $aValider ?></b></div>
+    <div class="k <?= $aValider > 0 ? 'att' : '' ?>"><span>À valider</span><b><?= $aValider ?></b></div>
     <div class="k"><span>Dossiers en cours</span><b><?= $enCours ?></b></div>
     <div class="k"><span>Factures à payer</span><b><?= $aPayer ?></b></div>
     <div class="k"><span>Terminés</span><b><?= $nbTermines ?></b></div>

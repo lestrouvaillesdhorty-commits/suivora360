@@ -38,8 +38,8 @@ details.d summary{list-style:none;cursor:pointer}details.d summary::-webkit-deta
 @media print{header.pt .who,.tabs,.act,.noprint,.priv{display:none!important}body{background:#fff}.card{border:0;padding:0}}
 </style>
 <style>.dl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 2px;border-bottom:1px solid #EEF1F5}.dl .nm{flex:1;min-width:180px}.dl .nm span.mut{display:block;font-size:12px}.dl .nm .nw{display:inline-block}</style>
-<style>.top img{max-width:220px;object-fit:contain}.kp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0 4px}.k{background:#fff;border:1px solid var(--b);border-radius:10px;padding:8px 12px}.k span{font-size:12px;color:var(--m);display:block}.k b{font-size:22px}.k.w{background:#FFF4DD;border-color:#F3D98B}.k.w span,.k.w b{color:#8A4B00}
-.ban{display:flex;align-items:center;gap:10px 14px;background:#FFF4DD;border:1px solid #F3D98B;border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;font-size:14px}.ban .bt{flex:1;min-width:220px}
+<style>.top img{max-width:220px;object-fit:contain}.kp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0 4px}.k{background:#fff;border:1px solid var(--b);border-radius:10px;padding:8px 12px}.k span{font-size:12px;color:var(--m);display:block}.k b{font-size:22px}.k.att{background:#F1ECFB;border-color:#CDBDF0}.k.att span,.k.att b{color:#4A2A91}
+.ban{display:flex;align-items:center;gap:10px 14px;background:#F1ECFB;border:1px solid #CDBDF0;border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;font-size:14px}.ban .bt{flex:1;min-width:220px}
 .flt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.flt input{flex:1;min-width:200px;width:auto}.flt select{width:auto;min-width:160px}
 .pg{width:130px;flex:none}.pg i{display:block;height:5px;border-radius:3px;background:#e6e8ef;overflow:hidden}.pg u{display:block;height:100%;background:var(--p)}.pg small{display:block;font-size:11px;color:var(--m);margin-top:3px}
 .so{display:inline-block;border-radius:6px;padding:1px 8px;font-size:11.5px;font-weight:600;margin-left:4px;background:var(--pl);color:var(--t)}
