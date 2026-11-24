@@ -29,7 +29,7 @@ $nomEquipe = $emetteur !== '' ? $emetteur : 'Équipe';
     <div class="steps s-<?= View::e($dossier['etape']) ?>" style="width:100%"><?php for ($i = 0; $i < 6; $i++): ?><i class="<?= $i <= $idx ? 'd' : '' ?>"></i><?php endfor; ?></div>
     <div class="mut" style="margin-top:8px"><?= !empty($dossier['echeance']) && $dossier['statut'] === 'actif' ? 'Échéance prévue ' . date('d/m/Y', strtotime($dossier['echeance'])) : ($dossier['statut'] === 'actif' ? 'Dossier en cours.' : 'Dossier terminé.') ?></div>
     <?php if (!empty($notes)): $n = $notes[0]; ?>
-      <div style="border-left:3px solid #0B7C8A;padding:2px 0 2px 10px;margin-top:14px"><div class="mut"><?= date('d/m/Y H:i', strtotime((string) $n['created_at'])) ?> · dernière information</div><div style="white-space:pre-line"><?= View::e($n['texte']) ?></div></div>
+      <div style="border-left:3px solid var(--p);padding:2px 0 2px 10px;margin-top:14px"><div class="mut"><?= date('d/m/Y H:i', strtotime((string) $n['created_at'])) ?> · dernière information</div><div style="white-space:pre-line"><?= View::e($n['texte']) ?></div></div>
     <?php endif; ?>
   </div>
 <?php elseif ($vue === 'devis'): ?>
@@ -60,7 +60,7 @@ $nomEquipe = $emetteur !== '' ? $emetteur : 'Équipe';
   $taille = fn($o) => $o >= 1048576 ? number_format($o / 1048576, 1, ',', ' ') . ' Mo' : number_format(max(1, $o / 1024), 0, ',', ' ') . ' Ko';
   $nouveau = fn($dc) => strtotime((string) $dc['created_at']) > time() - 7 * 86400;
   ?>
-  <style>.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:6px 0 10px}.gal a{display:block;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid #DDE4EC;position:relative;background:#EEF2F6}.gal img{width:100%;height:100%;object-fit:cover;display:block}.gal .nw{position:absolute;top:4px;left:4px}.gh{font-size:13px;font-weight:700;color:#0B7C8A;margin:16px 0 4px;border-left:4px solid #0B7C8A;padding-left:8px}.nw{background:#FFF1E0;color:#B4570F;font-size:10.5px;font-weight:700;border-radius:99px;padding:1px 7px}</style>
+  <style>.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:6px 0 10px}.gal a{display:block;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid #DDE4EC;position:relative;background:#EEF2F6}.gal img{width:100%;height:100%;object-fit:cover;display:block}.gal .nw{position:absolute;top:4px;left:4px}.gh{font-size:13px;font-weight:700;color:var(--p);margin:16px 0 4px;border-left:4px solid var(--p);padding-left:8px}.nw{background:#FFF1E0;color:#B4570F;font-size:10.5px;font-weight:700;border-radius:99px;padding:1px 7px}</style>
   <div class="card"><h2>Documents du dossier</h2>
     <?php if (empty($documents)): ?><div class="mut">Aucun document partagé pour le moment. Votre interlocuteur y ajoute les photos, fiches techniques et certificats de votre dossier.</div><?php endif; ?>
     <?php foreach ($catsClient as $code => $lib): if (empty($parCat[$code])) { continue; } ?>
@@ -78,7 +78,7 @@ $nomEquipe = $emetteur !== '' ? $emetteur : 'Équipe';
   <div class="card"><h2>Suivi du dossier</h2>
     <?php if (empty($notes)): ?><div class="mut">Pas encore d’information. Votre interlocuteur y indique l’avancement de votre dossier.</div><?php endif; ?>
     <?php foreach ($notes as $n): ?>
-      <div style="border-left:3px solid #0B7C8A;padding:2px 0 2px 10px;margin-bottom:12px"><div class="mut"><?= date('d/m/Y H:i', strtotime((string) $n['created_at'])) ?></div><div style="white-space:pre-line"><?= View::e($n['texte']) ?></div></div>
+      <div style="border-left:3px solid var(--p);padding:2px 0 2px 10px;margin-bottom:12px"><div class="mut"><?= date('d/m/Y H:i', strtotime((string) $n['created_at'])) ?></div><div style="white-space:pre-line"><?= View::e($n['texte']) ?></div></div>
     <?php endforeach; ?>
     <div class="mut">Mis à jour par votre interlocuteur<?= $emetteur !== '' ? ' chez ' . View::e($emetteur) : '' ?>. Une question ? Utilisez l’onglet Messages.</div>
   </div>
