@@ -861,7 +861,12 @@ class Demande
             $params = array_merge($params, array_values($statuts));
         }
         if ($activite) {
-            $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
+            if ($statuts) {
+                // Une demande à traiter (déposée par un client, par exemple) n'a souvent pas encore d'activité : on la garde visible.
+                $sql .= " AND ((d.activite = ?" . Demande::sousFiltresSql('d') . ") OR d.activite IS NULL OR d.activite = '')";
+            } else {
+                $sql .= ' AND d.activite = ?' . Demande::sousFiltresSql('d');
+            }
             $params[] = $activite;
         }
         $sql .= ' ORDER BY d.created_at DESC LIMIT ' . (int) $limite;
