@@ -48,7 +48,7 @@ $margeDevis = ($cotation && $cotation['marge_montant'] !== null) ? (float) $cota
 $margeRef = $margeDevis !== null ? ($devDevis === $ref ? $margeDevis : $versRef($margeDevis)) : null;
 $pctM = ($cotation && $cotation['marge_pourcentage'] !== null) ? ' · ' . rtrim(rtrim(number_format((float) $cotation['marge_pourcentage'], 1, ',', ''), '0'), ',') . ' %' : '';
 [$achat, $achatSous] = $tuile($achatRef, $achatRef !== null ? $vRef($achatRef) : null);
-[$transp, $transpSous] = $quiTransport === 'fournisseur' ? ['Inclus', ''] : $tuile($trRefMontant, $trRefMontant !== null ? $vRef($trRefMontant) : null);
+[$transp, $transpSous] = $quiTransport === 'fournisseur' ? ['Inclus', 'dans le coût d\'achat'] : $tuile($trRefMontant, $trRefMontant !== null ? $vRef($trRefMontant) : null);
 [$vente, $venteSous] = $tuile($venteRef, $venteDevis);
 [$marge, $margeSous] = $tuile($margeRef, $margeDevis, $pctM);
 
@@ -91,7 +91,7 @@ $journal = array_slice(array_reverse($historique ?? []), 0, 8);
 
   <div class="sy-kpis">
     <div class="sy-k"><span>Coût d'achat</span><b><?= $achat ?></b><small><?= $achatSous ?></small></div>
-    <div class="sy-k"><span>Transport</span><b><?= $transp ?></b><small><?= $transpSous ?></small></div>
+    <div class="sy-k"><span>Livraison au client</span><b><?= $transp ?></b><small><?= $transpSous ?></small></div>
     <div class="sy-k"><span>Prix de vente HT</span><b><?= $vente ?></b><small><?= $venteSous ?></small></div>
     <div class="sy-k"><span>Marge</span><b><?= $marge ?></b><small><?= $margeSous ?></small></div>
     <div class="sy-k"><span>Délai de traitement</span><b><?= $jr($delaiJ) ?></b><small><?= View::e($delaiSous) ?><?= $delaiNote !== '' ? ' · ' . View::e($delaiNote) : '' ?></small></div>
@@ -131,7 +131,7 @@ $journal = array_slice(array_reverse($historique ?? []), 0, 8);
     </div>
 
     <div class="card">
-      <h2>Transport</h2>
+      <h2>Livraison au client</h2>
       <?php if ($quiTransport === 'fournisseur'): ?>
         <div class="kv-row"><span class="label">Assuré par</span><span class="value">Le fournisseur, inclus dans son prix</span></div>
         <?php if (!empty($offreRetenue['incoterm_negocie'])): ?><div class="kv-row"><span class="label">Incoterm</span><span class="value"><?= View::e($offreRetenue['incoterm_negocie']) ?></span></div><?php endif; ?>
