@@ -393,6 +393,20 @@ class Offre
         Database::connection()->prepare('UPDATE offres SET ref_devis_fournisseur = ?, date_devis_fournisseur = ? WHERE id = ?')->execute([$ref === '' ? null : $ref, $dt, $id]);
     }
 
+    /** Qui amène la marchandise : fournisseur (transport inclus), transitaire (facultativement nommé) ou pas encore connu. */
+    public static function enregistrerTransportQui(int $id, array $data): void
+    {
+        if (!\App\Core\Schema::colonne('offres', 'transport_qui')) {
+            return;
+        }
+        $qui = (string) ($data['transport_qui'] ?? '');
+        if (!in_array($qui, ['fournisseur', 'transitaire', 'inconnu'], true)) {
+            return;
+        }
+        $tid = $qui === 'transitaire' && (int) ($data['transitaire_id'] ?? 0) > 0 ? (int) $data['transitaire_id'] : null;
+        Database::connection()->prepare('UPDATE offres SET transport_qui = ?, transitaire_id = ? WHERE id = ?')->execute([$qui, $tid, $id]);
+    }
+
     public static function modifier(int $id, array $data, array $items): void
     {
         $pdo = Database::connection();

@@ -8,6 +8,7 @@ use App\Models\TransitaireTarif;
 $trListe = TransitaireTarif::transitaires(Auth::user());
 $trTarifs = TransitaireTarif::pourFormulaire(array_column($trListe, 'id'));
 $trOk = !empty($dossier['tr_montant']);
+$trChoisi = (int) ($dossier['tr_transitaire_id'] ?? 0) ?: (int) ($offreRetenue['transitaire_id'] ?? 0);
 $trDest = (string) ($dossier['tr_destination'] ?? '') !== '' ? (string) $dossier['tr_destination'] : trim((string) ($demande['lieu_livraison'] ?? ''));
 $trUnite = (string) ($dossier['tr_unite'] ?? '');
 $trQte = $dossier['tr_quantite'] ?? null;
@@ -24,7 +25,7 @@ $trQteTxt = $trQte !== null && $trQte !== '' ? rtrim(rtrim(number_format((float)
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <div class="ex-tr-grid">
       <div><label>Transitaire</label><select name="tr_transitaire_id" id="trT" <?= Auth::canWrite() ? '' : 'disabled' ?>><option value="">Choisir…</option>
-        <?php foreach ($trListe as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) ($dossier['tr_transitaire_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= View::e($t['nom']) ?></option><?php endforeach; ?></select></div>
+        <?php foreach ($trListe as $t): ?><option value="<?= (int) $t['id'] ?>" <?= $trChoisi === (int) $t['id'] ? 'selected' : '' ?>><?= View::e($t['nom']) ?></option><?php endforeach; ?></select></div>
       <div><label>Mode</label><select name="tr_mode" id="trM"><?php foreach ($trModes as $k => $lb): ?><option value="<?= $k ?>" <?= ($dossier['tr_mode'] ?? '') === $k ? 'selected' : '' ?>><?= View::e($lb) ?></option><?php endforeach; ?></select></div>
       <div><label>Marchandise</label><select name="tr_famille" id="trF"><?php foreach (Expedition::MARCHANDISES as $k => $lb): ?><option value="<?= $k ?>" <?= ($dossier['tr_famille'] ?? 'alimentaire') === $k ? 'selected' : '' ?>><?= View::e($lb) ?></option><?php endforeach; ?></select></div>
       <div><label>Destination</label><input type="text" name="tr_destination" id="trD" value="<?= View::e($trDest) ?>" maxlength="120"></div>

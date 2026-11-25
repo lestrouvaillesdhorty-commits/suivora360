@@ -67,6 +67,9 @@ class DossierTransport
         if ($offreRetenue && ($devise === '' || $devise === (string) $offreRetenue['devise'])) {
             $pdo->prepare('UPDATE offres SET transport_montant = ?, updated_at = ? WHERE id = ?')->execute([$c['final'], date('Y-m-d H:i:s'), (int) $offreRetenue['id']]);
         }
+        if ($offreRetenue && Schema::colonne('offres', 'transport_qui')) {
+            $pdo->prepare("UPDATE offres SET transport_qui = 'transitaire', transitaire_id = ? WHERE id = ?")->execute([$fid, (int) $offreRetenue['id']]);
+        }
         return null;
     }
 }
