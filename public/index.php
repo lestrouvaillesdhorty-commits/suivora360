@@ -181,6 +181,10 @@ $router->post('/demandes/{id}/articles', function ($params) {
     Auth::requireLogin();
     (new DemandeController())->ajouterArticle($params);
 });
+$router->post('/demandes/{id}/articles/lot', function ($params) {
+    Auth::requireLogin();
+    (new DemandeController())->ajouterArticlesLot($params);
+});
 $router->post('/demandes/{id}/articles/{articleId}/modifier', function ($params) {
     Auth::requireLogin();
     (new DemandeController())->modifierArticle($params);

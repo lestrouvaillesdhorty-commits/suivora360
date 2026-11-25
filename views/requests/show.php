@@ -279,46 +279,48 @@ $unitesArticle = \App\Models\Demande::UNITES;
         <div class="empty-state">Aucun article pour le moment — facultatif pour une demande de service encore peu détaillée.</div>
       <?php else: ?>
         <?php foreach ($articles as $a): ?>
-          <!-- Un <form> ne peut pas être enfant direct d'un <tr> ; ce formulaire
-               vide (placé hors du tableau) porte le csrf + l'action, et chaque
-               champ de la ligne s'y rattache via l'attribut form="..." — le
-               bouton "Retirer" réutilise le même formulaire avec formaction
-               pour éviter d'imbriquer un second <form> dans la cellule. -->
+          <!-- Un <form> ne peut pas être enfant direct d'un <tr> : ce formulaire vide (hors du tableau) porte le csrf et
+               l'action, et chaque champ de la ligne s'y rattache via form="..." (Entrée enregistre donc la ligne). -->
           <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= $a['id'] ?>/modifier" id="art-form-<?= $a['id'] ?>">
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
           </form>
         <?php endforeach; ?>
-        <?php foreach ($articles as $a): $fa = 'art-form-' . $a['id']; ?>
-          <div class="artl">
-            <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="designation" value="<?= View::e($a['designation']) ?>" form="<?= $fa ?>"></div>
-            <div class="art-champ"><label>Qté</label><input type="number" step="0.01" name="quantite" value="<?= View::e((string) $a['quantite']) ?>" form="<?= $fa ?>"></div>
-            <div class="art-champ"><label>Unité</label>
-              <select name="unite" form="<?= $fa ?>">
-                <option value="" <?= $a['unite'] === '' ? 'selected' : '' ?>></option>
-                <?php $unitesLigne = $unitesArticle; if ($a['unite'] !== '' && !in_array($a['unite'], $unitesLigne, true)) { $unitesLigne[] = $a['unite']; } ?>
-                <?php foreach ($unitesLigne as $u): ?><option <?= $a['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option><?php endforeach; ?>
-              </select>
-            </div>
-            <div class="art-champ art-c-cond"><label>Conditionnement / précision</label><input type="text" name="conditionnement" value="<?= View::e($a['conditionnement'] ?? '') ?>" form="<?= $fa ?>"></div>
-            <div class="art-champ"><label>Référence</label><input type="text" name="reference" value="<?= View::e($a['reference']) ?>" form="<?= $fa ?>"></div>
-            <div class="art-champ"><label>Marque</label><input type="text" name="marque" value="<?= View::e($a['marque']) ?>" form="<?= $fa ?>"></div>
-            <div class="art-actions">
-              <button type="submit" form="<?= $fa ?>" class="btn btn-sm art-ok" title="Enregistrer"><?= Icon::svg('check-circle', 'icon', 14) ?> Enregistrer</button>
-              <button type="submit" form="<?= $fa ?>" formaction="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= $a['id'] ?>/supprimer" class="btn btn-sm btn-secondary" title="Retirer" onclick="return confirm('Retirer cette ligne ?');"><?= Icon::svg('trash-2', 'icon', 14) ?></button>
-            </div>
+        <div class="gr gr-exist"><div class="gr-wrap"><table class="gr-t"><thead><tr><th></th><th style="width:30%">Désignation</th><th>Référence</th><th>Marque</th><th>Conditionnement / précision</th><th style="width:90px">Quantité</th><th style="width:110px">Unité</th><th></th></tr></thead>
+          <tbody>
+          <?php foreach ($articles as $i => $a): $fa = 'art-form-' . $a['id'];
+              $unitesLigne = $unitesArticle; if ($a['unite'] !== '' && !in_array($a['unite'], $unitesLigne, true)) { $unitesLigne[] = $a['unite']; };
+              $detOuvert = $detailsArticle && (!empty($a['dlc_min']) || !empty($a['certificats']) || !empty($a['echantillon']) || !empty($a['notes'])); ?>
+            <tr data-type="article">
+              <td class="no"><?= $i + 1 ?></td>
+              <td class="c-des" data-label="Désignation"><input type="text" name="designation" value="<?= View::e($a['designation']) ?>" form="<?= $fa ?>" autocomplete="off"></td>
+              <td data-label="Référence"><input type="text" name="reference" value="<?= View::e($a['reference']) ?>" form="<?= $fa ?>" autocomplete="off"></td>
+              <td data-label="Marque"><input type="text" name="marque" value="<?= View::e($a['marque']) ?>" form="<?= $fa ?>" autocomplete="off"></td>
+              <td data-label="Conditionnement"><input type="text" name="conditionnement" value="<?= View::e($a['conditionnement'] ?? '') ?>" form="<?= $fa ?>" autocomplete="off"></td>
+              <td data-label="Quantité"><input type="number" step="0.01" name="quantite" value="<?= View::e((string) $a['quantite']) ?>" form="<?= $fa ?>"></td>
+              <td data-label="Unité"><select name="unite" form="<?= $fa ?>"><option value=""></option><?php foreach ($unitesLigne as $u): ?><option <?= $a['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option><?php endforeach; ?></select></td>
+              <td class="ac"><button type="submit" form="<?= $fa ?>" class="gr-save" title="Enregistrer cette ligne">&#10003;</button><?php if ($detailsArticle): ?><button type="button" class="gr-more" title="Détails : durée de vie, certificats, échantillon, notes" aria-expanded="<?= $detOuvert ? 'true' : 'false' ?>">&#8943;</button><?php endif; ?><button type="submit" form="<?= $fa ?>" formaction="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= $a['id'] ?>/supprimer" title="Retirer" onclick="return confirm('Retirer cette ligne ?');">&times;</button></td>
+            </tr>
             <?php if ($detailsArticle): ?>
-            <details class="art-details" <?= (!empty($a['dlc_min']) || !empty($a['certificats']) || !empty($a['echantillon']) || !empty($a['notes'])) ? 'open' : '' ?>>
-              <summary>Détails : durée de vie, certificats, échantillon, notes</summary>
+            <tr class="gr-det" <?= $detOuvert ? '' : 'hidden' ?>><td></td><td colspan="7">
               <div class="art-det-grille">
                 <div class="art-champ"><label>Durée de vie minimale restante</label><input type="text" name="dlc_min" value="<?= View::e($a['dlc_min'] ?? '') ?>" placeholder="Ex : 9 mois" form="<?= $fa ?>"></div>
                 <div class="art-champ"><label>Certificats demandés</label><input type="text" name="certificats" value="<?= View::e($a['certificats'] ?? '') ?>" placeholder="Ex : Halal, ISO 22000" form="<?= $fa ?>"></div>
                 <div class="art-champ"><label>Notes</label><input type="text" name="notes" value="<?= View::e($a['notes'] ?? '') ?>" form="<?= $fa ?>"></div>
                 <label class="art-check"><input type="checkbox" name="echantillon" value="1" <?= !empty($a['echantillon']) ? 'checked' : '' ?> form="<?= $fa ?>"> Échantillon nécessaire</label>
               </div>
-            </details>
+            </td></tr>
             <?php endif; ?>
-          </div>
-        <?php endforeach; ?>
+          <?php endforeach; ?>
+          </tbody></table></div>
+          <div class="gr-hint">Modifiez une case puis cliquez sur ✓ (ou appuyez sur Entrée) pour enregistrer la ligne.</div></div>
+        <script>
+        (function () {
+          var g = document.querySelector('.gr-exist'); if (!g) { return; }
+          g.addEventListener('input', function (e) { var tr = e.target.closest('tr'); if (tr) { if (tr.classList.contains('gr-det')) { tr = tr.previousElementSibling; } tr.classList.add('modif'); } });
+          g.addEventListener('change', function (e) { var tr = e.target.closest('tr'); if (tr) { if (tr.classList.contains('gr-det')) { tr = tr.previousElementSibling; } tr.classList.add('modif'); } });
+          g.addEventListener('click', function (e) { var b = e.target.closest('.gr-more'); if (!b) { return; } var d = b.closest('tr').nextElementSibling; if (d && d.classList.contains('gr-det')) { d.hidden = !d.hidden; b.setAttribute('aria-expanded', d.hidden ? 'false' : 'true'); } });
+        })();
+        </script>
       <?php endif; ?>
       <?php if (!empty($notesArticles)): ?>
         <div style="margin:10px 0 6px;font-weight:600;font-size:13px">Notes</div>
@@ -330,28 +332,34 @@ $unitesArticle = \App\Models\Demande::UNITES;
           </form>
         <?php endforeach; ?>
       <?php endif; ?>
-      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles" class="artl art-nouveau">
+      <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles/lot" style="margin-top:16px">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-        <div class="art-titre">Ajouter un article</div>
-        <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="designation" required></div>
-        <div class="art-champ"><label>Qté</label><input type="number" step="0.01" name="quantite"></div>
-        <div class="art-champ"><label>Unité</label>
-          <select name="unite"><option value=""></option><?php foreach ($unitesArticle as $u): ?><option><?= $u ?></option><?php endforeach; ?></select>
-        </div>
-        <div class="art-champ art-c-cond"><label>Conditionnement / précision</label><input type="text" name="conditionnement"></div>
-        <div class="art-champ"><label>Référence</label><input type="text" name="reference"></div>
-        <div class="art-champ"><label>Marque</label><input type="text" name="marque"></div>
-        <div class="art-actions"><button type="submit" class="btn btn-sm art-ajout">+ Ajouter</button></div>
-        <?php if ($detailsArticle): ?>
-        <details class="art-details"><summary>Détails : durée de vie, certificats, échantillon, notes</summary>
-          <div class="art-det-grille">
-            <div class="art-champ"><label>Durée de vie minimale restante</label><input type="text" name="dlc_min" placeholder="Ex : 9 mois"></div>
-            <div class="art-champ"><label>Certificats demandés</label><input type="text" name="certificats" placeholder="Ex : Halal, ISO 22000"></div>
-            <div class="art-champ"><label>Notes</label><input type="text" name="notes"></div>
-            <label class="art-check"><input type="checkbox" name="echantillon" value="1"> Échantillon nécessaire</label>
+        <div style="font-weight:600;font-size:14px;margin-bottom:6px">Ajouter des articles</div>
+        <div class="gr" data-grille>
+          <div class="gr-bar">
+            <button type="button" class="btn btn-sm art-ajout" data-gr-add="article">+ Ajouter un article</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-gr-add="note">+ Note</button>
           </div>
-        </details>
-        <?php endif; ?>
+          <div class="gr-wrap"><table class="gr-t"><thead><tr><th></th><th style="width:30%">Désignation</th><th>Référence</th><th>Marque</th><th>Conditionnement / précision</th><th style="width:90px">Quantité</th><th style="width:110px">Unité</th><th></th></tr></thead>
+            <tbody data-gr-body></tbody></table>
+            <div class="gr-foot"><span data-gr-count>0 article</span><span>Tab : case suivante · Entrée : ligne suivante · coller depuis Excel possible</span></div></div>
+          <template data-gr-tpl="article"><tr data-type="article">
+            <td class="no" data-gr-no></td>
+            <td class="c-des" data-label="Désignation"><input type="text" name="art_designation[]" autocomplete="off"><input type="hidden" name="art_type[]" value="article"></td>
+            <td data-label="Référence"><input type="text" name="art_reference[]" autocomplete="off"></td>
+            <td data-label="Marque"><input type="text" name="art_marque[]" autocomplete="off"></td>
+            <td data-label="Conditionnement"><input type="text" name="art_conditionnement[]" placeholder="ex. sacs de 50 kg" autocomplete="off"></td>
+            <td data-label="Quantité"><input type="number" step="0.01" name="art_quantite[]" data-gr-qte></td>
+            <td data-label="Unité"><select name="art_unite[]"><option value="">—</option><?php foreach ($unitesArticle as $u): ?><option><?= $u ?></option><?php endforeach; ?></select></td>
+            <td class="ac"><button type="button" data-gr-dup title="Dupliquer">&#10697;</button><button type="button" data-gr-del title="Retirer">&times;</button></td>
+          </tr></template>
+          <template data-gr-tpl="note"><tr data-type="note">
+            <td class="no" data-gr-no>&#9998;</td>
+            <td colspan="6" class="c-note"><input type="text" name="art_designation[]" placeholder="Note libre : remarque, condition, précision…" autocomplete="off"><input type="hidden" name="art_type[]" value="note"><span data-gr-hidden hidden><input type="hidden" name="art_reference[]" value=""><input type="hidden" name="art_marque[]" value=""><input type="hidden" name="art_conditionnement[]" value=""><input type="hidden" name="art_quantite[]" value=""><input type="hidden" name="art_unite[]" value=""></span></td>
+            <td class="ac"><button type="button" data-gr-del title="Retirer">&times;</button></td>
+          </tr></template>
+        </div>
+        <button type="submit" class="btn btn-sm" style="margin-top:10px">Ajouter à la demande</button>
       </form>
     </div>
 
@@ -417,3 +425,4 @@ $unitesArticle = \App\Models\Demande::UNITES;
     <?php endif; ?>
   </div>
 </div>
+<script src="/assets/js/grille-articles.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/grille-articles.js') ?>"></script>

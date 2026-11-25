@@ -1579,3 +1579,13 @@ details[open] > .ex-sum .ex-chev { transform:rotate(180deg) }
 .sy-pt { width:9px; height:9px; border-radius:50%; background:var(--primary); flex:none; margin-top:6px }
 @media (max-width:760px) { .sy-kpis { grid-template-columns:repeat(2,minmax(0,1fr)) } }
 @media (max-width:760px) { .sy-kpis .sy-k:last-child:nth-child(odd) { grid-column:1 / -1 } }
+/* Grille des articles de la fiche demande (v259) */
+.gr-exist { margin-bottom:6px }
+.gr-t tr.modif td { background:#FFFBEF }
+.gr-t td.ac .gr-save { color:#9aa7b2 }
+.gr-t tr.modif td.ac .gr-save { color:#fff; background:var(--primary); border-radius:6px }
+.gr-t td.ac .gr-more[aria-expanded=true] { color:var(--primary) }
+.gr-t tr.gr-det td { height:auto; padding:8px 10px; background:#F7FAFB }
+.gr-t td.ac { width:96px }
+@media (max-width:760px) { .gr-t tr.gr-det { display:block; background:#F7FAFB; border:1px solid #dde4ec; border-radius:10px; padding:8px; margin:-4px 0 8px } .gr-t tr.gr-det td:first-child { display:none } .gr-t tr.gr-det[hidden] { display:none } }
+@media (max-width:760px) { .gr-t tr.modif td { background:transparent } .gr-t tr[data-type=article].modif { background:#FFFBEF; border-color:#f3d98b } }

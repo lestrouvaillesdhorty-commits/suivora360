@@ -791,6 +791,33 @@ class DemandeController
         exit;
     }
 
+    /** Ajout de plusieurs articles et notes libres d'un coup, depuis la grille de la fiche. */
+    public function ajouterArticlesLot(array $params): void
+    {
+        Auth::requireWrite();
+        $user = Auth::user();
+        $demande = $this->loadDemandeOrRedirect($user, $params);
+        if (!$demande) {
+            return;
+        }
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            View::flash('erreur', 'Session expirée, merci de réessayer.');
+            header('Location: /index.php?r=demandes/' . $demande['id']);
+            exit;
+        }
+        $avant = count(DemandeArticle::forDemandeAvecNotes((int) $demande['id']));
+        $this->enregistrerArticlesSoumis((int) $demande['id'], $_POST);
+        $ajoutes = count(DemandeArticle::forDemandeAvecNotes((int) $demande['id'])) - $avant;
+        if ($ajoutes > 0) {
+            AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'ajout_article', 'demande', (int) $demande['id'], $ajoutes . ' ligne(s) ajoutée(s)');
+            View::flash('succes', $ajoutes . ($ajoutes > 1 ? ' lignes ajoutées.' : ' ligne ajoutée.'));
+        } else {
+            View::flash('erreur', 'Aucune ligne à ajouter : renseignez au moins une désignation.');
+        }
+        header('Location: /index.php?r=demandes/' . $demande['id']);
+        exit;
+    }
+
     public function modifierArticle(array $params): void
     {
         Auth::requireWrite();
