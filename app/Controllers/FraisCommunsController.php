@@ -53,8 +53,16 @@ class FraisCommunsController
             AuditLog::log((int) $dossier['filiale_id'], (int) Auth::user()['id'], 'frais_commun_ajoute', 'dossier', (int) $dossier['id'], (string) ($_POST['libelle'] ?? '') . ' ' . $montant);
             View::flash('succes', 'Frais commun ajouté : il sera inclus dans le coût d\'achat de la cotation.');
         }
-        header('Location: /index.php?r=dossiers/' . $dossier['id'] . '&onglet=achats&sous=offres');
+        header('Location: ' . $this->retourApres($dossier));
         exit;
+    }
+
+    /** Retour à la page de cotation si le frais a été saisi depuis elle, sinon à l'onglet Achats du dossier. */
+    private function retourApres(array $dossier): string
+    {
+        return ($_POST['retour'] ?? '') === 'cotation'
+            ? '/index.php?r=dossiers/' . (int) $dossier['id'] . '/cotations/nouvelle'
+            : '/index.php?r=dossiers/' . (int) $dossier['id'] . '&onglet=achats&sous=offres';
     }
 
     public function supprimer(array $params): void
@@ -65,7 +73,7 @@ class FraisCommunsController
         }
         DossierFraisCommuns::supprimer((int) $dossier['id'], (int) $params['fid']);
         View::flash('succes', 'Frais commun supprimé.');
-        header('Location: /index.php?r=dossiers/' . $dossier['id'] . '&onglet=achats&sous=offres');
+        header('Location: ' . $this->retourApres($dossier));
         exit;
     }
 

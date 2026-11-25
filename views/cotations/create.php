@@ -92,6 +92,33 @@ try {
     }
 } catch (\Throwable $eRc) { $rcAchat = []; }
 ?>
+<?php
+$peutFraisCot = !$cotationPrecedente && $offreRetenue && (\App\Core\Auth::canValiderOffres() || \App\Core\Auth::canGererCotations()) && \App\Models\DossierFraisCommuns::disponible();
+if ($peutFraisCot):
+  $dvFrais = (string) (($calcAchat['devise'] ?? '') ?: ($offreRetenue['devise'] ?? 'EUR'));
+  $listeFrais = \App\Models\DossierFraisCommuns::forDossier((int) $dossier['id']);
+?>
+<div class="card" style="margin-bottom:14px">
+  <strong>Frais de transport à ajouter au coût d'achat</strong>
+  <div style="font-size:12.5px;color:#666;margin:2px 0 8px">Le transport n'est pas dans l'offre fournisseur (transitaire, fret, assurance…) ? Ajoutez-le ici : il est réparti sur chaque article, au prorata de sa valeur d'achat, et compté dans le coût d'achat et la marge.</div>
+  <?php if ($listeFrais): ?>
+  <ul style="margin:0 0 10px;padding-left:18px;font-size:13.5px">
+    <?php foreach ($listeFrais as $f): ?>
+    <li><?= View::e($f['libelle']) ?> : <strong><?= number_format((float) $f['montant'], 2, ',', ' ') ?> <?= View::e($f['devise']) ?></strong>
+      <form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/frais-communs/<?= (int) $f['id'] ?>/supprimer" style="display:inline" onsubmit="return confirm('Supprimer ce frais ?')"><input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="retour" value="cotation"><button type="submit" class="btn btn-sm">Supprimer</button></form></li>
+    <?php endforeach; ?>
+  </ul>
+  <?php endif; ?>
+  <form method="post" action="/index.php?r=dossiers/<?= (int) $dossier['id'] ?>/frais-communs" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="retour" value="cotation">
+    <div style="min-width:240px;flex:1"><label style="font-size:12px">Libellé</label><input type="text" name="libelle" value="Transport transitaire jusqu'à la destination" maxlength="120"></div>
+    <div style="width:140px"><label style="font-size:12px">Montant</label><input type="text" inputmode="decimal" name="montant" required placeholder="0"></div>
+    <div style="width:100px"><label style="font-size:12px">Devise</label><input type="text" name="devise" value="<?= View::e($dvFrais) ?>" maxlength="10"></div>
+    <button type="submit" class="btn btn-primary">Ajouter ce frais</button>
+  </form>
+  <div style="font-size:12px;color:#666;margin-top:6px">La page se recharge avec les prix de revient des articles mis à jour. Pensez à le faire avant de saisir vos prix de vente.</div>
+</div>
+<?php endif; ?>
 <div class="cot-grid">
 <div class="card">
   <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/cotations">

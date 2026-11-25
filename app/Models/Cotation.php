@@ -152,8 +152,6 @@ class Cotation
     {
         $pdo = Database::connection();
         $filiale = Filiale::find($filialeId);
-        $numero = Compteur::next((int) $filiale['organisation_id'], 'cotation');
-        $reference = Compteur::formatReference('COT', $numero);
         $now = date('Y-m-d H:i:s');
 
         $montantAchat = ($data['montant_achat'] ?? '') !== '' ? (float) $data['montant_achat'] : null;
@@ -207,6 +205,8 @@ class Cotation
 
         $pdo->beginTransaction();
         try {
+            // Numéro réservé DANS la transaction : un échec le rend ; une nouvelle version garde la référence de la cotation remplacée (sans consommer de numéro).
+            $reference = $precedente ? $precedente['reference'] : Compteur::formatReference('COT', Compteur::next((int) $filiale['organisation_id'], 'cotation'));
             $cotationId = \App\Core\Schema::insert('cotations', [
                 'dossier_id' => $dossierId,
                 'filiale_id' => $filialeId,
