@@ -43,8 +43,25 @@ if ($sansCommande) {
     }
 }
 ?>
+<?php
+$_etapesAv = Dossier::ETAPES;
+$_idxAv = (int) array_search($dossier['etape'], $_etapesAv, true);
+$_suivante = $_etapesAv[$_idxAv + 1] ?? null;
+$_nbEt = count($_etapesAv);
+?>
 <div class="card">
-  <h2>Étape et suivi</h2>
+  <h2>Avancement</h2>
+  <div class="ex-av">
+    <div><b>Étape <?= $_idxAv + 1 ?> sur <?= $_nbEt ?> : <?= View::e(Dossier::ETAPES_LABELS[$dossier['etape']] ?? $dossier['etape']) ?></b>
+      <div class="sy-s"><?= $_suivante ? 'Prochaine étape : ' . View::e(Dossier::ETAPES_LABELS[$_suivante]) : 'Dossier arrivé à la dernière étape.' ?></div></div>
+    <?php if ($_suivante && $_suivante !== 'cloture' && Auth::canWrite() && ($dossier['statut'] ?? '') === 'actif'): ?>
+    <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/etape" style="margin:0" onsubmit="return confirm('Passer ce dossier à l\'étape « <?= View::e(addslashes(Dossier::ETAPES_LABELS[$_suivante])) ?> » ?');">
+      <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>"><input type="hidden" name="etape" value="<?= View::e($_suivante) ?>">
+      <button type="submit" class="btn btn-sm">Passer à l'étape suivante</button>
+    </form>
+    <?php endif; ?>
+  </div>
+  <details class="ex-manuel"><summary>Changer d'étape autrement (retour en arrière, clôture)</summary>
   <form method="post" action="/index.php?r=dossiers/<?= $dossier['id'] ?>/etape" id="formEtape">
     <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
     <label>Étape</label>
@@ -86,6 +103,7 @@ if ($sansCommande) {
     </script>
     <?php endif; ?>
   </form>
+  </details>
 </div>
 
 <?php if ($typeDossier === 'prestation_entreprise'): ?>
@@ -233,4 +251,4 @@ if ($sansCommande) {
 
 <?php if ($typeDossier === 'transport_logistique') { include __DIR__ . '/_tab_execution_transport.php'; } ?>
 <?php if ($typeDossier === 'achat_sourcing') { include __DIR__ . '/_tab_execution_sourcing.php'; } ?>
-<?php if (in_array($typeDossier, ['transport_logistique', 'achat_sourcing'], true)) { try { include __DIR__ . '/_card_expedition.php'; } catch (\Throwable $eExp) { } } ?>
+<?php if ($typeDossier === 'transport_logistique') { try { include __DIR__ . '/_card_expedition.php'; } catch (\Throwable $eExp) { } } ?>

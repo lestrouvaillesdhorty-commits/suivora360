@@ -860,6 +860,37 @@ class DossierController
         exit;
     }
 
+    public function enregistrerTransport(array $params): void
+    {
+        Auth::requireWrite();
+        $retour = '/index.php?r=dossiers/' . (int) $params['id'] . '&onglet=execution';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess(Auth::user(), $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        Dossier::refuserSiAnnule($dossier);
+        if (!\App\Models\DossierTransport::disponible()) {
+            View::flash('erreur', 'Mise à jour de la base requise (migration V78).');
+            header('Location: ' . $retour);
+            exit;
+        }
+        $offre = \App\Models\Offre::retenueForDossier((int) $dossier['id']);
+        $err = \App\Models\DossierTransport::enregistrer($dossier, $_POST, $offre);
+        if ($err) {
+            View::flash('erreur', $err);
+        } else {
+            View::flash('succes', 'Transport enregistré' . ($offre ? ' : il est repris dans l\'offre retenue et dans la cotation.' : '.'));
+        }
+        header('Location: ' . $retour);
+        exit;
+    }
+
     public function updateNotes(array $params): void
     {
         Auth::requireWrite();
