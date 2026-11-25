@@ -22,10 +22,35 @@ if ($transitaireNom === '' && !empty($commande)) {
     foreach (\App\Models\Commande::steps((int) $commande['id']) as $stT) { if ($stT['libelle'] === 'transitaire' && $stT['statut'] !== 'inclus' && !empty($stT['transitaire_nom'])) { $transitaireNom = (string) $stT['transitaire_nom']; } }
 }
 $trMontant = !empty($dossier['tr_montant']) ? $fmtMontant($dossier['tr_montant'], $dossier['tr_devise'] ?? '') : (($offreRetenue && (float) ($offreRetenue['transport_montant'] ?? 0) > 0) ? $fmtMontant($offreRetenue['transport_montant'], $offreRetenue['devise']) : null);
-$achat = $offreRetenue ? $fmtMontant($offreRetenue['montant_total'], $offreRetenue['devise']) : '—';
-$transp = $quiTransport === 'fournisseur' ? 'Inclus' : ($trMontant ?? '—');
-$vente = $cotation ? $fmtMontant($cotation['montant_ht'] ?? $cotation['montant_total'], $cotation['devise']) : '—';
-$marge = ($cotation && $cotation['marge_montant'] !== null) ? $fmtMontant($cotation['marge_montant'], $cotation['devise']) . ($cotation['marge_pourcentage'] !== null ? ' (' . rtrim(rtrim(number_format((float) $cotation['marge_pourcentage'], 1, ',', ''), '0'), ',') . ' %)' : '') : '—';
+// Chiffres clés dans la devise de référence du dossier (celle de l'offre retenue), avec l'équivalent dans la devise du devis.
+$ref = $offreRetenue ? (((string) ($offreRetenue['devise'] ?? '')) ?: 'EUR') : (($cotation['devise_achat'] ?? '') ?: 'EUR');
+$devDevis = $cotation ? (string) ($cotation['devise'] ?? '') : '';
+$tauxEur = (float) (\App\Models\Parametres::forFiliale((int) $dossier['filiale_id'])['taux_eur_fcfa'] ?? 655.957);
+$tauxRefVersDevis = null; // 1 unité de la devise de référence = X devise du devis
+if ($devDevis !== '' && $devDevis !== $ref) {
+    $tauxRefVersDevis = ($cotation && ($cotation['devise_achat'] ?? '') === $ref && (float) ($cotation['taux_change'] ?? 0) > 0) ? (float) $cotation['taux_change'] : \App\Models\DossierTauxChange::parDefaut($ref, $devDevis, $tauxEur);
+}
+$fm = function (float $m, string $dev) { $cfa = in_array($dev, ['XAF', 'XOF'], true); return number_format($m, $cfa ? 0 : 2, ',', ' ') . ' ' . View::e($dev); };
+$versRef = function ($m) use ($tauxRefVersDevis) { return $tauxRefVersDevis > 0 ? (float) $m / $tauxRefVersDevis : null; };
+$tuile = function (?float $enRef, ?float $enDevis, string $suffixe = '') use ($ref, $devDevis, $tauxRefVersDevis, $fm) {
+    if ($enRef === null) { return ['—', '']; }
+    $sous = ($devDevis !== '' && $devDevis !== $ref && $enDevis !== null) ? 'soit ' . $fm($enDevis, $devDevis) : '';
+    return [$fm($enRef, $ref) . $suffixe, $sous];
+};
+$vRef = fn($x) => $tauxRefVersDevis > 0 ? $x * $tauxRefVersDevis : null;
+$achatRef = $offreRetenue ? (float) $offreRetenue['montant_total'] : null;
+$trRefMontant = null;
+if (!empty($dossier['tr_montant']) && (($dossier['tr_devise'] ?? $ref) === $ref || ($dossier['tr_devise'] ?? '') === '')) { $trRefMontant = (float) $dossier['tr_montant']; }
+elseif ($offreRetenue && (float) ($offreRetenue['transport_montant'] ?? 0) > 0) { $trRefMontant = (float) $offreRetenue['transport_montant']; }
+$venteDevis = $cotation ? (float) ($cotation['montant_ht'] ?? $cotation['montant_total']) : null;
+$venteRef = $venteDevis !== null ? ($devDevis === $ref ? $venteDevis : $versRef($venteDevis)) : null;
+$margeDevis = ($cotation && $cotation['marge_montant'] !== null) ? (float) $cotation['marge_montant'] : null;
+$margeRef = $margeDevis !== null ? ($devDevis === $ref ? $margeDevis : $versRef($margeDevis)) : null;
+$pctM = ($cotation && $cotation['marge_pourcentage'] !== null) ? ' · ' . rtrim(rtrim(number_format((float) $cotation['marge_pourcentage'], 1, ',', ''), '0'), ',') . ' %' : '';
+[$achat, $achatSous] = $tuile($achatRef, $achatRef !== null ? $vRef($achatRef) : null);
+[$transp, $transpSous] = $quiTransport === 'fournisseur' ? ['Inclus', ''] : $tuile($trRefMontant, $trRefMontant !== null ? $vRef($trRefMontant) : null);
+[$vente, $venteSous] = $tuile($venteRef, $venteDevis);
+[$marge, $margeSous] = $tuile($margeRef, $margeDevis, $pctM);
 
 // Délai de traitement : de la réception de la demande à la livraison (ou à aujourd'hui si le dossier est en cours).
 $debut = substr((string) ($demande['recue_le'] ?? $dossier['created_at']), 0, 10);
@@ -65,10 +90,10 @@ $journal = array_slice(array_reverse($historique ?? []), 0, 8);
   <?php endif; ?>
 
   <div class="sy-kpis">
-    <div class="sy-k"><span>Coût d'achat</span><b><?= $achat ?></b></div>
-    <div class="sy-k"><span>Transport</span><b><?= $transp ?></b></div>
-    <div class="sy-k"><span>Prix de vente HT</span><b><?= $vente ?></b></div>
-    <div class="sy-k"><span>Marge</span><b><?= $marge ?></b></div>
+    <div class="sy-k"><span>Coût d'achat</span><b><?= $achat ?></b><small><?= $achatSous ?></small></div>
+    <div class="sy-k"><span>Transport</span><b><?= $transp ?></b><small><?= $transpSous ?></small></div>
+    <div class="sy-k"><span>Prix de vente HT</span><b><?= $vente ?></b><small><?= $venteSous ?></small></div>
+    <div class="sy-k"><span>Marge</span><b><?= $marge ?></b><small><?= $margeSous ?></small></div>
     <div class="sy-k"><span>Délai de traitement</span><b><?= $jr($delaiJ) ?></b><small><?= View::e($delaiSous) ?><?= $delaiNote !== '' ? ' · ' . View::e($delaiNote) : '' ?></small></div>
   </div>
 
