@@ -128,9 +128,16 @@ class DevisPdf
         foreach ($items as $it) { if ((float) ($it['remise_pct'] ?? 0) > 0) { $avecRemise = true; } }
         if ($items) {
             $lignes = [];
+            $no = 0;
             foreach ($items as $i => $it) {
+                if (!empty($it['est_note'])) {
+                    $vide = $avecRemise ? ['', '', '', ''] : ['', '', ''];
+                    $lignes[] = array_merge([''], [[(string) $it['designation'], '']], $vide, ['']);
+                    continue;
+                }
+                $no++;
                 $det = self::details($it);
-                $ligne = [(string) ($i + 1), [(string) $it['designation'], $det],
+                $ligne = [(string) $no, [(string) $it['designation'], $det],
                     rtrim(rtrim(number_format((float) $it['quantite'], 2, ',', ''), '0'), ','), (string) ($it['unite'] ?? ''),
                     $it['prix_unitaire'] !== null ? self::fmt($it['prix_unitaire']) : '-'];
                 if ($avecRemise) {

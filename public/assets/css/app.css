@@ -1515,3 +1515,14 @@ table.gr-t { width:100%; border-collapse:collapse; font-size:13.5px; min-width:8
   .gr-t input[type=text], .gr-t input[type=number], .gr-t select { border:1px solid #c9d3dd; border-radius:8px; height:44px; background:#fff; font-size:16px }
   .gr-t td.ac { position:absolute; top:2px; right:2px; width:auto; background:transparent }
 }
+/* Grille des lignes d'offre / cotation (v256) */
+table.gr-t.gr-large { min-width:1450px }
+.gr-t td.c-des { min-width:220px }
+.gr-t input.art-montant { background:#f6f8fa; text-align:right; color:#33424f; font-weight:600 }
+@media (max-width:760px) {
+  table.gr-t.gr-large { min-width:0 }
+  .gr-t tr[data-type=article] td.c-da { grid-column:1 / -1; padding-right:64px }
+  .gr-t tr[data-type=article] td.c-da + td.c-des { padding-right:0 }
+  .gr-t tr[data-type=article]:not(:has(.c-da)) td.c-des { padding-right:64px }
+  .gr-t td[data-label="Caractéristiques"], .gr-t td[data-label="Conditionnement"] { grid-column:1 / -1 }
+}

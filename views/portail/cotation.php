@@ -17,7 +17,7 @@ $bg = $badges[$cotation['statut']];
     <div class="sub"><?= View::e($cotation['dossier_objet']) ?> · dossier <?= View::e($cotation['dossier_reference']) ?> · émise le <?= date('d/m/Y', strtotime($cotation['created_at'])) ?></div>
     <?php if (!empty($lignes)): ?>
     <table class="t" style="margin-top:16px"><thead><tr><th>Désignation</th><th class="n">Qté</th><th>Unité</th><th class="n">Prix unitaire</th><th class="n">Montant</th></tr></thead><tbody>
-    <?php foreach ($lignes as $l): ?><tr><td><?= View::e($l['designation']) ?></td><td class="n"><?= View::e((string) $l['quantite']) ?></td><td><?= View::e($l['unite']) ?></td>
+    <?php foreach ($lignes as $l): if (!empty($l['est_note'])): ?><tr><td colspan="5" style="font-style:italic;color:#8a4b00;background:#fffbef"><?= View::e($l['designation']) ?></td></tr><?php continue; endif; ?><tr><td><?= View::e($l['designation']) ?></td><td class="n"><?= View::e((string) $l['quantite']) ?></td><td><?= View::e($l['unite']) ?></td>
       <td class="n"><?= $l['prix_unitaire'] !== null ? number_format((float) $l['prix_unitaire'], 2, ',', ' ') : '—' ?></td><td class="n"><?= $l['montant'] !== null ? number_format((float) $l['montant'], 2, ',', ' ') : '—' ?></td></tr><?php endforeach; ?>
     </tbody></table>
     <?php endif; ?>

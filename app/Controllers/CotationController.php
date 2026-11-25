@@ -197,6 +197,7 @@ class CotationController
         $designations = $_POST['item_designation'] ?? [];
         foreach ($designations as $i => $designation) {
             $items[] = [
+                'est_note' => (($_POST['item_type'][$i] ?? 'article') === 'note') ? 1 : 0,
                 'designation' => trim($designation),
                 'quantite' => $_POST['item_quantite'][$i] ?? null,
                 'unite' => $_POST['item_unite'][$i] ?? '',

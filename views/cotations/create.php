@@ -306,12 +306,9 @@ if ($lignesRevient && $fraisRepartis > 0.004):
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <label style="margin:0">Détail des articles (optionnel)</label>
-        <button type="button" class="btn btn-sm btn-secondary" id="add-item">+ Ligne</button>
       </div>
       <div style="font-size:12px;color:#666;margin-top:4px"><?php if (!$cotationPrecedente && !empty($itemsPrecedents)): ?><?= !empty($depuisOffre) ? "Articles et prix repris de l'offre retenue. " : 'Articles repris de la demande. ' ?><?php endif; ?>Les prix unitaires (HT) se calculent depuis le coût, le taux et la marge ; vous pouvez les corriger.</div>
-      <table style="margin-top:10px" id="items-table"><tbody id="items-body">
-        <?php foreach ($itemsPrecedents ?? [] as $item) { include __DIR__ . '/../partials/_ligne_article.php'; } ?>
-      </tbody></table>
+      <?php $avecNotes = true; include __DIR__ . '/../partials/_grille_lignes.php'; ?>
     </div>
 
     <div class="cot-etape"><span class="n">6</span>Livraison et notes <small>facultatif</small></div>
@@ -331,20 +328,7 @@ if ($lignesRevient && $fraisRepartis > 0.004):
 </details></div></aside>
 </div>
 
-<template id="item-row-template"><?php $item = []; include __DIR__ . '/../partials/_ligne_article.php'; ?></template>
 
-<script>
-document.getElementById('add-item').addEventListener('click', function () {
-  var tpl = document.getElementById('item-row-template');
-  var clone = tpl.content.cloneNode(true);
-  document.getElementById('items-body').appendChild(clone);
-});
-document.getElementById('items-body').addEventListener('click', function (e) {
-  if (e.target.classList.contains('remove-item')) {
-    e.target.closest('tr').remove();
-  }
-});
-</script>
 <script>
 // Cotation : coût d'achat (devise de l'offre) × taux de change × (1 + marge) = HT ; + TVA = TTC.
 (function () {
@@ -474,3 +458,4 @@ document.getElementById('items-body').addEventListener('click', function (e) {
   majTaux(); prevTx = tauxEff(); prevM = marge ? (parseFloat(marge.value) || 0) : 0; recalc(); affTva(); recap();
 })();
 </script>
+<script src="/assets/js/grille-articles.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/grille-articles.js') ?>"></script>

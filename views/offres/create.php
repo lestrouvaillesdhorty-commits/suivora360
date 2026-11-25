@@ -245,13 +245,10 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <label style="margin:0">Détail des articles (optionnel)</label>
-        <button type="button" class="btn btn-sm btn-secondary" id="add-item">+ Ligne</button>
       </div>
       <div style="font-size:12px;color:#666;margin-top:4px"><?php if (!$offrePrecedente && !empty($itemsPrecedents)): ?>Articles repris de la demande : saisissez seulement les prix unitaires. <?php endif; ?>Le montant total de l'offre se calcule tout seul (quantité × prix) ; vous pouvez le corriger à la main.</div>
       <?php $articlesDemande = !empty($dossier['demande_id']) ? \App\Models\DemandeArticle::forDemande((int) $dossier['demande_id']) : []; ?>
-      <table style="margin-top:10px" id="items-table"><tbody id="items-body">
-        <?php foreach ($itemsPrecedents ?? [] as $item) { include __DIR__ . '/../partials/_ligne_article.php'; } ?>
-      </tbody></table>
+      <?php $avecNotes = false; include __DIR__ . '/../partials/_grille_lignes.php'; ?>
     </div>
 
     <div class="form-group"><label>Notes</label><textarea name="notes" rows="3"><?= View::e((string) $v('notes')) ?></textarea></div>
@@ -264,7 +261,6 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
   </form>
 </div>
 
-<template id="item-row-template"><?php $item = []; include __DIR__ . '/../partials/_ligne_article.php'; ?></template>
 
 <script>
 // Montant total calculé automatiquement à partir des lignes (tant que vous ne l'avez pas saisi vous-même).
@@ -284,20 +280,6 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
   body.addEventListener('click', function () { setTimeout(calc, 0); });
   window.calcTotalOffre = calc; calc();
 })();
-document.getElementById('add-item').addEventListener('click', function () {
-  var tpl = document.getElementById('item-row-template');
-  var clone = tpl.content.cloneNode(true);
-  document.getElementById('items-body').appendChild(clone);
-});
-// [modifié 06/10, étape 2 du découpage Dossiers] Délégation sur le tbody
-// plutôt qu'un listener par bouton : les lignes préremplies depuis une
-// version précédente (voir $itemsPrecedents) existent déjà au chargement,
-// pas seulement celles ajoutées dynamiquement via le template.
-document.getElementById('items-body').addEventListener('click', function (e) {
-  if (e.target.classList.contains('remove-item')) {
-    e.target.closest('tr').remove();
-  }
-});
 </script>
 
 <script>
@@ -462,4 +444,4 @@ document.getElementById('items-body').addEventListener('click', function (e) {
   maj();
 })();
 </script>
-
+<script src="/assets/js/grille-articles.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/grille-articles.js') ?>"></script>

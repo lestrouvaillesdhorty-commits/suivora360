@@ -88,26 +88,38 @@ $messageErreur = fn(?string $m) => $m ? '<div style="color:#991b1b;font-size:12p
   <div class="card">
     <h2>Lignes commandées</h2>
     <?= $messageErreur($err('lignes')) ?>
-    <table class="responsive-cards" id="tableLignes">
-      <thead><tr><th>Désignation</th><th style="width:100px">Quantité</th><th style="width:90px">Unité</th><th style="width:130px">Prix unitaire</th><?php if ($avecRemise): ?><th style="width:90px">Remise %</th><?php endif; ?><th style="width:120px" class="num">Montant</th><th style="width:40px"></th></tr></thead>
-      <tbody id="lignesCorps">
-      <?php foreach ($lignes as $i => $l): ?>
-        <tr class="ligne">
-          <td data-label="Désignation"><input type="text" name="lignes[<?= $i ?>][designation]" value="<?= View::e((string) ($l['designation'] ?? '')) ?>" maxlength="255"></td>
-          <td data-label="Quantité"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][quantite]" value="<?= View::e((string) ($l['quantite'] ?? '')) ?>" class="q"></td>
-          <td data-label="Unité"><input type="text" name="lignes[<?= $i ?>][unite]" value="<?= View::e((string) ($l['unite'] ?? '')) ?>" maxlength="20" placeholder="kg, pièce…"></td>
-          <td data-label="Prix unitaire"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][prix_unitaire]" value="<?= View::e((string) ($l['prix_unitaire'] ?? '')) ?>" class="pu"></td>
-          <?php if ($avecRemise): ?><td data-label="Remise %"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][remise_pct]" value="<?= View::e((string) ($l['remise_pct'] ?? '')) ?>" class="rem"></td><?php endif; ?>
-          <td data-label="Montant" class="num montant" style="white-space:nowrap">—</td>
-          <td><button type="button" class="btn btn-sm btn-secondary suppr" title="Retirer la ligne" aria-label="Retirer la ligne">×</button></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <button type="button" class="btn btn-sm btn-secondary" id="ajouterLigne">+ Ajouter une ligne</button>
-      <div style="font-weight:700">Total : <span id="totalBon">—</span> <span id="deviseTotal"></span></div>
+    <div class="gr" data-grille>
+      <div class="gr-bar">
+        <button type="button" class="btn btn-sm art-ajout" data-gr-add="article" id="ajouterLigne">+ Ajouter une ligne</button>
+      </div>
+      <div class="gr-wrap"><table class="gr-t" id="tableLignes"><thead><tr><th></th><th style="width:34%">Désignation</th><th style="width:100px">Quantité</th><th style="width:100px">Unité</th><th style="width:130px">Prix unitaire</th><?php if ($avecRemise): ?><th style="width:90px">Remise %</th><?php endif; ?><th style="width:120px" class="num">Montant</th><th></th></tr></thead>
+        <tbody data-gr-body id="lignesCorps" data-gr-index="<?= count($lignes) ?>">
+        <?php foreach ($lignes as $i => $l): ?>
+          <tr class="ligne" data-type="article">
+            <td class="no" data-gr-no></td>
+            <td class="c-des" data-label="Désignation"><input type="text" name="lignes[<?= $i ?>][designation]" value="<?= View::e((string) ($l['designation'] ?? '')) ?>" maxlength="255" autocomplete="off"></td>
+            <td data-label="Quantité"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][quantite]" value="<?= View::e((string) ($l['quantite'] ?? '')) ?>" class="q" data-gr-qte></td>
+            <td data-label="Unité"><input type="text" name="lignes[<?= $i ?>][unite]" value="<?= View::e((string) ($l['unite'] ?? '')) ?>" maxlength="20" placeholder="kg, pièce…" autocomplete="off"></td>
+            <td data-label="Prix unitaire"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][prix_unitaire]" value="<?= View::e((string) ($l['prix_unitaire'] ?? '')) ?>" class="pu"></td>
+            <?php if ($avecRemise): ?><td data-label="Remise %"><input type="text" inputmode="decimal" name="lignes[<?= $i ?>][remise_pct]" value="<?= View::e((string) ($l['remise_pct'] ?? '')) ?>" class="rem"></td><?php endif; ?>
+            <td data-label="Montant" class="num montant" style="white-space:nowrap;padding:0 8px">—</td>
+            <td class="ac"><button type="button" data-gr-dup title="Dupliquer">&#10697;</button><button type="button" data-gr-del title="Retirer">&times;</button></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody></table>
+        <div class="gr-foot"><span data-gr-count>0 article</span><span>Tab : case suivante · Entrée : ligne suivante · coller depuis Excel possible</span></div></div>
+      <template data-gr-tpl="article"><tr class="ligne" data-type="article">
+            <td class="no" data-gr-no></td>
+            <td class="c-des" data-label="Désignation"><input type="text" name="lignes[__i__][designation]" value="" maxlength="255" autocomplete="off"></td>
+            <td data-label="Quantité"><input type="text" inputmode="decimal" name="lignes[__i__][quantite]" value="" class="q" data-gr-qte></td>
+            <td data-label="Unité"><input type="text" name="lignes[__i__][unite]" value="" maxlength="20" placeholder="kg, pièce…" autocomplete="off"></td>
+            <td data-label="Prix unitaire"><input type="text" inputmode="decimal" name="lignes[__i__][prix_unitaire]" value="" class="pu"></td>
+            <?php if ($avecRemise): ?><td data-label="Remise %"><input type="text" inputmode="decimal" name="lignes[__i__][remise_pct]" value="" class="rem"></td><?php endif; ?>
+            <td data-label="Montant" class="num montant" style="white-space:nowrap;padding:0 8px">—</td>
+            <td class="ac"><button type="button" data-gr-dup title="Dupliquer">&#10697;</button><button type="button" data-gr-del title="Retirer">&times;</button></td>
+          </tr></template>
     </div>
+    <div style="margin-top:10px;text-align:right;font-weight:700">Total : <span id="totalBon">—</span> <span id="deviseTotal"></span></div>
     <div style="font-size:12px;color:#888;margin-top:6px">Quantités et unités sont conservées ligne par ligne. Le total additionne uniquement des montants dans la devise du bon ; les lignes sans prix ne sont pas comptées. Le total définitif est recalculé à l’enregistrement.</div>
   </div>
 
@@ -152,7 +164,6 @@ $messageErreur = fn(?string $m) => $m ? '<div style="color:#991b1b;font-size:12p
 <script>
 (function () {
   var corps = document.getElementById('lignesCorps');
-  var index = corps.querySelectorAll('tr.ligne').length;
   function num(s) { s = (s || '').replace(/\s/g, '').replace(',', '.'); var n = parseFloat(s); return isNaN(n) ? null : n; }
   function fmt(n) { return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function recalcul() {
@@ -166,21 +177,10 @@ $messageErreur = fn(?string $m) => $m ? '<div style="color:#991b1b;font-size:12p
   }
   corps.addEventListener('input', recalcul);
   document.getElementById('devise').addEventListener('change', recalcul);
-  corps.addEventListener('click', function (e) {
-    if (e.target.classList.contains('suppr')) {
-      var tr = e.target.closest('tr');
-      if (corps.querySelectorAll('tr.ligne').length > 1) { tr.remove(); } else { tr.querySelectorAll('input').forEach(function (i) { i.value = ''; }); }
-      recalcul();
-    }
-  });
-  document.getElementById('ajouterLigne').addEventListener('click', function () {
-    var modele = corps.querySelector('tr.ligne').cloneNode(true);
-    modele.querySelectorAll('input').forEach(function (i) { i.value = ''; i.name = i.name.replace(/lignes\[\d+\]/, 'lignes[' + index + ']'); });
-    index++; corps.appendChild(modele); recalcul(); modele.querySelector('input').focus();
-  });
   document.querySelectorAll('.choisirContact').forEach(function (a) {
     a.addEventListener('click', function (e) { e.preventDefault(); document.getElementById('destinataire_nom').value = a.dataset.nom; document.getElementById('destinataire_email').value = a.dataset.email; });
   });
   recalcul();
 })();
 </script>
+<script src="/assets/js/grille-articles.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/grille-articles.js') ?>"></script>

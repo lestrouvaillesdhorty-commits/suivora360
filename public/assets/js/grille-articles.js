@@ -8,7 +8,7 @@
     root.querySelectorAll('template[data-gr-tpl]').forEach(function (t) { tpl[t.dataset.grTpl] = t; });
     var foot = root.querySelector('[data-gr-count]');
 
-    function saisies(tr) { return Array.prototype.slice.call(tr.querySelectorAll('input[type=text],input[type=number],select')).filter(function (i) { return !i.closest('[data-gr-hidden]'); }); }
+    function saisies(tr) { return Array.prototype.slice.call(tr.querySelectorAll('input[type=text],input[type=number],select')).filter(function (i) { return !i.closest('[data-gr-hidden]') && !i.readOnly; }); }
     function maj() {
       var n = 0, k = 0, q = 0;
       Array.prototype.forEach.call(body.querySelectorAll('tr'), function (tr) {
@@ -19,9 +19,11 @@
       });
       if (foot) { foot.textContent = n + ' article' + (n > 1 ? 's' : '') + (k ? ' · ' + k + ' note' + (k > 1 ? 's' : '') : '') + (q ? ' · ' + (Math.round(q * 100) / 100) + ' unités' : ''); }
     }
+    function notifier() { body.dispatchEvent(new Event('input', { bubbles: true })); }
     function ajouter(type, apres) {
       var t = tpl[type]; if (!t) { return null; }
       var frag = t.content.cloneNode(true), tr = frag.querySelector('tr');
+      if (body.dataset.grIndex !== undefined) { var k = parseInt(body.dataset.grIndex, 10) || 0; body.dataset.grIndex = k + 1; frag.querySelectorAll('[name*="__i__"]').forEach(function (el) { el.name = el.name.replace('__i__', k); }); }
       if (apres && apres.nextSibling) { body.insertBefore(frag, apres.nextSibling); } else { body.appendChild(frag); }
       maj(); return tr;
     }
@@ -32,10 +34,10 @@
     });
     body.addEventListener('click', function (e) {
       var rm = e.target.closest('[data-gr-del]'), dup = e.target.closest('[data-gr-dup]');
-      if (rm) { var tr = rm.closest('tr'); tr.remove(); maj(); }
+      if (rm) { var tr = rm.closest('tr'); tr.remove(); maj(); notifier(); }
       if (dup) {
         var src = dup.closest('tr'), copie = ajouter(src.dataset.type, src);
-        var a = saisies(src), b = saisies(copie); a.forEach(function (x, i) { if (b[i]) { b[i].value = x.value; } }); maj();
+        var a = saisies(src), b = saisies(copie); a.forEach(function (x, i) { if (b[i]) { b[i].value = x.value; } }); maj(); notifier();
       }
     });
     body.addEventListener('input', maj);
@@ -64,7 +66,7 @@
           else { c.value = c.type === 'number' ? val.replace(/\s/g, '').replace(',', '.') : val; }
         });
       });
-      maj();
+      maj(); notifier();
     });
     if (!body.querySelector('tr')) { ajouter('article'); }
     maj();

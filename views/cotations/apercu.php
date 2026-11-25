@@ -89,8 +89,9 @@ html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     <div class="tw"><table>
       <thead><tr><th>N°</th><th>Désignation</th><th class="r">Qté</th><th>Unité</th><th class="r">PU HT</th><?= $avecRemise ? '<th class="r">Remise</th>' : '' ?><th class="r">Total HT</th></tr></thead>
       <tbody>
-      <?php foreach ($items as $i => $it): $det = DevisPdf::details($it); ?>
-        <tr><td><?= $i + 1 ?></td><td><?= View::e($it['designation']) ?><?= $det !== '' ? '<div class="d">' . View::e($det) . '</div>' : '' ?></td>
+      <?php $no = 0; foreach ($items as $i => $it): $det = DevisPdf::details($it); ?>
+        <?php if (!empty($it['est_note'])): ?><tr><td></td><td colspan="<?= $avecRemise ? 6 : 5 ?>"><em><?= View::e($it['designation']) ?></em></td></tr><?php continue; endif; $no++; ?>
+        <tr><td><?= $no ?></td><td><?= View::e($it['designation']) ?><?= $det !== '' ? '<div class="d">' . View::e($det) . '</div>' : '' ?></td>
           <td class="r"><?= View::e(rtrim(rtrim(number_format((float) $it['quantite'], 2, ',', ''), '0'), ',')) ?></td><td><?= View::e((string) $it['unite']) ?></td>
           <td class="r"><?= $it['prix_unitaire'] !== null ? $n($it['prix_unitaire']) : '—' ?></td><?= $avecRemise ? '<td class="r">' . ((float) ($it['remise_pct'] ?? 0) > 0 ? View::e(rtrim(rtrim(number_format((float) $it['remise_pct'], 2, ',', ''), '0'), ',')) . ' %' : '') . '</td>' : '' ?><td class="r"><?= $it['montant'] !== null ? $n($it['montant']) : '—' ?></td></tr>
       <?php endforeach; ?>

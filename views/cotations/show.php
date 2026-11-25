@@ -42,6 +42,7 @@ $commandeExistante = Commande::findByDossier((int) $cotation['dossier_id']);
           <thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Prix unitaire</th><th>Montant</th></tr></thead>
           <tbody>
           <?php foreach ($items as $item): ?>
+            <?php if (!empty($item['est_note'])): ?><tr><td colspan="5" style="background:#fffbef;font-style:italic;color:#8a4b00">&#9998; <?= View::e($item['designation']) ?></td></tr><?php continue; endif; ?>
             <tr>
               <td><?= View::e($item['designation']) ?><?php $det = \App\Services\DevisPdf::details($item); ?><?= $det !== '' ? '<div style="font-size:12px;color:#667">' . View::e($det) . '</div>' : '' ?></td>
               <td><?= View::e((string) $item['quantite']) ?></td>

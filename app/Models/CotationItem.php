@@ -15,6 +15,15 @@ class CotationItem
 
     public static function create(int $parentId, array $data): int
     {
+        $estNote = !empty($data['est_note']);
+        if ($estNote) {
+            return \App\Core\Schema::insert('cotation_items', [
+                'cotation_id' => $parentId,
+                'designation' => $data['designation'],
+                'quantite' => null, 'unite' => '', 'prix_unitaire' => null, 'montant' => null,
+                'created_at' => date('Y-m-d H:i:s'),
+            ], ['est_note' => 1]);
+        }
         $quantite = $data['quantite'] !== '' && $data['quantite'] !== null ? (float) $data['quantite'] : null;
         $prixUnitaire = $data['prix_unitaire'] !== '' && $data['prix_unitaire'] !== null ? (float) $data['prix_unitaire'] : null;
         $remise = ($data['remise_pct'] ?? '') !== '' && (float) $data['remise_pct'] > 0 ? min(100.0, round((float) str_replace(',', '.', (string) $data['remise_pct']), 2)) : null;

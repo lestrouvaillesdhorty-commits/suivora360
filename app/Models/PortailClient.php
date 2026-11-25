@@ -190,7 +190,7 @@ class PortailClient
 
     public static function lignesCotation(int $cotationId): array
     {
-        $stmt = Database::connection()->prepare('SELECT designation, quantite, unite, prix_unitaire, montant FROM cotation_items WHERE cotation_id = ? ORDER BY id');
+        $stmt = Database::connection()->prepare('SELECT * FROM cotation_items WHERE cotation_id = ? ORDER BY id');
         $stmt->execute([$cotationId]);
         return $stmt->fetchAll();
     }

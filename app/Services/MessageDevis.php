@@ -13,7 +13,10 @@ class MessageDevis
         $dev = (string) $c['devise'];
         $sujet = $L('Devis ', 'Quotation ') . $c['reference'] . ' — ' . $emetteur;
         $m = [$salut . ',', '', $L('Veuillez trouver ci-joint notre devis ', 'Please find attached our quotation ') . $c['reference'] . $L(' pour votre demande.', ' for your request.'), ''];
-        foreach ($items as $i => $it) {
+        $no = 0;
+        foreach ($items as $it) {
+            if (!empty($it['est_note'])) { $m[] = '(' . $it['designation'] . ')'; continue; }
+            $no++; $i = $no - 1;
             $q = rtrim(rtrim(number_format((float) $it['quantite'], 2, ',', ''), '0'), ',');
             $det = DevisPdf::details($it);
             $m[] = ($i + 1) . '. ' . $it['designation'] . ($det !== '' ? ' (' . $det . ')' : '') . ' — ' . $q . ' ' . ($it['unite'] ?? '')
