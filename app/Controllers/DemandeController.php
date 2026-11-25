@@ -644,6 +644,10 @@ class DemandeController
             if ($designation === '') {
                 continue;
             }
+            if (($post['art_type'][$i] ?? 'article') === 'note') {
+                DemandeArticle::creerNote($demandeId, $designation);
+                continue;
+            }
             DemandeArticle::create($demandeId, [
                 'designation' => $designation,
                 'quantite' => $post['art_quantite'][$i] ?? null,
@@ -736,6 +740,7 @@ class DemandeController
         View::render('requests/show', [
             'demande' => $demande,
             'articles' => $articles,
+            'notesArticles' => DemandeArticle::notes((int) $demande['id']),
             'dossier' => $dossier,
             'filiale' => $filiale,
             'client' => $client,

@@ -320,6 +320,16 @@ $unitesArticle = \App\Models\Demande::UNITES;
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
+      <?php if (!empty($notesArticles)): ?>
+        <div style="margin:10px 0 6px;font-weight:600;font-size:13px">Notes</div>
+        <?php foreach ($notesArticles as $na): ?>
+          <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= (int) $na['id'] ?>/supprimer" style="display:flex;gap:8px;align-items:flex-start;background:#fffbef;border:1px solid #f3d98b;border-radius:8px;padding:8px 10px;margin-bottom:6px">
+            <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
+            <span style="color:#b4570f">&#9998;</span><span style="flex:1;font-style:italic;color:#8a4b00;white-space:pre-line"><?= View::e($na['designation']) ?></span>
+            <button type="submit" class="btn btn-sm btn-secondary" title="Retirer" onclick="return confirm('Retirer cette note ?');">&times;</button>
+          </form>
+        <?php endforeach; ?>
+      <?php endif; ?>
       <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles" class="artl art-nouveau">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
         <div class="art-titre">Ajouter un article</div>

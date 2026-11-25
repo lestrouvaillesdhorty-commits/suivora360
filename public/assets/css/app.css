@@ -1483,3 +1483,35 @@ select.niv-cache { border-color: #D6DCE3; }
   #items-table .art-del { position:static }
   #items-table tr.art-ligne:not(:first-child) .art-grid label { display:none }
 }
+
+/* Grille de saisie des articles (demande, puis offre, cotation, bon de commande) */
+.gr-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:0 0 8px }
+.gr-bar .btn { padding:7px 12px; font-size:13px }
+.gr-wrap { border:1px solid #cbd5df; border-radius:10px; overflow-x:auto; background:#fff }
+table.gr-t { width:100%; border-collapse:collapse; font-size:13.5px; min-width:860px }
+.gr-t th { background:#f3f6f9; text-align:left; font-size:11.5px; color:#5b6b7b; font-weight:600; padding:8px 8px; border-bottom:1px solid #cbd5df; border-right:1px solid #e6e8ef; white-space:nowrap }
+.gr-t td { padding:0; border-bottom:1px solid #e6e8ef; border-right:1px solid #eef1f5; height:38px }
+.gr-t td.no { width:42px; text-align:center; color:#8a98a5; background:#fafbfc; font-size:12px }
+.gr-t td.ac { width:70px; text-align:center; white-space:nowrap; background:#fafbfc }
+.gr-t td.ac button { border:0; background:none; cursor:pointer; color:#8a98a5; font-size:15px; padding:6px 5px }
+.gr-t td.ac button:hover { color:#b3261e }
+.gr-t input[type=text], .gr-t input[type=number], .gr-t select { width:100%; height:38px; border:0; border-radius:0; background:transparent; padding:0 8px; font-size:13.5px; box-sizing:border-box; margin:0 }
+.gr-t input:focus, .gr-t select:focus { outline:2px solid #0b7c8a; outline-offset:-2px; background:#fff; box-shadow:none }
+.gr-t tr[data-type=note] td { background:#fffbef }
+.gr-t tr[data-type=note] input { font-style:italic; color:#8a4b00 }
+.gr-foot { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:8px 12px; background:#f3f6f9; border-top:1px solid #cbd5df; font-size:12.5px; color:#5b6b7b }
+.gr-hint { font-size:12px; color:#6b7285; margin-top:6px }
+@media (max-width:760px) {
+  .gr-wrap { border:0; overflow:visible; background:transparent }
+  table.gr-t, .gr-t tbody { display:block; min-width:0 }
+  .gr-t thead { display:none }
+  .gr-t tr[data-type=article] { display:grid; grid-template-columns:1fr 1fr; gap:6px 8px; background:#fff; border:1px solid #dde4ec; border-radius:10px; padding:10px; margin-bottom:8px; position:relative }
+  .gr-t tr[data-type=note] { display:block; background:#fffbef; border:1px solid #f3d98b; border-radius:10px; padding:6px; margin-bottom:8px; position:relative }
+  .gr-t td { display:block; border:0; height:auto; padding:0 }
+  .gr-t td.no { display:none }
+  .gr-t td[data-label]::before { content:attr(data-label); display:block; font-size:11px; color:#667; margin-bottom:2px }
+  .gr-t tr[data-type=article] td.c-des { grid-column:1 / -1; padding-right:64px }
+  .gr-t tr[data-type=note] td.c-note { padding-right:34px }
+  .gr-t input[type=text], .gr-t input[type=number], .gr-t select { border:1px solid #c9d3dd; border-radius:8px; height:44px; background:#fff; font-size:16px }
+  .gr-t td.ac { position:absolute; top:2px; right:2px; width:auto; background:transparent }
+}

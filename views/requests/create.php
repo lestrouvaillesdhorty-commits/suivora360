@@ -191,24 +191,31 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
       <h2>Articles / besoins</h2>
       <?php if (!$estModification): ?>
         <div style="font-size:12px;color:#888;margin-bottom:10px">Facultatif à ce stade — une demande de service encore peu détaillée peut être enregistrée sans aucune ligne.</div>
-        <div id="articlesBody"></div>
-        <button type="button" class="btn btn-sm art-ajout" id="btnAjouterLigne" style="margin-top:4px">+ Ajouter un article</button>
-        <template id="articleRowTemplate">
-          <div class="artl">
-            <div class="art-champ art-c-des"><label>Désignation</label><input type="text" name="art_designation[]"></div>
-            <div class="art-champ"><label>Qté</label><input type="number" step="0.01" name="art_quantite[]"></div>
-            <div class="art-champ"><label>Unité</label>
-              <select name="art_unite[]">
-                <option value="">Choisir…</option>
-                <?php foreach (\App\Models\Demande::UNITES as $u): ?><option><?= $u ?></option><?php endforeach; ?>
-              </select>
-            </div>
-            <div class="art-champ art-c-cond"><label>Conditionnement / précision</label><input type="text" name="art_conditionnement[]" placeholder="ex. sacs de 50 kg"></div>
-            <div class="art-champ"><label>Référence</label><input type="text" name="art_reference[]"></div>
-            <div class="art-champ"><label>Marque</label><input type="text" name="art_marque[]"></div>
-            <div class="art-actions"><button type="button" class="btn btn-sm btn-secondary btn-retirer-ligne" title="Retirer">&times;</button></div>
+        <div class="gr" data-grille>
+          <div class="gr-bar">
+            <button type="button" class="btn btn-sm art-ajout" data-gr-add="article" id="btnAjouterLigne">+ Ajouter un article</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-gr-add="note">+ Note</button>
           </div>
-        </template>
+          <div class="gr-wrap"><table class="gr-t"><thead><tr><th></th><th style="width:30%">Désignation</th><th>Référence</th><th>Marque</th><th>Conditionnement / précision</th><th style="width:90px">Quantité</th><th style="width:110px">Unité</th><th></th></tr></thead>
+            <tbody data-gr-body id="articlesBody"></tbody></table>
+            <div class="gr-foot"><span data-gr-count>0 article</span><span>Tab : case suivante · Entrée : ligne suivante · coller depuis Excel possible</span></div></div>
+          <div class="gr-hint">« + Note » ajoute une ligne de texte libre (remarque, condition) entre vos articles.</div>
+          <template data-gr-tpl="article"><tr data-type="article">
+            <td class="no" data-gr-no></td>
+            <td class="c-des" data-label="Désignation"><input type="text" name="art_designation[]" autocomplete="off"><input type="hidden" name="art_type[]" value="article"></td>
+            <td data-label="Référence"><input type="text" name="art_reference[]" autocomplete="off"></td>
+            <td data-label="Marque"><input type="text" name="art_marque[]" autocomplete="off"></td>
+            <td data-label="Conditionnement"><input type="text" name="art_conditionnement[]" placeholder="ex. sacs de 50 kg" autocomplete="off"></td>
+            <td data-label="Quantité"><input type="number" step="0.01" name="art_quantite[]" data-gr-qte></td>
+            <td data-label="Unité"><select name="art_unite[]"><option value="">—</option><?php foreach (\App\Models\Demande::UNITES as $u): ?><option><?= $u ?></option><?php endforeach; ?></select></td>
+            <td class="ac"><button type="button" data-gr-dup title="Dupliquer">&#10697;</button><button type="button" data-gr-del title="Retirer">&times;</button></td>
+          </tr></template>
+          <template data-gr-tpl="note"><tr data-type="note">
+            <td class="no" data-gr-no>&#9998;</td>
+            <td colspan="6" class="c-note"><input type="text" name="art_designation[]" placeholder="Note libre : remarque, condition, précision…" autocomplete="off"><input type="hidden" name="art_type[]" value="note"><span data-gr-hidden hidden><input type="hidden" name="art_reference[]" value=""><input type="hidden" name="art_marque[]" value=""><input type="hidden" name="art_conditionnement[]" value=""><input type="hidden" name="art_quantite[]" value=""><input type="hidden" name="art_unite[]" value=""></span></td>
+            <td class="ac"><button type="button" data-gr-del title="Retirer">&times;</button></td>
+          </tr></template>
+        </div>
       <?php else: ?>
         <div style="font-size:12px;color:#888;margin-bottom:10px">La modification des lignes se fait directement depuis la fiche de la demande, pour être enregistrée immédiatement.</div>
         <a href="/index.php?r=demandes/<?= $demande['id'] ?>" class="btn btn-sm btn-secondary">Gérer les articles sur la fiche →</a>
@@ -495,3 +502,4 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
   }
 })();
 </script>
+<script src="/assets/js/grille-articles.js?v=<?= (int) @filemtime(__DIR__ . '/../../public/assets/js/grille-articles.js') ?>"></script>
