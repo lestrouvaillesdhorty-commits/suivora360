@@ -18,6 +18,9 @@ $quiTransport = (string) ($offreRetenue['transport_qui'] ?? '');
 $transitaireNom = '';
 $tid = (int) ($dossier['tr_transitaire_id'] ?? 0) ?: (int) ($offreRetenue['transitaire_id'] ?? 0);
 if ($tid > 0) { $tf = \App\Models\Fournisseur::find($tid); $transitaireNom = $tf ? (string) $tf['nom'] : ''; }
+if ($transitaireNom === '' && !empty($commande)) {
+    foreach (\App\Models\Commande::steps((int) $commande['id']) as $stT) { if ($stT['libelle'] === 'transitaire' && $stT['statut'] !== 'inclus' && !empty($stT['transitaire_nom'])) { $transitaireNom = (string) $stT['transitaire_nom']; } }
+}
 $trMontant = !empty($dossier['tr_montant']) ? $fmtMontant($dossier['tr_montant'], $dossier['tr_devise'] ?? '') : (($offreRetenue && (float) ($offreRetenue['transport_montant'] ?? 0) > 0) ? $fmtMontant($offreRetenue['transport_montant'], $offreRetenue['devise']) : null);
 $achat = $offreRetenue ? $fmtMontant($offreRetenue['montant_total'], $offreRetenue['devise']) : '—';
 $transp = $quiTransport === 'fournisseur' ? 'Inclus' : ($trMontant ?? '—');
@@ -108,13 +111,13 @@ $journal = array_slice(array_reverse($historique ?? []), 0, 8);
         <div class="kv-row"><span class="label">Assuré par</span><span class="value">Le fournisseur, inclus dans son prix</span></div>
         <?php if (!empty($offreRetenue['incoterm_negocie'])): ?><div class="kv-row"><span class="label">Incoterm</span><span class="value"><?= View::e($offreRetenue['incoterm_negocie']) ?></span></div><?php endif; ?>
       <?php elseif ($quiTransport === 'transitaire' || $transitaireNom !== '' || $trMontant): ?>
-        <div class="kv-row"><span class="label">Transitaire</span><span class="value"><?= $transitaireNom !== '' ? View::e($transitaireNom) : 'À choisir dans Exécution' ?></span></div>
+        <div class="kv-row"><span class="label">Transitaire</span><span class="value"><?= $transitaireNom !== '' ? View::e($transitaireNom) : 'À choisir (Modifier le transport)' ?></span></div>
         <?php if (!empty($dossier['tr_mode'])): ?><div class="kv-row"><span class="label">Mode · destination</span><span class="value"><?= View::e(\App\Models\Expedition::MODES[$dossier['tr_mode']] ?? $dossier['tr_mode']) ?> · <?= View::e((string) $dossier['tr_destination']) ?></span></div><?php endif; ?>
         <div class="kv-row"><span class="label">Montant</span><span class="value"><?= $trMontant ?? '—' ?></span></div>
       <?php else: ?>
         <div class="empty-state">Transport à définir.</div>
       <?php endif; ?>
-      <div style="margin-top:10px"><a href="<?= $base ?>&onglet=execution" class="card-link-hint">Exécution →</a></div>
+      <div style="margin-top:10px"><a href="<?= $base ?>&onglet=execution#transport" class="card-link-hint">Modifier le transport →</a></div>
     </div>
   </div>
 

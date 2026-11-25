@@ -1589,3 +1589,4 @@ details[open] > .ex-sum .ex-chev { transform:rotate(180deg) }
 .gr-t td.ac { width:96px }
 @media (max-width:760px) { .gr-t tr.gr-det { display:block; background:#F7FAFB; border:1px solid #dde4ec; border-radius:10px; padding:8px; margin:-4px 0 8px } .gr-t tr.gr-det td:first-child { display:none } .gr-t tr.gr-det[hidden] { display:none } }
 @media (max-width:760px) { .gr-t tr.modif td { background:transparent } .gr-t tr[data-type=article].modif { background:#FFFBEF; border-color:#f3d98b } }
+#transport .ex-transport { border:0; padding:0; margin:0 }

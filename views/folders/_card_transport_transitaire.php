@@ -18,6 +18,9 @@ $trQteTxt = $trQte !== null && $trQte !== '' ? rtrim(rtrim(number_format((float)
 ?>
 <div class="ex-transport">
   <div class="ex-tr-titre"><b>Transport par le transitaire</b><?php if ($trOk): ?><span class="badge badge-green">Enregistré</span><?php endif; ?></div>
+  <?php if (!$trOk && $offreRetenue && (float) ($offreRetenue['transport_montant'] ?? 0) > 0): ?>
+    <div class="hint" style="margin:0 0 10px">Montant actuellement saisi dans l'offre : <b><?= number_format((float) $offreRetenue['transport_montant'], 2, ',', ' ') ?> <?= View::e((string) $offreRetenue['devise']) ?></b>. En enregistrant ci-dessous, il sera remplacé par le montant calculé.</div>
+  <?php endif; ?>
   <?php if (!$trListe): ?>
     <div class="empty-state">Aucun transitaire avec des tarifs n'est enregistré. Ajoutez-en un dans la fiche d'un partenaire de type « Transitaire ».</div>
   <?php else: ?>

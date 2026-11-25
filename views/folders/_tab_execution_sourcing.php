@@ -33,7 +33,6 @@ $lignes = [
 ];
 ?>
 <?php ob_start(); ?>
-  <?php if (\App\Models\DossierTransport::disponible()): include __DIR__ . '/_card_transport_transitaire.php'; endif; ?>
   <?php try { include __DIR__ . '/_card_expedition.php'; } catch (\Throwable $eExp) { } ?>
 <?php $contenu[2] = ob_get_clean(); ?>
 <?php ob_start(); ?>
@@ -53,6 +52,7 @@ $lignes = [
   <div class="ex-pills"><span>Livraison <?= $cond($livre) ?></span><span>Facturation <?= $cond($factOk) ?></span><span>Réserves <span class="badge badge-gray">Non suivi</span></span></div>
   <div class="hint">Livraison : étape de la commande terminée. Facturation : au moins une facture et toutes payées. Les réserves n'ont pas encore de registre dédié.</div>
 <?php $contenu[5] = ob_get_clean(); ?>
+<?php if (\App\Models\DossierTransport::disponible() && $offreRetenue): ?><div class="card" id="transport"><?php include __DIR__ . '/_card_transport_transitaire.php'; ?></div><?php endif; ?>
 <div class="ex">
 <?php foreach ($lignes as [$rang, $titre, $resume, $condition]):
     $etat = $rang < $idxX ? 'ok' : ($rang === $idxX ? 'now' : 'fut'); ?>
