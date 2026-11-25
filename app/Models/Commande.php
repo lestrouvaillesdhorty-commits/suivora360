@@ -442,7 +442,16 @@ class Commande
                 WHERE c.statut = 'en_cours' AND c.etape IN ('expedition','transitaire','douane','livraison') AND c.filiale_id IN ($ph)" . \App\Models\ActiviteAcces::sqlDossier('c.dossier_id') . \App\Models\ActiviteAcces::sqlDossierActif('c.dossier_id');
         $params = $filialeIds;
         if ($activite) {
-            $sql .= ' AND dm.activite = ?' . Demande::sousFiltresSql('dm');
+            // Vue « Transport et logistique » : on y voit aussi les dossiers d'achat dont le transport est confié à un transitaire.
+            $viaTransitaire = '';
+            if (Dossier::deduireType($activite) === 'transport_logistique') {
+                $c = [];
+                if (\App\Core\Schema::colonne('dossiers', 'tr_transitaire_id')) { $c[] = 'd.tr_transitaire_id IS NOT NULL'; }
+                if (\App\Core\Schema::colonne('dossiers', 'colis_transitaire_id')) { $c[] = 'd.colis_transitaire_id IS NOT NULL'; }
+                if (\App\Core\Schema::colonne('offres', 'transitaire_id')) { $c[] = "EXISTS (SELECT 1 FROM offres ot WHERE ot.dossier_id = d.id AND ot.statut = 'retenue' AND ot.transitaire_id IS NOT NULL)"; }
+                if ($c) { $viaTransitaire = ' OR (' . implode(' OR ', $c) . ')'; }
+            }
+            $sql .= ' AND ((dm.activite = ?' . Demande::sousFiltresSql('dm') . ')' . $viaTransitaire . ')';
             $params[] = $activite;
         }
         $sql .= ' ORDER BY c.updated_at DESC LIMIT ' . (int) $limite;
@@ -471,7 +480,16 @@ class Commande
             } elseif ($debut && $arrivPrevue && strtotime($arrivPrevue) > strtotime($debut)) {
                 $pct = (int) max(8, min(80, round((time() - strtotime($debut)) / (strtotime($arrivPrevue) - strtotime($debut)) * 80)));
             }
+            // Suivi du colis (dates saisies sur le dossier) : il prime sur les étapes de la commande.
+            $dos = Dossier::find((int) $r['dossier_id']) ?: [];
+            if (!empty($dos['colis_mode']) && isset(self::MODES_TRAJET[$dos['colis_mode']])) { $mode = $dos['colis_mode']; }
+            $villeColis = trim(trim((string) ($dos['colis_ville'] ?? '')) . ((string) ($dos['colis_ville'] ?? '') !== '' && (string) ($dos['colis_pays'] ?? '') !== '' ? ', ' : '') . trim((string) ($dos['colis_pays'] ?? '')));
+            if ($villeColis !== '') { $arrivee = $villeColis; }
+            if (!empty($dos['colis_arrivee_le'])) { $arrivPrevue = $dos['colis_arrivee_le']; }
+            $statutColis = !empty($dos['colis_parti_le']) ? 'En route vers la destination' : (!empty($dos['colis_recu_le']) ? 'Chez le transitaire' : null);
+            if (!empty($dos['colis_parti_le']) && $r['etape'] !== 'livraison') { $pct = max($pct, 60); }
             $statut = ['expedition' => $mode === 'aerien' ? 'En vol' : ($mode === 'routier' ? 'En route' : 'En mer'), 'transitaire' => 'Chez le transitaire', 'douane' => 'En douane', 'livraison' => 'En livraison'][$r['etape']];
+            if ($statutColis !== null) { $statut = $statutColis; }
             $retard = $arrivPrevue && strtotime($arrivPrevue) < strtotime(date('Y-m-d'));
             $flux[] = [
                 'dossier_id' => (int) $r['dossier_id'], 'reference' => $r['dossier_reference'], 'objet' => $r['dossier_objet'],
