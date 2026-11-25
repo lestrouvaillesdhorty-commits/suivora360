@@ -113,6 +113,7 @@ class CommandeController
             ]
         );
         AuditLog::log((int) $commande['filiale_id'], (int) $user['id'], 'maj_etape_commande', 'commande', $commande['id']);
+        \App\Models\Dossier::aligneSurCommande((int) $commande['dossier_id']); // l'avancement du dossier suit l'état de la commande, dans les deux sens
         // [08/10] Livraison en transit / reçue : prévenir le responsable du dossier (cloche).
         try {
             $statutEtape = $_POST['statut'] ?? '';

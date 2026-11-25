@@ -487,6 +487,37 @@ class Dossier
     }
 
     /**
+     * Aligne l'étape du dossier sur l'état réel de la commande, dans les deux sens (Commande ⇄ Livraison).
+     * Le dossier est « en Livraison » dès que l'expédition, le transitaire et le dédouanement sont terminés
+     * (ou sans objet) ; si l'une de ces étapes est remise « à faire » ou « en cours », il revient en « Commande ».
+     * Ne touche jamais un dossier clôturé ou annulé, ni les autres étapes. Renvoie true si l'étape a changé.
+     */
+    public static function aligneSurCommande(int $id): bool
+    {
+        try {
+            $d = self::find($id);
+            if (!$d || self::estAnnule($d) || $d['statut'] !== 'actif' || !in_array($d['etape'], ['commande', 'livraison'], true)) {
+                return false;
+            }
+            $cmd = Commande::findByDossier($id);
+            if (!$cmd) { return false; }
+            $avantLivraison = true;
+            foreach (Commande::steps((int) $cmd['id']) as $st) {
+                if (in_array($st['libelle'], ['expedition', 'transitaire', 'douane'], true) && !in_array($st['statut'], ['termine', Commande::STATUT_INCLUS], true)) {
+                    $avantLivraison = false;
+                }
+            }
+            $cible = $avantLivraison ? 'livraison' : 'commande';
+            if ($cible === $d['etape']) { return false; }
+            self::updateEtape($id, $cible);
+            \App\Models\AuditLog::log((int) $d['filiale_id'], (int) (\App\Core\Auth::user()['id'] ?? 0), 'etape_auto_dossier', 'dossier', $id, $cible);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
      * Rattrape l'étape du dossier d'après ce qui a réellement été fait (jamais en arrière) :
      * une consultation envoyée → Sourcing ; une offre retenue ou une cotation envoyée → Cotation ;
      * une cotation acceptée ou une commande → Commande. Appelé à l'ouverture du dossier et quand
