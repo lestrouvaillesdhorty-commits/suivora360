@@ -52,6 +52,10 @@ class SuiviColis
             mb_substr(trim((string) ($p['colis_description'] ?? '')), 0, 190) ?: null, mb_substr(trim((string) ($p['colis_suivi'] ?? '')), 0, 120) ?: null,
             $recu, $parti, $arrivee, $livre, date('Y-m-d H:i:s'), (int) $dossier['id'],
         ]);
+        if (Schema::colonne('dossiers', 'colis_mode')) {
+            $m = (string) ($p['colis_mode'] ?? '');
+            Database::connection()->prepare('UPDATE dossiers SET colis_mode = ? WHERE id = ?')->execute([array_key_exists($m, Expedition::MODES) ? $m : null, (int) $dossier['id']]);
+        }
         self::alignerCommande((int) $dossier['id'], (int) ($t !== '' ? $t : 0), $recu, $parti, $livre);
         return null;
     }

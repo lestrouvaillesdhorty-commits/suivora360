@@ -22,6 +22,7 @@ $d = fn($k) => View::e((string) ($dc[$k] ?? ''));
 $msg = "Bonjour" . ($transitaireC ? ' ' . $transitaireC['nom'] : '') . ",\n\nUn colis va arriver chez vous (dossier " . ($dossier['reference'] ?? '') . ").\n"
     . ($typeLibC !== '' ? "Type de produit : $typeLibC\n" : '')
     . (($dc['colis_description'] ?? '') !== '' ? 'Colis : ' . $dc['colis_description'] . "\n" : '')
+    . (!empty($dc['colis_mode']) ? "Mode d'expédition : " . (\App\Models\Expedition::MODES[$dc['colis_mode']] ?? '') . "\n" : '')
     . 'Destination : ' . trim($villeC . ($villeC !== '' && $paysC !== '' ? ', ' : '') . $paysC) . "\n"
     . (($dc['colis_suivi'] ?? '') !== '' ? 'N° de suivi : ' . $dc['colis_suivi'] . "\n" : '')
     . "\nMerci de me confirmer la réception et la date d'expédition.";
@@ -40,6 +41,11 @@ $mail = $transitaireC ? trim((string) ($transitaireC['email'] ?? '')) : '';
       <div class="form-group"><label>Type de produit</label>
         <select name="colis_type_produit_id" <?= $w ? '' : 'disabled' ?>><option value="">Choisir…</option>
           <?php foreach ($typesC as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $t['id'] === (int) ($dc['colis_type_produit_id'] ?? 0) ? 'selected' : '' ?>><?= View::e($t['libelle']) ?></option><?php endforeach; ?></select></div>
+      <?php if (\App\Core\Schema::colonne('dossiers', 'colis_mode')): ?>
+      <div class="form-group"><label>Mode d'expédition</label>
+        <select name="colis_mode" <?= $w ? '' : 'disabled' ?>><option value="">Choisir…</option>
+          <?php foreach (\App\Models\Expedition::MODES as $k => $l): ?><option value="<?= $k ?>" <?= ($dc['colis_mode'] ?? '') === $k ? 'selected' : '' ?>><?= View::e($l) ?></option><?php endforeach; ?></select></div>
+      <?php endif; ?>
       <div class="form-group"><label>Pays de destination</label><input type="text" name="colis_pays" value="<?= View::e($paysC) ?>" <?= $w ? '' : 'disabled' ?>></div>
       <div class="form-group"><label>Ville de destination</label><input type="text" name="colis_ville" value="<?= View::e($villeC) ?>" <?= $w ? '' : 'disabled' ?>></div>
       <div class="form-group"><label>Nombre de colis, poids</label><input type="text" name="colis_description" value="<?= $d('colis_description') ?>" placeholder="1 colis · 3 kg" <?= $w ? '' : 'disabled' ?>></div>
