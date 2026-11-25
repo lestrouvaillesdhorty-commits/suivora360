@@ -17,6 +17,9 @@ $onglets = [
     'documents' => 'Documents',
     'evaluation' => 'Évaluation',
 ];
+if (in_array('transitaire', $types ?? [], true)) {
+    $onglets['logistique'] = 'Activité logistique';
+}
 if ($financesAutorisees) {
     $onglets['finances'] = 'Finances';
 }

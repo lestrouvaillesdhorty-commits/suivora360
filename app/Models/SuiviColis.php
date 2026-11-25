@@ -89,4 +89,67 @@ class SuiviColis
         } catch (\Throwable $e) {
         }
     }
+
+    /**
+     * Activité d'un transitaire : tous les dossiers où il intervient (dossier de transport, ou partie transport d'un dossier d'achat),
+     * avec ce qu'il coûte, le CA des dossiers de transport (cotation client) et ses délais. Montants toujours séparés par devise.
+     *
+     * @return array{lignes:array,couts:array,ca:array,marges:array,delai_reception:?float,delai_livraison:?float}
+     */
+    public static function activiteTransitaire(int $fournisseurId): array
+    {
+        $pdo = Database::connection();
+        $ids = [];
+        $q = function (string $sql, array $args = []) use ($pdo, &$ids) {
+            try {
+                $st = $pdo->prepare($sql);
+                $st->execute($args);
+                foreach ($st->fetchAll(\PDO::FETCH_COLUMN) as $v) { $ids[(int) $v] = true; }
+            } catch (\Throwable $e) {
+            }
+        };
+        if (Schema::colonne('dossiers', 'colis_transitaire_id')) { $q('SELECT id FROM dossiers WHERE colis_transitaire_id = ?', [$fournisseurId]); }
+        if (Schema::colonne('dossiers', 'tr_transitaire_id')) { $q('SELECT id FROM dossiers WHERE tr_transitaire_id = ?', [$fournisseurId]); }
+        $q("SELECT dossier_id FROM offres WHERE fournisseur_id = ? AND statut = 'retenue' AND dossier_id IS NOT NULL", [$fournisseurId]);
+        if (Schema::colonne('offres', 'transitaire_id')) { $q("SELECT dossier_id FROM offres WHERE transitaire_id = ? AND statut = 'retenue' AND dossier_id IS NOT NULL", [$fournisseurId]); }
+        if (Schema::colonne('commande_steps', 'transitaire_id')) { $q('SELECT c.dossier_id FROM commande_steps s INNER JOIN commandes c ON c.id = s.commande_id WHERE s.transitaire_id = ?', [$fournisseurId]); }
+        try { $q('SELECT dossier_id FROM expedition_reservations r INNER JOIN expeditions e ON e.id = r.expedition_id WHERE e.fournisseur_id = ? AND r.dossier_id IS NOT NULL', [$fournisseurId]); } catch (\Throwable $e) { }
+
+        $out = ['lignes' => [], 'couts' => [], 'ca' => [], 'marges' => [], 'delai_reception' => null, 'delai_livraison' => null];
+        $d1 = $d2 = [];
+        foreach (array_keys($ids) as $did) {
+            $d = Dossier::find($did);
+            if (!$d) { continue; }
+            $transport = ($d['type_dossier'] ?? '') === 'transport_logistique';
+            $cout = null; $devCout = '';
+            $offre = Offre::retenueForDossier($did);
+            if (Schema::colonne('dossiers', 'tr_montant') && (int) ($d['tr_transitaire_id'] ?? 0) === $fournisseurId && !empty($d['tr_montant'])) {
+                $cout = (float) $d['tr_montant']; $devCout = (string) ($d['tr_devise'] ?? '');
+            } elseif ($offre && (int) $offre['fournisseur_id'] === $fournisseurId && $transport) {
+                $cout = (float) $offre['montant_total']; $devCout = (string) $offre['devise'];
+            } elseif ($offre && (int) ($offre['transitaire_id'] ?? 0) === $fournisseurId && (float) ($offre['transport_montant'] ?? 0) > 0) {
+                $cout = (float) $offre['transport_montant']; $devCout = (string) $offre['devise'];
+            }
+            $ca = null; $devCa = ''; $marge = null;
+            if ($transport) {
+                $cot = Cotation::latestForDossier($did);
+                if ($cot && in_array($cot['statut'], ['envoyee', 'acceptee'], true)) {
+                    $ca = (float) ($cot['montant_ht'] ?? $cot['montant_total']); $devCa = (string) $cot['devise'];
+                    $marge = $cot['marge_montant'] !== null ? (float) $cot['marge_montant'] : null;
+                }
+            }
+            $recu = $d['colis_recu_le'] ?? null; $parti = $d['colis_parti_le'] ?? null; $livre = $d['colis_livre_le'] ?? null;
+            if ($recu && $parti) { $d1[] = (strtotime($parti) - strtotime($recu)) / 86400; }
+            if ($parti && $livre) { $d2[] = (strtotime($livre) - strtotime($parti)) / 86400; }
+            $etat = $livre ? 'Livré' : ($parti ? 'En route' : ($recu ? 'Chez le transitaire' : ($transport ? 'En attente' : 'Partie transport')));
+            $out['lignes'][] = ['id' => $did, 'reference' => $d['reference'], 'objet' => $d['objet'] ?? '', 'transport' => $transport, 'etat' => $etat, 'cout' => $cout, 'dev_cout' => $devCout, 'ca' => $ca, 'dev_ca' => $devCa, 'marge' => $marge];
+            if ($cout !== null) { $out['couts'][$devCout ?: '—'] = ($out['couts'][$devCout ?: '—'] ?? 0) + $cout; }
+            if ($ca !== null) { $out['ca'][$devCa ?: '—'] = ($out['ca'][$devCa ?: '—'] ?? 0) + $ca; }
+            if ($marge !== null) { $out['marges'][$devCa ?: '—'] = ($out['marges'][$devCa ?: '—'] ?? 0) + $marge; }
+        }
+        usort($out['lignes'], fn($a, $b) => $b['id'] <=> $a['id']);
+        $out['delai_reception'] = $d1 ? round(array_sum($d1) / count($d1), 1) : null;
+        $out['delai_livraison'] = $d2 ? round(array_sum($d2) / count($d2), 1) : null;
+        return $out;
+    }
 }

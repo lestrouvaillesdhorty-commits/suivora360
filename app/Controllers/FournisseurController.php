@@ -21,7 +21,7 @@ use App\Models\Utilisateur;
  */
 class FournisseurController
 {
-    private const ONGLETS = ['vue', 'contacts', 'offres', 'commandes', 'documents', 'evaluation', 'finances'];
+    private const ONGLETS = ['vue', 'contacts', 'offres', 'commandes', 'documents', 'evaluation', 'finances', 'logistique'];
 
     // ------------------------------------------------------------------
     // Liste
@@ -346,6 +346,9 @@ class FournisseurController
         $consultations = Fournisseur::consultations($id);
         $commandes = Fournisseur::commandes($id);
         $types = Fournisseur::typesDe($f);
+        if ($onglet === 'logistique' && !in_array('transitaire', $types, true)) {
+            $onglet = 'vue';
+        }
 
         View::render('fournisseurs/show', [
             'fournisseur' => $f,
@@ -357,6 +360,7 @@ class FournisseurController
             'consultations' => $consultations,
             'offres' => in_array($onglet, ['vue', 'offres'], true) ? Fournisseur::offres($id) : [],
             'commandes' => $commandes,
+            'activiteLogistique' => ($onglet === 'logistique' && in_array('transitaire', $types, true)) ? \App\Models\SuiviColis::activiteTransitaire($id) : null,
             'performance' => in_array($onglet, ['vue', 'evaluation'], true) ? Fournisseur::performance($id, Fournisseur::debutPeriode($periode)) : null,
             'periode' => $periode,
             'qualifications' => $onglet === 'evaluation' ? Fournisseur::qualifications($id) : [],
