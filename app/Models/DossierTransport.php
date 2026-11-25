@@ -72,4 +72,56 @@ class DossierTransport
         }
         return null;
     }
+
+    /**
+     * Tarif connu : crée l'offre du transitaire (tarif de sa fiche × quantité, moins remise) et la retient en un seul geste,
+     * sans consultation à envoyer. Renvoie un message d'erreur ou null.
+     */
+    public static function creerOffreDepuisTarif(array $dossier, array $p, int $userId): ?string
+    {
+        $fid = (int) ($p['tr_transitaire_id'] ?? 0);
+        $filialeId = (int) $dossier['filiale_id'];
+        if ($fid <= 0 || !\App\Core\Tenant::fournisseurDeFiliale($fid, $filialeId)) {
+            return 'Choisissez le transitaire.';
+        }
+        $mode = (string) ($p['tr_mode'] ?? '');
+        $famille = (string) ($p['tr_famille'] ?? '');
+        $dest = trim((string) ($p['tr_destination'] ?? ''));
+        if (!array_key_exists($mode, Expedition::MODES) || !array_key_exists($famille, Expedition::MARCHANDISES)) {
+            return 'Choisissez le mode et la marchandise.';
+        }
+        $qte = (float) str_replace([' ', ','], ['', '.'], (string) ($p['tr_quantite'] ?? ''));
+        $remise = (float) str_replace([' ', ','], ['', '.'], (string) ($p['tr_remise_pct'] ?? ''));
+        $calc = self::calculer($fid, $mode, $famille, $dest, $qte, $remise);
+        if (!$calc) {
+            return 'Aucun tarif dans la fiche du transitaire pour ce mode, cette marchandise et cette destination, ou quantité manquante.';
+        }
+        $f = Fournisseur::find($fid);
+        $devise = (string) ($f['devise'] ?? '') !== '' ? (string) $f['devise'] : 'EUR';
+        $unites = ['m3' => 'm³', 'kg' => 'kg', 'colis' => 'colis', 'palette' => 'palette'];
+        $consultationId = ConsultationFournisseur::create((int) $dossier['id'], $filialeId, ['fournisseur_id' => $fid, 'notes' => 'Tarif connu du transitaire (offre créée depuis sa fiche)'], $userId);
+        ConsultationFournisseur::updateStatut($consultationId, 'reponse_recue');
+        $consultation = ConsultationFournisseur::find($consultationId);
+        $items = [[
+            'designation' => 'Transport ' . mb_strtolower(Expedition::MODES[$mode]) . ($dest !== '' ? ' vers ' . $dest : ''),
+            'quantite' => $qte, 'unite' => $unites[$calc['unite']] ?? $calc['unite'], 'prix_unitaire' => $calc['tarif'],
+            'conditionnement' => '', 'reference' => '', 'marque' => '', 'caracteristiques' => '', 'demande_article_id' => null,
+        ]];
+        $data = [
+            'montant_total' => $calc['final'], 'devise' => $devise, 'mode_transport' => Expedition::MODES[$mode], 'source_type' => 'autre',
+            'notes' => 'Tarif de la fiche : ' . number_format($calc['tarif'], 2, ',', ' ') . ' ' . $devise . ' x ' . $qte . ($remise > 0 ? ' - remise ' . $remise . ' %' : ''),
+            'transport_qui' => 'transitaire', 'transitaire_id' => $fid, 'validite_offre' => null,
+        ];
+        $offreId = (int) Offre::create($consultation, $data, $items, $userId, null);
+        Offre::enregistrerTransportQui($offreId, $data);
+        Offre::retenir((int) $dossier['id'], $offreId, 'Tarif connu du transitaire');
+        Dossier::avancerA((int) $dossier['id'], 'cotation', $userId);
+        if (Schema::colonne('dossiers', 'colis_transitaire_id')) {
+            Database::connection()->prepare('UPDATE dossiers SET colis_transitaire_id = COALESCE(colis_transitaire_id, ?) WHERE id = ?')->execute([$fid, (int) $dossier['id']]);
+            if (Schema::colonne('dossiers', 'colis_mode')) {
+                Database::connection()->prepare('UPDATE dossiers SET colis_mode = COALESCE(colis_mode, ?) WHERE id = ?')->execute([$mode, (int) $dossier['id']]);
+            }
+        }
+        return null;
+    }
 }

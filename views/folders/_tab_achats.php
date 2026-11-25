@@ -9,6 +9,9 @@
 // _achats_subtabs.php pour la navigation commune aux 3.
 $nbOffres = count($offres);
 ?>
+<?php if (($typeDossier ?? '') === 'transport_logistique' && empty($offreRetenue) && \App\Models\DossierTransport::disponible() && \App\Core\Auth::canValiderOffres() && ($dossier['statut'] ?? '') === 'actif'): ?>
+<div class="card" style="margin-bottom:14px"><?php try { include __DIR__ . '/_card_offre_tarif.php'; } catch (\Throwable $eOt) { } ?></div>
+<?php endif; ?>
 <?php include __DIR__ . '/_achats_subtabs.php'; ?>
 
 <?php if ($sousOngletAchats === 'offres'): ?>

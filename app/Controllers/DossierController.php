@@ -891,6 +891,38 @@ class DossierController
         exit;
     }
 
+    public function offreDepuisTarif(array $params): void
+    {
+        Auth::requireWrite();
+        $retour = '/index.php?r=dossiers/' . (int) $params['id'] . '&onglet=achats&sous=offres';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess(Auth::user(), $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        Dossier::refuserSiAnnule($dossier);
+        if (!Auth::canValiderOffres()) {
+            http_response_code(403);
+            View::render('errors/403');
+            return;
+        }
+        $err = \App\Models\DossierTransport::creerOffreDepuisTarif($dossier, $_POST, (int) Auth::user()['id']);
+        if ($err) {
+            View::flash('erreur', $err);
+        } else {
+            AuditLog::log((int) $dossier['filiale_id'], (int) Auth::user()['id'], 'offre_retenue', 'dossier', (int) $dossier['id'], 'Tarif connu du transitaire');
+            View::flash('succes', 'Offre du transitaire créée et retenue. Vous pouvez faire la cotation client.');
+            $retour = '/index.php?r=dossiers/' . (int) $dossier['id'] . '&onglet=synthese';
+        }
+        header('Location: ' . $retour);
+        exit;
+    }
+
     public function enregistrerSuiviColis(array $params): void
     {
         Auth::requireWrite();

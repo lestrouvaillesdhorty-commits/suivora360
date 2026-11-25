@@ -625,6 +625,10 @@ $router->post('/dossiers/{id}/articles', function ($params) {
     Auth::requireLogin();
     (new DossierController())->addArticle($params);
 });
+$router->post('/dossiers/{id}/offre-depuis-tarif', function ($params) {
+    Auth::requireLogin();
+    (new DossierController())->offreDepuisTarif($params);
+});
 $router->post('/dossiers/{id}/suivi-colis', function ($params) {
     Auth::requireLogin();
     (new DossierController())->enregistrerSuiviColis($params);

@@ -97,7 +97,7 @@ foreach (['retard', 'aujourd_hui', 'a_venir'] as $cle) {
     <label style="font-size:12px">Famille de produit</label>
     <select name="famille_produit" onchange="this.form.submit()">
       <option value="">Toutes</option>
-      <?php foreach (\App\Models\SousActivite::FAMILLES as $fam): ?>
+      <?php foreach (\App\Models\FamilleProduit::noms((int) (\App\Core\Auth::user()['filiale_active_id'] ?? 0)) as $fam): ?>
         <option <?= $familleSelection === $fam ? 'selected' : '' ?>><?= View::e($fam) ?></option>
       <?php endforeach; ?>
     </select>

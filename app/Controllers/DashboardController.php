@@ -84,7 +84,7 @@ class DashboardController
             $sousSelection = trim((string) ($_GET['sous_activite'] ?? ''));
             $sousSelection = in_array($sousSelection, $sousOptions, true) ? $sousSelection : '';
             $familleDispo = \App\Models\Dossier::deduireType($activite) === 'achat_sourcing';
-            $familleSelection = $familleDispo ? \App\Models\SousActivite::familleValide(trim((string) ($_GET['famille_produit'] ?? ''))) : '';
+            $familleSelection = $familleDispo ? \App\Models\FamilleProduit::valide((int) (\App\Core\Auth::user()['filiale_active_id'] ?? 0), trim((string) ($_GET['famille_produit'] ?? ''))) : '';
             Demande::$filtresExtra = ['sous_activite' => $sousSelection, 'famille_produit' => $familleSelection];
         }
 

@@ -397,7 +397,7 @@ class DemandeController
             return;
         }
         $sous = \App\Models\SousActivite::valider($filialeId, $activite, (string) ($_POST['sous_activite'] ?? ''));
-        $famille = \App\Models\SousActivite::familleValide((string) ($_POST['famille_produit'] ?? ''));
+        $famille = \App\Models\FamilleProduit::valide((int) $filialeId, (string) ($_POST['famille_produit'] ?? ''));
         if (Dossier::deduireType($activite) !== 'achat_sourcing') {
             $famille = '';
         }
@@ -417,7 +417,7 @@ class DemandeController
             'dossierExistant' => $demande ? Dossier::findByDemande((int) $demande['id']) : null,
             'demande' => $demande,
             'sousActivitesParFiliale' => $this->sousActivitesParFiliale($filiales),
-            'famillesProduit' => \App\Models\SousActivite::FAMILLES,
+            'famillesProduit' => \App\Models\FamilleProduit::noms((int) (\App\Core\Auth::user()['filiale_active_id'] ?? 0)),
             'retourListeQuery' => $_SESSION['demandes_liste_query'] ?? 'r=demandes',
         ];
     }
