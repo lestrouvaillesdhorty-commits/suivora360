@@ -144,8 +144,14 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
     <div class="cout-bloc">
       <div class="cout-titre">Coût jusqu'à la destination finale <span>(dans la devise de l'offre — facultatif)</span></div>
       <div class="cout-aide">Le « Montant total de l'offre » ci-dessus est le prix du fournisseur (avec son propre transport s'il l'inclut). Ajoutez ici ce qui s'y ajoute jusqu'à l'arrivée chez le client : expédition vers la destination finale, assurance, douane… Le coût total sert de base à la marge de la cotation.</div>
-      <div class="form-row">
-          <div class="form-group"><label>Expédition jusqu'à la destination finale</label><input type="number" step="0.01" name="transport_montant" value="<?= View::e((string) $v('transport_montant')) ?>"></div>
+      <?php $tpQui = ((float) $v('transport_montant') > 0) ? 'transitaire' : 'inconnu'; ?>
+      <div style="margin:8px 0 10px"><div style="font-weight:600;font-size:13px;margin-bottom:6px">Qui amène la marchandise jusqu'à la destination finale ?</div>
+        <label style="display:inline-block;margin-right:16px;font-weight:400"><input type="radio" name="transport_qui" value="fournisseur"> Le fournisseur <span style="color:#667">(transport dans son prix)</span></label>
+        <label style="display:inline-block;margin-right:16px;font-weight:400"><input type="radio" name="transport_qui" value="transitaire" <?= $tpQui === 'transitaire' ? 'checked' : '' ?>> Un transitaire</label>
+        <label style="display:inline-block;font-weight:400"><input type="radio" name="transport_qui" value="inconnu" <?= $tpQui === 'inconnu' ? 'checked' : '' ?>> Pas encore connu</label>
+        <div id="tp-info" style="font-size:12.5px;color:#667;margin-top:4px"></div></div>
+      <div class="form-row" id="tp-ligne">
+          <div class="form-group"><label id="tp-label">Expédition jusqu'à la destination finale</label><input type="number" step="0.01" name="transport_montant" value="<?= View::e((string) $v('transport_montant')) ?>"></div>
           <div class="form-group"><label>Assurance</label><input type="number" step="0.01" name="assurance_montant" value="<?= View::e((string) $v('assurance_montant')) ?>"></div>
           <div class="form-group"><label>Emballage</label><input type="number" step="0.01" name="emballage_montant" value="<?= View::e((string) $v('emballage_montant')) ?>"></div>
       </div>
@@ -440,3 +446,20 @@ document.getElementById('items-body').addEventListener('click', function (e) {
   });
 })();
 </script>
+<script>
+(function () {
+  var radios = document.querySelectorAll('input[name="transport_qui"]'), info = document.getElementById('tp-info'), lab = document.getElementById('tp-label'), champ = document.querySelector('input[name="transport_montant"]');
+  if (!radios.length || !info || !champ) { return; }
+  function maj() {
+    var v = document.querySelector('input[name="transport_qui"]:checked'); v = v ? v.value : 'inconnu';
+    var ligne = document.getElementById('tp-ligne');
+    if (v === 'fournisseur') { info.textContent = 'Rien à ajouter : le transport est déjà dans le prix du fournisseur.'; ligne.style.display = 'none'; champ.value = ''; }
+    else if (v === 'transitaire') { info.textContent = 'Indiquez le coût du transitaire (dans la devise de l\'offre) : il sera réparti sur chaque article.'; ligne.style.display = ''; lab.textContent = 'Transport du transitaire'; }
+    else { info.textContent = 'Vous pourrez ajouter le transport plus tard, depuis la page de cotation (encart « Frais de transport »).'; ligne.style.display = ''; lab.textContent = 'Expédition jusqu\'à la destination finale (si connue)'; }
+    champ.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  radios.forEach(function (r) { r.addEventListener('change', maj); });
+  maj();
+})();
+</script>
+

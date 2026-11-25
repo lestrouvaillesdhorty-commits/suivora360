@@ -58,7 +58,7 @@ if (!$cotationPrecedente && !empty($demande['client_id']) && \App\Models\Client:
 <?php endif; ?>
 
 <style>
-.cot-grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;align-items:start;max-width:1200px}
+.cot-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start;max-width:1600px}
 .cot-grid>.card{margin:0}
 .cot-aside{position:sticky;top:12px}
 .cot-etape{display:flex;align-items:center;gap:10px;margin:22px 0 10px;font-weight:700;font-size:15px}
@@ -117,6 +117,36 @@ if ($peutFraisCot):
     <button type="submit" class="btn btn-primary">Ajouter ce frais</button>
   </form>
   <div style="font-size:12px;color:#666;margin-top:6px">La page se recharge avec les prix de revient des articles mis à jour. Pensez à le faire avant de saisir vos prix de vente.</div>
+</div>
+<?php endif; ?>
+<?php
+// Coût de revient par article : prix du fournisseur + part des frais (transport…), tant que tout est dans la même devise.
+$tauxUn = true;
+foreach (($calcAchat['offres'] ?? []) as $lo) { if (abs((float) ($lo['taux'] ?? 1) - 1.0) > 0.0001) { $tauxUn = false; } }
+$lignesRevient = [];
+if (!$cotationPrecedente && !empty($depuisOffre) && $tauxUn) {
+    foreach ($itemsPrecedents ?? [] as $it) {
+        if (($it['prix_unitaire'] ?? null) !== null && ($it['cout'] ?? null) !== null && (float) ($it['quantite'] ?? 0) > 0) { $lignesRevient[] = $it; }
+    }
+}
+$fraisRepartis = 0.0; foreach ($lignesRevient as $it) { $fraisRepartis += ((float) $it['cout'] - (float) $it['prix_unitaire']) * (float) $it['quantite']; }
+if ($lignesRevient && $fraisRepartis > 0.004):
+  $dvR = (string) ($calcAchat['devise'] ?? '');
+  $f2 = fn($x) => number_format((float) $x, 2, ',', ' ');
+  $totF = 0.0; $totR = 0.0;
+?>
+<div class="card" style="margin-bottom:14px">
+  <strong>Coût de revient de chaque article</strong>
+  <div style="font-size:12.5px;color:#666;margin:2px 0 8px">Prix du fournisseur + part du transport et des frais. C'est la base de votre marge.</div>
+  <div style="overflow-x:auto"><table class="table" style="width:100%;font-size:13px">
+    <thead><tr><th>Article</th><th style="text-align:right">Qté</th><th style="text-align:right">Prix fournisseur</th><th style="text-align:right">Part des frais</th><th style="text-align:right">Coût de revient unitaire</th><th style="text-align:right">Coût total</th></tr></thead>
+    <tbody>
+    <?php foreach ($lignesRevient as $it): $q = (float) $it['quantite']; $part = (float) $it['cout'] - (float) $it['prix_unitaire']; $totF += (float) $it['prix_unitaire'] * $q; $totR += (float) $it['cout'] * $q; ?>
+      <tr><td><?= View::e((string) $it['designation']) ?></td><td style="text-align:right"><?= $f2($q) ?></td><td style="text-align:right"><?= $f2($it['prix_unitaire']) ?></td><td style="text-align:right"><?= $part > 0.004 ? '+ ' . $f2($part) : '—' ?></td><td style="text-align:right"><strong><?= $f2($it['cout']) ?></strong></td><td style="text-align:right"><?= $f2((float) $it['cout'] * $q) ?></td></tr>
+    <?php endforeach; ?>
+    <tr><td colspan="5" style="text-align:right"><strong>Total (<?= View::e($dvR) ?>)</strong></td><td style="text-align:right"><strong><?= $f2($totR) ?></strong></td></tr>
+    </tbody></table></div>
+  <div style="font-size:12px;color:#666;margin-top:4px">Offre du fournisseur : <?= $f2($totF) ?> <?= View::e($dvR) ?> · frais ajoutés : <?= $f2($totR - $totF) ?> <?= View::e($dvR) ?></div>
 </div>
 <?php endif; ?>
 <div class="cot-grid">

@@ -1468,3 +1468,18 @@ select.niv-cache { border-color: #D6DCE3; }
   .dos-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: visible; white-space: normal; padding: 6px; }
   .dos-tabs .dos-tab, .dos-tabs a { display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; min-height: 44px; padding: 8px 4px; font-size: 13px; white-space: normal; flex: none; }
 }
+
+/* Articles en ligne (écrans larges) : une ligne par article, titres une seule fois (sur la 1re ligne), caractéristiques dessous. */
+@media (min-width:1300px) {
+  #items-table tr.art-ligne { padding:6px 10px; margin-bottom:6px }
+  #items-table .art-grid { grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) 28px; gap:2px 8px; align-items:end }
+  #items-table .art-grid:has(.art-da) { grid-template-columns:minmax(0,1.5fr) minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) 28px }
+  #items-table .art-grid.avec-remise { grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,.7fr) minmax(0,1fr) 28px }
+  #items-table .art-grid.avec-remise:has(.art-da) { grid-template-columns:minmax(0,1.5fr) minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,.7fr) minmax(0,1fr) 28px }
+  #items-table .art-grid > div { grid-column:auto !important }
+  #items-table .art-da { order:1 } #items-table .art-des { order:2 } #items-table .art-r { order:3 } #items-table .art-k { order:4 } #items-table .art-c { order:5 }
+  #items-table .art-q { order:6 } #items-table .art-u { order:7 } #items-table .art-p { order:8 } #items-table .art-rem { order:9 } #items-table .art-m { order:10 } #items-table .art-del { order:11 }
+  #items-table .art-x { order:20; grid-column:1 / -1 !important }
+  #items-table .art-del { position:static }
+  #items-table tr.art-ligne:not(:first-child) .art-grid label { display:none }
+}
