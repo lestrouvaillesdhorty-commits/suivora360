@@ -152,4 +152,36 @@ class SuiviColis
         $out['delai_livraison'] = $d2 ? round(array_sum($d2) / count($d2), 1) : null;
         return $out;
     }
+
+    /**
+     * Partie transport des dossiers d'achat en cours (transitaire choisi sur le dossier ou sur l'offre retenue) :
+     * alimente la vue « Transport et logistique » du tableau de bord sans compter le dossier deux fois.
+     *
+     * @return array{lignes:array,couts:array}
+     */
+    public static function partieTransportAchats(array $user, array $filialeIds): array
+    {
+        $out = ['lignes' => [], 'couts' => []];
+        try {
+            foreach (Dossier::visibleFor($user, ['statut' => 'actif']) as $d) {
+                if (($d['type_dossier'] ?? '') === 'transport_logistique' || !in_array((int) $d['filiale_id'], array_map('intval', $filialeIds), true)) {
+                    continue;
+                }
+                $offre = Offre::retenueForDossier((int) $d['id']);
+                $tid = Schema::colonne('dossiers', 'tr_transitaire_id') ? (int) ($d['tr_transitaire_id'] ?? 0) : 0;
+                if ($tid <= 0 && $offre) { $tid = (int) ($offre['transitaire_id'] ?? 0); }
+                if ($tid <= 0) { continue; }
+                $cout = null; $dev = '';
+                if (Schema::colonne('dossiers', 'tr_montant') && !empty($d['tr_montant'])) { $cout = (float) $d['tr_montant']; $dev = (string) ($d['tr_devise'] ?? ''); }
+                elseif ($offre && (float) ($offre['transport_montant'] ?? 0) > 0) { $cout = (float) $offre['transport_montant']; $dev = (string) $offre['devise']; }
+                $f = Fournisseur::find($tid);
+                $livre = $d['colis_livre_le'] ?? null; $parti = $d['colis_parti_le'] ?? null; $recu = $d['colis_recu_le'] ?? null;
+                $out['lignes'][] = ['id' => (int) $d['id'], 'reference' => $d['reference'], 'objet' => $d['objet'] ?? '', 'transitaire' => $f['nom'] ?? '', 'cout' => $cout, 'devise' => $dev,
+                    'etat' => $livre ? 'Livré' : ($parti ? 'En route' : ($recu ? 'Chez le transitaire' : 'En attente'))];
+                if ($cout !== null) { $out['couts'][$dev ?: '—'] = ($out['couts'][$dev ?: '—'] ?? 0) + $cout; }
+            }
+        } catch (\Throwable $e) {
+        }
+        return $out;
+    }
 }

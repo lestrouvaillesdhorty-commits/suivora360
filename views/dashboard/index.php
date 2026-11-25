@@ -293,6 +293,16 @@ $graviteBorder = ['haute' => '#C8402A', 'moyenne' => '#f97316', 'basse' => '#eab
     <?php endif; ?>
   </div>
   <?php endif; ?>
+  <?php if (!empty($partieTransportAchats['lignes'])): $pta = $partieTransportAchats; ?>
+  <div class="card" id="transport-achats">
+    <h2 style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:8px"><?= Icon::svg('truck', 'icon', 17) ?> Transport des dossiers d'achat</span><span style="font-size:13px;font-weight:400;color:#5B6B78"><?= count($pta['lignes']) ?> dossier(s)<?php if ($pta['couts']): ?> · coût transitaire : <?= View::e(implode(' · ', array_map(fn($d, $v) => number_format($v, 2, ',', ' ') . ' ' . $d, array_keys($pta['couts']), $pta['couts']))) ?><?php endif; ?></span></h2>
+    <?php foreach (array_slice($pta['lignes'], 0, 6) as $l): ?>
+      <div class="kv-row"><span class="label"><a href="/index.php?r=dossiers/<?= (int) $l['id'] ?>"><?= View::e($l['reference']) ?></a> · <?= View::e((string) $l['objet']) ?></span>
+        <span class="value"><?= View::e($l['transitaire']) ?> · <?= View::e($l['etat']) ?><?= $l['cout'] !== null ? ' · ' . number_format($l['cout'], 2, ',', ' ') . ' ' . View::e($l['devise']) : '' ?></span></div>
+    <?php endforeach; ?>
+    <div class="hint">Seule la partie transport est comptée ici : ces dossiers restent dans l'activité d'achat, sans doublon.</div>
+  </div>
+  <?php endif; ?>
   <?php if (!empty($estTransport) && $voitLiv): ?>
   <div class="card" id="livraisons">
     <h2 style="display:flex;align-items:center;gap:8px"><?= Icon::svg('truck', 'icon', 17) ?> Livraisons à suivre</h2>

@@ -183,6 +183,7 @@ class DashboardController
             'cotationsARelancerCount' => $cotationsARelancerCount,
             'commandesEnCoursCount' => $commandesEnCoursCount,
             'livraisonsEnCours' => $livraisonsEnCours,
+            'partieTransportAchats' => ($activite !== '' && \App\Models\Dossier::deduireType($activite) === 'transport_logistique') ? \App\Models\SuiviColis::partieTransportAchats($user, $filialeIds) : null,
             'livraisonsEnCoursCount' => $livraisonsEnCoursCount,
             'dernieresDemandes' => $dernieresDemandes,
             'entrantsAValider' => $entrantsAValider,
