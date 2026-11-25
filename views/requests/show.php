@@ -273,8 +273,16 @@ $unitesArticle = \App\Models\Demande::UNITES;
       <?php endif; ?>
     </div>
 
+    <?php
+      $trMarch = \App\Models\Dossier::deduireType($demande['activite'] ?? null) === 'transport_logistique' && \App\Models\DemandeArticle::colonnesTransport();
+      if ($trMarch) { $detailsArticle = false; } // durée de vie, certificats, échantillon : propres à l'achat
+      $typesMarch = $trMarch && \App\Models\TypeProduit::disponible() ? \App\Models\TypeProduit::actifs((int) $demande['filiale_id']) : [];
+      $optType = function ($sel) use ($typesMarch) { $h = '<option value="">—</option>'; foreach ($typesMarch as $t) { $h .= '<option value="' . (int) $t['id'] . '"' . ((int) $sel === (int) $t['id'] ? ' selected' : '') . '>' . \App\Core\View::e($t['libelle']) . '</option>'; } return $h; };
+      $thTr = '<th style="width:24%">Désignation</th><th>Type de produit</th><th style="width:70px">Colis</th><th style="width:90px">Poids (kg)</th><th style="width:90px">Volume (m³)</th><th>Conditionnement</th><th>Conservation</th><th style="width:100px">Valeur déclarée</th>';
+    ?>
     <div class="card">
-      <h2>Articles / besoins</h2>
+      <h2><?= $trMarch ? 'Marchandise à transporter' : 'Articles / besoins' ?></h2>
+      <?php if ($trMarch): ?><datalist id="liste-conservation"><option>Frais</option><option>Congelé</option><option>Fragile</option><option>Température ambiante</option></datalist><?php endif; ?>
       <?php if (empty($articles)): ?>
         <div class="empty-state">Aucun article pour le moment — facultatif pour une demande de service encore peu détaillée.</div>
       <?php else: ?>
@@ -285,7 +293,7 @@ $unitesArticle = \App\Models\Demande::UNITES;
             <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
           </form>
         <?php endforeach; ?>
-        <div class="gr gr-exist"><div class="gr-wrap"><table class="gr-t"><thead><tr><th></th><th style="width:30%">Désignation</th><th>Référence</th><th>Marque</th><th>Conditionnement / précision</th><th style="width:90px">Quantité</th><th style="width:110px">Unité</th><th></th></tr></thead>
+        <div class="gr gr-exist"><div class="gr-wrap"><table class="gr-t"><thead><tr><?php if ($trMarch): ?><th></th><?= $thTr ?><th></th><?php else: ?><th></th><th style="width:30%">Désignation</th><th>Référence</th><th>Marque</th><th>Conditionnement / précision</th><th style="width:90px">Quantité</th><th style="width:110px">Unité</th><th></th><?php endif; ?></tr></thead>
           <tbody>
           <?php foreach ($articles as $i => $a): $fa = 'art-form-' . $a['id'];
               $unitesLigne = $unitesArticle; if ($a['unite'] !== '' && !in_array($a['unite'], $unitesLigne, true)) { $unitesLigne[] = $a['unite']; };
@@ -293,11 +301,21 @@ $unitesArticle = \App\Models\Demande::UNITES;
             <tr data-type="article">
               <td class="no"><?= $i + 1 ?></td>
               <td class="c-des" data-label="Désignation"><input type="text" name="designation" value="<?= View::e($a['designation']) ?>" form="<?= $fa ?>" autocomplete="off"></td>
+              <?php if ($trMarch): ?>
+              <td data-label="Type de produit"><select name="type_produit_id" form="<?= $fa ?>"><?= $optType($a['type_produit_id'] ?? 0) ?></select></td>
+              <td data-label="Colis"><input type="number" min="0" step="1" name="colis" value="<?= View::e((string) ($a['colis'] ?? '')) ?>" form="<?= $fa ?>"></td>
+              <td data-label="Poids (kg)"><input type="number" step="0.01" name="quantite" value="<?= View::e((string) $a['quantite']) ?>" form="<?= $fa ?>"><input type="hidden" name="unite" value="kg" form="<?= $fa ?>"></td>
+              <td data-label="Volume (m³)"><input type="number" step="0.001" name="volume_m3" value="<?= View::e((string) ($a['volume_m3'] ?? '')) ?>" form="<?= $fa ?>"></td>
+              <td data-label="Conditionnement"><input type="text" name="conditionnement" value="<?= View::e($a['conditionnement'] ?? '') ?>" form="<?= $fa ?>" autocomplete="off"></td>
+              <td data-label="Conservation"><input type="text" name="caracteristiques" list="liste-conservation" value="<?= View::e($a['caracteristiques'] ?? '') ?>" form="<?= $fa ?>" autocomplete="off"></td>
+              <td data-label="Valeur déclarée"><input type="number" step="0.01" name="valeur_declaree" value="<?= View::e((string) ($a['valeur_declaree'] ?? '')) ?>" form="<?= $fa ?>"></td>
+              <?php else: ?>
               <td data-label="Référence"><input type="text" name="reference" value="<?= View::e($a['reference']) ?>" form="<?= $fa ?>" autocomplete="off"></td>
               <td data-label="Marque"><input type="text" name="marque" value="<?= View::e($a['marque']) ?>" form="<?= $fa ?>" autocomplete="off"></td>
               <td data-label="Conditionnement"><input type="text" name="conditionnement" value="<?= View::e($a['conditionnement'] ?? '') ?>" form="<?= $fa ?>" autocomplete="off"></td>
               <td data-label="Quantité"><input type="number" step="0.01" name="quantite" value="<?= View::e((string) $a['quantite']) ?>" form="<?= $fa ?>"></td>
               <td data-label="Unité"><select name="unite" form="<?= $fa ?>"><option value=""></option><?php foreach ($unitesLigne as $u): ?><option <?= $a['unite'] === $u ? 'selected' : '' ?>><?= View::e($u) ?></option><?php endforeach; ?></select></td>
+              <?php endif; ?>
               <td class="ac"><button type="submit" form="<?= $fa ?>" class="gr-save" title="Enregistrer cette ligne">&#10003;</button><?php if ($detailsArticle): ?><button type="button" class="gr-more" title="Détails : durée de vie, certificats, échantillon, notes" aria-expanded="<?= $detOuvert ? 'true' : 'false' ?>">&#8943;</button><?php endif; ?><button type="submit" form="<?= $fa ?>" formaction="/index.php?r=demandes/<?= $demande['id'] ?>/articles/<?= $a['id'] ?>/supprimer" title="Retirer" onclick="return confirm('Retirer cette ligne ?');">&times;</button></td>
             </tr>
             <?php if ($detailsArticle): ?>
@@ -334,28 +352,38 @@ $unitesArticle = \App\Models\Demande::UNITES;
       <?php endif; ?>
       <form method="post" action="/index.php?r=demandes/<?= $demande['id'] ?>/articles/lot" style="margin-top:16px">
         <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
-        <div style="font-weight:600;font-size:14px;margin-bottom:6px">Ajouter des articles</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:6px"><?= $trMarch ? 'Ajouter de la marchandise' : 'Ajouter des articles' ?></div>
         <div class="gr" data-grille>
           <div class="gr-bar">
-            <button type="button" class="btn btn-sm art-ajout" data-gr-add="article">+ Ajouter un article</button>
+            <button type="button" class="btn btn-sm art-ajout" data-gr-add="article"><?= $trMarch ? '+ Ajouter une ligne' : '+ Ajouter un article' ?></button>
             <button type="button" class="btn btn-sm btn-secondary" data-gr-add="note">+ Note</button>
           </div>
-          <div class="gr-wrap"><table class="gr-t"><thead><tr><th></th><th style="width:30%">Désignation</th><th>Référence</th><th>Marque</th><th>Conditionnement / précision</th><th style="width:90px">Quantité</th><th style="width:110px">Unité</th><th></th></tr></thead>
+          <div class="gr-wrap"><table class="gr-t"><thead><tr><?php if ($trMarch): ?><th></th><?= $thTr ?><th></th><?php else: ?><th></th><th style="width:30%">Désignation</th><th>Référence</th><th>Marque</th><th>Conditionnement / précision</th><th style="width:90px">Quantité</th><th style="width:110px">Unité</th><th></th><?php endif; ?></tr></thead>
             <tbody data-gr-body></tbody></table>
             <div class="gr-foot"><span data-gr-count>0 article</span><span>Tab : case suivante · Entrée : ligne suivante · coller depuis Excel possible</span></div></div>
           <template data-gr-tpl="article"><tr data-type="article">
             <td class="no" data-gr-no></td>
             <td class="c-des" data-label="Désignation"><input type="text" name="art_designation[]" autocomplete="off"><input type="hidden" name="art_type[]" value="article"></td>
+            <?php if ($trMarch): ?>
+            <td data-label="Type de produit"><select name="art_type_produit[]"><?= $optType(0) ?></select></td>
+            <td data-label="Colis"><input type="number" min="0" step="1" name="art_colis[]"></td>
+            <td data-label="Poids (kg)"><input type="number" step="0.01" name="art_quantite[]" data-gr-qte><input type="hidden" name="art_unite[]" value="kg"></td>
+            <td data-label="Volume (m³)"><input type="number" step="0.001" name="art_volume[]"></td>
+            <td data-label="Conditionnement"><input type="text" name="art_conditionnement[]" placeholder="ex. valise" autocomplete="off"></td>
+            <td data-label="Conservation"><input type="text" name="art_conservation[]" list="liste-conservation" placeholder="ex. Frais" autocomplete="off"></td>
+            <td data-label="Valeur déclarée"><input type="number" step="0.01" name="art_valeur[]"></td>
+            <?php else: ?>
             <td data-label="Référence"><input type="text" name="art_reference[]" autocomplete="off"></td>
             <td data-label="Marque"><input type="text" name="art_marque[]" autocomplete="off"></td>
             <td data-label="Conditionnement"><input type="text" name="art_conditionnement[]" placeholder="ex. sacs de 50 kg" autocomplete="off"></td>
             <td data-label="Quantité"><input type="number" step="0.01" name="art_quantite[]" data-gr-qte></td>
             <td data-label="Unité"><select name="art_unite[]"><option value="">—</option><?php foreach ($unitesArticle as $u): ?><option><?= $u ?></option><?php endforeach; ?></select></td>
+            <?php endif; ?>
             <td class="ac"><button type="button" data-gr-dup title="Dupliquer">&#10697;</button><button type="button" data-gr-del title="Retirer">&times;</button></td>
           </tr></template>
           <template data-gr-tpl="note"><tr data-type="note">
             <td class="no" data-gr-no>&#9998;</td>
-            <td colspan="6" class="c-note"><input type="text" name="art_designation[]" placeholder="Note libre : remarque, condition, précision…" autocomplete="off"><input type="hidden" name="art_type[]" value="note"><span data-gr-hidden hidden><input type="hidden" name="art_reference[]" value=""><input type="hidden" name="art_marque[]" value=""><input type="hidden" name="art_conditionnement[]" value=""><input type="hidden" name="art_quantite[]" value=""><input type="hidden" name="art_unite[]" value=""></span></td>
+            <?php if ($trMarch): ?><td colspan="8" class="c-note"><input type="text" name="art_designation[]" placeholder="Note libre : remarque, condition, précision…" autocomplete="off"><input type="hidden" name="art_type[]" value="note"><span data-gr-hidden hidden><input type="hidden" name="art_type_produit[]" value=""><input type="hidden" name="art_colis[]" value=""><input type="hidden" name="art_quantite[]" value=""><input type="hidden" name="art_unite[]" value=""><input type="hidden" name="art_volume[]" value=""><input type="hidden" name="art_conditionnement[]" value=""><input type="hidden" name="art_conservation[]" value=""><input type="hidden" name="art_valeur[]" value=""></span></td><?php else: ?><td colspan="6" class="c-note"><input type="text" name="art_designation[]" placeholder="Note libre : remarque, condition, précision…" autocomplete="off"><input type="hidden" name="art_type[]" value="note"><span data-gr-hidden hidden><input type="hidden" name="art_reference[]" value=""><input type="hidden" name="art_marque[]" value=""><input type="hidden" name="art_conditionnement[]" value=""><input type="hidden" name="art_quantite[]" value=""><input type="hidden" name="art_unite[]" value=""></span></td><?php endif; ?>
             <td class="ac"><button type="button" data-gr-del title="Retirer">&times;</button></td>
           </tr></template>
         </div>

@@ -163,6 +163,39 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
         <div class="form-group"><label>Lieu d'enlèvement</label><input type="text" name="lieu_enlevement" placeholder="Adresse ou ville d'enlèvement"></div>
         <div class="form-group"><label>Destination</label><input type="text" name="transport_destination" placeholder="Ville / pays de livraison"></div>
       </div>
+      <?php $trCreate = !$estModification && \App\Models\DemandeArticle::colonnesTransport(); $typesCreate = $trCreate && \App\Models\TypeProduit::disponible() ? \App\Models\TypeProduit::actifs((int) (\App\Core\Auth::user()['filiale_active_id'] ?? 0)) : []; ?>
+      <?php if ($trCreate): ?>
+      <div style="font-weight:600;font-size:14px;margin:6px 0">Marchandise à transporter</div>
+      <datalist id="liste-conservation"><option>Frais</option><option>Congelé</option><option>Fragile</option><option>Température ambiante</option></datalist>
+      <div class="gr" data-grille>
+        <div class="gr-bar"><button type="button" class="btn btn-sm art-ajout" data-gr-add="article">+ Ajouter une ligne</button><button type="button" class="btn btn-sm btn-secondary" data-gr-add="note">+ Note</button></div>
+        <div class="gr-wrap"><table class="gr-t"><thead><tr><th></th><th style="width:24%">Désignation</th><th>Type de produit</th><th style="width:70px">Colis</th><th style="width:90px">Poids (kg)</th><th style="width:90px">Volume (m³)</th><th>Conditionnement</th><th>Conservation</th><th style="width:100px">Valeur déclarée</th><th></th></tr></thead>
+          <tbody data-gr-body></tbody></table>
+          <div class="gr-foot"><span data-gr-count>0 article</span><span>Tab : case suivante · Entrée : ligne suivante · coller depuis Excel possible</span></div></div>
+        <template data-gr-tpl="article"><tr data-type="article">
+          <td class="no" data-gr-no></td>
+          <td class="c-des" data-label="Désignation"><input type="text" name="art_designation[]" autocomplete="off"><input type="hidden" name="art_type[]" value="article"></td>
+          <td data-label="Type de produit"><select name="art_type_produit[]"><option value="">—</option><?php foreach ($typesCreate as $t): ?><option value="<?= (int) $t['id'] ?>"><?= View::e($t['libelle']) ?></option><?php endforeach; ?></select></td>
+          <td data-label="Colis"><input type="number" min="0" step="1" name="art_colis[]"></td>
+          <td data-label="Poids (kg)"><input type="number" step="0.01" name="art_quantite[]" data-gr-qte><input type="hidden" name="art_unite[]" value="kg"></td>
+          <td data-label="Volume (m³)"><input type="number" step="0.001" name="art_volume[]"></td>
+          <td data-label="Conditionnement"><input type="text" name="art_conditionnement[]" placeholder="ex. valise" autocomplete="off"></td>
+          <td data-label="Conservation"><input type="text" name="art_conservation[]" list="liste-conservation" placeholder="ex. Frais" autocomplete="off"></td>
+          <td data-label="Valeur déclarée"><input type="number" step="0.01" name="art_valeur[]"></td>
+          <td class="ac"><button type="button" data-gr-dup title="Dupliquer">&#10697;</button><button type="button" data-gr-del title="Retirer">&times;</button></td>
+        </tr></template>
+        <template data-gr-tpl="note"><tr data-type="note">
+          <td class="no" data-gr-no>&#9998;</td>
+          <td colspan="8" class="c-note"><input type="text" name="art_designation[]" placeholder="Note libre : remarque, condition, précision…" autocomplete="off"><input type="hidden" name="art_type[]" value="note"><span data-gr-hidden hidden><input type="hidden" name="art_type_produit[]" value=""><input type="hidden" name="art_colis[]" value=""><input type="hidden" name="art_quantite[]" value=""><input type="hidden" name="art_unite[]" value=""><input type="hidden" name="art_volume[]" value=""><input type="hidden" name="art_conditionnement[]" value=""><input type="hidden" name="art_conservation[]" value=""><input type="hidden" name="art_valeur[]" value=""></span></td>
+          <td class="ac"><button type="button" data-gr-del title="Retirer">&times;</button></td>
+        </tr></template>
+      </div>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group"><label>Mode souhaité</label>
+          <select name="transport_mode"><option value="">À préciser</option><?php foreach (['Maritime', 'Aérien', 'Routier', 'Ferroviaire', 'Multimodal'] as $m): ?><option><?= $m ?></option><?php endforeach; ?></select>
+        </div>
+      </div>
+      <?php else: ?>
       <div class="form-group"><label>Marchandises à transporter</label><input type="text" name="marchandises" placeholder="Nature des marchandises"></div>
       <div class="form-row">
         <div class="form-group"><label>Poids estimé (kg)</label><input type="number" step="0.01" name="poids_estime"></div>
@@ -171,6 +204,7 @@ $retour = '/index.php?' . ($retourListeQuery ?: 'r=demandes');
           <select name="transport_mode"><option value="">À préciser</option><?php foreach (['Maritime', 'Aérien', 'Routier', 'Ferroviaire', 'Multimodal'] as $m): ?><option><?= $m ?></option><?php endforeach; ?></select>
         </div>
       </div>
+      <?php endif; ?>
       <div style="font-size:12px;color:#888">Toute donnée inconnue reste « À préciser » — ne rien inventer.</div>
     </div>
 

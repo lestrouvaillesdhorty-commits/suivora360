@@ -16,6 +16,11 @@ if ($trQte === null && $offreRetenue) { foreach (['m3', 'kg', 'colis'] as $u) { 
 $trModes = Expedition::MODES;
 $trQteTxt = $trQte !== null && $trQte !== '' ? rtrim(rtrim(number_format((float) $trQte, 3, '.', ''), '0'), '.') : '';
 ?>
+<?php
+$qA = ['kg' => 0.0, 'm3' => 0.0, 'colis' => 0.0];
+foreach (!empty($demande['id']) ? \App\Models\DemandeArticle::forDemande((int) $demande['id']) : [] as $ar) { if (strtolower((string) ($ar['unite'] ?? '')) === 'kg') { $qA['kg'] += (float) ($ar['quantite'] ?? 0); } $qA['m3'] += (float) ($ar['volume_m3'] ?? 0); $qA['colis'] += (float) ($ar['colis'] ?? 0); }
+$qA = array_map(fn($v) => $v > 0 ? rtrim(rtrim(number_format($v, 3, '.', ''), '0'), '.') : '', $qA);
+?>
 <div class="ex-transport" id="offre-tarif">
   <div class="ex-tr-titre"><b>Tarif connu ? Créer l'offre du transitaire en un clic</b><?php if ($trOk): ?><span class="badge badge-green">Enregistré</span><?php endif; ?></div>
   <?php if (!$trOk && $offreRetenue && (float) ($offreRetenue['transport_montant'] ?? 0) > 0): ?>
@@ -45,7 +50,7 @@ $trQteTxt = $trQte !== null && $trQte !== '' ? rtrim(rtrim(number_format((float)
   <script>
   (function () {
     var T = <?= json_encode($trTarifs) ?>, D = <?= json_encode(array_column($trListe, 'devise', 'id')) ?>, U = {m3: 'm³', kg: 'kg', colis: 'colis', palette: 'palettes'}, UP = {m3: 'au m³', kg: 'au kilo', colis: 'par colis', palette: 'par palette'};
-    var $ = function (i) { return document.getElementById(i); };
+    var QA = <?= json_encode($qA) ?>; var $ = function (i) { return document.getElementById(i); };
     var num = function (v) { var n = parseFloat(String(v).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? 0 : n; };
     var fmt = function (n) { return n.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
     function calc() {
@@ -53,11 +58,12 @@ $trQteTxt = $trQte !== null && $trQte !== '' ? rtrim(rtrim(number_format((float)
       liste.forEach(function (r) { if (r.mo === $('trM').value && r.f === $('trF').value) { if (r.d === d) { t = r; } else if (r.d === '') { tous = r; } } });
       t = t || tous;
       if (!t) { $('trTarif').value = $('trT').value ? 'Aucun tarif pour ce choix' : ''; $('trDetail').textContent = ''; $('trFinal').textContent = '—'; return; }
-      $('trTarif').value = fmt(t.m) + ' ' + UP[t.u]; $('trQLib').textContent = 'Quantité (' + U[t.u] + ')';
+      $('trTarif').value = fmt(t.m) + ' ' + UP[t.u]; $('trQLib').textContent = 'Quantité (' + U[t.u] + ')'; if (!$('trQ').dataset.manuel && QA[t.u]) { $('trQ').value = QA[t.u]; }
       var brut = Math.round(t.m * num($('trQ').value) * 100) / 100, pct = Math.min(100, Math.max(0, num($('trR').value))), rem = Math.round(brut * pct) / 100;
       $('trDetail').textContent = fmt(brut) + (rem ? ' − remise ' + fmt(rem) : '');
       $('trFinal').textContent = 'Montant final : ' + fmt(brut - rem) + ' ' + (D[$('trT').value] || '');
     }
+    $('trQ').addEventListener('input', function () { $('trQ').dataset.manuel = '1'; });
     ['trT', 'trM', 'trF', 'trD', 'trQ', 'trR'].forEach(function (i) { $(i).addEventListener('input', calc); $(i).addEventListener('change', calc); });
     calc();
   })();

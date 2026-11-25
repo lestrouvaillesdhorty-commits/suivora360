@@ -648,13 +648,18 @@ class DemandeController
                 DemandeArticle::creerNote($demandeId, $designation);
                 continue;
             }
-            DemandeArticle::create($demandeId, [
+            $nouvelId = DemandeArticle::create($demandeId, [
                 'designation' => $designation,
                 'quantite' => $post['art_quantite'][$i] ?? null,
                 'unite' => trim((string) ($post['art_unite'][$i] ?? '')),
                 'conditionnement' => trim((string) ($post['art_conditionnement'][$i] ?? '')),
                 'reference' => trim((string) ($post['art_reference'][$i] ?? '')),
                 'marque' => trim((string) ($post['art_marque'][$i] ?? '')),
+                'caracteristiques' => trim((string) ($post['art_conservation'][$i] ?? '')),
+            ]);
+            DemandeArticle::enregistrerTransport($nouvelId, [
+                'type_produit_id' => $post['art_type_produit'][$i] ?? null, 'colis' => $post['art_colis'][$i] ?? null,
+                'volume_m3' => $post['art_volume'][$i] ?? null, 'valeur_declaree' => $post['art_valeur'][$i] ?? null,
             ]);
         }
     }
@@ -850,7 +855,10 @@ class DemandeController
             'conditionnement' => trim($_POST['conditionnement'] ?? ''),
             'reference' => trim($_POST['reference'] ?? ''),
             'marque' => trim($_POST['marque'] ?? ''),
-        ]);
+        ] + (isset($_POST['caracteristiques']) ? ['caracteristiques' => $_POST['caracteristiques']] : []));
+        if (isset($_POST['colis']) || isset($_POST['type_produit_id'])) {
+            DemandeArticle::enregistrerTransport((int) $article['id'], $_POST);
+        }
         DemandeArticle::enregistrerDetails((int) $article['id'], $_POST);
         AuditLog::log((int) $demande['filiale_id'], (int) $user['id'], 'modification_article', 'demande', (int) $demande['id'], $designation);
         View::flash('succes', 'Article modifié.');

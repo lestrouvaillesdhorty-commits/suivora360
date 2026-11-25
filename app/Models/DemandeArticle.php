@@ -81,7 +81,7 @@ class DemandeArticle
     public static function update(int $id, array $data): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE demande_articles SET designation = ?, quantite = ?, unite = ?, conditionnement = ?, reference = ?, marque = ?, caracteristiques = ? WHERE id = ?'
+            'UPDATE demande_articles SET designation = ?, quantite = ?, unite = ?, conditionnement = ?, reference = ?, marque = ? WHERE id = ?'
         );
         $stmt->execute([
             $data['designation'],
@@ -90,8 +90,31 @@ class DemandeArticle
             $data['conditionnement'] ?? '',
             $data['reference'] ?? '',
             $data['marque'] ?? '',
-            $data['caracteristiques'] ?? '',
             $id,
+        ]);
+        // Les caractéristiques ne sont réécrites que si le formulaire les envoie (elles viennent aussi de l'extraction IA).
+        if (array_key_exists('caracteristiques', $data)) {
+            Database::connection()->prepare('UPDATE demande_articles SET caracteristiques = ? WHERE id = ?')->execute([mb_substr(trim((string) $data['caracteristiques']), 0, 255), $id]);
+        }
+    }
+
+    /** Les colonnes « marchandise à transporter » existent-elles (migration V83) ? */
+    public static function colonnesTransport(): bool
+    {
+        return \App\Core\Schema::colonne('demande_articles', 'colis') && \App\Core\Schema::colonne('demande_articles', 'valeur_declaree');
+    }
+
+    /** Champs propres au transport : type de produit, colis, volume, valeur déclarée. Ignoré tant que la migration V83 n'est pas passée. */
+    public static function enregistrerTransport(int $id, array $d): void
+    {
+        if (!self::colonnesTransport()) {
+            return;
+        }
+        $n = fn($v) => ($v === null || trim((string) $v) === '') ? null : (float) str_replace([' ', ','], ['', '.'], (string) $v);
+        $colis = $n($d['colis'] ?? null);
+        Database::connection()->prepare('UPDATE demande_articles SET type_produit_id = ?, colis = ?, volume_m3 = ?, valeur_declaree = ? WHERE id = ?')->execute([
+            (int) ($d['type_produit_id'] ?? 0) > 0 ? (int) $d['type_produit_id'] : null,
+            $colis !== null ? (int) $colis : null, $n($d['volume_m3'] ?? null), $n($d['valeur_declaree'] ?? null), $id,
         ]);
     }
 
