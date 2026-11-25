@@ -49,7 +49,7 @@ $typeDeduit = Dossier::deduireType($demande['activite'] ?? null);
         <select name="client_id">
           <option value="">— Prospect / non enregistré (<?= View::e($demande['expediteur_nom'] ?: 'sans nom') ?>) —</option>
           <?php foreach ($clients as $c): ?>
-            <option value="<?= $c['id'] ?>"><?= View::e($c['nom']) ?></option>
+            <option value="<?= $c['id'] ?>" <?= (int) ($demande['client_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= View::e($c['nom']) ?></option>
           <?php endforeach; ?>
         </select>
         <div style="font-size:12px;color:#888;margin-top:4px">Pas encore enregistré ? <a href="/index.php?r=clients/nouveau" target="_blank">Créer un client</a> puis revenez ici.</div>
@@ -72,16 +72,17 @@ $typeDeduit = Dossier::deduireType($demande['activite'] ?? null);
           <label>Pays de destination</label>
           <select name="destination_pays">
             <option value="">—</option>
+            <?php $paysListeQ = ['Cameroun', 'France', "Côte d'Ivoire", 'Sénégal', 'Mali', 'Togo', 'Bénin', 'Gabon', 'Congo (Brazzaville)', 'RD Congo', 'Nigeria', 'Ghana', 'Maroc', 'Tunisie', 'Algérie', 'Belgique', 'Allemagne', 'Chine']; if (!empty($demande['destination_pays']) && !in_array($demande['destination_pays'], $paysListeQ, true)) { echo '<option selected>' . View::e($demande['destination_pays']) . '</option>'; } ?>
             <?php foreach (['Cameroun', 'France', "Côte d'Ivoire", 'Sénégal', 'Mali', 'Togo', 'Bénin', 'Gabon', 'Congo (Brazzaville)', 'RD Congo', 'Nigeria', 'Ghana', 'Maroc', 'Tunisie', 'Algérie', 'Belgique', 'Allemagne', 'Chine', 'Émirats arabes unis', 'Inde', 'Turquie', 'États-Unis'] as $p): ?>
-              <option><?= View::e($p) ?></option>
+              <option <?= ($demande['destination_pays'] ?? '') === $p ? 'selected' : '' ?>><?= View::e($p) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
       </div>
 
-      <div class="form-group" data-type-champ="achat_sourcing">
+      <div class="form-group" data-type-champ="achat_sourcing,transport_logistique">
         <label>Lieu de livraison précis</label>
-        <input type="text" name="lieu_livraison" placeholder="Ex : Entrepôt Douala-Bassa, ou adresse du client">
+        <input type="text" name="lieu_livraison" value="<?= View::e((string) ($demande['lieu_livraison'] ?? '')) ?>" placeholder="Ex : Entrepôt Douala-Bassa, ou adresse du client">
       </div>
 
       <div class="form-row" data-type-champ="achat_sourcing">
@@ -90,7 +91,7 @@ $typeDeduit = Dossier::deduireType($demande['activite'] ?? null);
           <select name="incoterm_souhaite">
             <option value="">— Non précisé —</option>
             <?php foreach (Demande::INCOTERMS as $code => $label): ?>
-              <option value="<?= $code ?>"><?= View::e($label) ?></option>
+              <option value="<?= $code ?>" <?= ($demande['incoterm_souhaite'] ?? '') === (string) $code ? 'selected' : '' ?>><?= View::e($label) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -99,7 +100,7 @@ $typeDeduit = Dossier::deduireType($demande['activite'] ?? null);
           <select name="mode_paiement_souhaite">
             <option value="">— Non précisé —</option>
             <?php foreach (Demande::MODES_PAIEMENT as $code => $label): ?>
-              <option value="<?= $code ?>"><?= View::e($label) ?></option>
+              <option value="<?= $code ?>" <?= ($demande['mode_paiement_souhaite'] ?? '') === (string) $code ? 'selected' : '' ?>><?= View::e($label) ?></option>
             <?php endforeach; ?>
           </select>
         </div>

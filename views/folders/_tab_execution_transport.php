@@ -41,9 +41,9 @@ $notesSteps = array_filter($stepsT, fn($s) => trim((string) ($s['notes'] ?? ''))
   <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
     <div class="form-group"><label>Départ</label><input type="text" value="<?= View::e($o['lieu_depart'] ?? '') ?>" placeholder="Non renseigné" disabled></div>
     <div class="form-group"><label>Destination</label><input type="text" value="<?= View::e(trim(($demande['lieu_livraison'] ?? '') . (!empty($demande['destination_pays']) ? ', ' . $demande['destination_pays'] : ''), ', ')) ?>" placeholder="Non renseigné" disabled></div>
-    <div class="form-group"><label>Mode de transport</label><input type="text" value="<?= View::e($o['mode_transport'] ?? '') ?>" placeholder="Non renseigné" disabled></div>
+    <div class="form-group"><label>Mode de transport</label><input type="text" value="<?= View::e(!empty($dossier['colis_mode']) ? (\App\Models\Expedition::MODES[$dossier['colis_mode']] ?? '') : ($o['mode_transport'] ?? '')) ?>" placeholder="Non renseigné" disabled></div>
   </div>
-  <div class="hint">Lecture seule : départ, mode et marchandise viennent de l'offre retenue, la destination et le contact de la demande. Modifiez-les à cet endroit.</div>
+  <div class="hint">Lecture seule : départ, mode et marchandise viennent de l'offre retenue, la destination et le contact de la demande. Le suivi du colis (destination, mode, n° de suivi, dates) se modifie dans la carte « Suivi du colis » juste au-dessus.</div>
 </div>
 
 <div class="card" style="padding:0;overflow:hidden">
@@ -70,7 +70,7 @@ $notesSteps = array_filter($stepsT, fn($s) => trim((string) ($s['notes'] ?? ''))
   <div class="kv-row"><span class="label">Expédition prévue / réelle</span><span class="value"><?= $prevuReel($stepParCode['expedition'] ?? null) ?? $nd ?></span></div>
   <div class="kv-row"><span class="label">Transit (début → fin prévue)</span><span class="value"><?= ($commande && ($commande['date_transit_debut'] || $commande['date_transit_fin'])) ? ($fmtD($commande['date_transit_debut']) ?: '—') . ' → ' . ($fmtD($commande['date_transit_fin']) ?: '—') : $nd ?></span></div>
   <div class="kv-row"><span class="label">Livraison prévue / réelle</span><span class="value"><?= $prevuReel($stepParCode['livraison'] ?? null) ?? $nd ?></span></div>
-  <div class="kv-row"><span class="label">N° de tracking</span><span class="value"><?= !empty($commande['tracking_numero']) ? View::e($commande['tracking_numero']) : $nd ?></span></div>
+  <div class="kv-row"><span class="label">N° de tracking</span><span class="value"><?= !empty($dossier['colis_suivi']) ? View::e($dossier['colis_suivi']) : (!empty($commande['tracking_numero']) ? View::e($commande['tracking_numero']) : $nd) ?></span></div>
   <div class="kv-row"><span class="label">Coût transport (offre retenue)</span><span class="value"><?= !empty($o['transport_montant']) ? number_format((float) $o['transport_montant'], 0, ',', ' ') . ' ' . View::e($o['devise'] ?? '') : $nd ?></span></div>
   <div class="kv-row"><span class="label">Dédouanement</span><span class="value"><?php
     $dd = $stepParCode['douane'] ?? null;
