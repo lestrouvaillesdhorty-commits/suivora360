@@ -36,6 +36,7 @@ class AuditLog
         'creation_dossier' => 'Dossier créé',
         'maj_type_dossier' => 'Type de dossier modifié',
         'maj_etape_dossier' => 'Étape du dossier mise à jour',
+        'maj_suivi_colis' => 'Suivi du colis mis à jour',
         'annulation_dossier' => 'Dossier annulé',
         'reactivation_dossier' => 'Dossier réactivé',
         'maj_prestation_dossier' => 'Prestation mise à jour',

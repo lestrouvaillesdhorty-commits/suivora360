@@ -249,6 +249,6 @@ $_nbEt = count($_etapesAv);
 </div>
 <?php endif; ?>
 
-<?php if ($typeDossier === 'transport_logistique') { include __DIR__ . '/_tab_execution_transport.php'; } ?>
+<?php if ($typeDossier === 'transport_logistique') { try { include __DIR__ . '/_card_suivi_colis.php'; } catch (\Throwable $eSc) { } include __DIR__ . '/_tab_execution_transport.php'; } ?>
 <?php if ($typeDossier === 'achat_sourcing') { include __DIR__ . '/_tab_execution_sourcing.php'; } ?>
-<?php if ($typeDossier === 'transport_logistique') { try { include __DIR__ . '/_card_expedition.php'; } catch (\Throwable $eExp) { } } ?>
+<?php if ($typeDossier === 'transport_logistique') { echo '<details class="ex-manuel"><summary>Rattacher à un groupage (facultatif)</summary>'; try { include __DIR__ . '/_card_expedition.php'; } catch (\Throwable $eExp) { } echo '</details>'; } ?>

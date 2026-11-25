@@ -891,6 +891,37 @@ class DossierController
         exit;
     }
 
+    public function enregistrerSuiviColis(array $params): void
+    {
+        Auth::requireWrite();
+        $retour = '/index.php?r=dossiers/' . (int) $params['id'] . '&onglet=execution';
+        if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
+            header('Location: ' . $retour);
+            exit;
+        }
+        $dossier = Dossier::find((int) $params['id']);
+        if (!$dossier || !Dossier::userCanAccess(Auth::user(), $dossier)) {
+            http_response_code(404);
+            View::render('errors/404');
+            return;
+        }
+        Dossier::refuserSiAnnule($dossier);
+        if (!\App\Models\SuiviColis::disponible()) {
+            View::flash('erreur', 'Mise à jour de la base requise (migration V80).');
+            header('Location: ' . $retour);
+            exit;
+        }
+        $err = \App\Models\SuiviColis::enregistrer($dossier, $_POST);
+        if ($err) {
+            View::flash('erreur', $err);
+        } else {
+            AuditLog::log((int) $dossier['filiale_id'], (int) Auth::user()['id'], 'maj_suivi_colis', 'dossier', (int) $dossier['id']);
+            View::flash('succes', 'Suivi du colis enregistré : les étapes de la commande sont à jour.');
+        }
+        header('Location: ' . $retour);
+        exit;
+    }
+
     public function updateNotes(array $params): void
     {
         Auth::requireWrite();
