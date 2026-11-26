@@ -108,6 +108,7 @@ ob_start(); ?>
     <form method="post" action="/index.php?r=consultations/<?= (int) $consultation['id'] ?>/partages/<?= (int) $partage['id'] ?>/email" id="formEmailPartage">
       <input type="hidden" name="csrf_token" value="<?= View::e($csrfToken) ?>">
       <div class="form-group"><label for="emDest">Destinataire</label><input type="email" id="emDest" name="destinataire" value="<?= View::e($destEmail) ?>" placeholder="contact@fournisseur.com"></div>
+      <input type="hidden" name="langue" id="langueEnvoi" value="fr">
       <div class="form-group"><label for="emSujet">Objet</label><input type="text" id="emSujet" name="sujet" value="<?= View::e($sujetEmail) ?>"></div>
       <div class="form-group"><label for="emCorps">Message</label><textarea id="emCorps" name="corps" rows="9" style="font-size:13px"><?= View::e($corpsEmail) ?></textarea></div>
       <?php if ($mailServeurPret): ?>
@@ -246,6 +247,9 @@ foreach ($ordre as $i => $code):
     var v = V[lg.value + '_' + (lk.checked ? 'avec' : 'sans')];
     window.msgPartage = v;
     var e = encodeURIComponent, set = function (id, val) { var el = document.getElementById(id); if (el) el.value = val; };
+    set('langueEnvoi', lg.value);
+    var pdf = document.getElementById('lienPdf');
+    if (pdf) { pdf.href = pdf.href.replace(/([?&])lang=[a-z]+/, '').replace(/[?&]$/, '') + (lg.value === 'en' ? '&lang=en' : ''); }
     set('emSujet', v.sujet); set('emCorps', v.corps); set('waMsg', v.corps); set('autreMsg', v.corps);
     var b = document.getElementById('btnWhatsapp'), l = document.getElementById('btnWaLibre');
     if (b) b.href = 'https://wa.me/' + tel + '?text=' + e(v.corps);

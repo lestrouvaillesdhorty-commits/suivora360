@@ -406,7 +406,8 @@ class ConsultationController
         if ($d === null) {
             return;
         }
-        \App\Services\RecapPdf::sortir(\App\Services\RecapPdf::generer($d), \App\Services\RecapPdf::nomFichier($d['consultation']));
+        $lg = (($_GET['lang'] ?? '') === 'en') ? 'en' : 'fr';
+        \App\Services\RecapPdf::sortir(\App\Services\RecapPdf::generer($d, $lg), \App\Services\RecapPdf::nomFichier($d['consultation'], $lg));
     }
 
     /** PDF d'un lien déjà généré (mêmes réglages que le lien : client masqué, pièces, échéance). */
@@ -425,7 +426,8 @@ class ConsultationController
             View::render('errors/404');
             return;
         }
-        \App\Services\RecapPdf::sortir(\App\Services\RecapPdf::generer(PartagePublicController::donneesRecap($partage, $consultation, true)), \App\Services\RecapPdf::nomFichier($consultation));
+        $lg = (($_GET['lang'] ?? '') === 'en') ? 'en' : 'fr';
+        \App\Services\RecapPdf::sortir(\App\Services\RecapPdf::generer(PartagePublicController::donneesRecap($partage, $consultation, true), $lg), \App\Services\RecapPdf::nomFichier($consultation, $lg));
     }
 
     /** Aperçu du récapitulatif d'un lien déjà généré (ne compte pas comme une consultation). */
@@ -651,7 +653,8 @@ class ConsultationController
         $pieceJointe = null;
         if (!empty($_POST['joindre_pdf'])) {
             $recap = PartagePublicController::donneesRecap($partage, $consultation, true);
-            $pieceJointe = ['nom' => \App\Services\RecapPdf::nomFichier($consultation), 'contenu' => \App\Services\RecapPdf::generer($recap), 'type' => 'application/pdf'];
+            $lg = (($_POST['langue'] ?? '') === 'en') ? 'en' : 'fr';
+            $pieceJointe = ['nom' => \App\Services\RecapPdf::nomFichier($consultation, $lg), 'contenu' => \App\Services\RecapPdf::generer($recap, $lg), 'type' => 'application/pdf'];
         }
         if (!\App\Services\Mailer::envoyer($destinataire, $sujet, $corps, $user['email'] ?? null, $pieceJointe)) {
             View::flash('erreur', "L'envoi depuis Suivora n'a pas abouti (e-mail serveur non configuré ?). Utilisez « Ouvrir dans ma messagerie ».");
