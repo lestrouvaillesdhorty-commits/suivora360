@@ -120,7 +120,7 @@ if ($retenuesDossier):
   <div class="card" style="padding:0;overflow:hidden;margin-top:14px">
     <div class="table-scroll">
     <table class="dtable">
-      <thead><tr><th>Fournisseur</th><th>Référence offre</th><th>Version</th><th>Lignes</th><th>Prix total</th><th>Devise</th><th>Transport inclus</th><th>Délai</th><th>Validité</th><th>Documents</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Fournisseur</th><th>Référence offre</th><th>Version</th><th>Lignes</th><th>Prix total</th><th>Transport inclus</th><th>Délai</th><th>Validité</th><th>Documents</th><th>Actions</th></tr></thead>
       <tbody>
         <?php foreach ($offres as $o): ?>
           <?php
@@ -131,11 +131,10 @@ if ($retenuesDossier):
             <td class="row-title"><?= View::e($o['fournisseur_nom']) ?>
               <?php if (!empty($o['source_type'])): ?><br><span class="badge badge-gray"><?= View::e(Offre::SOURCES[$o['source_type']] ?? 'Saisie manuelle') ?></span><?php if (!empty($o['source_url']) && preg_match('#^https?://#i', $o['source_url'])): ?> <a href="<?= View::e($o['source_url']) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px">Voir le produit ↗</a><?php endif; ?>
               <?php if (!empty($o['source_date'])): ?><br><span style="font-size:12px;color:#6b7280">Prix consulté le <?= date('d/m/Y', strtotime($o['source_date'])) ?></span><?php endif; elseif (!empty($o['source_url']) && preg_match('#^https?://#i', $o['source_url'])): ?><br><a href="<?= View::e($o['source_url']) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px">Voir le produit ↗</a><?php endif; ?></td>
-            <td><?= View::e($o['reference']) ?></td>
+            <td style="white-space:nowrap"><?= View::e($o['reference']) ?></td>
             <td>v<?= (int) $o['version'] ?></td>
             <td><?= $nbLignes ?></td>
-            <td style="font-weight:700"><?php $ct = Offre::coutRendu($o); $avecFrais = $ct > (float) $o['montant_total'] + 0.004; ?><?= number_format($ct, 2, ',', ' ') ?><?php if ($avecFrais): ?><div style="font-size:11.5px;font-weight:500;color:#555">dont marchandises <?= number_format((float) $o['montant_total'], 2, ',', ' ') ?> + frais <?= number_format($ct - (float) $o['montant_total'], 2, ',', ' ') ?></div><?php endif; ?></td>
-            <td><?= View::e($o['devise'] ?: '—') ?></td>
+            <td style="font-weight:700;white-space:nowrap"><?php $ct = Offre::coutRendu($o); $avecFrais = $ct > (float) $o['montant_total'] + 0.004; ?><?= number_format($ct, 2, ',', ' ') ?> <span style="font-weight:600;color:#555"><?= View::e($o['devise'] ?: '') ?></span><?php if ($avecFrais): ?><div style="font-size:11.5px;font-weight:500;color:#555">dont marchandises <?= number_format((float) $o['montant_total'], 2, ',', ' ') ?> + frais <?= number_format($ct - (float) $o['montant_total'], 2, ',', ' ') ?></div><?php endif; ?></td>
             <td>
               <?php if ($transportInclus === true): ?>
                 <span class="badge badge-green">Oui — <?= View::e($o['incoterm_negocie']) ?></span>
@@ -146,17 +145,17 @@ if ($retenuesDossier):
               <?php endif; ?>
             </td>
             <td><?= $o['delai_livraison'] ? View::e($o['delai_livraison']) : '—' ?></td>
-            <td><?= $o['validite_offre'] ? date('d/m/Y', strtotime($o['validite_offre'])) : '—' ?></td>
+            <td style="white-space:nowrap"><?= $o['validite_offre'] ? date('d/m/Y', strtotime($o['validite_offre'])) : '—' ?></td>
             <td data-label="Documents">
               <?php $pjOffre = $piecesParOffre[(int) $o['id']] ?? []; ?>
               <?php if (!$pjOffre): ?><span style="color:#9ca3af;font-style:italic">—</span>
               <?php else: foreach ($pjOffre as $pj): ?>
-                <div style="margin-bottom:3px"><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>/pieces/<?= (int) $pj['id'] ?>/telecharger<?= \App\Core\Storage::estPrevisualisable((string) $pj['type_mime']) ? '&apercu=1' : '' ?>" target="_blank" rel="noopener" style="font-size:12px;word-break:break-all"><?= \App\Core\Icon::svg('paperclip', 'icon', 12) ?> <?= View::e(mb_strimwidth((string) $pj['nom_original'], 0, 28, '…')) ?></a></div>
+                <div style="margin-bottom:3px"><a href="/index.php?r=dossiers/<?= (int) $o['dossier_id'] ?>/pieces/<?= (int) $pj['id'] ?>/telecharger<?= \App\Core\Storage::estPrevisualisable((string) $pj['type_mime']) ? '&apercu=1' : '' ?>" target="_blank" rel="noopener" style="font-size:12px;white-space:nowrap"><?= \App\Core\Icon::svg('paperclip', 'icon', 12) ?> <?= View::e(mb_strimwidth((string) $pj['nom_original'], 0, 18, '…')) ?></a></div>
               <?php endforeach; endif; ?>
             </td>
-            <td>
+            <td style="white-space:nowrap">
               <?php if (\App\Core\Auth::canWrite() && $o['statut'] !== 'retenue'): ?><a href="/index.php?r=offres/<?= (int) $o['id'] ?>/modifier" class="btn btn-sm btn-secondary" title="Modifier">Modifier</a><?php endif; ?>
-              <a href="/index.php?r=consultations/<?= $o['consultation_id'] ?>/offres/nouvelle&version_de=<?= $o['id'] ?>" class="btn btn-sm btn-secondary">+ Nouvelle version</a>
+              <a href="/index.php?r=consultations/<?= $o['consultation_id'] ?>/offres/nouvelle&version_de=<?= $o['id'] ?>" class="btn btn-sm btn-secondary" style="margin-top:4px">+ Nouvelle version</a>
               <?php if ($o['statut'] === 'retenue' && \App\Core\Auth::canVoirFinancesFournisseur() && \App\Models\BonCommandeFournisseur::schemaPret()):
                 $bonOffre = \App\Models\BonCommandeFournisseur::actifPourOffre((int) $o['id']); ?>
                 <?php if ($bonOffre): ?><a href="/index.php?r=bons-commande/<?= (int) $bonOffre['id'] ?>" class="btn btn-sm btn-secondary">Bon <?= View::e($bonOffre['reference']) ?></a>
