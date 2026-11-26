@@ -270,6 +270,16 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
   var tot = document.querySelector('[name="montant_total"]'), body = document.getElementById('items-body');
   var auto = !tot.value;
   tot.addEventListener('input', function () { auto = false; });
+  function somme() {
+    var s = 0, n = 0;
+    body.querySelectorAll('tr').forEach(function (tr) {
+      var q = parseFloat(tr.querySelector('[name="item_quantite[]"]').value), p = parseFloat(tr.querySelector('[name="item_prix_unitaire[]"]').value);
+      if (!isNaN(q) && !isNaN(p)) { s += q * p; n++; }
+    });
+    return n ? Math.round(s * 100) / 100 : null;
+  }
+  // En modification : le total reste automatique s'il correspondait déjà à la somme des lignes (il suit alors vos changements).
+  if (!auto) { var s0 = somme(), t0 = parseFloat(tot.value); if (s0 !== null && !isNaN(t0) && Math.abs(s0 - t0) < 0.02) { auto = true; } }
   function calc() {
     var s = 0, n = 0;
     body.querySelectorAll('tr').forEach(function (tr) {
