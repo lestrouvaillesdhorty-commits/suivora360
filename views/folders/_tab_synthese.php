@@ -38,10 +38,11 @@ $tuile = function (?float $enRef, ?float $enDevis, string $suffixe = '') use ($r
     return [$fm($enRef, $ref) . $suffixe, $sous];
 };
 $vRef = fn($x) => $tauxRefVersDevis > 0 ? $x * $tauxRefVersDevis : null;
-$achatRef = $offreRetenue ? (float) $offreRetenue['montant_total'] : null;
-$trRefMontant = null;
+$trRefMontant = null; $trDansTuile = false;
 if (!empty($dossier['tr_montant']) && (($dossier['tr_devise'] ?? $ref) === $ref || ($dossier['tr_devise'] ?? '') === '')) { $trRefMontant = (float) $dossier['tr_montant']; }
-elseif ($offreRetenue && (float) ($offreRetenue['transport_montant'] ?? 0) > 0) { $trRefMontant = (float) $offreRetenue['transport_montant']; }
+elseif ($offreRetenue && (float) ($offreRetenue['transport_montant'] ?? 0) > 0) { $trRefMontant = (float) $offreRetenue['transport_montant']; $trDansTuile = true; }
+// Coût d'achat = prix des marchandises + frais saisis sur l'offre (assurance, emballage, douane…). Le transport de l'offre reste dans sa propre tuile.
+$achatRef = $offreRetenue ? \App\Models\Offre::coutRendu($offreRetenue) - ($trDansTuile ? (float) $offreRetenue['transport_montant'] : 0) : null;
 $venteDevis = $cotation ? (float) ($cotation['montant_ht'] ?? $cotation['montant_total']) : null;
 $venteRef = $venteDevis !== null ? ($devDevis === $ref ? $venteDevis : $versRef($venteDevis)) : null;
 $margeDevis = ($cotation && $cotation['marge_montant'] !== null) ? (float) $cotation['marge_montant'] : null;

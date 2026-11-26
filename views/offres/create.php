@@ -437,9 +437,9 @@ $v = fn(string $champ) => $offrePrecedente[$champ] ?? '';
   function maj() {
     var v = document.querySelector('input[name="transport_qui"]:checked'); v = v ? v.value : 'inconnu';
     var ligne = document.getElementById('tp-ligne'), nom = document.getElementById('tp-nom'); if (nom) { nom.style.display = v === 'transitaire' ? '' : 'none'; }
-    if (v === 'fournisseur') { info.textContent = 'Rien à ajouter : le transport est déjà dans le prix du fournisseur.'; ligne.style.display = 'none'; champ.value = ''; }
-    else if (v === 'transitaire') { info.textContent = 'Indiquez le coût du transitaire (dans la devise de l\'offre) : il sera réparti sur chaque article.'; ligne.style.display = ''; lab.textContent = 'Transport du transitaire'; }
-    else { info.textContent = 'Vous pourrez ajouter le transport plus tard, depuis la page de cotation (encart « Frais de transport »).'; ligne.style.display = ''; lab.textContent = 'Expédition jusqu\'à la destination finale (si connue)'; }
+    if (v === 'fournisseur') { info.textContent = 'Rien à ajouter : le transport est déjà dans le prix du fournisseur.'; champ.closest('.form-group').style.display = 'none'; champ.value = ''; }
+    else if (v === 'transitaire') { info.textContent = 'Indiquez le coût du transitaire (dans la devise de l\'offre) : il sera réparti sur chaque article.'; champ.closest('.form-group').style.display = ''; lab.textContent = 'Transport du transitaire'; }
+    else { info.textContent = 'Vous pourrez ajouter le transport plus tard, depuis la page de cotation (encart « Frais de transport »).'; champ.closest('.form-group').style.display = ''; lab.textContent = 'Expédition jusqu\'à la destination finale (si connue)'; }
     champ.dispatchEvent(new Event('input', { bubbles: true }));
   }
   radios.forEach(function (r) { r.addEventListener('change', maj); });
